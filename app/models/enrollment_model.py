@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
+from app.models.attendance_model import Attendance
 
 class Enrollment(Base):
     __tablename__ = "enrollments"
@@ -19,4 +20,5 @@ class Enrollment(Base):
 
     student: Mapped["Student"] = relationship("Student", back_populates="enrollments")
     section: Mapped["Section"] = relationship("Section", back_populates="enrollments")
-    attendaces: Mapped[list["Attendance"]] = relationship("Attendance", back_populates="enrollment")
+    attendances: Mapped[list["Attendance"]] = relationship("Attendance", back_populates="enrollment")
+    grades: Mapped[list["Grade"]] = relationship("Grade", back_populates="enrollment")
