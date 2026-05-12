@@ -1,31 +1,28 @@
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 
-class TeacherCreate(BaseModel):
+class TeacherBase(BaseModel):
     first_name:str
     last_name:str
     specialty:str
     email: EmailStr
     telephone: str
     address: str
-    activer: bool = True
+    active: bool = True
+
+class TeacherCreate(TeacherBase):
+    pass
 
 class TeacherUptade(BaseModel):
-    first_name:str | None = None
-    last_name:str | None = None
-    specialty:str | None = None
-    email: EmailStr | None = None
-    telephone: str | None = None
-    address: str | None = None
-    activer: bool | None = None
+    first_name:Optional[str] = None
+    last_name:Optional[str] = None
+    specialty:Optional[str] = None
+    email: Optional[EmailStr] = None
+    telephone: Optional[str] = None
+    address: Optional[str] = None
+    active: Optional[bool] = None
 
-class TeacherOut(BaseModel):
-    first_name:str
-    last_name:str
-    specialty:str
-    email: EmailStr
-    telephone: str
-    address: str
-    activer: bool
-    
+class TeacherOut(TeacherBase):
+    teacher_id: int
     class Config:
         from_attributes = True

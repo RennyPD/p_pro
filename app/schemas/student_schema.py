@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 
-class StudentCreate(BaseModel):
+class StudentBase(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
@@ -10,26 +11,21 @@ class StudentCreate(BaseModel):
     career_id: int
     active: bool = True
 
-class StudentUpdate(BaseModel):
-    first_name: str | None = None
-    last_name: str | None = None
-    email: EmailStr | None = None
-    enrollment_number: str | None = None
-    telephone: str | None = None
-    address: str | None = None
-    career_id: int | None = None
-    active: bool | None = None
+class StudentCreate(StudentBase):
+    pass
 
-class StudentOut(BaseModel):
+class StudentUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: EmailStr | None = None
+    enrollment_number: Optional[str] = None
+    telephone: Optional[str] = None
+    address: Optional[str] = None
+    career_id: Optional[str] = None
+    active: Optional[bool] = None
+
+class StudentOut(StudentBase):
     student_id: int
-    first_name: str
-    last_name: str
-    email: EmailStr
-    enrollment_number: str
-    telephone: str
-    address: str
-    active: bool
-    career_id: int
 
     class Config:
         from_attributes = True    
