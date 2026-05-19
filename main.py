@@ -3,6 +3,8 @@ from app.db.database import engine, Base
 from app.routers.student_router import (router as student_router)
 from app.routers.teacher_router import (router as teacher_router)
 from app.routers.section_router import (router as section_router)
+from app.routers.subject_router import (router as subject_router)
+from app.routers.user_router import (router as user_router)
 
 from app.models import *
 
@@ -12,3 +14,5 @@ app = FastAPI()
 app.include_router(student_router)
 app.include_router(teacher_router)
 app.include_router(section_router)
+app.include_router(subject_router)
+app.include_router(user_router)

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db.Sesssion import get_db
+from app.db.Session import get_db
 
 from app.schemas.section_schema import (
     SectionUpdate,
