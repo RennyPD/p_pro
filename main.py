@@ -8,6 +8,9 @@ from app.routers.user_router import (router as user_router)
 from app.routers.enrollment_router import (router as enrollment_router)
 from app.routers.role_router import (router as role_router)
 from app.routers.grade_router import (router as grade_router)
+from app.routers.career_router import (router as career_router)
+from app.routers.attendance_router import (router as attendance_router)
+
 
 from app.models import *
 
@@ -22,3 +25,5 @@ app.include_router(user_router)
 app.include_router(enrollment_router)
 app.include_router(role_router)
 app.include_router(grade_router)
+app.include_router(career_router)
+app.include_router(attendance_router)

@@ -1,0 +1,36 @@
+fecha: 2026-04-30
+---
+
+# 📌 Untitled
+
+## 🧾 Descripción
+Es un sistema de gestion que apunta al sector educativo.
+
+## 🎯 Objetivo
+Es un proyecto personal de practica y tambien para mi portafolio.
+
+## 🧠 Tecnologías
+- fast api(Backend)
+- React(frontend)
+## 🚀 Funcionalidades
+- [ ] Poder agregar, editar, eliminar estudiantes y asignarle una matricula segun el formato elegido por quien opera la herramienta. ✓
+- [ ] Poder agregar, editar, eliminar maestros. ✓
+- [ ] Poder agregar, editar, eliminar secciones. ✓
+- [ ] Asignar notas a los estudiantes.✓
+- [ ] Poder ver historico de notas por estudiante.✓
+- [ ] Que el maestro pueda pasar lista segun la seccion que le toque y que tenga asignada.✓
+- [ ] Seleccion de asignaturas.✓
+- [ ] Agregar, editar, eliminar asignaturas.✓
+- [ ] Poder realizar pagos.
+- [ ] Asignarle al estudiante balance, fecha de corte, fecha limite segun quien opera la herramienta.
+- [ ] Poder ver horarios en funcion a la materias asignadas o a las materias escogidas.
+- [ ] En caso de universidad poder agregar pensums y que el estudiante pueda ver las materias que ha cursado y las que le faltan.
+- [ ] Inscribir estudiantes en secciones/materias✓
+- [ ] Login(JWT)
+- [ ] Agregar roles Admin, Maestro, Estudiante
+## 🐞 Problemas
+- El proyecto es muy complejo para hacerlo todo de golpe.
+
+## ✅ Soluciones
+- Se hara por modulos poco a poco.
+

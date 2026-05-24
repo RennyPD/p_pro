@@ -50,16 +50,17 @@ def update_subject_service(db:Session, subject_id: int, subject_data: SubjectUpd
     
     return subject
 
-def delete_subject_service(db:Session, subject_id: int):
+def delete_subject_service(db: Session, subject_id: int):
 
     subject = delete_subject(db, subject_id)
 
     if not subject:
+        print("404")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Subject not found"
         )
-    
+
     return {
         "message": "Subject deleted successfully"
     }
