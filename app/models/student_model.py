@@ -1,5 +1,6 @@
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.db.database import Base
 
 
@@ -17,7 +18,4 @@ class Student(Base):
     career_id: Mapped[int] = mapped_column(ForeignKey("careers.career_id"))
 
     career: Mapped["Career"] = relationship("Career", back_populates="students")
-    enrollments: Mapped[list["Enrollment"]] = relationship(
-    "Enrollment",
-    back_populates="student"
-    )
+    enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="student")

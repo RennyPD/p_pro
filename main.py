@@ -1,19 +1,47 @@
 from fastapi import FastAPI
-from app.db.database import engine, Base
-from app.routers.student_router import (router as student_router)
-from app.routers.teacher_router import (router as teacher_router)
-from app.routers.section_router import (router as section_router)
-from app.routers.subject_router import (router as subject_router)
-from app.routers.user_router import (router as user_router)
-from app.routers.enrollment_router import (router as enrollment_router)
-from app.routers.role_router import (router as role_router)
-from app.routers.grade_router import (router as grade_router)
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from app.db.database import settings
 from app.models import *
-
-Base.metadata.create_all(bind=engine)
+from app.routers.academic_router import router as academic_router
+from app.routers.attendance_router import router as attendance_router
+from app.routers.auth_router import router as auth_router
+from app.routers.career_router import router as career_router
+from app.routers.enrollment_router import router as enrollment_router
+from app.routers.grade_router import router as grade_router
+from app.routers.role_router import router as role_router
+from app.routers.section_router import router as section_router
+from app.routers.student_router import router as student_router
+from app.routers.subject_router import router as subject_router
+from app.routers.teacher_router import router as teacher_router
+from app.routers.user_router import router as user_router
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in settings.cors_origins.split(",")],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.exception_handler(IntegrityError)
+def handle_integrity_error(_request, _exc):
+    return JSONResponse(status_code=409, content={"detail": "Database constraint conflict"})
+
+
+@app.exception_handler(SQLAlchemyError)
+def handle_database_error(_request, _exc):
+    return JSONResponse(status_code=500, content={"detail": "Database operation failed"})
+
+
+app.include_router(auth_router)
+app.include_router(career_router)
+app.include_router(attendance_router)
+app.include_router(academic_router)
 app.include_router(student_router)
 app.include_router(teacher_router)
 app.include_router(section_router)

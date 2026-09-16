@@ -1,5 +1,7 @@
-from pydantic import BaseModel, EmailStr
 from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr
+
 
 class StudentBase(BaseModel):
     first_name: str
@@ -11,8 +13,10 @@ class StudentBase(BaseModel):
     career_id: int
     active: bool = True
 
+
 class StudentCreate(StudentBase):
     pass
+
 
 class StudentUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -21,11 +25,10 @@ class StudentUpdate(BaseModel):
     enrollment_number: Optional[str] = None
     telephone: Optional[str] = None
     address: Optional[str] = None
-    career_id: Optional[str] = None
+    career_id: Optional[int] = None
     active: Optional[bool] = None
+
 
 class StudentOut(StudentBase):
     student_id: int
-
-    class Config:
-        from_attributes = True    
+    model_config = ConfigDict(from_attributes=True)

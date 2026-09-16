@@ -1,10 +1,15 @@
 from sqlalchemy.orm import Session
+
 from app.models.user_model import User
 from app.schemas.user_schema import UserCreate, UserUpdate
+from app.security import hash_password
+
 
 def create_user(db: Session, user_data: UserCreate) -> User:
 
-    new_user = User(**user_data.model_dump())
+    data = user_data.model_dump()
+    data["password"] = hash_password(data["password"])
+    new_user = User(**data)
 
     db.add(new_user)
     db.commit()
@@ -12,11 +17,14 @@ def create_user(db: Session, user_data: UserCreate) -> User:
 
     return new_user
 
+
 def get_users(db: Session) -> list[User]:
     return db.query(User).all()
 
+
 def get_user_by_id(db: Session, user_id: int) -> User:
     return db.query(User).filter(User.user_id == user_id).first()
+
 
 def update_user(db: Session, user_id: int, user_data: UserUpdate) -> User:
 
@@ -24,10 +32,11 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate) -> User:
 
     if not user:
         return None
-    
-    update_data = user_data.model_dump(
-        exclude_unset=True
-    )
+
+    update_data = user_data.model_dump(exclude_unset=True)
+
+    if "password" in update_data:
+        update_data["password"] = hash_password(update_data["password"])
 
     for key, value in update_data.items():
         setattr(user, key, value)
@@ -36,6 +45,7 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate) -> User:
     db.refresh(user)
 
     return user
+
 
 def delete_user(db: Session, user_id: int) -> bool:
 
@@ -47,5 +57,4 @@ def delete_user(db: Session, user_id: int) -> bool:
     db.delete(user)
     db.commit()
 
-    return True    
-
+    return True

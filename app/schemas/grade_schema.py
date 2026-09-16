@@ -1,23 +1,26 @@
-from pydantic import BaseModel
 from typing import Optional
 
+from pydantic import BaseModel, ConfigDict, Field
+
+
 class GradeBase(BaseModel):
-    enrollmnent_id: int
-    grade_value: float
+    enrollment_id: int
+    grade_value: float = Field(ge=0, le=100)
     grade_type: str
     date_recorded: str
+
 
 class GradeCreate(GradeBase):
     pass
 
+
 class GradeUpdate(BaseModel):
-    enrollmnent_id: Optional[int] = None
-    grade_value: Optional[float] = None
+    enrollment_id: Optional[int] = None
+    grade_value: Optional[float] = Field(default=None, ge=0, le=100)
     grade_type: Optional[str] = None
     date_recorded: Optional[str] = None
 
+
 class GradeOut(GradeBase):
     grade_id: int
-
-    class Config:
-        from_attributes = True    
+    model_config = ConfigDict(from_attributes=True)

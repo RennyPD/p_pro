@@ -1,0 +1,92 @@
+# p_pro backend
+
+Backend educativo en FastAPI y SQLAlchemy. Esta etapa usa SQLite por defecto y deja preparada la configuración para cambiar de base de datos mediante `DATABASE_URL`.
+
+## Requisitos
+
+- Python 3.11 o posterior
+- Un entorno virtual de Python
+
+## Instalación
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+La configuración predeterminada usa `sqlite:///./school.db`. Para otra base de datos, modifica `DATABASE_URL` en `.env` e instala el controlador correspondiente.
+
+## Ejecución
+
+```powershell
+uvicorn main:app --reload
+```
+
+La documentación interactiva estará en `http://127.0.0.1:8000/docs`.
+
+### Frontend React
+
+```powershell
+Set-Location frontend
+npm install
+Copy-Item .env.example .env
+npm run dev
+```
+
+El panel estará en `http://localhost:5173`. Incluye inicio de sesión y vistas adaptadas para administración, docentes y estudiantes. Para compilar producción usa `npm run build`.
+
+## Autenticación y roles
+
+Antes de crear usuarios, define un `SECRET_KEY` largo y aleatorio en `.env`.
+
+1. En una instalación sin usuarios, llama una sola vez a `POST /auth/bootstrap` para crear el administrador inicial.
+2. Inicia sesión mediante `POST /auth/login` usando nombre de usuario o correo y contraseña.
+3. Envía el token devuelto como `Authorization: Bearer <token>`.
+
+Los administradores gestionan catálogos, personas, inscripciones, roles y usuarios. Docentes y administradores pueden registrar notas. Las consultas generales requieren autenticación. Las contraseñas se almacenan con `scrypt` y nunca se incluyen en las respuestas.
+
+Además, estudiantes solo pueden consultar su expediente, horario, notas y asistencia. Docentes solo acceden a estudiantes, inscripciones, notas y asistencias pertenecientes a sus secciones.
+
+## Consultas académicas
+
+- `GET /academic/students/{id}/grades`: historial de notas, con filtro por período.
+- `GET /academic/students/{id}/schedule`: horario del estudiante.
+- `GET /academic/teachers/{id}/schedule`: horario del docente.
+- `GET /academic/sections/{id}/students`: estudiantes inscritos por sección.
+- `/attendances`: CRUD de asistencia sujeto al ámbito del docente.
+
+Los listados aceptan paginación mediante `skip` y `limit`; los catálogos y personas incluyen `q`, mientras inscripciones y notas ofrecen filtros propios.
+
+## Pruebas
+
+Las pruebas CRUD usan una base SQLite temporal en memoria y no modifican `school.db`:
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+La verificación completa ejecuta lint, formato, cobertura, pruebas, Alembic y frontend:
+
+```powershell
+.\scripts\check.ps1
+```
+
+La misma verificación está configurada en `.github/workflows/backend-quality.yml`.
+
+## Migraciones
+
+Alembic está configurado para leer la misma `DATABASE_URL` de la aplicación.
+
+- Base nueva y vacía: `alembic upgrade head`
+- Base existente creada antes de Alembic: respáldala, verifica que su esquema coincida y ejecuta `alembic stamp head` una sola vez.
+- Nueva migración: `alembic revision --autogenerate -m "descripcion"`
+
+No ejecutes `upgrade head` sobre una base existente sin revisar primero el estado: la migración inicial crea todas las tablas.
+
+`school.db` permanece versionado y `.gitignore` evita añadir nuevas bases locales no rastreadas. Antes de registrar las revisiones de Alembic se creó `school.db.bak`, ignorada por Git, como copia de seguridad local.
+
+### Estado de la base incluida
+
+La base incluida fue actualizada hasta `20260916_0003`. La migración creó la carrera temporal `Sin asignar` con identificador `0`, con lo que los dos estudiantes históricos conservan su referencia y vuelven a cumplir la integridad referencial. Deben reclasificarse cuando se conozca su carrera real. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`.

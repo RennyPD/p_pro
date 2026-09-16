@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+school.db
+*.db.bak
+*.db-journal
+frontend/node_modules/
+frontend/dist/

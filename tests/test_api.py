@@ -1,0 +1,406 @@
+import unittest
+
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.db.database import Base
+from app.db.Session import get_db
+from app.models import *  # noqa: F403 - registers all tables
+from main import app
+
+
+class ApiIntegrationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.engine = create_engine(
+            "sqlite://",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+
+        @event.listens_for(cls.engine, "connect")
+        def enable_foreign_keys(connection, _record):
+            connection.execute("PRAGMA foreign_keys=ON")
+
+        cls.Session = sessionmaker(bind=cls.engine)
+
+        def override_db():
+            db = cls.Session()
+            try:
+                yield db
+            except Exception:
+                db.rollback()
+                raise
+            finally:
+                db.close()
+
+        app.dependency_overrides[get_db] = override_db
+        cls.client = TestClient(app)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        app.dependency_overrides.clear()
+        cls.engine.dispose()
+
+    def setUp(self) -> None:
+        Base.metadata.create_all(self.engine)
+
+    def tearDown(self) -> None:
+        Base.metadata.drop_all(self.engine)
+
+    def request(self, method: str, path: str, token: str | None = None, **kwargs):
+        headers = kwargs.pop("headers", {})
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return self.client.request(method, path, headers=headers, **kwargs)
+
+    def bootstrap(self) -> tuple[str, dict]:
+        response = self.request(
+            "POST",
+            "/auth/bootstrap",
+            json={
+                "username": "admin",
+                "email": "admin@example.com",
+                "password": "strong-password",
+            },
+        )
+        self.assertEqual(response.status_code, 201, response.text)
+        self.assertNotIn("password", response.json()["user"])
+        return response.json()["access_token"], response.json()["user"]
+
+    def test_full_crud_auth_validation_and_constraints(self) -> None:
+        self.assertEqual(self.request("GET", "/students/").status_code, 401)
+        token, admin = self.bootstrap()
+        self.assertEqual(
+            self.request(
+                "POST",
+                "/auth/bootstrap",
+                json={
+                    "username": "other",
+                    "email": "other@example.com",
+                    "password": "password-2",
+                },
+            ).status_code,
+            409,
+        )
+
+        login = self.request(
+            "POST",
+            "/auth/login",
+            json={
+                "username": "admin",
+                "password": "strong-password",
+            },
+        )
+        self.assertEqual(login.status_code, 200, login.text)
+        self.assertEqual(
+            self.request("GET", "/auth/me", token=token).json()["user_id"], admin["user_id"]
+        )
+
+        career = self.request(
+            "POST",
+            "/careers/",
+            token=token,
+            json={
+                "name": "Software Engineering",
+                "description": "Software career",
+            },
+        )
+        self.assertEqual(career.status_code, 200, career.text)
+        career_id = career.json()["career_id"]
+        self.assertEqual(
+            self.request(
+                "PATCH", f"/careers/{career_id}", token=token, json={"description": "Updated"}
+            ).status_code,
+            200,
+        )
+
+        student = self.request(
+            "POST",
+            "/students/",
+            token=token,
+            json={
+                "first_name": "Grace",
+                "last_name": "Hopper",
+                "email": "grace@example.com",
+                "enrollment_number": "2026-001",
+                "telephone": "555-0101",
+                "address": "Santo Domingo",
+                "career_id": career_id,
+            },
+        )
+        self.assertEqual(student.status_code, 200, student.text)
+        student_id = student.json()["student_id"]
+        self.assertEqual(
+            self.request(
+                "PATCH", f"/students/{student_id}", token=token, json={"telephone": "555-0111"}
+            ).status_code,
+            200,
+        )
+
+        teacher = self.request(
+            "POST",
+            "/teachers/",
+            token=token,
+            json={
+                "first_name": "Ada",
+                "last_name": "Lovelace",
+                "specialty": "Computing",
+                "email": "ada@example.com",
+                "telephone": "555-0102",
+                "address": "Santo Domingo",
+            },
+        )
+        self.assertEqual(teacher.status_code, 200, teacher.text)
+        teacher_id = teacher.json()["teacher_id"]
+
+        subject = self.request(
+            "POST",
+            "/subjects/",
+            token=token,
+            json={
+                "code": "CS-101",
+                "description": "Introduction to computing",
+            },
+        )
+        self.assertEqual(subject.status_code, 200, subject.text)
+        subject_id = subject.json()["subject_id"]
+
+        invalid_section = self.request(
+            "POST",
+            "/sections/",
+            token=token,
+            json={
+                "code": "BAD",
+                "description": "Invalid",
+                "teacher_id": teacher_id,
+                "subject_id": subject_id,
+                "days_of_week": ["Lunes"],
+                "start_time": "12:00:00",
+                "end_time": "10:00:00",
+            },
+        )
+        self.assertEqual(invalid_section.status_code, 422)
+
+        section = self.request(
+            "POST",
+            "/sections/",
+            token=token,
+            json={
+                "code": "SEC-01",
+                "description": "Morning section",
+                "teacher_id": teacher_id,
+                "subject_id": subject_id,
+                "days_of_week": ["Lunes", "Miércoles"],
+                "start_time": "08:00:00",
+                "end_time": "10:00:00",
+            },
+        )
+        self.assertEqual(section.status_code, 200, section.text)
+        section_id = section.json()["section_id"]
+
+        enrollment_data = {
+            "student_id": student_id,
+            "section_id": section_id,
+            "period": "2026-3",
+        }
+        enrollment = self.request("POST", "/enrollments/", token=token, json=enrollment_data)
+        self.assertEqual(enrollment.status_code, 200, enrollment.text)
+        enrollment_id = enrollment.json()["enrollment_id"]
+        self.assertEqual(
+            self.request("POST", "/enrollments/", token=token, json=enrollment_data).status_code,
+            409,
+        )
+
+        self.assertEqual(
+            self.request(
+                "POST",
+                "/grades/",
+                token=token,
+                json={
+                    "enrollment_id": enrollment_id,
+                    "grade_value": 101,
+                    "grade_type": "exam",
+                    "date_recorded": "2026-09-15",
+                },
+            ).status_code,
+            422,
+        )
+        grade = self.request(
+            "POST",
+            "/grades/",
+            token=token,
+            json={
+                "enrollment_id": enrollment_id,
+                "grade_value": 95,
+                "grade_type": "exam",
+                "date_recorded": "2026-09-15",
+            },
+        )
+        self.assertEqual(grade.status_code, 200, grade.text)
+        grade_id = grade.json()["grade_id"]
+        self.assertEqual(
+            self.request(
+                "PATCH", f"/grades/{grade_id}", token=token, json={"grade_value": 97}
+            ).status_code,
+            200,
+        )
+
+        teacher_role = self.request(
+            "POST",
+            "/roles/",
+            token=token,
+            json={
+                "name": "teacher",
+                "description": "Teacher",
+            },
+        )
+        self.assertEqual(teacher_role.status_code, 200, teacher_role.text)
+        teacher_user = self.request(
+            "POST",
+            "/users/",
+            token=token,
+            json={
+                "username": "ada",
+                "email": "ada.user@example.com",
+                "password": "teacher-pass",
+                "role_id": teacher_role.json()["role_id"],
+                "teacher_id": teacher_id,
+            },
+        )
+        self.assertEqual(teacher_user.status_code, 200, teacher_user.text)
+        self.assertNotIn("password", teacher_user.json())
+        teacher_login = self.request(
+            "POST",
+            "/auth/login",
+            json={
+                "username": "ada",
+                "password": "teacher-pass",
+            },
+        ).json()["access_token"]
+        self.assertEqual(
+            self.request(
+                "POST",
+                "/careers/",
+                token=teacher_login,
+                json={
+                    "name": "Denied",
+                    "description": "Denied",
+                },
+            ).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.request(
+                "PATCH", f"/grades/{grade_id}", token=teacher_login, json={"grade_value": 98}
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            len(
+                self.request(
+                    "GET", f"/academic/students/{student_id}/grades", token=teacher_login
+                ).json()
+            ),
+            1,
+        )
+        self.assertEqual(
+            len(
+                self.request(
+                    "GET", f"/academic/teachers/{teacher_id}/schedule", token=teacher_login
+                ).json()
+            ),
+            1,
+        )
+        self.assertEqual(
+            len(
+                self.request(
+                    "GET", f"/academic/sections/{section_id}/students", token=teacher_login
+                ).json()
+            ),
+            1,
+        )
+        attendance = self.request(
+            "POST",
+            "/attendances/",
+            token=teacher_login,
+            json={"enrollment_id": enrollment_id, "present": True},
+        )
+        self.assertEqual(attendance.status_code, 200, attendance.text)
+        attendance_id = attendance.json()["attendance_id"]
+        self.assertEqual(
+            self.request(
+                "PATCH",
+                f"/attendances/{attendance_id}",
+                token=teacher_login,
+                json={"present": False},
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            len(
+                self.request(
+                    "GET",
+                    f"/attendances/?enrollment_id={enrollment_id}",
+                    token=teacher_login,
+                ).json()
+            ),
+            1,
+        )
+        self.assertEqual(
+            self.request(
+                "DELETE", f"/attendances/{attendance_id}", token=teacher_login
+            ).status_code,
+            200,
+        )
+
+        self.assertEqual(len(self.request("GET", "/students/", token=token).json()), 1)
+        self.assertEqual(
+            self.request("GET", f"/sections/{section_id}", token=token).status_code, 200
+        )
+        self.assertEqual(
+            self.request("DELETE", f"/grades/{grade_id}", token=token).status_code, 200
+        )
+        self.assertEqual(
+            self.request("DELETE", f"/enrollments/{enrollment_id}", token=token).status_code, 200
+        )
+        self.assertEqual(
+            self.request("DELETE", f"/sections/{section_id}", token=token).status_code, 200
+        )
+        self.assertEqual(
+            self.request("DELETE", f"/subjects/{subject_id}", token=token).status_code, 200
+        )
+        self.assertEqual(
+            self.request(
+                "DELETE", f"/users/{teacher_user.json()['user_id']}", token=token
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.request(
+                "DELETE", f"/roles/{teacher_role.json()['role_id']}", token=token
+            ).status_code,
+            200,
+        )
+        self.assertEqual(
+            self.request("DELETE", f"/teachers/{teacher_id}", token=token).status_code, 200
+        )
+        self.assertFalse(
+            self.request("GET", f"/teachers/{teacher_id}", token=token).json()["active"]
+        )
+        self.assertEqual(
+            self.request("DELETE", f"/students/{student_id}", token=token).status_code, 200
+        )
+        self.assertFalse(
+            self.request("GET", f"/students/{student_id}", token=token).json()["active"]
+        )
+        # Careers with historical students are protected by the foreign key.
+        self.assertEqual(
+            self.request("DELETE", f"/careers/{career_id}", token=token).status_code, 409
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,20 +1,22 @@
-from pydantic import BaseModel
 from typing import Optional
 
+from pydantic import BaseModel, ConfigDict
+
+
 class SubjectBase(BaseModel):
-    name: str
     code: str
-    description: Optional[str] = None
+    description: str
+
 
 class SubjectCreate(SubjectBase):
     pass
 
+
 class SubjectUpdate(BaseModel):
-    name: Optional[str] = None
     code: Optional[str] = None
     description: Optional[str] = None
 
+
 class SubjectOut(SubjectBase):
     subject_id: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

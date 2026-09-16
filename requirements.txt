@@ -1,0 +1,14 @@
+alembic>=1.13,<2.0
+email-validator>=2.0,<3.0
+fastapi>=0.115,<1.0
+pydantic>=2.10,<3.0
+pydantic-settings>=2.7,<3.0
+python-dotenv>=1.0,<2.0
+SQLAlchemy>=2.0,<3.0
+uvicorn[standard]>=0.34,<1.0
+
+# Development and tests
+httpx>=0.27,<1.0
+pytest>=8.3,<10.0
+coverage>=7.6,<8.0
+ruff>=0.9,<1.0
