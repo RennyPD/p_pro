@@ -26,6 +26,24 @@ uvicorn main:app --reload
 
 La documentación interactiva estará en `http://127.0.0.1:8000/docs`.
 
+### Datos de demostración
+
+Para crear un escenario local completo y repetible, ejecuta:
+
+```powershell
+python -m scripts.seed_demo
+```
+
+El cargador conserva los registros existentes y evita duplicar sus propios datos. Crea carreras, materias, docente, estudiante, secciones, inscripciones, una nota, una asistencia y estos accesos:
+
+| Perfil | Usuario | Contraseña |
+| --- | --- | --- |
+| Administración | `demo.admin` | `NexoAdmin2026!` |
+| Docente | `demo.docente` | `NexoDocente2026!` |
+| Estudiante | `demo.estudiante` | `NexoEstudiante2026!` |
+
+Estas credenciales son exclusivamente para desarrollo local. No ejecutes el cargador ni reutilices las contraseñas en producción.
+
 ### Frontend React
 
 ```powershell
@@ -114,3 +132,11 @@ docker compose up --build
 ```
 
 La API estará en `http://localhost:8000` y Nexo en `http://localhost:3000`. Antes de cualquier despliegue real cambia las contraseñas del compose, define un `SECRET_KEY` aleatorio, configura HTTPS y utiliza un gestor de secretos. Los volúmenes de PostgreSQL deben incluirse en la estrategia de copias de seguridad.
+
+Si Docker no está disponible, todavía puedes revisar que Alembic genere SQL compatible con PostgreSQL sin conectarse a una base:
+
+```powershell
+$env:DATABASE_URL='postgresql+psycopg://p_pro:local-development-only@localhost:5432/p_pro'
+alembic upgrade head --sql
+Remove-Item Env:DATABASE_URL
+```
