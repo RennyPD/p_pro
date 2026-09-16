@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.models.security_model import AuditLog, RefreshToken
 from app.models.user_model import User
 from app.schemas.user_schema import UserCreate, UserUpdate
 from app.security import hash_password
@@ -54,6 +55,8 @@ def delete_user(db: Session, user_id: int) -> bool:
     if not user:
         return False
 
+    db.query(RefreshToken).filter(RefreshToken.user_id == user_id).delete()
+    db.query(AuditLog).filter(AuditLog.user_id == user_id).update({"user_id": None})
     db.delete(user)
     db.commit()
 

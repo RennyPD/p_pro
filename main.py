@@ -7,6 +7,7 @@ from app.db.database import settings
 from app.models import *
 from app.routers.academic_router import router as academic_router
 from app.routers.attendance_router import router as attendance_router
+from app.routers.audit_router import router as audit_router
 from app.routers.auth_router import router as auth_router
 from app.routers.career_router import router as career_router
 from app.routers.enrollment_router import router as enrollment_router
@@ -39,6 +40,7 @@ def handle_database_error(_request, _exc):
 
 
 app.include_router(auth_router)
+app.include_router(audit_router)
 app.include_router(career_router)
 app.include_router(attendance_router)
 app.include_router(academic_router)

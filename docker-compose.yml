@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: p_pro
+      POSTGRES_USER: p_pro
+      POSTGRES_PASSWORD: local-development-only
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U p_pro"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://p_pro:local-development-only@db:5432/p_pro
+      SECRET_KEY: change-this-before-production
+      CORS_ORIGINS: http://localhost:3000
+    ports: ["8000:8000"]
+    depends_on:
+      db:
+        condition: service_healthy
+  web:
+    build:
+      context: frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+    ports: ["3000:80"]
+    depends_on: [api]
+volumes:
+  postgres_data:

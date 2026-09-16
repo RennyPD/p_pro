@@ -401,6 +401,41 @@ class ApiIntegrationTests(unittest.TestCase):
             self.request("DELETE", f"/careers/{career_id}", token=token).status_code, 409
         )
 
+    def test_refresh_password_change_logout_and_rate_limit(self) -> None:
+        token, user = self.bootstrap()
+        refreshed = self.request("POST", "/auth/refresh")
+        self.assertEqual(refreshed.status_code, 200, refreshed.text)
+        self.assertEqual(refreshed.json()["user"]["role_name"], "admin")
+        new_token = refreshed.json()["access_token"]
+        changed = self.request(
+            "POST",
+            "/auth/change-password",
+            token=new_token,
+            json={"current_password": "strong-password", "new_password": "stronger-password"},
+        )
+        self.assertEqual(changed.status_code, 204, changed.text)
+        login = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": user["username"], "password": "stronger-password"},
+        )
+        self.assertEqual(login.status_code, 200, login.text)
+        self.assertEqual(self.request("POST", "/auth/logout").status_code, 204)
+
+        for _ in range(5):
+            denied = self.request(
+                "POST",
+                "/auth/login",
+                json={"username": "rate-limited-user", "password": "wrong-password"},
+            )
+            self.assertEqual(denied.status_code, 401)
+        limited = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "rate-limited-user", "password": "wrong-password"},
+        )
+        self.assertEqual(limited.status_code, 429)
+
 
 if __name__ == "__main__":
     unittest.main()

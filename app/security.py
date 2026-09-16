@@ -4,6 +4,7 @@ import hmac
 import json
 import secrets
 import time
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
 
@@ -84,3 +85,16 @@ def decode_access_token(token: str) -> int:
         return int(claims["sub"])
     except (ValueError, KeyError, TypeError, json.JSONDecodeError):
         raise credentials_error
+
+
+def create_refresh_token() -> tuple[str, str, datetime]:
+    token = secrets.token_urlsafe(48)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(
+        days=settings.refresh_token_expire_days
+    )
+    return token, token_hash, expires_at
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()

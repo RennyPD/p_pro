@@ -16,3 +16,7 @@ class User(Base):
     teacher_id: Mapped[int | None] = mapped_column(ForeignKey("teachers.teacher_id"), nullable=True)
 
     role: Mapped["Role"] = relationship("Role", back_populates="users")
+
+    @property
+    def role_name(self) -> str:
+        return self.role.name.casefold()

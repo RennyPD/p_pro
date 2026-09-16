@@ -4,6 +4,7 @@ from .enrollment_model import Enrollment
 from .grade_model import Grade
 from .role_model import Role
 from .section_model import Section
+from .security_model import AuditLog, RefreshToken
 from .student_model import Student
 from .subject_model import Subject
 from .teacher_model import Teacher

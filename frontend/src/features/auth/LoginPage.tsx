@@ -1,0 +1,18 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff, GraduationCap, ShieldCheck, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Navigate } from "react-router-dom";
+import { z } from "zod";
+import { api, apiMessage } from "../../lib/api";
+import { useAuthStore } from "../../store/auth";
+import type { TokenResponse } from "../../types";
+import { Button } from "../../components/ui";
+
+const schema=z.object({username:z.string().min(1,"Escribe tu usuario o correo"),password:z.string().min(8,"La contraseña debe tener al menos 8 caracteres")});
+type FormValues=z.infer<typeof schema>;
+export function LoginPage(){const{token,setSession}=useAuthStore();const[show,setShow]=useState(false);const[serverError,setServerError]=useState("");const{register,handleSubmit,formState:{errors,isSubmitting}}=useForm<FormValues>({resolver:zodResolver(schema)});
+  if(token)return <Navigate to="/" replace/>;
+  async function submit(values:FormValues){setServerError("");try{const{data}=await api.post<TokenResponse>("/auth/login",values);setSession(data.access_token,data.user);}catch(error){setServerError(apiMessage(error));}}
+  return <main className="auth-page"><section className="auth-story"><div className="brand-lockup"><span className="brand-symbol"><GraduationCap/></span><strong>Nexo</strong></div><div className="auth-story__copy"><span className="kicker kicker--light"><Sparkles size={14}/> Gestión académica sin fricción</span><h1>Todo el pulso de tu comunidad educativa.</h1><p>Un espacio claro para coordinar estudiantes, docentes, horarios, notas y asistencia sin perder tiempo entre pantallas.</p><div className="trust-line"><ShieldCheck/><span>Acceso protegido según tu rol y contexto académico.</span></div></div><div className="orbit orbit--one"/><div className="orbit orbit--two"/></section><section className="auth-form-wrap"><form className="auth-card" onSubmit={handleSubmit(submit)}><div><span className="kicker">Portal académico</span><h2>Qué bueno verte</h2><p>Usa tus credenciales institucionales para continuar.</p></div><label className="form-field"><span>Usuario o correo</span><input autoFocus autoComplete="username" placeholder="nombre@institución.edu" {...register("username")}/>{errors.username&&<small>{errors.username.message}</small>}</label><label className="form-field"><span>Contraseña</span><div className="password-field"><input type={show?"text":"password"} autoComplete="current-password" placeholder="••••••••" {...register("password")}/><button type="button" onClick={()=>setShow(!show)} aria-label={show?"Ocultar contraseña":"Mostrar contraseña"}>{show?<EyeOff/>:<Eye/>}</button></div>{errors.password&&<small>{errors.password.message}</small>}</label>{serverError&&<div className="form-error" role="alert">{serverError}</div>}<Button disabled={isSubmitting} className="auth-submit">{isSubmitting?"Verificando…":"Entrar a Nexo"}</Button><p className="auth-help">¿No puedes ingresar? Contacta al administrador de tu institución.</p></form></section></main>;
+}

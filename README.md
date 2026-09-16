@@ -35,7 +35,17 @@ Copy-Item .env.example .env
 npm run dev
 ```
 
-El panel estará en `http://localhost:5173`. Incluye inicio de sesión y vistas adaptadas para administración, docentes y estudiantes. Para compilar producción usa `npm run build`.
+El panel estará en `http://localhost:5173`. La interfaz “Nexo” usa TypeScript, React Router, TanStack Query/Table, React Hook Form, Zod, Zustand, Axios, Lucide y Sonner. Incluye navegación protegida, vistas adaptadas por rol, formularios CRUD, búsqueda, paginación y estados accesibles de carga, error y ausencia de datos.
+
+Para validar el frontend:
+
+```powershell
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run e2e
+```
 
 ## Autenticación y roles
 
@@ -45,7 +55,9 @@ Antes de crear usuarios, define un `SECRET_KEY` largo y aleatorio en `.env`.
 2. Inicia sesión mediante `POST /auth/login` usando nombre de usuario o correo y contraseña.
 3. Envía el token devuelto como `Authorization: Bearer <token>`.
 
-Los administradores gestionan catálogos, personas, inscripciones, roles y usuarios. Docentes y administradores pueden registrar notas. Las consultas generales requieren autenticación. Las contraseñas se almacenan con `scrypt` y nunca se incluyen en las respuestas.
+Los administradores gestionan catálogos, personas, inscripciones, roles y usuarios. Docentes y administradores pueden registrar notas. Las consultas generales requieren autenticación. Las contraseñas se almacenan con `scrypt` y nunca se incluyen en las respuestas. El access token se conserva solo durante la pestaña y se renueva mediante una cookie `HttpOnly`; cerrar sesión revoca la sesión de renovación.
+
+La API limita intentos repetidos de acceso, permite cambiar la contraseña y registra eventos de seguridad en el historial de auditoría (`GET /audit/`, solo administración). Si una persona olvida su contraseña, un administrador puede establecer una nueva desde la gestión de usuarios sin exponer la anterior.
 
 Además, estudiantes solo pueden consultar su expediente, horario, notas y asistencia. Docentes solo acceden a estudiantes, inscripciones, notas y asistencias pertenecientes a sus secciones.
 
@@ -90,3 +102,15 @@ No ejecutes `upgrade head` sobre una base existente sin revisar primero el estad
 ### Estado de la base incluida
 
 La base incluida fue actualizada hasta `20260916_0003`. La migración creó la carrera temporal `Sin asignar` con identificador `0`, con lo que los dos estudiantes históricos conservan su referencia y vuelven a cumplir la integridad referencial. Deben reclasificarse cuando se conozca su carrera real. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`.
+
+La revisión `20260916_0004` agrega sesiones renovables y auditoría de seguridad.
+
+## PostgreSQL y contenedores
+
+El desarrollo local puede continuar con SQLite. Para validar una configuración cercana a producción con PostgreSQL:
+
+```powershell
+docker compose up --build
+```
+
+La API estará en `http://localhost:8000` y Nexo en `http://localhost:3000`. Antes de cualquier despliegue real cambia las contraseñas del compose, define un `SECRET_KEY` aleatorio, configura HTTPS y utiliza un gestor de secretos. Los volúmenes de PostgreSQL deben incluirse en la estrategia de copias de seguridad.

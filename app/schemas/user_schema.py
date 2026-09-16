@@ -36,4 +36,5 @@ class UserOut(BaseModel):
     role_id: int
     student_id: Optional[int] = None
     teacher_id: Optional[int] = None
+    role_name: str
     model_config = ConfigDict(from_attributes=True)

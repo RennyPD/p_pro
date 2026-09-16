@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./school.db"
     secret_key: str = "change-me-in-production"
     access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
     cors_origins: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
