@@ -612,6 +612,26 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(progress.json()["completed_credits"], 4.0)
         self.assertEqual(len(progress.json()["courses"]), 2)
 
+        dashboard = self.request("GET", "/dashboard/summary", token=token)
+        self.assertEqual(dashboard.status_code, 200, dashboard.text)
+        self.assertEqual(dashboard.json()["active_period"], "2027-1")
+        exported = self.request("GET", "/bulk/students/export", token=token)
+        self.assertEqual(exported.status_code, 200, exported.text)
+        self.assertIn("DEMO-2026-001", exported.text)
+        csv_content = (
+            "first_name,last_name,email,telephone,address,career_id\n"
+            f"Luis,Ramos,luis.ramos@example.com,809-555-0123,Santo Domingo,{career_id}\n"
+        )
+        imported = self.request(
+            "POST",
+            "/bulk/students/import",
+            token=token,
+            content=csv_content.encode(),
+            headers={"Content-Type": "text/csv"},
+        )
+        self.assertEqual(imported.status_code, 200, imported.text)
+        self.assertEqual(imported.json()["created"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
