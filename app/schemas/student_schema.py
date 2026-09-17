@@ -7,7 +7,7 @@ class StudentBase(BaseModel):
     first_name: str
     last_name: str
     email: EmailStr
-    enrollment_number: str
+    enrollment_number: str | None = None
     telephone: str
     address: str
     career_id: int
@@ -31,4 +31,5 @@ class StudentUpdate(BaseModel):
 
 class StudentOut(StudentBase):
     student_id: int
+    enrollment_number: str
     model_config = ConfigDict(from_attributes=True)

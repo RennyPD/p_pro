@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import Base
 from app.models import (
+    AcademicPeriod,
     Attendance,
     Career,
     Enrollment,
@@ -32,6 +33,7 @@ class DemoSeedTests(unittest.TestCase):
             seed_demo(db)
             seed_demo(db)
             expected = {
+                AcademicPeriod: 1,
                 Role: 3,
                 Career: 1,
                 Subject: 2,

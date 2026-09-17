@@ -1,6 +1,9 @@
+from datetime import UTC, datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.models.configuration_model import InstitutionSettings
 from app.repositories.student_repository import (
     create_student,
     delete_student,
@@ -20,6 +23,17 @@ def create_student_service(db: Session, student_data: StudentCreate):
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists"
             )
 
+    if not student_data.enrollment_number:
+        settings = db.get(InstitutionSettings, 1)
+        if settings is None:
+            settings = InstitutionSettings(settings_id=1)
+            db.add(settings)
+            db.flush()
+        year = datetime.now(UTC).year
+        sequence = str(settings.next_enrollment_number).zfill(settings.enrollment_digits)
+        generated = f"{settings.enrollment_prefix}-{year}-{sequence}"
+        settings.next_enrollment_number += 1
+        student_data = student_data.model_copy(update={"enrollment_number": generated})
     return create_student(db, student_data)
 
 

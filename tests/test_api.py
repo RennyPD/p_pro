@@ -498,6 +498,93 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(summary.status_code, 200, summary.text)
         self.assertEqual(summary.json()[0]["percentage"], 100.0)
 
+    def test_periods_automatic_enrollment_number_and_schedule_conflicts(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        token = self.request(
+            "POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}
+        ).json()["access_token"]
+        settings = self.request(
+            "PUT",
+            "/configuration/institution",
+            token=token,
+            json={
+                "institution_name": "Instituto Nexo",
+                "enrollment_prefix": "NX",
+                "enrollment_digits": 5,
+                "passing_grade": 70,
+            },
+        )
+        self.assertEqual(settings.status_code, 200, settings.text)
+        self.assertRegex(settings.json()["enrollment_preview"], r"^NX-\d{4}-00001$")
+        period = self.request(
+            "POST",
+            "/periods/",
+            token=token,
+            json={
+                "name": "2027-1",
+                "start_date": "2027-01-10",
+                "end_date": "2027-04-30",
+                "active": True,
+            },
+        )
+        self.assertEqual(period.status_code, 200, period.text)
+        career_id = self.request("GET", "/careers/", token=token).json()[0]["career_id"]
+        student = self.request(
+            "POST",
+            "/students/",
+            token=token,
+            json={
+                "first_name": "Ana",
+                "last_name": "Pérez",
+                "email": "ana.perez@example.com",
+                "telephone": "809-555-0199",
+                "address": "Santo Domingo",
+                "career_id": career_id,
+            },
+        )
+        self.assertEqual(student.status_code, 200, student.text)
+        self.assertRegex(student.json()["enrollment_number"], r"^NX-\d{4}-00001$")
+
+        sections = self.request("GET", "/sections/", token=token).json()
+        primary = next(item for item in sections if item["code"] == "PROG-101-A")
+        overlapping = self.request(
+            "POST",
+            "/sections/",
+            token=token,
+            json={
+                "code": "CONFLICT-DEMO",
+                "description": "Horario superpuesto",
+                "teacher_id": primary["teacher_id"],
+                "subject_id": primary["subject_id"],
+                "days_of_week": ["Lunes"],
+                "start_time": "08:30:00",
+                "end_time": "10:00:00",
+            },
+        ).json()
+        first = self.request(
+            "POST",
+            "/enrollments/",
+            token=token,
+            json={
+                "student_id": student.json()["student_id"],
+                "section_id": primary["section_id"],
+                "period": "2027-1",
+            },
+        )
+        self.assertEqual(first.status_code, 200, first.text)
+        conflict = self.request(
+            "POST",
+            "/enrollments/",
+            token=token,
+            json={
+                "student_id": student.json()["student_id"],
+                "section_id": overlapping["section_id"],
+                "period": "2027-1",
+            },
+        )
+        self.assertEqual(conflict.status_code, 409, conflict.text)
+
 
 if __name__ == "__main__":
     unittest.main()

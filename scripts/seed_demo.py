@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import SessionLocal
 from app.models import (
+    AcademicPeriod,
     Attendance,
     Career,
     Enrollment,
@@ -52,6 +53,16 @@ def seed_demo(db: Session) -> dict[str, int]:
                 "student": "Consulta del expediente académico propio",
             }.items()
         }
+        _one_or_create(
+            db,
+            AcademicPeriod,
+            {
+                "start_date": datetime(2026, 8, 1).date(),
+                "end_date": datetime(2027, 6, 30).date(),
+                "active": True,
+            },
+            name="2026-2027",
+        )
         career = _one_or_create(
             db,
             Career,
