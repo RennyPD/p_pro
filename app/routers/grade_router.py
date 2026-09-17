@@ -7,7 +7,7 @@ from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade
 from app.models.section_model import Section
 from app.models.user_model import User
-from app.schemas.grade_schema import GradeCreate, GradeOut, GradeUpdate
+from app.schemas.grade_schema import GradeBulkCreate, GradeCreate, GradeOut, GradeUpdate
 from app.services.grade_service import (
     create_grade_service,
     delete_grade_service,
@@ -16,6 +16,51 @@ from app.services.grade_service import (
 )
 
 router = APIRouter(prefix="/grades", tags=["grades"])
+
+
+@router.post("/bulk", response_model=list[GradeOut])
+def save_section_grades(
+    data: GradeBulkCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles("admin", "teacher")),
+):
+    from fastapi import HTTPException
+
+    enrollment_ids = {item.enrollment_id for item in data.records}
+    enrollments = (
+        db.query(Enrollment)
+        .filter(
+            Enrollment.section_id == data.section_id,
+            Enrollment.enrollment_id.in_(enrollment_ids),
+        )
+        .all()
+    )
+    if len(enrollments) != len(enrollment_ids):
+        raise HTTPException(status_code=422, detail="Every grade must belong to the section")
+    if enrollments and not is_admin(user) and user.teacher_id != enrollments[0].section.teacher_id:
+        raise HTTPException(
+            status_code=403, detail="Only the assigned teacher can grade this section"
+        )
+    saved = []
+    for item in data.records:
+        grade = (
+            db.query(Grade)
+            .filter(
+                Grade.enrollment_id == item.enrollment_id,
+                Grade.grade_type == data.grade_type,
+            )
+            .first()
+        )
+        if grade is None:
+            grade = Grade(enrollment_id=item.enrollment_id, grade_type=data.grade_type)
+            db.add(grade)
+        grade.grade_value = item.grade_value
+        grade.date_recorded = data.date_recorded
+        saved.append(grade)
+    db.commit()
+    for grade in saved:
+        db.refresh(grade)
+    return saved
 
 
 @router.post(

@@ -24,3 +24,15 @@ class GradeUpdate(BaseModel):
 class GradeOut(GradeBase):
     grade_id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class GradeBulkItem(BaseModel):
+    enrollment_id: int
+    grade_value: float = Field(ge=0, le=100)
+
+
+class GradeBulkCreate(BaseModel):
+    section_id: int
+    grade_type: str
+    date_recorded: str
+    records: list[GradeBulkItem]

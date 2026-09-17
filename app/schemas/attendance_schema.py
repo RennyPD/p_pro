@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -21,3 +21,14 @@ class AttendanceOut(BaseModel):
     date: datetime
     present: bool
     model_config = ConfigDict(from_attributes=True)
+
+
+class AttendanceBulkItem(BaseModel):
+    enrollment_id: int
+    present: bool
+
+
+class AttendanceBulkCreate(BaseModel):
+    section_id: int
+    date: date
+    records: list[AttendanceBulkItem]

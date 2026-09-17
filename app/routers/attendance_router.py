@@ -1,14 +1,65 @@
+from datetime import datetime, time
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_enrollment_access, get_current_user, is_admin
+from app.auth import ensure_enrollment_access, ensure_section_access, get_current_user, is_admin
 from app.db.Session import get_db
 from app.models.attendance_model import Attendance
 from app.models.enrollment_model import Enrollment
 from app.models.user_model import User
-from app.schemas.attendance_schema import AttendanceCreate, AttendanceOut, AttendanceUpdate
+from app.schemas.attendance_schema import (
+    AttendanceBulkCreate,
+    AttendanceCreate,
+    AttendanceOut,
+    AttendanceUpdate,
+)
 
 router = APIRouter(prefix="/attendances", tags=["attendances"])
+
+
+@router.post("/bulk", response_model=list[AttendanceOut])
+def save_section_attendance(
+    data: AttendanceBulkCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    ensure_section_access(db, user, data.section_id)
+    enrollment_ids = {item.enrollment_id for item in data.records}
+    enrollments = (
+        db.query(Enrollment)
+        .filter(
+            Enrollment.section_id == data.section_id,
+            Enrollment.enrollment_id.in_(enrollment_ids),
+        )
+        .all()
+    )
+    if len(enrollments) != len(enrollment_ids):
+        raise HTTPException(
+            status_code=422, detail="Every attendance record must belong to the section"
+        )
+    day_start = datetime.combine(data.date, time.min)
+    day_end = datetime.combine(data.date, time.max)
+    saved = []
+    for item in data.records:
+        attendance = (
+            db.query(Attendance)
+            .filter(
+                Attendance.enrollment_id == item.enrollment_id,
+                Attendance.date >= day_start,
+                Attendance.date <= day_end,
+            )
+            .first()
+        )
+        if attendance is None:
+            attendance = Attendance(enrollment_id=item.enrollment_id, date=day_start)
+            db.add(attendance)
+        attendance.present = item.present
+        saved.append(attendance)
+    db.commit()
+    for attendance in saved:
+        db.refresh(attendance)
+    return saved
 
 
 def require_attendance_writer(db: Session, user: User, enrollment_id: int):

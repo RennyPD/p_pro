@@ -9,6 +9,7 @@ from app.db.database import Base
 from app.db.Session import get_db
 from app.models import *  # noqa: F403 - registers all tables
 from main import app
+from scripts.seed_demo import seed_demo
 
 
 class ApiIntegrationTests(unittest.TestCase):
@@ -435,6 +436,67 @@ class ApiIntegrationTests(unittest.TestCase):
             json={"username": "rate-limited-user", "password": "wrong-password"},
         )
         self.assertEqual(limited.status_code, 429)
+
+    def test_academic_workspaces_and_bulk_entry(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        admin_token = self.request(
+            "POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}
+        ).json()["access_token"]
+        students = self.request("GET", "/students/", token=admin_token).json()
+        student = next(item for item in students if item["enrollment_number"] == "DEMO-2026-001")
+        sections = self.request("GET", "/sections/", token=admin_token).json()
+        section = next(item for item in sections if item["code"] == "PROG-101-A")
+
+        profile = self.request(
+            "GET", f"/academic/students/{student['student_id']}/profile", token=admin_token
+        )
+        self.assertEqual(profile.status_code, 200, profile.text)
+        self.assertEqual(profile.json()["career_name"], "Ingeniería de Software")
+
+        workspace = self.request(
+            "GET",
+            f"/academic/sections/{section['section_id']}/workspace?attendance_date=2026-09-16",
+            token=admin_token,
+        )
+        self.assertEqual(workspace.status_code, 200, workspace.text)
+        enrollment_id = workspace.json()["roster"][0]["enrollment_id"]
+        attendance = self.request(
+            "POST",
+            "/attendances/bulk",
+            token=admin_token,
+            json={
+                "section_id": section["section_id"],
+                "date": "2026-09-16",
+                "records": [{"enrollment_id": enrollment_id, "present": True}],
+            },
+        )
+        self.assertEqual(attendance.status_code, 200, attendance.text)
+        grades = self.request(
+            "POST",
+            "/grades/bulk",
+            token=admin_token,
+            json={
+                "section_id": section["section_id"],
+                "grade_type": "Parcial 1",
+                "date_recorded": "2026-09-16",
+                "records": [{"enrollment_id": enrollment_id, "grade_value": 94}],
+            },
+        )
+        self.assertEqual(grades.status_code, 200, grades.text)
+
+        student_token = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "demo.estudiante", "password": "NexoEstudiante2026!"},
+        ).json()["access_token"]
+        summary = self.request(
+            "GET",
+            f"/academic/students/{student['student_id']}/attendance-summary",
+            token=student_token,
+        )
+        self.assertEqual(summary.status_code, 200, summary.text)
+        self.assertEqual(summary.json()[0]["percentage"], 100.0)
 
 
 if __name__ == "__main__":
