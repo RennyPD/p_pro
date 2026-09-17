@@ -25,6 +25,11 @@ DEMO_PASSWORDS = {
     "demo.docente": "NexoDocente2026!",
     "demo.estudiante": "NexoEstudiante2026!",
 }
+DEMO_EMAILS = {
+    "demo.admin": "admin.demo@nexo.example.com",
+    "demo.docente": "elena.demo@nexo.example.com",
+    "demo.estudiante": "daniel.demo@nexo.example.com",
+}
 
 
 def _one_or_create(db: Session, model, defaults: dict, **criteria):
@@ -53,26 +58,31 @@ def seed_demo(db: Session) -> dict[str, int]:
             {"description": "Programa demostrativo para validar el flujo académico"},
             name="Ingeniería de Software",
         )
-        teacher = _one_or_create(
-            db,
-            Teacher,
-            {
-                "first_name": "Elena",
-                "last_name": "Martínez",
-                "specialty": "Desarrollo de software",
-                "telephone": "809-555-0101",
-                "address": "Santo Domingo",
-                "active": True,
-            },
-            email="elena.demo@nexo.local",
+        teacher = db.scalar(
+            select(Teacher).where(
+                Teacher.email.in_(["elena.demo@nexo.local", DEMO_EMAILS["demo.docente"]])
+            )
         )
+        if teacher is None:
+            teacher = Teacher(
+                first_name="Elena",
+                last_name="Martínez",
+                specialty="Desarrollo de software",
+                telephone="809-555-0101",
+                address="Santo Domingo",
+                active=True,
+                email=DEMO_EMAILS["demo.docente"],
+            )
+            db.add(teacher)
+            db.flush()
+        teacher.email = DEMO_EMAILS["demo.docente"]
         student = _one_or_create(
             db,
             Student,
             {
                 "first_name": "Daniel",
                 "last_name": "Santos",
-                "email": "daniel.demo@nexo.local",
+                "email": DEMO_EMAILS["demo.estudiante"],
                 "telephone": "809-555-0102",
                 "address": "Santo Domingo",
                 "active": True,
@@ -80,6 +90,7 @@ def seed_demo(db: Session) -> dict[str, int]:
             },
             enrollment_number="DEMO-2026-001",
         )
+        student.email = DEMO_EMAILS["demo.estudiante"]
         subjects = {
             code: _one_or_create(db, Subject, {"description": description}, code=code)
             for code, description in {
@@ -148,18 +159,24 @@ def seed_demo(db: Session) -> dict[str, int]:
             date=datetime(2026, 9, 15, 8, 0),
         )
         user_specs = [
-            ("demo.admin", "admin.demo@nexo.local", roles["admin"], None, None),
-            ("demo.docente", "elena.demo@nexo.local", roles["teacher"], None, teacher.teacher_id),
+            ("demo.admin", DEMO_EMAILS["demo.admin"], roles["admin"], None, None),
+            (
+                "demo.docente",
+                DEMO_EMAILS["demo.docente"],
+                roles["teacher"],
+                None,
+                teacher.teacher_id,
+            ),
             (
                 "demo.estudiante",
-                "daniel.demo@nexo.local",
+                DEMO_EMAILS["demo.estudiante"],
                 roles["student"],
                 student.student_id,
                 None,
             ),
         ]
         for username, email, role, student_id, teacher_id in user_specs:
-            _one_or_create(
+            user = _one_or_create(
                 db,
                 User,
                 {
@@ -171,6 +188,7 @@ def seed_demo(db: Session) -> dict[str, int]:
                 },
                 username=username,
             )
+            user.email = email
         db.commit()
         return {
             "roles": len(roles),
