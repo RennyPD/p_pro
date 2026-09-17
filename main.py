@@ -9,14 +9,14 @@ from app.routers.academic_router import router as academic_router
 from app.routers.attendance_router import router as attendance_router
 from app.routers.audit_router import router as audit_router
 from app.routers.auth_router import router as auth_router
+from app.routers.bulk_router import router as bulk_router
 from app.routers.career_router import router as career_router
 from app.routers.configuration_router import router as configuration_router
 from app.routers.curriculum_router import router as curriculum_router
 from app.routers.dashboard_router import router as dashboard_router
-from app.routers.bulk_router import router as bulk_router
 from app.routers.enrollment_router import router as enrollment_router
-from app.routers.grade_router import router as grade_router
 from app.routers.finance_router import router as finance_router
+from app.routers.grade_router import router as grade_router
 from app.routers.role_router import router as role_router
 from app.routers.section_router import router as section_router
 from app.routers.student_router import router as student_router

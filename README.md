@@ -24,6 +24,12 @@ La configuración predeterminada usa `sqlite:///./school.db`. Para otra base de 
 uvicorn main:app --reload
 ```
 
+En una instalación nueva, ejecuta primero las migraciones:
+
+```powershell
+alembic upgrade head
+```
+
 La documentación interactiva estará en `http://127.0.0.1:8000/docs`.
 
 ### Datos de demostración
