@@ -10,6 +10,7 @@ from app.models import (
     AcademicPeriod,
     Attendance,
     Career,
+    CurriculumCourse,
     Enrollment,
     Grade,
     Role,
@@ -109,6 +110,24 @@ def seed_demo(db: Session) -> dict[str, int]:
                 "MAT-101": "Matemática discreta",
             }.items()
         }
+        _one_or_create(
+            db,
+            CurriculumCourse,
+            {"term_number": 1, "credits": 4, "prerequisite_subject_id": None},
+            career_id=career.career_id,
+            subject_id=subjects["PROG-101"].subject_id,
+        )
+        _one_or_create(
+            db,
+            CurriculumCourse,
+            {
+                "term_number": 2,
+                "credits": 3,
+                "prerequisite_subject_id": subjects["PROG-101"].subject_id,
+            },
+            career_id=career.career_id,
+            subject_id=subjects["MAT-101"].subject_id,
+        )
         section_specs = [
             (
                 "PROG-101-A",

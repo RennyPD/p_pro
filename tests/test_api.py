@@ -548,6 +548,19 @@ class ApiIntegrationTests(unittest.TestCase):
 
         sections = self.request("GET", "/sections/", token=token).json()
         primary = next(item for item in sections if item["code"] == "PROG-101-A")
+        prerequisite_denied = self.request(
+            "POST",
+            "/enrollments/",
+            token=token,
+            json={
+                "student_id": student.json()["student_id"],
+                "section_id": next(item for item in sections if item["code"] == "MAT-101-B")[
+                    "section_id"
+                ],
+                "period": "2027-1",
+            },
+        )
+        self.assertEqual(prerequisite_denied.status_code, 409, prerequisite_denied.text)
         overlapping = self.request(
             "POST",
             "/sections/",
@@ -584,6 +597,20 @@ class ApiIntegrationTests(unittest.TestCase):
             },
         )
         self.assertEqual(conflict.status_code, 409, conflict.text)
+
+        demo_student = next(
+            item
+            for item in self.request("GET", "/students/", token=token).json()
+            if item["enrollment_number"] == "DEMO-2026-001"
+        )
+        progress = self.request(
+            "GET",
+            f"/curriculum/students/{demo_student['student_id']}/progress",
+            token=token,
+        )
+        self.assertEqual(progress.status_code, 200, progress.text)
+        self.assertEqual(progress.json()["completed_credits"], 4.0)
+        self.assertEqual(len(progress.json()["courses"]), 2)
 
 
 if __name__ == "__main__":

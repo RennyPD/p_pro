@@ -1,8 +1,11 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.models.configuration_model import InstitutionSettings
+from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
+from app.models.student_model import Student
 from app.repositories.enrollment_repository import (
     create_enrollment,
     delete_enrollment,
@@ -17,6 +20,33 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
     requested_section = db.get(Section, enrollment_data.section_id)
     if requested_section is None:
         raise HTTPException(status_code=404, detail="Section not found")
+    student = db.get(Student, enrollment_data.student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    curriculum_course = (
+        db.query(CurriculumCourse)
+        .filter(
+            CurriculumCourse.career_id == student.career_id,
+            CurriculumCourse.subject_id == requested_section.subject_id,
+        )
+        .first()
+    )
+    if curriculum_course and curriculum_course.prerequisite_subject_id:
+        prerequisite_grades = [
+            grade.grade_value
+            for enrollment in student.enrollments
+            if enrollment.section.subject_id == curriculum_course.prerequisite_subject_id
+            for grade in enrollment.grades
+        ]
+        passing_grade = (db.get(InstitutionSettings, 1) or InstitutionSettings()).passing_grade
+        average = (
+            sum(prerequisite_grades) / len(prerequisite_grades) if prerequisite_grades else None
+        )
+        if average is None or average < passing_grade:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Prerequisite {curriculum_course.prerequisite.code} is not completed",
+            )
     current = (
         db.query(Enrollment)
         .filter(

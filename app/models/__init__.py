@@ -1,6 +1,7 @@
 from .attendance_model import Attendance
 from .career_model import Career
 from .configuration_model import AcademicPeriod, InstitutionSettings
+from .curriculum_model import CurriculumCourse
 from .enrollment_model import Enrollment
 from .grade_model import Grade
 from .role_model import Role

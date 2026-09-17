@@ -11,6 +11,7 @@ from app.routers.audit_router import router as audit_router
 from app.routers.auth_router import router as auth_router
 from app.routers.career_router import router as career_router
 from app.routers.configuration_router import router as configuration_router
+from app.routers.curriculum_router import router as curriculum_router
 from app.routers.enrollment_router import router as enrollment_router
 from app.routers.grade_router import router as grade_router
 from app.routers.role_router import router as role_router
@@ -45,6 +46,7 @@ app.include_router(auth_router)
 app.include_router(audit_router)
 app.include_router(career_router)
 app.include_router(configuration_router)
+app.include_router(curriculum_router)
 app.include_router(attendance_router)
 app.include_router(academic_router)
 app.include_router(student_router)
