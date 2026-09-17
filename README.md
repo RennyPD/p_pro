@@ -89,6 +89,30 @@ Además, estudiantes solo pueden consultar su expediente, horario, notas y asist
 
 Los listados aceptan paginación mediante `skip` y `limit`; los catálogos y personas incluyen `q`, mientras inscripciones y notas ofrecen filtros propios.
 
+## Flujos funcionales disponibles
+
+- Expediente integral por estudiante con carrera, inscripciones, promedio y asistencia.
+- Espacio de trabajo por sección para pasar lista y registrar notas en grupo.
+- Períodos académicos y configuración institucional.
+- Matrículas automáticas configurables y detección de choques de horario.
+- Pensum por carrera con créditos, orden recomendado y prerrequisitos.
+- Progreso del estudiante con materias aprobadas, cursando y pendientes.
+- Paneles operativos específicos para administración, docentes y estudiantes.
+- Importación y exportación de estudiantes mediante CSV.
+- Control financiero interno con cargos, abonos, balance, vencimientos e historial.
+
+El módulo financiero es un libro de control interno. No procesa tarjetas, transferencias ni cobros mediante una pasarela externa.
+
+### Formato CSV de estudiantes
+
+El archivo de importación debe usar UTF-8 y contener estas columnas:
+
+```text
+first_name,last_name,email,telephone,address,career_id,enrollment_number,active
+```
+
+`enrollment_number` y `active` son opcionales. Si la matrícula queda vacía, se genera según la configuración institucional.
+
 ## Pruebas
 
 Las pruebas CRUD usan una base SQLite temporal en memoria y no modifican `school.db`:
@@ -121,7 +145,7 @@ No ejecutes `upgrade head` sobre una base existente sin revisar primero el estad
 
 La base incluida fue actualizada hasta `20260916_0003`. La migración creó la carrera temporal `Sin asignar` con identificador `0`, con lo que los dos estudiantes históricos conservan su referencia y vuelven a cumplir la integridad referencial. Deben reclasificarse cuando se conozca su carrera real. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`.
 
-La revisión `20260916_0004` agrega sesiones renovables y auditoría de seguridad.
+Las revisiones posteriores agregan sesiones y auditoría (`20260916_0004`), períodos y configuración (`20260917_0005`), pensum (`20260917_0006`) y control financiero interno (`20260917_0007`).
 
 ## PostgreSQL y contenedores
 

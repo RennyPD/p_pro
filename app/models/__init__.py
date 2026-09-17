@@ -3,6 +3,7 @@ from .career_model import Career
 from .configuration_model import AcademicPeriod, InstitutionSettings
 from .curriculum_model import CurriculumCourse
 from .enrollment_model import Enrollment
+from .finance_model import Charge, Payment, StudentAccount
 from .grade_model import Grade
 from .role_model import Role
 from .section_model import Section

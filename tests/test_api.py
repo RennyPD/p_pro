@@ -632,6 +632,37 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(imported.status_code, 200, imported.text)
         self.assertEqual(imported.json()["created"], 1)
 
+        charge = self.request(
+            "POST",
+            f"/finance/students/{demo_student['student_id']}/charges",
+            token=token,
+            json={
+                "description": "Matrícula del período",
+                "amount": 15000,
+                "due_date": "2026-09-01",
+            },
+        )
+        self.assertEqual(charge.status_code, 200, charge.text)
+        self.assertEqual(charge.json()["balance"], 15000)
+        payment = self.request(
+            "POST",
+            f"/finance/students/{demo_student['student_id']}/payments",
+            token=token,
+            json={"amount": 5000, "reference": "REC-001", "note": "Pago en caja"},
+        )
+        self.assertEqual(payment.status_code, 200, payment.text)
+        self.assertEqual(payment.json()["balance"], 10000)
+        student_token = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "demo.estudiante", "password": "NexoEstudiante2026!"},
+        ).json()["access_token"]
+        own_account = self.request(
+            "GET", f"/finance/students/{demo_student['student_id']}", token=student_token
+        )
+        self.assertEqual(own_account.status_code, 200, own_account.text)
+        self.assertEqual(len(own_account.json()["transactions"]), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
