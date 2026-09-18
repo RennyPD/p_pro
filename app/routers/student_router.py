@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.auth import ensure_student_academic_access, get_current_user, is_admin, require_roles
@@ -7,6 +7,7 @@ from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
 from app.models.student_model import Student
 from app.models.user_model import User
+from app.pagination import paginate_and_filter
 from app.schemas.student_schema import StudentCreate, StudentOut, StudentUpdate
 from app.services.student_service import (
     create_student_service,
@@ -25,12 +26,17 @@ def create_student(student_data: StudentCreate, db: Session = Depends(get_db)):
 
 @router.get("/", response_model=list[StudentOut], dependencies=[Depends(get_current_user)])
 def get_students(
+    q: str | None = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     query = db.query(Student)
     if is_admin(user):
-        return query.all()
+        return paginate_and_filter(
+            query.all(), skip, limit, q, ("first_name", "last_name", "email", "enrollment_number")
+        )
     if user.student_id is not None:
         return query.filter(Student.student_id == user.student_id).all()
     if user.teacher_id is not None:

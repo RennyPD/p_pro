@@ -37,7 +37,7 @@ export function ResourcePage({config}:{config:ResourceConfig}){
 
 function ResourceForm({config,record,onClose}:{config:ResourceConfig;record:EntityRecord|null;onClose:()=>void}){
   const client=useQueryClient();
-  const defaults=record??Object.fromEntries(config.fields.filter(f=>f.type==="checkbox").map(f=>[f.name,true]));
+  const defaults=record??Object.fromEntries(config.fields.filter(f=>f.type==="checkbox").map(f=>[f.name,!f.name.endsWith("_hold")]));
   const{register,control,handleSubmit,formState:{isSubmitting}}=useForm<FormValues>({defaultValues:defaults});
   const mutation=useMutation({
     mutationFn:(values:FormValues)=>{const payload=Object.fromEntries(Object.entries(values).filter(([,value])=>value!==""&&value!==undefined&&value!==null).map(([key,value])=>[key,config.fields.find(field=>field.name===key)?.type==="number"?Number(value):value]));return record?api.patch(`${config.endpoint}${record[config.idField]}`,payload):api.post(config.endpoint,payload);},
