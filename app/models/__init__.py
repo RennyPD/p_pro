@@ -1,6 +1,7 @@
 from .assessment_model import Assessment
 from .attendance_model import Attendance
 from .career_model import Career
+from .community_model import Announcement, Guardian, Notification, StudentGuardian
 from .configuration_model import AcademicPeriod, InstitutionSettings
 from .curriculum_model import CurriculumCourse
 from .enrollment_model import Enrollment

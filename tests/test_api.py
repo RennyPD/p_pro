@@ -740,6 +740,62 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(final.json()["weighted_grade"], 86)
         self.assertEqual(final.json()["status"], "passed")
 
+    def test_guardians_announcements_and_private_notifications(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        admin_token = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "demo.admin", "password": "NexoAdmin2026!"},
+        ).json()["access_token"]
+        student = self.request("GET", "/students/", token=admin_token).json()[0]
+        guardian = self.request(
+            "POST",
+            "/community/guardians",
+            token=admin_token,
+            json={
+                "first_name": "Laura",
+                "last_name": "Santos",
+                "email": "laura.santos@example.com",
+                "telephone": "809-555-0199",
+                "address": "Santo Domingo",
+            },
+        )
+        self.assertEqual(guardian.status_code, 200, guardian.text)
+        link = self.request(
+            "POST",
+            "/community/guardian-links",
+            token=admin_token,
+            json={
+                "student_id": student["student_id"],
+                "guardian_id": guardian.json()["guardian_id"],
+                "relationship": "madre",
+                "primary_contact": True,
+            },
+        )
+        self.assertEqual(link.status_code, 200, link.text)
+        announcement = self.request(
+            "POST",
+            "/community/announcements",
+            token=admin_token,
+            json={"title": "Reunión", "body": "Viernes a las 4", "audience": "student"},
+        )
+        self.assertEqual(announcement.status_code, 200, announcement.text)
+        student_token = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "demo.estudiante", "password": "NexoEstudiante2026!"},
+        ).json()["access_token"]
+        notifications = self.request("GET", "/community/notifications", token=student_token)
+        self.assertEqual(notifications.status_code, 200, notifications.text)
+        self.assertEqual(notifications.json()[0]["title"], "Reunión")
+        notification_id = notifications.json()[0]["notification_id"]
+        marked = self.request(
+            "POST", f"/community/notifications/{notification_id}/read", token=student_token
+        )
+        self.assertEqual(marked.status_code, 200, marked.text)
+        self.assertIsNotNone(marked.json()["read_at"])
+
 
 if __name__ == "__main__":
     unittest.main()
