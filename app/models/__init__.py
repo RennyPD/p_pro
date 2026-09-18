@@ -1,3 +1,4 @@
+from .assessment_model import Assessment
 from .attendance_model import Attendance
 from .career_model import Career
 from .configuration_model import AcademicPeriod, InstitutionSettings

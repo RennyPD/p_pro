@@ -674,6 +674,64 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(own_account.status_code, 200, own_account.text)
         self.assertEqual(len(own_account.json()["transactions"]), 2)
 
+    def test_weighted_assessments_and_closing_rules(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        token = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "demo.admin", "password": "NexoAdmin2026!"},
+        ).json()["access_token"]
+        section = self.request("GET", "/sections/", token=token).json()[0]
+        enrollment = self.request("GET", "/enrollments/", token=token).json()[0]
+        assessments = []
+        for name, weight in (("Prácticas", 40), ("Examen final", 60)):
+            response = self.request(
+                "POST",
+                "/assessments/",
+                token=token,
+                json={"section_id": section["section_id"], "name": name, "weight": weight},
+            )
+            self.assertEqual(response.status_code, 200, response.text)
+            assessments.append(response.json())
+        overflow = self.request(
+            "POST",
+            "/assessments/",
+            token=token,
+            json={"section_id": section["section_id"], "name": "Extra", "weight": 1},
+        )
+        self.assertEqual(overflow.status_code, 422, overflow.text)
+        for assessment, value in zip(assessments, (80, 90)):
+            grades = self.request(
+                "POST",
+                "/grades/bulk",
+                token=token,
+                json={
+                    "section_id": section["section_id"],
+                    "assessment_id": assessment["assessment_id"],
+                    "grade_type": assessment["name"],
+                    "date_recorded": "2026-09-18",
+                    "records": [
+                        {"enrollment_id": enrollment["enrollment_id"], "grade_value": value}
+                    ],
+                },
+            )
+            self.assertEqual(grades.status_code, 200, grades.text)
+            closed = self.request(
+                "POST",
+                f"/assessments/{assessment['assessment_id']}/close",
+                token=token,
+            )
+            self.assertEqual(closed.status_code, 200, closed.text)
+        final = self.request(
+            "GET",
+            f"/assessments/enrollments/{enrollment['enrollment_id']}/final",
+            token=token,
+        )
+        self.assertEqual(final.status_code, 200, final.text)
+        self.assertEqual(final.json()["weighted_grade"], 86)
+        self.assertEqual(final.json()["status"], "passed")
+
 
 if __name__ == "__main__":
     unittest.main()

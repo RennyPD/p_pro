@@ -38,7 +38,8 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
             if enrollment.section.subject_id == curriculum_course.prerequisite_subject_id
             for grade in enrollment.grades
         ]
-        passing_grade = (db.get(InstitutionSettings, 1) or InstitutionSettings()).passing_grade
+        settings = db.get(InstitutionSettings, 1)
+        passing_grade = settings.passing_grade if settings else 70.0
         average = (
             sum(prerequisite_grades) / len(prerequisite_grades) if prerequisite_grades else None
         )

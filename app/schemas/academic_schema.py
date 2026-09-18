@@ -63,6 +63,7 @@ class StudentAcademicProfile(BaseModel):
 
 class RosterGradeItem(BaseModel):
     grade_id: int
+    assessment_id: int | None
     grade_type: str
     grade_value: float
     date_recorded: str

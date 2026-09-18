@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.models import (
     AcademicPeriod,
+    Assessment,
     Attendance,
     AuditLog,
     Career,
@@ -147,6 +148,7 @@ def clear_application_data(db: Session) -> None:
         StudentAccount,
         Attendance,
         Grade,
+        Assessment,
         Enrollment,
         User,
         CurriculumCourse,

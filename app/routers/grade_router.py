@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.auth import ensure_enrollment_access, get_current_user, is_admin, require_roles
 from app.db.Session import get_db
+from app.models.assessment_model import Assessment
 from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade
 from app.models.section_model import Section
@@ -18,14 +19,25 @@ from app.services.grade_service import (
 router = APIRouter(prefix="/grades", tags=["grades"])
 
 
+def validate_assessment(
+    db: Session, assessment_id: int | None, section_id: int
+) -> Assessment | None:
+    if assessment_id is None:
+        return None
+    assessment = db.get(Assessment, assessment_id)
+    if assessment is None or assessment.section_id != section_id:
+        raise HTTPException(status_code=422, detail="Assessment must belong to the section")
+    if assessment.closed:
+        raise HTTPException(status_code=409, detail="Closed assessments cannot receive changes")
+    return assessment
+
+
 @router.post("/bulk", response_model=list[GradeOut])
 def save_section_grades(
     data: GradeBulkCreate,
     db: Session = Depends(get_db),
     user: User = Depends(require_roles("admin", "teacher")),
 ):
-    from fastapi import HTTPException
-
     enrollment_ids = {item.enrollment_id for item in data.records}
     enrollments = (
         db.query(Enrollment)
@@ -41,18 +53,25 @@ def save_section_grades(
         raise HTTPException(
             status_code=403, detail="Only the assigned teacher can grade this section"
         )
+    assessment = validate_assessment(db, data.assessment_id, data.section_id)
+    grade_type = assessment.name if assessment else data.grade_type
     saved = []
     for item in data.records:
         grade = (
             db.query(Grade)
             .filter(
                 Grade.enrollment_id == item.enrollment_id,
-                Grade.grade_type == data.grade_type,
+                Grade.assessment_id == data.assessment_id,
+                Grade.grade_type == grade_type,
             )
             .first()
         )
         if grade is None:
-            grade = Grade(enrollment_id=item.enrollment_id, grade_type=data.grade_type)
+            grade = Grade(
+                enrollment_id=item.enrollment_id,
+                assessment_id=data.assessment_id,
+                grade_type=grade_type,
+            )
             db.add(grade)
         grade.grade_value = item.grade_value
         grade.date_recorded = data.date_recorded
@@ -73,11 +92,12 @@ def create_grade(
 ):
     enrollment = ensure_enrollment_access(db, user, grade_data.enrollment_id)
     if not is_admin(user) and user.teacher_id != enrollment.section.teacher_id:
-        from fastapi import HTTPException
-
         raise HTTPException(
             status_code=403, detail="Only the assigned teacher can grade this enrollment"
         )
+    assessment = validate_assessment(db, grade_data.assessment_id, enrollment.section_id)
+    if assessment:
+        grade_data = grade_data.model_copy(update={"grade_type": assessment.name})
     return create_grade_service(db, grade_data)
 
 
@@ -122,9 +142,9 @@ def update_grade(
 ):
     grade = get_grade_by_id_service(db, grade_id)
     enrollment = ensure_enrollment_access(db, user, grade.enrollment_id)
+    if grade.assessment and grade.assessment.closed:
+        raise HTTPException(status_code=409, detail="Closed assessments cannot receive changes")
     if not is_admin(user) and user.teacher_id != enrollment.section.teacher_id:
-        from fastapi import HTTPException
-
         raise HTTPException(
             status_code=403, detail="Only the assigned teacher can update this grade"
         )
@@ -139,9 +159,9 @@ def delete_grade(
 ):
     grade = get_grade_by_id_service(db, grade_id)
     enrollment = ensure_enrollment_access(db, user, grade.enrollment_id)
+    if grade.assessment and grade.assessment.closed:
+        raise HTTPException(status_code=409, detail="Closed assessments cannot receive changes")
     if not is_admin(user) and user.teacher_id != enrollment.section.teacher_id:
-        from fastapi import HTTPException
-
         raise HTTPException(
             status_code=403, detail="Only the assigned teacher can delete this grade"
         )

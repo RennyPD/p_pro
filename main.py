@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.db.database import settings
 from app.models import *
 from app.routers.academic_router import router as academic_router
+from app.routers.assessment_router import router as assessment_router
 from app.routers.attendance_router import router as attendance_router
 from app.routers.audit_router import router as audit_router
 from app.routers.auth_router import router as auth_router
@@ -53,6 +54,7 @@ app.include_router(curriculum_router)
 app.include_router(dashboard_router)
 app.include_router(bulk_router)
 app.include_router(attendance_router)
+app.include_router(assessment_router)
 app.include_router(academic_router)
 app.include_router(student_router)
 app.include_router(teacher_router)

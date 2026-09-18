@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class GradeBase(BaseModel):
     enrollment_id: int
+    assessment_id: int | None = None
     grade_value: float = Field(ge=0, le=100)
     grade_type: str
     date_recorded: str
@@ -16,6 +17,7 @@ class GradeCreate(GradeBase):
 
 class GradeUpdate(BaseModel):
     enrollment_id: Optional[int] = None
+    assessment_id: Optional[int] = None
     grade_value: Optional[float] = Field(default=None, ge=0, le=100)
     grade_type: Optional[str] = None
     date_recorded: Optional[str] = None
@@ -33,6 +35,7 @@ class GradeBulkItem(BaseModel):
 
 class GradeBulkCreate(BaseModel):
     section_id: int
+    assessment_id: int | None = None
     grade_type: str
     date_recorded: str
     records: list[GradeBulkItem]

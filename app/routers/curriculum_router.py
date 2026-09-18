@@ -97,7 +97,8 @@ def student_curriculum_progress(
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
-    passing_grade = (db.get(InstitutionSettings, 1) or InstitutionSettings()).passing_grade
+    settings = db.get(InstitutionSettings, 1)
+    passing_grade = settings.passing_grade if settings else 70.0
     courses = (
         db.query(CurriculumCourse)
         .filter(CurriculumCourse.career_id == student.career_id)

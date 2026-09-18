@@ -197,6 +197,7 @@ def section_workspace(
         grades = [
             RosterGradeItem(
                 grade_id=item.grade_id,
+                assessment_id=item.assessment_id,
                 grade_type=item.grade_type,
                 grade_value=item.grade_value,
                 date_recorded=item.date_recorded,
