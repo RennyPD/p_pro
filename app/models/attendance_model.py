@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey
+from sqlalchemy import Boolean, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -15,5 +15,8 @@ class Attendance(Base):
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
     present: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(20), default="absent")
+    note: Mapped[str] = mapped_column(String(300), default="")
+    excuse_reference: Mapped[str] = mapped_column(String(300), default="")
 
     enrollment: Mapped["Enrollment"] = relationship("Enrollment", back_populates="attendances")

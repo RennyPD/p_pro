@@ -16,6 +16,7 @@ from app.models import (
     AuditLog,
     Career,
     Charge,
+    Classroom,
     CurriculumCourse,
     Enrollment,
     Grade,
@@ -24,6 +25,7 @@ from app.models import (
     RefreshToken,
     Role,
     Section,
+    SectionMeeting,
     Student,
     StudentAccount,
     Subject,
@@ -152,10 +154,12 @@ def clear_application_data(db: Session) -> None:
         Enrollment,
         User,
         CurriculumCourse,
+        SectionMeeting,
         Section,
         Student,
         Teacher,
         Subject,
+        Classroom,
         AcademicPeriod,
         InstitutionSettings,
         Career,
@@ -312,11 +316,13 @@ def seed_institution(db: Session) -> dict[str, int]:
                 )
                 grade_count += 1
             for session_index in range(6):
+                is_present = rng.random() > 0.12
                 db.add(
                     Attendance(
                         enrollment_id=enrollment.enrollment_id,
                         date=datetime(2026, 9, 1 + session_index * 2, 8 + course_index),
-                        present=rng.random() > 0.12,
+                        present=is_present,
+                        status="present" if is_present else "absent",
                     )
                 )
                 attendance_count += 1

@@ -7,6 +7,7 @@ from .enrollment_model import Enrollment
 from .finance_model import Charge, Payment, StudentAccount
 from .grade_model import Grade
 from .role_model import Role
+from .scheduling_model import Classroom, SectionMeeting
 from .section_model import Section
 from .security_model import AuditLog, RefreshToken
 from .student_model import Student

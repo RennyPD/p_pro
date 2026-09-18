@@ -16,6 +16,15 @@ from app.schemas.attendance_schema import (
 )
 
 router = APIRouter(prefix="/attendances", tags=["attendances"])
+ATTENDANCE_STATUSES = {"present", "absent", "late", "excused", "early_departure"}
+
+
+def attendance_values(present: bool, status_value: str | None) -> tuple[bool, str]:
+    status_name = status_value or ("present" if present else "absent")
+    if status_name not in ATTENDANCE_STATUSES:
+        raise HTTPException(status_code=422, detail="Invalid attendance status")
+    counts_as_present = status_name in {"present", "late", "early_departure"}
+    return counts_as_present, status_name
 
 
 @router.post("/bulk", response_model=list[AttendanceOut])
@@ -54,7 +63,8 @@ def save_section_attendance(
         if attendance is None:
             attendance = Attendance(enrollment_id=item.enrollment_id, date=day_start)
             db.add(attendance)
-        attendance.present = item.present
+        attendance.present, attendance.status = attendance_values(item.present, item.status)
+        attendance.note = item.note
         saved.append(attendance)
     db.commit()
     for attendance in saved:
@@ -79,6 +89,9 @@ def create_attendance(
 ):
     require_attendance_writer(db, user, data.enrollment_id)
     values = data.model_dump(exclude_none=True)
+    values["present"], values["status"] = attendance_values(
+        values.get("present", False), values.get("status")
+    )
     attendance = Attendance(**values)
     db.add(attendance)
     db.commit()
@@ -138,6 +151,7 @@ def update_attendance(
     require_attendance_writer(db, user, attendance.enrollment_id)
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(attendance, key, value)
+    attendance.present, attendance.status = attendance_values(attendance.present, attendance.status)
     db.commit()
     db.refresh(attendance)
     return attendance
