@@ -98,7 +98,7 @@ Antes de crear usuarios, define un `SECRET_KEY` largo y aleatorio en `.env`.
 2. Inicia sesión mediante `POST /auth/login` usando nombre de usuario o correo y contraseña.
 3. Envía el token devuelto como `Authorization: Bearer <token>`.
 
-Los administradores gestionan catálogos, personas, inscripciones, roles y usuarios. Docentes y administradores pueden registrar notas. Las consultas generales requieren autenticación. Las contraseñas se almacenan con `scrypt` y nunca se incluyen en las respuestas. El access token se conserva solo durante la pestaña y se renueva mediante una cookie `HttpOnly`; cerrar sesión revoca la sesión de renovación.
+Los administradores gestionan programas, pensum, períodos, personas, oferta de secciones, roles y usuarios. La inscripción queda como relación interna: el administrador asigna un docente y una asignatura a cada sección, y el estudiante elige una sección disponible desde su catálogo. Docentes y administradores pueden registrar notas. Las consultas generales requieren autenticación. Las contraseñas se almacenan con `scrypt` y nunca se incluyen en las respuestas. El access token se conserva solo durante la pestaña y se renueva mediante una cookie `HttpOnly`; cerrar sesión revoca la sesión de renovación.
 
 La API limita intentos repetidos de acceso, permite cambiar la contraseña y registra eventos de seguridad en el historial de auditoría (`GET /audit/`, solo administración). Si una persona olvida su contraseña, un administrador puede establecer una nueva desde la gestión de usuarios sin exponer la anterior.
 
@@ -109,6 +109,8 @@ Además, estudiantes solo pueden consultar su expediente, horario, notas y asist
 - `GET /academic/students/{id}/grades`: historial de notas, con filtro por período.
 - `GET /academic/students/{id}/schedule`: horario del estudiante.
 - `GET /academic/teachers/{id}/schedule`: horario del docente.
+- `GET /academic/catalog`: oferta disponible según el pensum del estudiante.
+- `POST /academic/catalog/sections/{id}/select`: selección de una sección por el estudiante.
 - `GET /academic/sections/{id}/students`: estudiantes inscritos por sección.
 - `/attendances`: CRUD de asistencia sujeto al ámbito del docente.
 
@@ -118,7 +120,9 @@ Los listados aceptan paginación mediante `skip` y `limit`; los catálogos y per
 
 - Expediente integral por estudiante con carrera, inscripciones, promedio y asistencia.
 - Espacio de trabajo por sección para pasar lista y registrar notas en grupo.
-- Períodos académicos y configuración institucional.
+- Horarios personales en lista o cuadrícula semanal, con formato de 12 o 24 horas.
+- Períodos académicos por bimestre, trimestre, cuatrimestre, semestre o año.
+- Carreras con código, nivel, título otorgado, duración y pensum por créditos.
 - Matrículas automáticas configurables y detección de choques de horario.
 - Pensum por carrera con créditos, orden recomendado y prerrequisitos.
 - Progreso del estudiante con materias aprobadas, cursando y pendientes.
@@ -126,7 +130,7 @@ Los listados aceptan paginación mediante `skip` y `limit`; los catálogos y per
 - Importación y exportación de estudiantes mediante CSV.
 - Control financiero interno con cargos, abonos, balance, vencimientos e historial.
 - Evaluaciones ponderadas con cierre y reapertura controlada.
-- Inscripciones con cupos, espera, bloqueos, prerrequisitos y límite de créditos.
+- Selección estudiantil de asignaturas con cupos, espera, bloqueos, prerrequisitos y límite de créditos; la inscripción técnica se administra en segundo plano.
 - Aulas, reuniones semanales y asistencia con tardanza o justificación.
 - Tutores, avisos internos, notificaciones privadas y documentos PDF.
 - Calendario institucional, planes de clase, tareas, entregas y retroalimentación.
@@ -177,9 +181,9 @@ No ejecutes `upgrade head` sobre una base existente sin revisar primero el estad
 
 ### Estado de la base incluida
 
-La base incluida fue actualizada hasta `20260918_0014`. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`. El historial completo de revisiones conserva la carrera temporal `Sin asignar` para datos heredados y añade seguridad, períodos, pensum, finanzas, evaluaciones, inscripción avanzada, horarios, asistencia, comunicaciones y operación institucional.
+La base incluida fue actualizada hasta `20260918_0015`. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`. El historial completo de revisiones conserva la carrera temporal `Sin asignar` para datos heredados y añade seguridad, períodos, pensum, finanzas, evaluaciones, selección académica, horarios, asistencia, comunicaciones y operación institucional.
 
-Las revisiones posteriores agregan sesiones y auditoría (`20260916_0004`), períodos y configuración (`20260917_0005`), pensum (`20260917_0006`) y control financiero interno (`20260917_0007`).
+La revisión `20260918_0015` agrega metadatos universitarios a carreras y períodos sin eliminar los registros existentes.
 
 ## PostgreSQL y contenedores
 

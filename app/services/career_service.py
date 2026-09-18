@@ -1,6 +1,8 @@
 from fastapi import HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.models.career_model import Career
 from app.repositories.career_repository import (
     create_career,
     delete_career,
@@ -12,6 +14,9 @@ from app.schemas.career_schema import CareerCreate, CareerUpdate
 
 
 def create_career_service(db: Session, data: CareerCreate):
+    if not data.code:
+        highest_id = db.query(func.max(Career.career_id)).scalar() or 0
+        data = data.model_copy(update={"code": f"CAR-{highest_id + 1:03d}"})
     return create_career(db, data)
 
 

@@ -18,9 +18,32 @@ class ScheduleItem(BaseModel):
     section_id: int
     section_code: str
     subject_code: str
+    subject_name: str
+    teacher_name: str
+    room: str
+    modality: str
     days_of_week: list[str]
     start_time: time
     end_time: time
+
+
+class CourseOffering(BaseModel):
+    section_id: int
+    section_code: str
+    subject_id: int
+    subject_code: str
+    subject_name: str
+    teacher_name: str
+    credits: int
+    days_of_week: list[str]
+    start_time: time
+    end_time: time
+    room: str
+    modality: str
+    capacity: int
+    available_seats: int
+    selection_status: str | None
+    period: str
 
 
 class SectionStudentItem(BaseModel):

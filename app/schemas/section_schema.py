@@ -54,6 +54,9 @@ class SectionUpdate(BaseModel):
 
 class SectionOut(SectionBase):
     section_id: int
+    teacher_name: str
+    subject_code: str
+    subject_name: str
 
     @field_validator("days_of_week", mode="before")
     @classmethod

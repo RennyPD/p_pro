@@ -29,6 +29,9 @@ class AttendanceOut(BaseModel):
     status: str
     note: str
     excuse_reference: str
+    student_name: str
+    section_code: str
+    subject_name: str
     model_config = ConfigDict(from_attributes=True)
 
 

@@ -28,4 +28,7 @@ class EnrollmentUpdate(BaseModel):
 
 class EnrollmentOut(EnrollmentBase):
     enrollment_id: int
+    student_name: str
+    section_code: str
+    subject_name: str
     model_config = ConfigDict(from_attributes=True)

@@ -5,7 +5,7 @@ from app.schemas.career_schema import CareerCreate, CareerUpdate
 
 
 def create_career(db: Session, data: CareerCreate) -> Career:
-    career = Career(**data.model_dump())
+    career = Career(**data.model_dump(exclude_none=True))
     db.add(career)
     db.commit()
     db.refresh(career)

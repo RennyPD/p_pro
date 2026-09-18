@@ -20,3 +20,15 @@ class Attendance(Base):
     excuse_reference: Mapped[str] = mapped_column(String(300), default="")
 
     enrollment: Mapped["Enrollment"] = relationship("Enrollment", back_populates="attendances")
+
+    @property
+    def student_name(self) -> str:
+        return f"{self.enrollment.student.first_name} {self.enrollment.student.last_name}"
+
+    @property
+    def section_code(self) -> str:
+        return self.enrollment.section.code
+
+    @property
+    def subject_name(self) -> str:
+        return self.enrollment.section.subject.description

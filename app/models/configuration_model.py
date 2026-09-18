@@ -19,6 +19,9 @@ class AcademicPeriod(Base):
     registration_end: Mapped[date | None] = mapped_column(Date, nullable=True)
     withdrawal_deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
     grading_deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
+    period_type: Mapped[str] = mapped_column(String(20), default="semester")
+    sequence: Mapped[int] = mapped_column(Integer, default=1)
+    academic_year: Mapped[str] = mapped_column(String(20), default="")
 
 
 class InstitutionSettings(Base):

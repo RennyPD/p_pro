@@ -67,7 +67,14 @@ def seed_demo(db: Session) -> dict[str, int]:
         career = _one_or_create(
             db,
             Career,
-            {"description": "Programa demostrativo para validar el flujo académico"},
+            {
+                "code": "ISW",
+                "description": "Programa demostrativo para validar el flujo académico",
+                "academic_level": "undergraduate",
+                "degree_title": "Ingeniero de Software",
+                "term_type": "semester",
+                "duration_terms": 8,
+            },
             name="Ingeniería de Software",
         )
         teacher = db.scalar(

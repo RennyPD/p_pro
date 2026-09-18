@@ -23,3 +23,15 @@ class Section(Base):
     subject: Mapped["Subject"] = relationship("Subject", back_populates="sections")
     teacher: Mapped["Teacher"] = relationship("Teacher", back_populates="sections")
     enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="section")
+
+    @property
+    def teacher_name(self) -> str:
+        return f"{self.teacher.first_name} {self.teacher.last_name}"
+
+    @property
+    def subject_code(self) -> str:
+        return self.subject.code
+
+    @property
+    def subject_name(self) -> str:
+        return self.subject.description

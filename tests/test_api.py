@@ -683,6 +683,50 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(own_account.status_code, 200, own_account.text)
         self.assertEqual(len(own_account.json()["transactions"]), 2)
 
+    def test_university_catalog_and_program_metadata(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        admin_token = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "demo.admin", "password": "NexoAdmin2026!"},
+        ).json()["access_token"]
+        student_token = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "demo.estudiante", "password": "NexoEstudiante2026!"},
+        ).json()["access_token"]
+
+        careers = self.request("GET", "/careers/", token=admin_token)
+        self.assertEqual(careers.status_code, 200, careers.text)
+        program = careers.json()[0]
+        self.assertEqual(program["code"], "ISW")
+        self.assertEqual(program["degree_title"], "Ingeniero de Software")
+        self.assertEqual(program["duration_terms"], 8)
+
+        periods = self.request("GET", "/periods/", token=admin_token)
+        self.assertEqual(periods.status_code, 200, periods.text)
+        self.assertEqual(periods.json()[0]["period_type"], "semester")
+        self.assertEqual(periods.json()[0]["sequence"], 1)
+
+        catalog = self.request("GET", "/academic/catalog", token=student_token)
+        self.assertEqual(catalog.status_code, 200, catalog.text)
+        self.assertEqual(len(catalog.json()), 2)
+        offering = catalog.json()[0]
+        self.assertIn("teacher_name", offering)
+        self.assertIn("available_seats", offering)
+        self.assertIn("credits", offering)
+        selected = next(item for item in catalog.json() if item["selection_status"] == "enrolled")
+        duplicate = self.request(
+            "POST",
+            f"/academic/catalog/sections/{selected['section_id']}/select",
+            token=student_token,
+        )
+        self.assertEqual(duplicate.status_code, 409, duplicate.text)
+
+        denied = self.request("GET", "/academic/catalog", token=admin_token)
+        self.assertEqual(denied.status_code, 403, denied.text)
+
     def test_weighted_assessments_and_closing_rules(self) -> None:
         with self.Session() as db:
             seed_demo(db)

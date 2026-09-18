@@ -274,8 +274,16 @@ def seed_institution(db: Session) -> dict[str, int]:
 
     careers: list[Career] = []
     subjects_by_career: list[list[Subject]] = []
-    for career_name, description, subject_specs in CAREER_SPECS:
-        career = Career(name=career_name, description=description)
+    for career_index, (career_name, description, subject_specs) in enumerate(CAREER_SPECS, start=1):
+        career = Career(
+            code=f"ITH-{career_index:02d}",
+            name=career_name,
+            description=description,
+            academic_level="undergraduate",
+            degree_title=f"Licenciado en {career_name}",
+            term_type="quadrimester",
+            duration_terms=9,
+        )
         subjects = [Subject(code=code, description=name) for code, name, _ in subject_specs]
         db.add(career)
         db.add_all(subjects)

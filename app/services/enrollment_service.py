@@ -90,6 +90,19 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
         )
         .all()
     )
+    same_subject_selection = next(
+        (
+            enrollment
+            for enrollment in current
+            if enrollment.section.subject_id == requested_section.subject_id
+        ),
+        None,
+    )
+    if same_subject_selection:
+        raise HTTPException(
+            status_code=409,
+            detail=f"The subject is already selected in section {same_subject_selection.section.code}",
+        )
     max_credits = settings.max_credits_per_period if settings else 24
     current_credits = 0.0
     for enrollment in current:

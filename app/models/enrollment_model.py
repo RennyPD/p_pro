@@ -33,3 +33,15 @@ class Enrollment(Base):
     grades: Mapped[list["Grade"]] = relationship(
         "Grade", back_populates="enrollment", cascade="all, delete-orphan"
     )
+
+    @property
+    def student_name(self) -> str:
+        return f"{self.student.first_name} {self.student.last_name}"
+
+    @property
+    def section_code(self) -> str:
+        return self.section.code
+
+    @property
+    def subject_name(self) -> str:
+        return self.section.subject.description

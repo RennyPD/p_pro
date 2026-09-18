@@ -10,6 +10,8 @@ from app.auth import (
     get_current_user,
 )
 from app.db.Session import get_db
+from app.models.configuration_model import AcademicPeriod
+from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade
 from app.models.section_model import Section
@@ -17,6 +19,7 @@ from app.models.student_model import Student
 from app.models.user_model import User
 from app.schemas.academic_schema import (
     AttendanceCourseSummary,
+    CourseOffering,
     GradeHistoryItem,
     RosterGradeItem,
     ScheduleItem,
@@ -26,6 +29,8 @@ from app.schemas.academic_schema import (
     StudentAcademicProfile,
     StudentEnrollmentSummary,
 )
+from app.schemas.enrollment_schema import EnrollmentCreate
+from app.services.enrollment_service import create_enrollment_service
 
 router = APIRouter(prefix="/academic", tags=["academic queries"])
 
@@ -35,9 +40,115 @@ def schedule_item(section: Section) -> ScheduleItem:
         section_id=section.section_id,
         section_code=section.code,
         subject_code=section.subject.code,
+        subject_name=section.subject.description,
+        teacher_name=f"{section.teacher.first_name} {section.teacher.last_name}",
+        room=section.room,
+        modality=section.modality,
         days_of_week=section.days_of_week.split(", "),
         start_time=section.start_time,
         end_time=section.end_time,
+    )
+
+
+@router.get("/catalog", response_model=list[CourseOffering])
+def course_catalog(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    if user.student_id is None:
+        raise HTTPException(status_code=403, detail="Course selection is only available to students")
+    student = db.get(Student, user.student_id)
+    period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
+    if period is None:
+        return []
+    curriculum = {
+        item.subject_id: item
+        for item in db.query(CurriculumCourse)
+        .filter(CurriculumCourse.career_id == student.career_id)
+        .all()
+    }
+    current = {
+        item.section_id: item.state
+        for item in db.query(Enrollment)
+        .filter(Enrollment.student_id == student.student_id, Enrollment.period == period.name)
+        .all()
+    }
+    selected_subjects = {
+        item.section.subject_id: item.state
+        for item in db.query(Enrollment)
+        .filter(
+            Enrollment.student_id == student.student_id,
+            Enrollment.period == period.name,
+            Enrollment.state.in_(("enrolled", "waitlisted")),
+        )
+        .all()
+    }
+    results = []
+    for section in db.query(Section).filter(Section.subject_id.in_(list(curriculum))).all():
+        occupied = (
+            db.query(Enrollment)
+            .filter(
+                Enrollment.section_id == section.section_id,
+                Enrollment.period == period.name,
+                Enrollment.state == "enrolled",
+            )
+            .count()
+        )
+        results.append(
+            CourseOffering(
+                section_id=section.section_id,
+                section_code=section.code,
+                subject_id=section.subject_id,
+                subject_code=section.subject.code,
+                subject_name=section.subject.description,
+                teacher_name=f"{section.teacher.first_name} {section.teacher.last_name}",
+                credits=curriculum[section.subject_id].credits,
+                days_of_week=section.days_of_week.split(", "),
+                start_time=section.start_time,
+                end_time=section.end_time,
+                room=section.room,
+                modality=section.modality,
+                capacity=section.capacity,
+                available_seats=max(section.capacity - occupied, 0),
+                selection_status=current.get(section.section_id)
+                or selected_subjects.get(section.subject_id),
+                period=period.name,
+            )
+        )
+    return results
+
+
+@router.post("/catalog/sections/{section_id}/select")
+def select_course(
+    section_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if user.student_id is None:
+        raise HTTPException(status_code=403, detail="Course selection is only available to students")
+    period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
+    if period is None or period.status not in {"registration", "active"}:
+        raise HTTPException(status_code=409, detail="Course selection is currently closed")
+    student = db.get(Student, user.student_id)
+    section = db.get(Section, section_id)
+    if section is None:
+        raise HTTPException(status_code=404, detail="Section not found")
+    offered_in_program = (
+        db.query(CurriculumCourse)
+        .filter(
+            CurriculumCourse.career_id == student.career_id,
+            CurriculumCourse.subject_id == section.subject_id,
+        )
+        .first()
+    )
+    if offered_in_program is None:
+        raise HTTPException(status_code=409, detail="This subject is not part of the student's program")
+    return create_enrollment_service(
+        db,
+        EnrollmentCreate(
+            student_id=user.student_id,
+            section_id=section_id,
+            period=period.name,
+        ),
     )
 
 
