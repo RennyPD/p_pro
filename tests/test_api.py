@@ -622,6 +622,14 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(progress.status_code, 200, progress.text)
         self.assertEqual(progress.json()["completed_credits"], 4.0)
         self.assertEqual(len(progress.json()["courses"]), 2)
+        transcript = self.request(
+            "GET",
+            f"/records/students/{demo_student['student_id']}/transcript",
+            token=token,
+        )
+        self.assertEqual(transcript.status_code, 200, transcript.text)
+        self.assertGreater(transcript.json()["attempted_credits"], 0)
+        self.assertIn(transcript.json()["academic_standing"], {"honors", "good", "probation"})
 
         dashboard = self.request("GET", "/dashboard/summary", token=token)
         self.assertEqual(dashboard.status_code, 200, dashboard.text)

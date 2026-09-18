@@ -18,6 +18,7 @@ from app.routers.dashboard_router import router as dashboard_router
 from app.routers.enrollment_router import router as enrollment_router
 from app.routers.finance_router import router as finance_router
 from app.routers.grade_router import router as grade_router
+from app.routers.record_router import router as record_router
 from app.routers.role_router import router as role_router
 from app.routers.scheduling_router import router as scheduling_router
 from app.routers.section_router import router as section_router
@@ -65,5 +66,6 @@ app.include_router(subject_router)
 app.include_router(user_router)
 app.include_router(enrollment_router)
 app.include_router(role_router)
+app.include_router(record_router)
 app.include_router(grade_router)
 app.include_router(finance_router)
