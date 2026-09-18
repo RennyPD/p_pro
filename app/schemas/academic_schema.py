@@ -92,12 +92,32 @@ class RosterGradeItem(BaseModel):
     date_recorded: str
 
 
+class RosterAttendanceItem(BaseModel):
+    attendance_id: int
+    date: date
+    status: str
+    note: str
+
+
 class SectionRosterItem(SectionStudentItem):
     email: str
     grades: list[RosterGradeItem]
     average_grade: float | None
     attendance_percentage: float | None
     attendance_status: bool | None
+    attendances: list[RosterAttendanceItem]
+
+
+class SectionAcademicSummary(BaseModel):
+    section_id: int
+    section_code: str
+    subject_code: str
+    subject_name: str
+    teacher_name: str
+    student_count: int
+    attendance_percentage: float | None
+    grade_average: float | None
+    assessment_count: int
 
 
 class SectionWorkspace(BaseModel):

@@ -21,8 +21,10 @@ from app.schemas.academic_schema import (
     AttendanceCourseSummary,
     CourseOffering,
     GradeHistoryItem,
+    RosterAttendanceItem,
     RosterGradeItem,
     ScheduleItem,
+    SectionAcademicSummary,
     SectionRosterItem,
     SectionStudentItem,
     SectionWorkspace,
@@ -218,7 +220,10 @@ def section_students(
     user: User = Depends(get_current_user),
 ):
     ensure_section_access(db, user, section_id)
-    query = db.query(Enrollment).filter(Enrollment.section_id == section_id)
+    query = db.query(Enrollment).filter(
+        Enrollment.section_id == section_id,
+        Enrollment.state == "enrolled",
+    )
     if period:
         query = query.filter(Enrollment.period == period)
     enrollments = query.offset(skip).limit(limit).all()
@@ -238,6 +243,43 @@ def section_students(
 
 def _percentage(present: int, total: int) -> float | None:
     return round(present * 100 / total, 1) if total else None
+
+
+@router.get("/sections/academic-summary", response_model=list[SectionAcademicSummary])
+def section_academic_summaries(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    query = db.query(Section)
+    if user.role.name.casefold() == "teacher":
+        query = query.filter(Section.teacher_id == user.teacher_id)
+    elif user.role.name.casefold() != "admin":
+        raise HTTPException(status_code=403, detail="Academic summaries are for staff only")
+    summaries = []
+    for section in query.order_by(Section.code).all():
+        active_enrollments = [item for item in section.enrollments if item.state == "enrolled"]
+        attendances = [record for item in active_enrollments for record in item.attendances]
+        grades = [record.grade_value for item in active_enrollments for record in item.grades]
+        assessments = {
+            record.assessment_id or record.grade_type
+            for item in active_enrollments
+            for record in item.grades
+        }
+        summaries.append(
+            SectionAcademicSummary(
+                section_id=section.section_id,
+                section_code=section.code,
+                subject_code=section.subject.code,
+                subject_name=section.subject.description,
+                teacher_name=f"{section.teacher.first_name} {section.teacher.last_name}",
+                student_count=len(active_enrollments),
+                attendance_percentage=_percentage(
+                    sum(record.present for record in attendances), len(attendances)
+                ),
+                grade_average=round(sum(grades) / len(grades), 1) if grades else None,
+                assessment_count=len(assessments),
+            )
+        )
+    return summaries
 
 
 @router.get("/students/{student_id}/profile", response_model=StudentAcademicProfile)
@@ -300,7 +342,10 @@ def section_workspace(
     user: User = Depends(get_current_user),
 ):
     section = ensure_section_access(db, user, section_id)
-    query = db.query(Enrollment).filter(Enrollment.section_id == section_id)
+    query = db.query(Enrollment).filter(
+        Enrollment.section_id == section_id,
+        Enrollment.state == "enrolled",
+    )
     if period:
         query = query.filter(Enrollment.period == period)
     roster = []
@@ -335,6 +380,15 @@ def section_workspace(
                 else None,
                 attendance_percentage=_percentage(present, len(enrollment.attendances)),
                 attendance_status=attendance.present if attendance else None,
+                attendances=[
+                    RosterAttendanceItem(
+                        attendance_id=item.attendance_id,
+                        date=item.date.date(),
+                        status=item.status,
+                        note=item.note,
+                    )
+                    for item in sorted(enrollment.attendances, key=lambda record: record.date, reverse=True)
+                ],
             )
         )
     return SectionWorkspace(

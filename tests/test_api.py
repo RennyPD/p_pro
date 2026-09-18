@@ -727,6 +727,23 @@ class ApiIntegrationTests(unittest.TestCase):
         denied = self.request("GET", "/academic/catalog", token=admin_token)
         self.assertEqual(denied.status_code, 403, denied.text)
 
+        summaries = self.request(
+            "GET", "/academic/sections/academic-summary", token=admin_token
+        )
+        self.assertEqual(summaries.status_code, 200, summaries.text)
+        self.assertEqual(len(summaries.json()), 2)
+        programming = next(
+            item for item in summaries.json() if item["section_code"] == "PROG-101-A"
+        )
+        self.assertEqual(programming["student_count"], 1)
+        self.assertIsNotNone(programming["attendance_percentage"])
+        self.assertIsNotNone(programming["grade_average"])
+
+        student_denied = self.request(
+            "GET", "/academic/sections/academic-summary", token=student_token
+        )
+        self.assertEqual(student_denied.status_code, 403, student_denied.text)
+
     def test_weighted_assessments_and_closing_rules(self) -> None:
         with self.Session() as db:
             seed_demo(db)

@@ -120,6 +120,7 @@ Los listados aceptan paginación mediante `skip` y `limit`; los catálogos y per
 
 - Expediente integral por estudiante con carrera, inscripciones, promedio y asistencia.
 - Espacio de trabajo por sección para pasar lista y registrar notas en grupo.
+- Paneles de asistencia y calificaciones agrupados por sección, con promedios generales e historial desplegable por estudiante.
 - Horarios personales en lista o cuadrícula semanal, con formato de 12 o 24 horas.
 - Períodos académicos por bimestre, trimestre, cuatrimestre, semestre o año.
 - Carreras con código, nivel, título otorgado, duración y pensum por créditos.
