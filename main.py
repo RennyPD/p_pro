@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.db.database import settings
 from app.models import *
 from app.routers.academic_router import router as academic_router
+from app.routers.access_router import router as access_router
 from app.routers.assessment_router import router as assessment_router
 from app.routers.attendance_router import router as attendance_router
 from app.routers.audit_router import router as audit_router
@@ -20,6 +22,7 @@ from app.routers.document_router import router as document_router
 from app.routers.enrollment_router import router as enrollment_router
 from app.routers.finance_router import router as finance_router
 from app.routers.grade_router import router as grade_router
+from app.routers.operations_router import router as operations_router
 from app.routers.record_router import router as record_router
 from app.routers.role_router import router as role_router
 from app.routers.scheduling_router import router as scheduling_router
@@ -40,6 +43,15 @@ app.add_middleware(
 )
 
 
+@app.get("/health", tags=["system"])
+def health():
+    from app.db.database import SessionLocal
+
+    with SessionLocal() as db:
+        db.execute(text("SELECT 1"))
+    return {"status": "ok", "database": "reachable"}
+
+
 @app.exception_handler(IntegrityError)
 def handle_integrity_error(_request, _exc):
     return JSONResponse(status_code=409, content={"detail": "Database constraint conflict"})
@@ -51,6 +63,7 @@ def handle_database_error(_request, _exc):
 
 
 app.include_router(auth_router)
+app.include_router(access_router)
 app.include_router(audit_router)
 app.include_router(career_router)
 app.include_router(configuration_router)
@@ -73,3 +86,4 @@ app.include_router(role_router)
 app.include_router(record_router)
 app.include_router(grade_router)
 app.include_router(finance_router)
+app.include_router(operations_router)

@@ -13,6 +13,8 @@ Nexo organiza la operación académica local en tres espacios: administración, 
 7. Cerrar evaluaciones para impedir cambios accidentales y consultar el expediente.
 8. Registrar cargos, ajustes, planes y pagos internos; descargar estados de cuenta.
 9. Vincular tutores y publicar avisos internos por audiencia.
+10. Programar eventos, planes de clase y tareas desde Agenda y tareas.
+11. Revisar alertas tempranas, solicitudes de aprobación y candidatos de admisión.
 
 ## Reglas principales
 
@@ -45,6 +47,19 @@ Nexo organiza la operación académica local en tres espacios: administración, 
 - `POST /auth/sessions/revoke-all` revoca todas sus renovaciones.
 - Auditoría de accesos y eventos sensibles visible solo para administración.
 - Segundo factor TOTP opcional, compatible con aplicaciones autenticadoras estándar.
+
+## Operación institucional ampliada
+
+- El calendario admite actividades, exámenes, reuniones, fechas límite y días no lectivos.
+- Cada docente administra planes y tareas solamente en sus secciones.
+- Los estudiantes entregan trabajos y el docente registra puntuación y retroalimentación.
+- Las alertas pueden crearse manualmente o generarse por promedio, asistencia y balance.
+- Los tutores con usuario propio solo consultan estudiantes expresamente vinculados.
+- Admisiones mantiene el candidato separado hasta convertirlo formalmente en estudiante.
+- Cambios excepcionales pueden registrarse como solicitudes pendientes de aprobación.
+- El expediente digital acepta PDF, PNG y JPEG de hasta 5 MB.
+- Los permisos por rol pueden consultarse y ajustarse desde la API de control de acceso.
+- `python -m scripts.backup_database` crea una copia consistente dentro de `backups/`.
 
 ## Lista de revisión manual
 

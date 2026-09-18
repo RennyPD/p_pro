@@ -65,8 +65,9 @@ Este comando elimina los registros de la aplicación y carga un escenario reprod
 | Administración | `admin.horizonte` | `NexoAdmin2026!` |
 | Docente | `profesor.01` | `NexoDocente2026!` |
 | Estudiante | `estudiante.001` | `NexoEstudiante2026!` |
+| Tutor | `tutor.01` | `NexoTutor2026!` |
 
-También se crean `profesor.02` a `profesor.06` y `estudiante.002` a `estudiante.036`, usando la contraseña correspondiente a su perfil. Este cargador es destructivo y debe utilizarse únicamente con datos locales ficticios.
+También se crean `profesor.02` a `profesor.06`, `estudiante.002` a `estudiante.036` y `tutor.02` a `tutor.06`, usando la contraseña correspondiente a su perfil. Este cargador es destructivo y debe utilizarse únicamente con datos locales ficticios.
 
 ### Frontend React
 
@@ -128,6 +129,11 @@ Los listados aceptan paginación mediante `skip` y `limit`; los catálogos y per
 - Inscripciones con cupos, espera, bloqueos, prerrequisitos y límite de créditos.
 - Aulas, reuniones semanales y asistencia con tardanza o justificación.
 - Tutores, avisos internos, notificaciones privadas y documentos PDF.
+- Calendario institucional, planes de clase, tareas, entregas y retroalimentación.
+- Alertas tempranas académicas, de asistencia y financieras.
+- Admisiones, aprobaciones y expediente digital de archivos.
+- Conceptos de facturación, cierres de caja y analítica institucional.
+- Permisos configurables por rol y portal familiar para tutores vinculados.
 
 El módulo financiero es un libro de control interno. No procesa tarjetas, transferencias ni cobros mediante una pasarela externa.
 
@@ -171,7 +177,7 @@ No ejecutes `upgrade head` sobre una base existente sin revisar primero el estad
 
 ### Estado de la base incluida
 
-La base incluida fue actualizada hasta `20260918_0013`. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`. El historial completo de revisiones conserva la carrera temporal `Sin asignar` para datos heredados y añade seguridad, períodos, pensum, finanzas, evaluaciones, inscripción avanzada, horarios, asistencia y comunicaciones.
+La base incluida fue actualizada hasta `20260918_0014`. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`. El historial completo de revisiones conserva la carrera temporal `Sin asignar` para datos heredados y añade seguridad, períodos, pensum, finanzas, evaluaciones, inscripción avanzada, horarios, asistencia, comunicaciones y operación institucional.
 
 Las revisiones posteriores agregan sesiones y auditoría (`20260916_0004`), períodos y configuración (`20260917_0005`), pensum (`20260917_0006`) y control financiero interno (`20260917_0007`).
 

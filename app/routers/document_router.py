@@ -88,3 +88,44 @@ def roster_pdf(
         ],
     ]
     return pdf_response(f"lista-{section.code}.pdf", "LISTA DE ESTUDIANTES", lines)
+
+
+@router.get("/students/{student_id}/enrollment-certificate.pdf")
+def enrollment_certificate(
+    student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    ensure_student_academic_access(db, user, student_id)
+    student = db.get(Student, student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    active = [item for item in student.enrollments if item.state in {"enrolled", "completed"}]
+    lines = [
+        f"Se certifica que {student.first_name} {student.last_name}",
+        f"matricula {student.enrollment_number}, pertenece a {student.career.name}.",
+        "",
+        *[f"{item.period} | {item.section.subject.code} | {item.section.code}" for item in active],
+    ]
+    return pdf_response(
+        f"constancia-{student.enrollment_number}.pdf", "CONSTANCIA DE INSCRIPCION", lines
+    )
+
+
+@router.get("/students/{student_id}/report-card.pdf")
+def report_card(
+    student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    ensure_student_academic_access(db, user, student_id)
+    student = db.get(Student, student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    record = build_transcript(db, student)
+    lines = [
+        f"Estudiante: {record.student_name}",
+        f"Matricula: {record.enrollment_number}",
+        "",
+        *[
+            f"{item.subject_code} | {item.subject_name} | Nota: {item.average or '-'}"
+            for item in record.courses
+        ],
+    ]
+    return pdf_response(f"boletin-{record.enrollment_number}.pdf", "BOLETIN DE NOTAS", lines)

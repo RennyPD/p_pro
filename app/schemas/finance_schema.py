@@ -61,3 +61,11 @@ class FinanceAccountListItem(BaseModel):
     student_name: str
     balance: float
     overdue_balance: float
+
+
+class BillingConceptCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    description: str = Field(default="", max_length=250)
+    amount: float = Field(gt=0)
+    frequency: str = Field(default="once", pattern=r"^(once|monthly|term|annual)$")
+    active: bool = True

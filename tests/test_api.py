@@ -10,6 +10,7 @@ from app.db.Session import get_db
 from app.models import *  # noqa: F403 - registers all tables
 from main import app
 from scripts.seed_demo import seed_demo
+from scripts.seed_guardian_portal import seed_guardians
 
 
 class ApiIntegrationTests(unittest.TestCase):
@@ -803,6 +804,173 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(transcript_pdf.status_code, 200, transcript_pdf.text)
         self.assertEqual(transcript_pdf.headers["content-type"], "application/pdf")
         self.assertTrue(transcript_pdf.content.startswith(b"%PDF-1.4"))
+
+    def test_calendar_assignments_alerts_admissions_and_approvals(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        self.assertEqual(self.request("GET", "/health").json()["status"], "ok")
+        admin_token = self.request(
+            "POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}
+        ).json()["access_token"]
+        teacher_token = self.request(
+            "POST", "/auth/login", json={"username": "demo.docente", "password": "NexoDocente2026!"}
+        ).json()["access_token"]
+        student_token = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "demo.estudiante", "password": "NexoEstudiante2026!"},
+        ).json()["access_token"]
+        section = self.request("GET", "/sections/", token=admin_token).json()[0]
+        student = self.request("GET", "/students/", token=admin_token).json()[0]
+        event = self.request(
+            "POST",
+            "/operations/calendar",
+            token=admin_token,
+            json={
+                "title": "Feria académica",
+                "starts_at": "2026-10-10T09:00:00",
+                "ends_at": "2026-10-10T12:00:00",
+                "event_type": "activity",
+                "audience": "all",
+            },
+        )
+        self.assertEqual(event.status_code, 200, event.text)
+        lesson = self.request(
+            "POST",
+            "/operations/lesson-plans",
+            token=teacher_token,
+            json={
+                "section_id": section["section_id"],
+                "scheduled_date": "2026-10-01",
+                "title": "Variables",
+                "content": "Conceptos y práctica",
+            },
+        )
+        self.assertEqual(lesson.status_code, 200, lesson.text)
+        assignment = self.request(
+            "POST",
+            "/operations/assignments",
+            token=teacher_token,
+            json={
+                "section_id": section["section_id"],
+                "title": "Ejercicio",
+                "instructions": "Resolver actividad",
+                "due_at": "2026-10-15T23:59:00",
+                "max_score": 20,
+            },
+        )
+        self.assertEqual(assignment.status_code, 200, assignment.text)
+        submission = self.request(
+            "POST",
+            f"/operations/assignments/{assignment.json()['assignment_id']}/submit",
+            token=student_token,
+            json={"content": "Mi solución"},
+        )
+        self.assertEqual(submission.status_code, 200, submission.text)
+        graded = self.request(
+            "PATCH",
+            f"/operations/submissions/{submission.json()['submission_id']}/grade",
+            token=teacher_token,
+            json={"score": 18, "feedback": "Buen trabajo"},
+        )
+        self.assertEqual(graded.status_code, 200, graded.text)
+        alert = self.request(
+            "POST",
+            "/operations/alerts",
+            token=teacher_token,
+            json={
+                "student_id": student["student_id"],
+                "category": "academic",
+                "severity": "medium",
+                "reason": "Requiere seguimiento",
+            },
+        )
+        self.assertEqual(alert.status_code, 200, alert.text)
+        careers = self.request("GET", "/careers/", token=admin_token).json()
+        admission = self.request(
+            "POST",
+            "/operations/admissions",
+            token=admin_token,
+            json={
+                "first_name": "Paula",
+                "last_name": "Pérez",
+                "email": "paula.admision@example.com",
+                "telephone": "809-555-0100",
+                "career_id": careers[0]["career_id"],
+            },
+        )
+        self.assertEqual(admission.status_code, 200, admission.text)
+        enrolled = self.request(
+            "POST",
+            f"/operations/admissions/{admission.json()['admission_application_id']}/enroll",
+            token=admin_token,
+        )
+        self.assertEqual(enrolled.status_code, 200, enrolled.text)
+        approval = self.request(
+            "POST",
+            "/operations/approvals",
+            token=teacher_token,
+            json={
+                "request_type": "grade_change",
+                "resource_type": "submission",
+                "resource_id": submission.json()["submission_id"],
+                "reason": "Revisión solicitada",
+            },
+        )
+        self.assertEqual(approval.status_code, 200, approval.text)
+        resolved = self.request(
+            "PATCH",
+            f"/operations/approvals/{approval.json()['approval_request_id']}",
+            token=admin_token,
+            json={"status": "approved", "resolution_notes": "Autorizado"},
+        )
+        self.assertEqual(resolved.status_code, 200, resolved.text)
+        generated = self.request("POST", "/operations/alerts/generate", token=admin_token)
+        self.assertEqual(generated.status_code, 200, generated.text)
+        analytics = self.request("GET", "/operations/analytics/summary", token=admin_token)
+        self.assertEqual(analytics.status_code, 200, analytics.text)
+        document = self.request(
+            "POST",
+            f"/operations/students/{student['student_id']}/documents",
+            token=admin_token,
+            json={
+                "document_type": "identification",
+                "filename": "identificacion.pdf",
+                "mime_type": "application/pdf",
+                "content_base64": "JVBERi0xLjQK",
+            },
+        )
+        self.assertEqual(document.status_code, 200, document.text)
+        downloaded = self.request(
+            "GET",
+            f"/operations/documents/{document.json()['student_document_id']}/download",
+            token=admin_token,
+        )
+        self.assertTrue(downloaded.content.startswith(b"%PDF"))
+        concept = self.request(
+            "POST",
+            "/finance/billing-concepts",
+            token=admin_token,
+            json={"name": "Laboratorio", "amount": 500, "frequency": "term"},
+        )
+        self.assertEqual(concept.status_code, 200, concept.text)
+        permissions = self.request("GET", "/access/permissions", token=admin_token)
+        self.assertEqual(permissions.status_code, 200, permissions.text)
+        self.assertEqual(self.request("GET", "/access/me", token=admin_token).status_code, 200)
+
+    def test_guardian_portal_is_limited_to_linked_students(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+            self.assertEqual(seed_guardians(db, limit=1), 1)
+        token = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "tutor.01", "password": "NexoTutor2026!"},
+        ).json()["access_token"]
+        overview = self.request("GET", "/operations/guardian/overview", token=token)
+        self.assertEqual(overview.status_code, 200, overview.text)
+        self.assertEqual(len(overview.json()), 1)
+        self.assertEqual(overview.json()[0]["enrollment_number"], "DEMO-2026-001")
 
 
 if __name__ == "__main__":

@@ -92,3 +92,25 @@ class Installment(Base):
     due_date: Mapped[date] = mapped_column(Date)
     amount: Mapped[float] = mapped_column(Float)
     paid: Mapped[bool] = mapped_column(default=False)
+
+
+class BillingConcept(Base):
+    __tablename__ = "billing_concepts"
+    billing_concept_id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), unique=True)
+    description: Mapped[str] = mapped_column(String(250), default="")
+    amount: Mapped[float] = mapped_column(Float)
+    frequency: Mapped[str] = mapped_column(String(20), default="once")
+    active: Mapped[bool] = mapped_column(default=True)
+
+
+class CashClosing(Base):
+    __tablename__ = "cash_closings"
+    cash_closing_id: Mapped[int] = mapped_column(primary_key=True)
+    closing_date: Mapped[date] = mapped_column(Date, unique=True)
+    total_payments: Mapped[float] = mapped_column(Float)
+    payment_count: Mapped[int] = mapped_column(Integer)
+    closed_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )

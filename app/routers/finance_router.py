@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.auth import ensure_student_access, get_current_user, require_roles
 from app.db.Session import get_db
 from app.models.finance_model import (
+    BillingConcept,
+    CashClosing,
     Charge,
     FinancialAdjustment,
     Installment,
@@ -18,6 +20,7 @@ from app.models.user_model import User
 from app.schemas.finance_schema import (
     AccountUpdate,
     AdjustmentCreate,
+    BillingConceptCreate,
     ChargeCreate,
     FinanceAccountListItem,
     FinanceTransaction,
@@ -223,3 +226,38 @@ def create_payment_plan(student_id: int, data: PaymentPlanCreate, db: Session = 
         )
     db.commit()
     return {"payment_plan_id": plan.payment_plan_id, "installments": data.installments}
+
+
+@router.get("/billing-concepts", dependencies=[Depends(require_roles("admin"))])
+def billing_concepts(db: Session = Depends(get_db)):
+    return db.query(BillingConcept).order_by(BillingConcept.name).all()
+
+
+@router.post("/billing-concepts", dependencies=[Depends(require_roles("admin"))])
+def create_billing_concept(data: BillingConceptCreate, db: Session = Depends(get_db)):
+    item = BillingConcept(**data.model_dump())
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.post("/cash-closings/{closing_date}", dependencies=[Depends(require_roles("admin"))])
+def close_cash_day(
+    closing_date: date,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if db.query(CashClosing).filter_by(closing_date=closing_date).first():
+        raise HTTPException(status_code=409, detail="Cash day is already closed")
+    payments = [item for item in db.query(Payment).all() if item.paid_at.date() == closing_date]
+    item = CashClosing(
+        closing_date=closing_date,
+        total_payments=round(sum(payment.amount for payment in payments), 2),
+        payment_count=len(payments),
+        closed_by=user.user_id,
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item

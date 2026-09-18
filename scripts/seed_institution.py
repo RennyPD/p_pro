@@ -11,31 +11,43 @@ from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.models import (
     AcademicPeriod,
+    AdmissionApplication,
     Announcement,
+    ApprovalRequest,
     Assessment,
+    Assignment,
     Attendance,
     AuditLog,
+    BillingConcept,
+    CalendarEvent,
     Career,
+    CashClosing,
     Charge,
     Classroom,
     CurriculumCourse,
+    EarlyAlert,
     Enrollment,
     FinancialAdjustment,
     Grade,
     Guardian,
     Installment,
     InstitutionSettings,
+    LessonPlan,
     Notification,
     Payment,
     PaymentPlan,
+    Permission,
     RefreshToken,
     Role,
+    RolePermission,
     Section,
     SectionMeeting,
     Student,
     StudentAccount,
+    StudentDocument,
     StudentGuardian,
     Subject,
+    Submission,
     Teacher,
     User,
 )
@@ -45,6 +57,7 @@ PASSWORDS = {
     "admin": "NexoAdmin2026!",
     "teacher": "NexoDocente2026!",
     "student": "NexoEstudiante2026!",
+    "guardian": "NexoTutor2026!",
 }
 
 CAREER_SPECS = [
@@ -150,6 +163,18 @@ LAST_NAMES = [
 def clear_application_data(db: Session) -> None:
     """Vacía las tablas en un orden que respeta todas las llaves foráneas."""
     for model in (
+        CashClosing,
+        BillingConcept,
+        RolePermission,
+        Permission,
+        StudentDocument,
+        ApprovalRequest,
+        Submission,
+        Assignment,
+        LessonPlan,
+        CalendarEvent,
+        EarlyAlert,
+        AdmissionApplication,
         RefreshToken,
         AuditLog,
         Notification,
@@ -193,9 +218,36 @@ def seed_institution(db: Session) -> dict[str, int]:
             "admin": "Administración completa de la institución",
             "teacher": "Gestión de secciones, calificaciones y asistencia",
             "student": "Consulta del expediente académico personal",
+            "guardian": "Consulta de estudiantes vinculados como tutor",
         }.items()
     }
     db.add_all(roles.values())
+    db.flush()
+    permission_specs = {
+        "academic.manage": "Gestionar operación académica",
+        "grades.manage": "Registrar y cerrar calificaciones",
+        "finance.manage": "Gestionar cuentas y caja",
+        "reports.view": "Consultar reportes institucionales",
+        "records.own": "Consultar expediente vinculado",
+        "communications.manage": "Publicar comunicaciones",
+    }
+    permissions = {
+        slug: Permission(slug=slug, description=description)
+        for slug, description in permission_specs.items()
+    }
+    db.add_all(permissions.values())
+    db.flush()
+    grants = {
+        "admin": set(permissions),
+        "teacher": {"academic.manage", "grades.manage", "communications.manage"},
+        "student": {"records.own"},
+        "guardian": {"records.own"},
+    }
+    db.add_all(
+        RolePermission(role_id=roles[role].role_id, permission_id=permissions[slug].permission_id)
+        for role, slugs in grants.items()
+        for slug in slugs
+    )
     db.add(
         InstitutionSettings(
             settings_id=1,
@@ -407,6 +459,37 @@ def seed_institution(db: Session) -> dict[str, int]:
         )
         for index, student in enumerate(students, start=1)
     )
+    guardians = []
+    for index, student in enumerate(students[:6], start=1):
+        guardian = Guardian(
+            first_name=f"Tutor {index}",
+            last_name=student.last_name,
+            email=f"tutor{index:02d}@horizonte.example",
+            telephone=f"809-555-30{index:02d}",
+            address=student.address,
+        )
+        db.add(guardian)
+        db.flush()
+        guardians.append(guardian)
+        db.add(
+            StudentGuardian(
+                student_id=student.student_id,
+                guardian_id=guardian.guardian_id,
+                relationship="tutor",
+                primary_contact=True,
+                emergency_contact=True,
+                authorized_pickup=True,
+            )
+        )
+        users.append(
+            User(
+                username=f"tutor.{index:02d}",
+                email=guardian.email,
+                password=hash_password(PASSWORDS["guardian"]),
+                role_id=roles["guardian"].role_id,
+                guardian_id=guardian.guardian_id,
+            )
+        )
     db.add_all(users)
     db.commit()
     return {

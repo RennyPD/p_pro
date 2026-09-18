@@ -1,6 +1,6 @@
-export type Role = "admin" | "teacher" | "student";
+export type Role = "admin" | "teacher" | "student" | "guardian";
 
-export interface User { user_id:number; username:string; email:string; role_id:number; role_name:Role; student_id:number|null; teacher_id:number|null }
+export interface User { user_id:number; username:string; email:string; role_id:number; role_name:Role; student_id:number|null; teacher_id:number|null; guardian_id?:number|null }
 export interface TokenResponse { access_token:string; token_type:string; user:User }
 export type RecordValue = string | number | boolean | null | string[];
 export type EntityRecord = Record<string, RecordValue>;

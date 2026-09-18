@@ -10,13 +10,15 @@ class UserBase(BaseModel):
     role_id: int
     student_id: Optional[int] = None
     teacher_id: Optional[int] = None
+    guardian_id: Optional[int] = None
 
 
 class UserCreate(UserBase):
     @model_validator(mode="after")
     def validate_profile_link(self):
-        if self.student_id is not None and self.teacher_id is not None:
-            raise ValueError("A user cannot link to both a student and a teacher")
+        links = [self.student_id, self.teacher_id, self.guardian_id]
+        if sum(item is not None for item in links) > 1:
+            raise ValueError("A user can only link to one person profile")
         return self
 
 
@@ -27,6 +29,7 @@ class UserUpdate(BaseModel):
     role_id: Optional[int] = None
     student_id: Optional[int] = None
     teacher_id: Optional[int] = None
+    guardian_id: Optional[int] = None
 
 
 class UserOut(BaseModel):
@@ -36,5 +39,6 @@ class UserOut(BaseModel):
     role_id: int
     student_id: Optional[int] = None
     teacher_id: Optional[int] = None
+    guardian_id: Optional[int] = None
     role_name: str
     model_config = ConfigDict(from_attributes=True)

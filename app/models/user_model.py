@@ -14,6 +14,9 @@ class User(Base):
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.role_id"))
     student_id: Mapped[int | None] = mapped_column(ForeignKey("students.student_id"), nullable=True)
     teacher_id: Mapped[int | None] = mapped_column(ForeignKey("teachers.teacher_id"), nullable=True)
+    guardian_id: Mapped[int | None] = mapped_column(
+        ForeignKey("guardians.guardian_id"), nullable=True
+    )
     mfa_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
 
