@@ -50,6 +50,24 @@ El cargador conserva los registros existentes y evita duplicar sus propios datos
 
 Estas credenciales son exclusivamente para desarrollo local. No ejecutes el cargador ni reutilices las contraseñas en producción.
 
+### Escenario institucional masivo
+
+Para sustituir los datos locales por una institución ficticia completa, crea primero un respaldo de `school.db` y ejecuta:
+
+```powershell
+python -m scripts.seed_institution
+```
+
+Este comando elimina los registros de la aplicación y carga un escenario reproducible del Instituto Técnico Horizonte con 36 estudiantes, 6 docentes, 3 carreras, 15 asignaturas, 15 secciones, inscripciones, notas, asistencia y movimientos financieros. No elimina el archivo de base de datos ni modifica su esquema.
+
+| Perfil | Usuario de ejemplo | Contraseña |
+| --- | --- | --- |
+| Administración | `admin.horizonte` | `NexoAdmin2026!` |
+| Docente | `profesor.01` | `NexoDocente2026!` |
+| Estudiante | `estudiante.001` | `NexoEstudiante2026!` |
+
+También se crean `profesor.02` a `profesor.06` y `estudiante.002` a `estudiante.036`, usando la contraseña correspondiente a su perfil. Este cargador es destructivo y debe utilizarse únicamente con datos locales ficticios.
+
 ### Frontend React
 
 ```powershell

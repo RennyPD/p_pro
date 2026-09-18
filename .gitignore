@@ -6,6 +6,7 @@ __pycache__/
 .coverage
 htmlcov/
 school.db
+school.db.backup-*
 *.db.bak
 *.db-journal
 frontend/node_modules/
