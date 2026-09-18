@@ -24,7 +24,7 @@ export function ResourcePage({config}:{config:ResourceConfig}){
   const[editing,setEditing]=useState<EntityRecord|null|undefined>();
   const canWrite=user?.role_name==="admin"||(user?.role_name==="teacher"&&["grades","attendances"].includes(config.key));
   const{data=[],isLoading,isFetching,error}=useQuery({
-    queryKey:[config.key,page,search],
+    queryKey:[config.key,user?.user_id,user?.role_name,page,search],
     queryFn:async()=>{const params:Record<string,string|number>={skip:page*PAGE_SIZE,limit:PAGE_SIZE};if(search){if(config.key==="grades")params.grade_type=search;else if(config.key==="enrollments")params.period=search;else if(config.key==="attendances")params.enrollment_id=Number(search)||0;else params.q=search;}return api.get(config.endpoint,{params}).then(r=>r.data as EntityRecord[]);},
     placeholderData:keepPreviousData,
   });
@@ -58,9 +58,10 @@ function FormField({field,control,register}:{field:FieldConfig;control:Control<F
 function FieldLabel({field}:{field:FieldConfig}){return <span>{field.label}{field.required&&<b> *</b>}</span>}
 
 function LookupField({config,value,onChange}:{config:LookupConfig;value:number|string|null|undefined;onChange:(value:number|string|null)=>void}){
+  const user=useAuthStore(s=>s.user);
   const[open,setOpen]=useState(false);
   const[query,setQuery]=useState("");
-  const{data=[],isLoading,isError}=useQuery({queryKey:["lookup",config.endpoint],queryFn:()=>api.get(config.endpoint,{params:{limit:100}}).then(response=>response.data as EntityRecord[])});
+  const{data=[],isLoading,isError}=useQuery({queryKey:["lookup",config.endpoint,user?.user_id,user?.role_name],queryFn:()=>api.get(config.endpoint,{params:{limit:100}}).then(response=>response.data as EntityRecord[])});
   const selected=data.find(item=>String(item[config.valueKey])===String(value));
   const filtered=data.filter(item=>lookupText(item,config).toLocaleLowerCase().includes(query.toLocaleLowerCase())).slice(0,8);
   return <div className="lookup-field">
