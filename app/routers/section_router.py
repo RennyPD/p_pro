@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_roles
+from app.auth import ensure_section_access, get_current_user, is_admin, require_roles
 from app.db.Session import get_db
+from app.models.user_model import User
 from app.pagination import paginate_and_filter
 from app.schemas.section_schema import SectionCreate, SectionOut, SectionUpdate
 from app.services.section_service import (
@@ -21,18 +22,30 @@ def create_section(section_data: SectionCreate, db: Session = Depends(get_db)):
     return create_section_service(db, section_data)
 
 
-@router.get("/", response_model=list[SectionOut], dependencies=[Depends(get_current_user)])
+@router.get("/", response_model=list[SectionOut])
 def get_sections(
     q: str | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    return paginate_and_filter(get_sections_service(db), skip, limit, q, ("code", "description"))
+    sections = get_sections_service(db)
+    if not is_admin(user):
+        if user.teacher_id is None:
+            sections = []
+        else:
+            sections = [item for item in sections if item.teacher_id == user.teacher_id]
+    return paginate_and_filter(sections, skip, limit, q, ("code", "description"))
 
 
-@router.get("/{section_id}", response_model=SectionOut, dependencies=[Depends(get_current_user)])
-def get_teacher_by_id(section_id: int, db: Session = Depends(get_db)):
+@router.get("/{section_id}", response_model=SectionOut)
+def get_section_by_id(
+    section_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    ensure_section_access(db, user, section_id, allow_student=True)
     return get_section_by_id_service(db, section_id)
 
 

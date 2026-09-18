@@ -281,6 +281,17 @@ class ApiIntegrationTests(unittest.TestCase):
                 "password": "teacher-pass",
             },
         ).json()["access_token"]
+        teacher_sections = self.request("GET", "/sections/", token=teacher_login)
+        self.assertEqual(teacher_sections.status_code, 200, teacher_sections.text)
+        self.assertEqual([item["section_id"] for item in teacher_sections.json()], [section_id])
+        self.assertEqual(
+            self.request(
+                "GET",
+                f"/academic/sections/{section_id}/workspace",
+                token=teacher_login,
+            ).status_code,
+            200,
+        )
         self.assertEqual(
             self.request(
                 "POST",
