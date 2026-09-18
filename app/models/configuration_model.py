@@ -14,6 +14,11 @@ class AcademicPeriod(Base):
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date] = mapped_column(Date)
     active: Mapped[bool] = mapped_column(Boolean, default=False)
+    status: Mapped[str] = mapped_column(String(20), default="planning")
+    registration_start: Mapped[date | None] = mapped_column(Date, nullable=True)
+    registration_end: Mapped[date | None] = mapped_column(Date, nullable=True)
+    withdrawal_deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
+    grading_deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
 
 
 class InstitutionSettings(Base):
@@ -25,3 +30,4 @@ class InstitutionSettings(Base):
     enrollment_digits: Mapped[int] = mapped_column(Integer, default=4)
     next_enrollment_number: Mapped[int] = mapped_column(Integer, default=1)
     passing_grade: Mapped[float] = mapped_column(default=70.0)
+    max_credits_per_period: Mapped[int] = mapped_column(Integer, default=24)

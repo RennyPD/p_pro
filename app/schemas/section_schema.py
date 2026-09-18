@@ -1,7 +1,7 @@
 from datetime import time
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.enums.dayEnum import DayEnum
 
@@ -14,6 +14,9 @@ class SectionBase(BaseModel):
     days_of_week: List[DayEnum]
     start_time: time
     end_time: time
+    capacity: int = Field(default=30, ge=1, le=500)
+    room: str = "Por asignar"
+    modality: str = Field(default="in_person", pattern=r"^(in_person|virtual|hybrid)$")
 
     @model_validator(mode="after")
     def validate_time_range(self):
@@ -34,6 +37,9 @@ class SectionUpdate(BaseModel):
     days_of_week: Optional[List[DayEnum]] = None
     start_time: Optional[time] = None
     end_time: Optional[time] = None
+    capacity: int | None = Field(default=None, ge=1, le=500)
+    room: str | None = None
+    modality: str | None = Field(default=None, pattern=r"^(in_person|virtual|hybrid)$")
 
     @model_validator(mode="after")
     def validate_time_range(self):

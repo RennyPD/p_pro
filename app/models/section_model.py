@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, ForeignKey, String, Time
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -16,6 +16,9 @@ class Section(Base):
     days_of_week: Mapped[str] = mapped_column(String(255))
     start_time: Mapped[Time] = mapped_column(Time)
     end_time: Mapped[Time] = mapped_column(Time)
+    capacity: Mapped[int] = mapped_column(Integer, default=30)
+    room: Mapped[str] = mapped_column(String(100), default="Por asignar")
+    modality: Mapped[str] = mapped_column(String(20), default="in_person")
 
     subject: Mapped["Subject"] = relationship("Subject", back_populates="sections")
     teacher: Mapped["Teacher"] = relationship("Teacher", back_populates="sections")

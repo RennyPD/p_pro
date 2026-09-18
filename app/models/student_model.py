@@ -15,6 +15,8 @@ class Student(Base):
     telephone: Mapped[str] = mapped_column(String(20))
     address: Mapped[str] = mapped_column(String(255))
     active: Mapped[bool] = mapped_column(default=True)
+    academic_hold: Mapped[bool] = mapped_column(default=False)
+    financial_hold: Mapped[bool] = mapped_column(default=False)
     career_id: Mapped[int] = mapped_column(ForeignKey("careers.career_id"))
 
     career: Mapped["Career"] = relationship("Career", back_populates="students")

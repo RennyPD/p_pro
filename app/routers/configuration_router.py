@@ -40,6 +40,7 @@ def settings_out(settings: InstitutionSettings) -> InstitutionSettingsOut:
         enrollment_prefix=settings.enrollment_prefix,
         enrollment_digits=settings.enrollment_digits,
         passing_grade=settings.passing_grade,
+        max_credits_per_period=settings.max_credits_per_period,
         next_enrollment_number=settings.next_enrollment_number,
         enrollment_preview=enrollment_number(settings),
     )

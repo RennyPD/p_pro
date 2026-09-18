@@ -8,6 +8,11 @@ class AcademicPeriodBase(BaseModel):
     start_date: date
     end_date: date
     active: bool = False
+    status: str = Field(default="planning", pattern=r"^(planning|registration|active|closed)$")
+    registration_start: date | None = None
+    registration_end: date | None = None
+    withdrawal_deadline: date | None = None
+    grading_deadline: date | None = None
 
     @model_validator(mode="after")
     def validate_dates(self):
@@ -25,6 +30,11 @@ class AcademicPeriodUpdate(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     active: bool | None = None
+    status: str | None = Field(default=None, pattern=r"^(planning|registration|active|closed)$")
+    registration_start: date | None = None
+    registration_end: date | None = None
+    withdrawal_deadline: date | None = None
+    grading_deadline: date | None = None
 
 
 class AcademicPeriodOut(AcademicPeriodBase):
@@ -37,6 +47,7 @@ class InstitutionSettingsUpdate(BaseModel):
     enrollment_prefix: str = Field(min_length=1, max_length=20, pattern=r"^[A-Za-z0-9-]+$")
     enrollment_digits: int = Field(ge=3, le=10)
     passing_grade: float = Field(ge=0, le=100)
+    max_credits_per_period: int = Field(default=24, ge=1, le=60)
 
 
 class InstitutionSettingsOut(InstitutionSettingsUpdate):

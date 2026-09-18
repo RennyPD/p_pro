@@ -12,6 +12,8 @@ class StudentBase(BaseModel):
     address: str
     career_id: int
     active: bool = True
+    academic_hold: bool = False
+    financial_hold: bool = False
 
 
 class StudentCreate(StudentBase):
@@ -27,6 +29,8 @@ class StudentUpdate(BaseModel):
     address: Optional[str] = None
     career_id: Optional[int] = None
     active: Optional[bool] = None
+    academic_hold: Optional[bool] = None
+    financial_hold: Optional[bool] = None
 
 
 class StudentOut(StudentBase):
