@@ -795,6 +795,14 @@ class ApiIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(marked.status_code, 200, marked.text)
         self.assertIsNotNone(marked.json()["read_at"])
+        transcript_pdf = self.request(
+            "GET",
+            f"/documents/students/{student['student_id']}/transcript.pdf",
+            token=student_token,
+        )
+        self.assertEqual(transcript_pdf.status_code, 200, transcript_pdf.text)
+        self.assertEqual(transcript_pdf.headers["content-type"], "application/pdf")
+        self.assertTrue(transcript_pdf.content.startswith(b"%PDF-1.4"))
 
 
 if __name__ == "__main__":

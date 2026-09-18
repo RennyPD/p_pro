@@ -124,6 +124,10 @@ Los listados aceptan paginación mediante `skip` y `limit`; los catálogos y per
 - Paneles operativos específicos para administración, docentes y estudiantes.
 - Importación y exportación de estudiantes mediante CSV.
 - Control financiero interno con cargos, abonos, balance, vencimientos e historial.
+- Evaluaciones ponderadas con cierre y reapertura controlada.
+- Inscripciones con cupos, espera, bloqueos, prerrequisitos y límite de créditos.
+- Aulas, reuniones semanales y asistencia con tardanza o justificación.
+- Tutores, avisos internos, notificaciones privadas y documentos PDF.
 
 El módulo financiero es un libro de control interno. No procesa tarjetas, transferencias ni cobros mediante una pasarela externa.
 
@@ -167,7 +171,7 @@ No ejecutes `upgrade head` sobre una base existente sin revisar primero el estad
 
 ### Estado de la base incluida
 
-La base incluida fue actualizada hasta `20260916_0003`. La migración creó la carrera temporal `Sin asignar` con identificador `0`, con lo que los dos estudiantes históricos conservan su referencia y vuelven a cumplir la integridad referencial. Deben reclasificarse cuando se conozca su carrera real. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`.
+La base incluida fue actualizada hasta `20260918_0013`. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`. El historial completo de revisiones conserva la carrera temporal `Sin asignar` para datos heredados y añade seguridad, períodos, pensum, finanzas, evaluaciones, inscripción avanzada, horarios, asistencia y comunicaciones.
 
 Las revisiones posteriores agregan sesiones y auditoría (`20260916_0004`), períodos y configuración (`20260917_0005`), pensum (`20260917_0006`) y control financiero interno (`20260917_0007`).
 

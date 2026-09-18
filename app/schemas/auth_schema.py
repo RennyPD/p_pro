@@ -8,6 +8,7 @@ from app.schemas.user_schema import UserOut
 class LoginRequest(BaseModel):
     username: str
     password: str = Field(min_length=8)
+    otp: str | None = Field(default=None, pattern=r"^\d{6}$")
 
 
 class BootstrapRequest(BaseModel):
@@ -27,3 +28,7 @@ class TokenOut(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str = Field(min_length=8)
     new_password: str = Field(min_length=10)
+
+
+class MfaCodeRequest(BaseModel):
+    code: str = Field(pattern=r"^\d{6}$")

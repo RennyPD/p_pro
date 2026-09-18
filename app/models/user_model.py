@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -14,6 +14,8 @@ class User(Base):
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.role_id"))
     student_id: Mapped[int | None] = mapped_column(ForeignKey("students.student_id"), nullable=True)
     teacher_id: Mapped[int | None] = mapped_column(ForeignKey("teachers.teacher_id"), nullable=True)
+    mfa_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
 
     role: Mapped["Role"] = relationship("Role", back_populates="users")
 

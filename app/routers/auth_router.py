@@ -11,14 +11,22 @@ from app.models.role_model import Role
 from app.models.security_model import AuditLog, RefreshToken
 from app.models.user_model import User
 from app.repositories.user_repository import create_user
-from app.schemas.auth_schema import BootstrapRequest, ChangePasswordRequest, LoginRequest, TokenOut
+from app.schemas.auth_schema import (
+    BootstrapRequest,
+    ChangePasswordRequest,
+    LoginRequest,
+    MfaCodeRequest,
+    TokenOut,
+)
 from app.schemas.user_schema import UserCreate, UserOut
 from app.security import (
     create_access_token,
     create_refresh_token,
+    create_totp_secret,
     hash_password,
     hash_token,
     verify_password,
+    verify_totp,
 )
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -99,6 +107,13 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
             detail="Invalid username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if user.mfa_enabled and (
+        not data.otp or not user.mfa_secret or not verify_totp(user.mfa_secret, data.otp)
+    ):
+        attempts.append(now)
+        raise HTTPException(
+            status_code=401, detail="A valid six-digit verification code is required"
+        )
     attempts.clear()
     return issue_session(db, response, user)
 
@@ -143,6 +158,38 @@ def logout(
     response.delete_cookie("refresh_token", path="/auth")
 
 
+@router.get("/sessions")
+def list_sessions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    now = datetime.now(UTC).replace(tzinfo=None)
+    return [
+        {
+            "session_id": item.refresh_token_id,
+            "created_at": item.created_at,
+            "expires_at": item.expires_at,
+            "active": item.revoked_at is None and item.expires_at > now,
+        }
+        for item in db.query(RefreshToken)
+        .filter(RefreshToken.user_id == current_user.user_id)
+        .order_by(RefreshToken.created_at.desc())
+        .all()
+    ]
+
+
+@router.post("/sessions/revoke-all", status_code=204)
+def revoke_all_sessions(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    now = datetime.now(UTC).replace(tzinfo=None)
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == current_user.user_id, RefreshToken.revoked_at.is_(None)
+    ).update({"revoked_at": now})
+    audit(db, "sessions.revoked_all", "authentication", current_user.user_id)
+    db.commit()
+    response.delete_cookie("refresh_token", path="/auth")
+
+
 @router.post("/change-password", status_code=204)
 def change_password(
     data: ChangePasswordRequest,
@@ -162,3 +209,42 @@ def change_password(
 @router.get("/me", response_model=UserOut)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/mfa/setup")
+def setup_mfa(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    current_user.mfa_secret = create_totp_secret()
+    current_user.mfa_enabled = False
+    db.commit()
+    label = current_user.email.replace(" ", "%20")
+    return {
+        "secret": current_user.mfa_secret,
+        "otpauth_uri": f"otpauth://totp/Nexo:{label}?secret={current_user.mfa_secret}&issuer=Nexo",
+    }
+
+
+@router.post("/mfa/enable", status_code=204)
+def enable_mfa(
+    data: MfaCodeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not current_user.mfa_secret or not verify_totp(current_user.mfa_secret, data.code):
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+    current_user.mfa_enabled = True
+    audit(db, "mfa.enabled", "authentication", current_user.user_id)
+    db.commit()
+
+
+@router.post("/mfa/disable", status_code=204)
+def disable_mfa(
+    data: MfaCodeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not current_user.mfa_secret or not verify_totp(current_user.mfa_secret, data.code):
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+    current_user.mfa_enabled = False
+    current_user.mfa_secret = None
+    audit(db, "mfa.disabled", "authentication", current_user.user_id)
+    db.commit()

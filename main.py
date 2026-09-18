@@ -16,6 +16,7 @@ from app.routers.community_router import router as community_router
 from app.routers.configuration_router import router as configuration_router
 from app.routers.curriculum_router import router as curriculum_router
 from app.routers.dashboard_router import router as dashboard_router
+from app.routers.document_router import router as document_router
 from app.routers.enrollment_router import router as enrollment_router
 from app.routers.finance_router import router as finance_router
 from app.routers.grade_router import router as grade_router
@@ -56,6 +57,7 @@ app.include_router(configuration_router)
 app.include_router(community_router)
 app.include_router(curriculum_router)
 app.include_router(dashboard_router)
+app.include_router(document_router)
 app.include_router(bulk_router)
 app.include_router(attendance_router)
 app.include_router(assessment_router)
