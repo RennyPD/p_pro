@@ -1,19 +1,28 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.auth import ensure_student_access, get_current_user, require_roles
 from app.db.Session import get_db
-from app.models.finance_model import Charge, Payment, StudentAccount
+from app.models.finance_model import (
+    Charge,
+    FinancialAdjustment,
+    Installment,
+    Payment,
+    PaymentPlan,
+    StudentAccount,
+)
 from app.models.student_model import Student
 from app.models.user_model import User
 from app.schemas.finance_schema import (
     AccountUpdate,
+    AdjustmentCreate,
     ChargeCreate,
     FinanceAccountListItem,
     FinanceTransaction,
     PaymentCreate,
+    PaymentPlanCreate,
     StudentFinanceSummary,
 )
 
@@ -36,8 +45,20 @@ def get_or_create_account(db: Session, student_id: int) -> StudentAccount:
 def build_summary(account: StudentAccount) -> StudentFinanceSummary:
     total_charges = round(sum(item.amount for item in account.charges), 2)
     total_payments = round(sum(item.amount for item in account.payments), 2)
+    adjustment_total = round(
+        sum(
+            item.amount if item.kind in {"late_fee", "debit"} else -item.amount
+            for item in account.adjustments
+        ),
+        2,
+    )
     overdue = round(sum(item.amount for item in account.charges if item.due_date < date.today()), 2)
-    applied_to_overdue = min(overdue, total_payments)
+    credits = sum(
+        item.amount
+        for item in account.adjustments
+        if item.kind in {"discount", "scholarship", "credit"}
+    )
+    applied_to_overdue = min(overdue, total_payments + credits)
     transactions = [
         FinanceTransaction(
             transaction_id=item.charge_id,
@@ -67,7 +88,8 @@ def build_summary(account: StudentAccount) -> StudentFinanceSummary:
         due_day=account.due_day,
         total_charges=total_charges,
         total_payments=total_payments,
-        balance=round(total_charges - total_payments, 2),
+        balance=round(total_charges + adjustment_total - total_payments, 2),
+        total_adjustments=adjustment_total,
         overdue_balance=round(max(overdue - applied_to_overdue, 0), 2),
         transactions=transactions,
     )
@@ -139,13 +161,65 @@ def add_payment(student_id: int, data: PaymentCreate, db: Session = Depends(get_
     current = build_summary(account)
     if data.amount > current.balance:
         raise HTTPException(status_code=422, detail="Payment cannot exceed the current balance")
+    sequence = db.query(Payment).count() + 1
     db.add(
         Payment(
             student_account_id=account.student_account_id,
             paid_at=datetime.now(UTC).replace(tzinfo=None),
+            receipt_number=f"REC-{date.today().year}-{sequence:06d}",
             **data.model_dump(),
         )
     )
     db.commit()
     db.refresh(account)
     return build_summary(account)
+
+
+@router.post(
+    "/students/{student_id}/adjustments",
+    response_model=StudentFinanceSummary,
+    dependencies=[Depends(require_roles("admin"))],
+)
+def add_adjustment(student_id: int, data: AdjustmentCreate, db: Session = Depends(get_db)):
+    account = get_or_create_account(db, student_id)
+    if data.kind in {"discount", "scholarship", "credit"}:
+        current = build_summary(account)
+        if data.amount > current.balance:
+            raise HTTPException(status_code=422, detail="Credit cannot exceed the current balance")
+    db.add(FinancialAdjustment(student_account_id=account.student_account_id, **data.model_dump()))
+    db.commit()
+    db.refresh(account)
+    return build_summary(account)
+
+
+@router.post(
+    "/students/{student_id}/payment-plans",
+    dependencies=[Depends(require_roles("admin"))],
+)
+def create_payment_plan(student_id: int, data: PaymentPlanCreate, db: Session = Depends(get_db)):
+    account = get_or_create_account(db, student_id)
+    balance = build_summary(account).balance
+    if balance <= 0:
+        raise HTTPException(status_code=409, detail="The account has no pending balance")
+    plan = PaymentPlan(
+        student_account_id=account.student_account_id,
+        name=data.name,
+        active=True,
+    )
+    db.add(plan)
+    db.flush()
+    base_amount = round(balance / data.installments, 2)
+    remaining = balance
+    for index in range(data.installments):
+        amount = remaining if index == data.installments - 1 else base_amount
+        remaining = round(remaining - amount, 2)
+        db.add(
+            Installment(
+                payment_plan_id=plan.payment_plan_id,
+                due_date=data.first_due_date + timedelta(days=30 * index),
+                amount=amount,
+                paid=False,
+            )
+        )
+    db.commit()
+    return {"payment_plan_id": plan.payment_plan_id, "installments": data.installments}

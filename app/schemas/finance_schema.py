@@ -20,6 +20,18 @@ class PaymentCreate(BaseModel):
     note: str = Field(default="", max_length=250)
 
 
+class AdjustmentCreate(BaseModel):
+    kind: str = Field(pattern=r"^(discount|scholarship|late_fee|credit|debit)$")
+    description: str = Field(min_length=2, max_length=200)
+    amount: float = Field(gt=0)
+
+
+class PaymentPlanCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    installments: int = Field(ge=2, le=24)
+    first_due_date: date
+
+
 class FinanceTransaction(BaseModel):
     transaction_id: int
     type: str
@@ -37,6 +49,7 @@ class StudentFinanceSummary(BaseModel):
     due_day: int
     total_charges: float
     total_payments: float
+    total_adjustments: float = 0
     balance: float
     overdue_balance: float
     transactions: list[FinanceTransaction]
