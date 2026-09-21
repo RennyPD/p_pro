@@ -44,6 +44,20 @@ class CourseOffering(BaseModel):
     available_seats: int
     selection_status: str | None
     period: str
+    section_status: str
+    prerequisite_code: str | None
+    corequisite_code: str | None
+    selectable: bool
+    restriction_reason: str | None
+
+
+class CourseSelectionSummary(BaseModel):
+    period: str | None
+    period_status: str | None
+    selected_credits: float
+    maximum_credits: int
+    enrolled_sections: int
+    waitlisted_sections: int
 
 
 class SectionStudentItem(BaseModel):

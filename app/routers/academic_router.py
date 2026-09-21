@@ -10,7 +10,7 @@ from app.auth import (
     get_current_user,
 )
 from app.db.Session import get_db
-from app.models.configuration_model import AcademicPeriod
+from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade
@@ -20,6 +20,7 @@ from app.models.user_model import User
 from app.schemas.academic_schema import (
     AttendanceCourseSummary,
     CourseOffering,
+    CourseSelectionSummary,
     GradeHistoryItem,
     RosterAttendanceItem,
     RosterGradeItem,
@@ -85,7 +86,15 @@ def course_catalog(
         .all()
     }
     results = []
-    for section in db.query(Section).filter(Section.subject_id.in_(list(curriculum))).all():
+    for section in (
+        db.query(Section)
+        .filter(
+            Section.subject_id.in_(list(curriculum)),
+            Section.status.in_(("published", "active")),
+        )
+        .all()
+    ):
+        course = curriculum[section.subject_id]
         occupied = (
             db.query(Enrollment)
             .filter(
@@ -103,7 +112,7 @@ def course_catalog(
                 subject_code=section.subject.code,
                 subject_name=section.subject.description,
                 teacher_name=f"{section.teacher.first_name} {section.teacher.last_name}",
-                credits=curriculum[section.subject_id].credits,
+                credits=course.credits,
                 days_of_week=section.days_of_week.split(", "),
                 start_time=section.start_time,
                 end_time=section.end_time,
@@ -114,9 +123,62 @@ def course_catalog(
                 selection_status=current.get(section.section_id)
                 or selected_subjects.get(section.subject_id),
                 period=period.name,
+                section_status=section.status,
+                prerequisite_code=course.prerequisite.code if course.prerequisite else None,
+                corequisite_code=course.corequisite.code if course.corequisite else None,
+                selectable=section.subject_id not in selected_subjects,
+                restriction_reason=(
+                    "Ya seleccionaste esta asignatura"
+                    if section.subject_id in selected_subjects
+                    else None
+                ),
             )
         )
     return results
+
+
+@router.get("/catalog/summary", response_model=CourseSelectionSummary)
+def course_selection_summary(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    if user.student_id is None:
+        raise HTTPException(status_code=403, detail="Course selection is only available to students")
+    period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
+    settings = db.get(InstitutionSettings, 1)
+    maximum = settings.max_credits_per_period if settings else 24
+    if period is None:
+        return CourseSelectionSummary(
+            period=None,
+            period_status=None,
+            selected_credits=0,
+            maximum_credits=maximum,
+            enrolled_sections=0,
+            waitlisted_sections=0,
+        )
+    student = db.get(Student, user.student_id)
+    enrollments = (
+        db.query(Enrollment)
+        .filter(
+            Enrollment.student_id == user.student_id,
+            Enrollment.period == period.name,
+            Enrollment.state.in_(("enrolled", "waitlisted")),
+        )
+        .all()
+    )
+    credits = {
+        item.subject_id: item.credits
+        for item in db.query(CurriculumCourse)
+        .filter(CurriculumCourse.career_id == student.career_id)
+        .all()
+    }
+    return CourseSelectionSummary(
+        period=period.name,
+        period_status=period.status,
+        selected_credits=sum(credits.get(item.section.subject_id, 0) for item in enrollments),
+        maximum_credits=maximum,
+        enrolled_sections=sum(item.state == "enrolled" for item in enrollments),
+        waitlisted_sections=sum(item.state == "waitlisted" for item in enrollments),
+    )
 
 
 @router.post("/catalog/sections/{section_id}/select")
@@ -151,6 +213,37 @@ def select_course(
             section_id=section_id,
             period=period.name,
         ),
+    )
+
+
+@router.post("/catalog/sections/{section_id}/withdraw")
+def withdraw_course_selection(
+    section_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if user.student_id is None:
+        raise HTTPException(status_code=403, detail="Course selection is only available to students")
+    period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
+    enrollment = (
+        db.query(Enrollment)
+        .filter(
+            Enrollment.student_id == user.student_id,
+            Enrollment.section_id == section_id,
+            Enrollment.period == (period.name if period else ""),
+            Enrollment.state.in_(("enrolled", "waitlisted")),
+        )
+        .first()
+    )
+    if enrollment is None:
+        raise HTTPException(status_code=404, detail="Active course selection not found")
+    if period and period.withdrawal_deadline and date.today() > period.withdrawal_deadline:
+        raise HTTPException(status_code=409, detail="The withdrawal deadline has passed")
+    from app.schemas.enrollment_schema import EnrollmentUpdate
+    from app.services.enrollment_service import update_enrollment_service
+
+    return update_enrollment_service(
+        db, enrollment.enrollment_id, EnrollmentUpdate(state="withdrawn")
     )
 
 

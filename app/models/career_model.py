@@ -15,5 +15,7 @@ class Career(Base):
     degree_title: Mapped[str] = mapped_column(String(150), default="")
     term_type: Mapped[str] = mapped_column(String(20), default="semester")
     duration_terms: Mapped[int] = mapped_column(Integer, default=8)
+    required_credits: Mapped[int] = mapped_column(Integer, default=120)
+    curriculum_version: Mapped[str] = mapped_column(String(30), default="current")
 
     students: Mapped[list["Student"]] = relationship("Student", back_populates="career")

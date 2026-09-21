@@ -17,6 +17,9 @@ class SectionBase(BaseModel):
     capacity: int = Field(default=30, ge=1, le=500)
     room: str = "Por asignar"
     modality: str = Field(default="in_person", pattern=r"^(in_person|virtual|hybrid)$")
+    status: str = Field(default="published", pattern=r"^(draft|published|active|closed|cancelled)$")
+    minimum_capacity: int = Field(default=1, ge=1, le=500)
+    period_name: str = ""
 
     @model_validator(mode="after")
     def validate_time_range(self):
@@ -40,6 +43,9 @@ class SectionUpdate(BaseModel):
     capacity: int | None = Field(default=None, ge=1, le=500)
     room: str | None = None
     modality: str | None = Field(default=None, pattern=r"^(in_person|virtual|hybrid)$")
+    status: str | None = Field(default=None, pattern=r"^(draft|published|active|closed|cancelled)$")
+    minimum_capacity: int | None = Field(default=None, ge=1, le=500)
+    period_name: str | None = None
 
     @model_validator(mode="after")
     def validate_time_range(self):

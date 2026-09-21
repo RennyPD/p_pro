@@ -716,6 +716,13 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertIn("teacher_name", offering)
         self.assertIn("available_seats", offering)
         self.assertIn("credits", offering)
+        self.assertIn("selectable", offering)
+        selection_summary = self.request(
+            "GET", "/academic/catalog/summary", token=student_token
+        )
+        self.assertEqual(selection_summary.status_code, 200, selection_summary.text)
+        self.assertEqual(selection_summary.json()["selected_credits"], 7.0)
+        self.assertGreater(selection_summary.json()["maximum_credits"], 0)
         selected = next(item for item in catalog.json() if item["selection_status"] == "enrolled")
         duplicate = self.request(
             "POST",
@@ -1017,6 +1024,11 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(concept.status_code, 200, concept.text)
         permissions = self.request("GET", "/access/permissions", token=admin_token)
         self.assertEqual(permissions.status_code, 200, permissions.text)
+        role_id = self.request("GET", "/roles/", token=admin_token).json()[0]["role_id"]
+        role_permissions = self.request(
+            "GET", f"/access/roles/{role_id}/permissions", token=admin_token
+        )
+        self.assertEqual(role_permissions.status_code, 200, role_permissions.text)
         self.assertEqual(self.request("GET", "/access/me", token=admin_token).status_code, 200)
 
     def test_guardian_portal_is_limited_to_linked_students(self) -> None:

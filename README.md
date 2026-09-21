@@ -132,6 +132,8 @@ Los listados aceptan paginación mediante `skip` y `limit`; los catálogos y per
 - Control financiero interno con cargos, abonos, balance, vencimientos e historial.
 - Evaluaciones ponderadas con cierre y reapertura controlada.
 - Selección estudiantil de asignaturas con cupos, espera, bloqueos, prerrequisitos y límite de créditos; la inscripción técnica se administra en segundo plano.
+- Resumen de carga académica, retiro dentro de plazo, estados de sección y correquisitos.
+- Pensum versionado con asignaturas obligatorias, electivas, pasantías y trabajo de grado.
 - Aulas, reuniones semanales y asistencia con tardanza o justificación.
 - Tutores, avisos internos, notificaciones privadas y documentos PDF.
 - Calendario institucional, planes de clase, tareas, entregas y retroalimentación.
@@ -182,9 +184,10 @@ No ejecutes `upgrade head` sobre una base existente sin revisar primero el estad
 
 ### Estado de la base incluida
 
-La base incluida fue actualizada hasta `20260918_0015`. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`. El historial completo de revisiones conserva la carrera temporal `Sin asignar` para datos heredados y añade seguridad, períodos, pensum, finanzas, evaluaciones, selección académica, horarios, asistencia, comunicaciones y operación institucional.
+La base incluida fue actualizada hasta `20260921_0016`. Las conexiones nuevas activan `PRAGMA foreign_keys=ON`. El historial completo de revisiones conserva la carrera temporal `Sin asignar` para datos heredados y añade seguridad, períodos, pensum, finanzas, evaluaciones, selección académica, horarios, asistencia, comunicaciones y operación institucional.
 
 La revisión `20260918_0015` agrega metadatos universitarios a carreras y períodos sin eliminar los registros existentes.
+La revisión `20260921_0016` agrega gobierno académico: estados de secciones, cupos mínimos, versión de pensum, correquisitos y tipos de asignatura.
 
 ## PostgreSQL y contenedores
 

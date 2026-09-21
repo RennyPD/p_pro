@@ -29,6 +29,7 @@ def course_out(course: CurriculumCourse) -> CurriculumCourseOut:
         subject_code=course.subject.code,
         subject_name=course.subject.description,
         prerequisite_code=course.prerequisite.code if course.prerequisite else None,
+        corequisite_code=course.corequisite.code if course.corequisite else None,
     )
 
 
@@ -36,7 +37,7 @@ def course_out(course: CurriculumCourse) -> CurriculumCourseOut:
     "/courses", response_model=CurriculumCourseOut, dependencies=[Depends(require_roles("admin"))]
 )
 def add_curriculum_course(data: CurriculumCourseCreate, db: Session = Depends(get_db)):
-    if data.subject_id == data.prerequisite_subject_id:
+    if data.subject_id in {data.prerequisite_subject_id, data.corequisite_subject_id}:
         raise HTTPException(status_code=422, detail="A subject cannot require itself")
     course = CurriculumCourse(**data.model_dump())
     db.add(course)
@@ -70,7 +71,7 @@ def update_curriculum_course(
         raise HTTPException(status_code=404, detail="Curriculum course not found")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(course, key, value)
-    if course.subject_id == course.prerequisite_subject_id:
+    if course.subject_id in {course.prerequisite_subject_id, course.corequisite_subject_id}:
         raise HTTPException(status_code=422, detail="A subject cannot require itself")
     db.commit()
     db.refresh(course)
@@ -131,6 +132,9 @@ def student_curriculum_progress(
                 term_number=course.term_number,
                 credits=course.credits,
                 prerequisite_code=course.prerequisite.code if course.prerequisite else None,
+                corequisite_code=course.corequisite.code if course.corequisite else None,
+                course_type=course.course_type,
+                curriculum_version=course.curriculum_version,
                 status=status,
                 final_average=average,
             )

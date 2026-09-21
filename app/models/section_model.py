@@ -19,6 +19,9 @@ class Section(Base):
     capacity: Mapped[int] = mapped_column(Integer, default=30)
     room: Mapped[str] = mapped_column(String(100), default="Por asignar")
     modality: Mapped[str] = mapped_column(String(20), default="in_person")
+    status: Mapped[str] = mapped_column(String(20), default="published")
+    minimum_capacity: Mapped[int] = mapped_column(Integer, default=1)
+    period_name: Mapped[str] = mapped_column(String(50), default="")
 
     subject: Mapped["Subject"] = relationship("Subject", back_populates="sections")
     teacher: Mapped["Teacher"] = relationship("Teacher", back_populates="sections")

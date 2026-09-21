@@ -22,6 +22,8 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
     requested_section = db.get(Section, enrollment_data.section_id)
     if requested_section is None:
         raise HTTPException(status_code=404, detail="Section not found")
+    if requested_section.status not in {"published", "active"}:
+        raise HTTPException(status_code=409, detail="Section is not open for course selection")
     student = db.get(Student, enrollment_data.student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -70,6 +72,23 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Prerequisite {curriculum_course.prerequisite.code} is not completed",
+            )
+    if curriculum_course and curriculum_course.corequisite_subject_id:
+        has_corequisite = any(
+            enrollment.period == enrollment_data.period
+            and enrollment.state in {"enrolled", "waitlisted"}
+            and enrollment.section.subject_id == curriculum_course.corequisite_subject_id
+            for enrollment in student.enrollments
+        )
+        completed_corequisite = any(
+            enrollment.section.subject_id == curriculum_course.corequisite_subject_id
+            and enrollment.grades
+            for enrollment in student.enrollments
+        )
+        if not has_corequisite and not completed_corequisite:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Corequisite {curriculum_course.corequisite.code} must be selected first",
             )
     settings = db.get(InstitutionSettings, 1)
     passing_grade = settings.passing_grade if settings else 70.0

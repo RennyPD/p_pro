@@ -18,9 +18,17 @@ class CurriculumCourse(Base):
     prerequisite_subject_id: Mapped[int | None] = mapped_column(
         ForeignKey("subjects.subject_id"), nullable=True
     )
+    corequisite_subject_id: Mapped[int | None] = mapped_column(
+        ForeignKey("subjects.subject_id"), nullable=True
+    )
+    course_type: Mapped[str] = mapped_column(default="required")
+    curriculum_version: Mapped[str] = mapped_column(default="current")
 
     career: Mapped["Career"] = relationship("Career")
     subject: Mapped["Subject"] = relationship("Subject", foreign_keys=[subject_id])
     prerequisite: Mapped["Subject | None"] = relationship(
         "Subject", foreign_keys=[prerequisite_subject_id]
+    )
+    corequisite: Mapped["Subject | None"] = relationship(
+        "Subject", foreign_keys=[corequisite_subject_id]
     )
