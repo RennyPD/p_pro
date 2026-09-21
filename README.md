@@ -58,7 +58,7 @@ Para sustituir los datos locales por una institución ficticia completa, crea pr
 python -m scripts.seed_institution
 ```
 
-Este comando elimina los registros de la aplicación y carga un escenario reproducible del Instituto Técnico Horizonte con 36 estudiantes, 6 docentes, 3 carreras, 15 asignaturas, 15 secciones, inscripciones, notas, asistencia y movimientos financieros. No elimina el archivo de base de datos ni modifica su esquema.
+Este comando elimina los registros ficticios anteriores y carga un escenario reproducible del Instituto Técnico Horizonte con 120 estudiantes, 6 docentes, 12 tutores, 3 carreras, 15 asignaturas, 15 secciones, evaluaciones, selección académica, notas, asistencia, finanzas, calendario, tareas, alertas, admisiones, documentos, comunicaciones y permisos. No elimina el archivo de base de datos ni modifica su esquema.
 
 | Perfil | Usuario de ejemplo | Contraseña |
 | --- | --- | --- |
@@ -67,7 +67,7 @@ Este comando elimina los registros de la aplicación y carga un escenario reprod
 | Estudiante | `estudiante.001` | `NexoEstudiante2026!` |
 | Tutor | `tutor.01` | `NexoTutor2026!` |
 
-También se crean `profesor.02` a `profesor.06`, `estudiante.002` a `estudiante.036` y `tutor.02` a `tutor.06`, usando la contraseña correspondiente a su perfil. Este cargador es destructivo y debe utilizarse únicamente con datos locales ficticios.
+También se crean `profesor.02` a `profesor.06`, `estudiante.002` a `estudiante.120` y `tutor.02` a `tutor.12`, usando la contraseña correspondiente a su perfil. Este cargador es destructivo y debe utilizarse únicamente con datos locales ficticios.
 
 ### Frontend React
 
