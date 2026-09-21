@@ -24,6 +24,7 @@ from app.models import (
     CashClosing,
     Charge,
     Classroom,
+    CourseEquivalence,
     CurriculumCourse,
     EarlyAlert,
     Enrollment,
@@ -44,6 +45,7 @@ from app.models import (
     SectionMeeting,
     Student,
     StudentAccount,
+    StudentCareerHistory,
     StudentDocument,
     StudentGuardian,
     Subject,
@@ -168,6 +170,8 @@ def clear_application_data(db: Session) -> None:
         RolePermission,
         Permission,
         StudentDocument,
+        StudentCareerHistory,
+        CourseEquivalence,
         ApprovalRequest,
         Submission,
         Assignment,
@@ -318,6 +322,17 @@ def seed_institution(db: Session) -> dict[str, int]:
                 )
             )
             previous_subject = subject
+
+    for career, subjects in zip(careers, subjects_by_career):
+        db.add(
+            CourseEquivalence(
+                career_id=career.career_id,
+                source_subject_id=subjects[0].subject_id,
+                target_subject_id=subjects[1].subject_id,
+                curriculum_version="2026",
+                notes="Equivalencia ficticia para validar reconocimiento curricular.",
+            )
+        )
 
     teachers = []
     for index, (first_name, last_name, specialty) in enumerate(TEACHER_SPECS, start=1):

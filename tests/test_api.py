@@ -809,6 +809,28 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(final.json()["weighted_grade"], 86)
         self.assertEqual(final.json()["status"], "passed")
 
+    def test_equivalences_career_history_and_graduation_audit(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        admin_token = self.request("POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}).json()["access_token"]
+        student_login = self.request("POST", "/auth/login", json={"username": "demo.estudiante", "password": "NexoEstudiante2026!"}).json()
+        student_token = student_login["access_token"]
+        student_id = student_login["user"]["student_id"]
+        career = self.request("GET", "/careers/", token=admin_token).json()[0]
+        subjects = self.request("GET", "/subjects/", token=admin_token).json()
+        equivalence = self.request("POST", "/governance/equivalences", token=admin_token, json={"career_id": career["career_id"], "source_subject_id": subjects[0]["subject_id"], "target_subject_id": subjects[1]["subject_id"], "curriculum_version": "2026", "notes": "Reconocimiento de prueba"})
+        self.assertEqual(equivalence.status_code, 200, equivalence.text)
+        audit = self.request("GET", f"/governance/students/{student_id}/graduation-audit", token=student_token)
+        self.assertEqual(audit.status_code, 200, audit.text)
+        self.assertEqual(len(audit.json()["requirements"]), 2)
+        second_career = self.request("POST", "/careers/", token=admin_token, json={"code": "ADM-TEST", "name": "Administración de prueba", "description": "Programa alternativo", "degree_title": "Licenciado de prueba", "required_credits": 120})
+        self.assertEqual(second_career.status_code, 200, second_career.text)
+        changed = self.request("POST", f"/governance/students/{student_id}/career-change", token=admin_token, json={"new_career_id": second_career.json()["career_id"], "effective_date": "2026-09-21", "reason": "Solicitud académica aprobada"})
+        self.assertEqual(changed.status_code, 200, changed.text)
+        history = self.request("GET", f"/governance/students/{student_id}/career-history", token=student_token)
+        self.assertEqual(history.status_code, 200, history.text)
+        self.assertEqual(len(history.json()), 1)
+
     def test_guardians_announcements_and_private_notifications(self) -> None:
         with self.Session() as db:
             seed_demo(db)

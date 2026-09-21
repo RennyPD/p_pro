@@ -1,0 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
+import { CheckCircle2, CircleDashed, GraduationCap } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { EmptyState, Spinner } from "../../components/ui";
+import { api, apiMessage } from "../../lib/api";
+import { useAuthStore } from "../../store/auth";
+import "./graduation-audit.css";
+
+export function GraduationAuditPage(){const user=useAuthStore(s=>s.user);const params=useParams();const id=params.studentId??user?.student_id;const query=useQuery({queryKey:["graduation-audit",id],queryFn:()=>api.get(`/governance/students/${id}/graduation-audit`).then(r=>r.data),enabled:Boolean(id)});if(query.isLoading)return <div className="page"><Spinner/></div>;if(query.error||!query.data)return <div className="page"><EmptyState icon={<GraduationCap/>} title="No pudimos calcular la auditoría" description={apiMessage(query.error)}/></div>;const audit=query.data;return <div className="page"><header className="page-header"><div><span className="kicker">Auditoría de graduación · Plan {audit.curriculum_version}</span><h1>Camino a graduación</h1><p>{audit.career_name}</p></div><span className={`profile-state ${audit.eligible?"is-active":""}`}>{audit.eligible?"Elegible para graduación":"Requisitos pendientes"}</span></header><section className="profile-metrics"><article><small>Créditos aprobados</small><strong>{audit.earned_credits}</strong></article><article><small>Créditos pendientes</small><strong>{audit.remaining_credits}</strong></article><article><small>Avance total</small><strong>{audit.completion_percentage}%</strong></article></section><section className="panel graduation-list">{audit.requirements.map((item:any)=><article className={item.status==="completed"?"completed":""} key={item.subject_code}>{item.status==="completed"?<CheckCircle2/>:<CircleDashed/>}<div><strong>{item.subject_code} · {item.subject_name}</strong><small>{typeLabel(item.course_type)}</small></div><b>{item.credits} créditos</b></article>)}</section></div>}
+function typeLabel(value:string){return {required:"Obligatoria",elective:"Electiva",internship:"Pasantía",capstone:"Trabajo de grado"}[value]??value}

@@ -44,12 +44,14 @@
 2. Agrega materias obligatorias, electivas, pasantía o trabajo de grado.
 3. Configura prerrequisitos y correquisitos.
 4. Abre el detalle de la carrera y revisa créditos por período.
+5. Registra una equivalencia y comprueba que sea reconocida en la auditoría de graduación.
 
 ## 6. Expediente
 
 1. Abre un estudiante y revisa promedio, asistencia y trayectoria.
 2. Como estudiante abre **Mi expediente** y **Mi progreso**.
 3. Comprueba créditos aprobados, materias repetidas y condición académica.
+4. Abre **Mi graduación** y revisa créditos pendientes, avance y requisitos obligatorios.
 
 ## 7–9. Seguimiento, aula y admisiones
 
