@@ -1,0 +1,144 @@
+.resource-table {
+  table-layout: auto;
+  white-space: normal;
+}
+
+.resource-table th,
+.resource-table td {
+  max-width: 260px;
+  vertical-align: middle;
+}
+
+.resource-table td {
+  overflow-wrap: anywhere;
+}
+
+.resource-table .table-actions {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  width: 118px;
+  min-width: 118px;
+  background: #fff;
+  box-shadow: -10px 0 16px -16px #17203399;
+}
+
+.resource-table th.table-actions {
+  z-index: 3;
+  background: #fafbfc;
+}
+
+.resource-table tbody tr:hover .table-actions {
+  background: #fafcff;
+}
+
+.resource-table .row-actions {
+  flex-wrap: nowrap;
+}
+
+.resource-table-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 1100px) {
+  .resource-table .table-detail {
+    display: none;
+  }
+
+  .resource-table th,
+  .resource-table td {
+    padding: .8rem .75rem;
+  }
+
+  .resource-table .table-actions {
+    width: 110px;
+    min-width: 110px;
+  }
+}
+
+@media (max-width: 720px) {
+  .resource-table-panel {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .resource-table-scroll {
+    overflow: visible;
+  }
+
+  .resource-table,
+  .resource-table tbody,
+  .resource-table tr,
+  .resource-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .resource-table thead {
+    display: none;
+  }
+
+  .resource-table tbody {
+    display: grid;
+    gap: .8rem;
+  }
+
+  .resource-table tbody tr {
+    position: relative;
+    padding: .75rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 6px 20px #17203308;
+  }
+
+  .resource-table td {
+    display: grid;
+    grid-template-columns: minmax(90px, .4fr) 1fr;
+    gap: .7rem;
+    max-width: none;
+    padding: .42rem .5rem;
+    border: 0;
+    white-space: normal;
+  }
+
+  .resource-table td::before {
+    content: attr(data-label);
+    color: #7d8897;
+    font-size: .63rem;
+    font-weight: 800;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+  }
+
+  .resource-table .table-detail {
+    display: none;
+  }
+
+  .resource-table .table-actions {
+    position: static;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    margin-top: .35rem;
+    padding-top: .65rem;
+    border-top: 1px solid #edf0f3;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .resource-table .table-actions::before {
+    content: "";
+  }
+
+  .resource-table .row-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .resource-table tbody tr:hover .table-actions {
+    background: transparent;
+  }
+}
