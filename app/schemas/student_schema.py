@@ -36,4 +36,5 @@ class StudentUpdate(BaseModel):
 class StudentOut(StudentBase):
     student_id: int
     enrollment_number: str
+    career_name: str
     model_config = ConfigDict(from_attributes=True)

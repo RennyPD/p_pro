@@ -21,3 +21,7 @@ class Student(Base):
 
     career: Mapped["Career"] = relationship("Career", back_populates="students")
     enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="student")
+
+    @property
+    def career_name(self) -> str:
+        return self.career.name
