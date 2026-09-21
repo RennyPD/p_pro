@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_enrollment_access, get_current_user, is_admin, require_roles
+from app.auth import ensure_enrollment_access, get_current_user, is_admin, require_permissions
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
 from app.models.enrollment_model import Enrollment
@@ -17,6 +17,7 @@ from app.services.grade_service import (
 )
 
 router = APIRouter(prefix="/grades", tags=["grades"])
+grade_manager = require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
 
 
 def validate_assessment(
@@ -36,7 +37,7 @@ def validate_assessment(
 def save_section_grades(
     data: GradeBulkCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(grade_manager),
 ):
     enrollment_ids = {item.enrollment_id for item in data.records}
     enrollments = (
@@ -82,9 +83,7 @@ def save_section_grades(
     return saved
 
 
-@router.post(
-    "/", response_model=GradeOut, dependencies=[Depends(require_roles("admin", "teacher"))]
-)
+@router.post("/", response_model=GradeOut, dependencies=[Depends(grade_manager)])
 def create_grade(
     grade_data: GradeCreate,
     db: Session = Depends(get_db),
@@ -132,7 +131,7 @@ def get_grade_by_id(
 @router.patch(
     "/{grade_id}",
     response_model=GradeOut,
-    dependencies=[Depends(require_roles("admin", "teacher"))],
+    dependencies=[Depends(grade_manager)],
 )
 def update_grade(
     grade_id: int,
@@ -151,7 +150,7 @@ def update_grade(
     return update_grade_service(db, grade_id, grade_data)
 
 
-@router.delete("/{grade_id}", dependencies=[Depends(require_roles("admin", "teacher"))])
+@router.delete("/{grade_id}", dependencies=[Depends(grade_manager)])
 def delete_grade(
     grade_id: int,
     db: Session = Depends(get_db),

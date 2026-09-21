@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_section_access, get_current_user, require_roles
+from app.auth import ensure_section_access, get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.scheduling_model import Classroom, SectionMeeting
 from app.models.section_model import Section
@@ -14,6 +14,7 @@ from app.schemas.scheduling_schema import (
 )
 
 router = APIRouter(prefix="/scheduling", tags=["scheduling"])
+scheduling_manager = require_permissions("academic.manage", fallback_roles=("admin", "teacher"))
 
 
 def meeting_out(meeting: SectionMeeting) -> MeetingOut:
@@ -35,9 +36,7 @@ def list_classrooms(db: Session = Depends(get_db), _user=Depends(get_current_use
     return db.query(Classroom).order_by(Classroom.name).all()
 
 
-@router.post(
-    "/classrooms", response_model=ClassroomOut, dependencies=[Depends(require_roles("admin"))]
-)
+@router.post("/classrooms", response_model=ClassroomOut, dependencies=[Depends(scheduling_manager)])
 def create_classroom(data: ClassroomCreate, db: Session = Depends(get_db)):
     room = Classroom(**data.model_dump())
     db.add(room)
@@ -66,7 +65,7 @@ def list_meetings(
 def create_meeting(
     data: MeetingCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(scheduling_manager),
 ):
     section = ensure_section_access(db, user, data.section_id)
     if data.classroom_id is not None:
@@ -104,7 +103,7 @@ def create_meeting(
 def delete_meeting(
     meeting_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(scheduling_manager),
 ):
     meeting = db.get(SectionMeeting, meeting_id)
     if meeting is None:

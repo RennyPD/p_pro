@@ -1,7 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_enrollment_access, ensure_section_access, get_current_user, is_admin
+from app.auth import (
+    ensure_enrollment_access,
+    ensure_section_access,
+    get_current_user,
+    is_admin,
+    require_permissions,
+)
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
 from app.models.configuration_model import InstitutionSettings
@@ -15,6 +21,7 @@ from app.schemas.assessment_schema import (
 )
 
 router = APIRouter(prefix="/assessments", tags=["weighted assessments"])
+assessment_manager = require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
 
 
 def ensure_assessment_writer(db: Session, user: User, assessment: Assessment) -> None:
@@ -51,7 +58,7 @@ def list_assessments(
 def create_assessment(
     data: AssessmentCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(assessment_manager),
 ):
     ensure_section_access(db, user, data.section_id)
     validate_total_weight(db, data.section_id, data.weight)
@@ -67,7 +74,7 @@ def update_assessment(
     assessment_id: int,
     data: AssessmentUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(assessment_manager),
 ):
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
@@ -89,7 +96,7 @@ def update_assessment(
 def close_assessment(
     assessment_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(assessment_manager),
 ):
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
@@ -113,7 +120,7 @@ def close_assessment(
 def reopen_assessment(
     assessment_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(assessment_manager),
 ):
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:

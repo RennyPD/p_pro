@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_teacher_access, get_current_user, is_admin, require_roles
+from app.auth import ensure_teacher_access, get_current_user, is_admin, require_permissions
 from app.db.Session import get_db
 from app.models.teacher_model import Teacher
 from app.models.user_model import User
@@ -14,9 +14,10 @@ from app.services.teacher_service import (
 )
 
 router = APIRouter(prefix="/teachers", tags=["teachers"])
+teacher_manager = require_permissions("academic.manage", fallback_roles=("admin",))
 
 
-@router.post("/", response_model=TeacherOut, dependencies=[Depends(require_roles("admin"))])
+@router.post("/", response_model=TeacherOut, dependencies=[Depends(teacher_manager)])
 def create_teacher(teacher_data: TeacherCreate, db: Session = Depends(get_db)):
     return create_teacher_service(db, teacher_data)
 
@@ -43,13 +44,11 @@ def get_teacher_by_id(
     return get_teacher_by_id_service(db, teacher_id)
 
 
-@router.patch(
-    "/{teacher_id}", response_model=TeacherOut, dependencies=[Depends(require_roles("admin"))]
-)
+@router.patch("/{teacher_id}", response_model=TeacherOut, dependencies=[Depends(teacher_manager)])
 def update_teacher(teacher_id: int, teacher_data: TeacherUpdate, db: Session = Depends(get_db)):
     return update_teacher_service(db, teacher_id, teacher_data)
 
 
-@router.delete("/{teacher_id}", dependencies=[Depends(require_roles("admin"))])
+@router.delete("/{teacher_id}", dependencies=[Depends(teacher_manager)])
 def delete_teacher(teacher_id: int, db: Session = Depends(get_db)):
     return delete_teacher_service(db, teacher_id)

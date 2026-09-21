@@ -106,6 +106,8 @@ La API limita intentos repetidos de acceso, permite cambiar la contraseña y reg
 
 Además, estudiantes solo pueden consultar su expediente, horario, notas y asistencia. Docentes solo acceden a estudiantes, inscripciones, notas y asistencias pertenecientes a sus secciones.
 
+Los permisos configurables complementan el rol y se aplican tanto en la API como en el menú. El catálogo institucional incluye `academic.manage` (configuración, oferta y pensum), `grades.manage` (evaluaciones, notas y asistencia), `finance.manage` (cuentas y caja), `reports.view` (analítica), `communications.manage` (avisos) y `access.manage` (usuarios, roles y permisos). Un administrador puede asignarlos por rol desde **Roles y permisos**. Las instalaciones antiguas conservan compatibilidad por rol hasta ejecutar las migraciones y configurar su catálogo.
+
 ## Consultas académicas
 
 - `GET /academic/students/{id}/grades`: historial de notas, con filtro por período.
@@ -169,6 +171,13 @@ La verificación completa ejecuta lint, formato, cobertura, pruebas, Alembic y f
 
 ```powershell
 .\scripts\check.ps1
+```
+
+Las pruebas de navegador comprueban además el acceso y espacio de trabajo de administración, docencia, estudiante y tutor:
+
+```powershell
+Set-Location frontend
+npm run e2e
 ```
 
 La misma verificación está configurada en `.github/workflows/backend-quality.yml`.

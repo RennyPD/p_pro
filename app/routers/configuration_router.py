@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_roles
+from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
@@ -18,6 +18,7 @@ from app.schemas.configuration_schema import (
 )
 
 router = APIRouter(tags=["academic configuration"])
+academic_manager = require_permissions("academic.manage", fallback_roles=("admin",))
 
 
 def get_or_create_settings(db: Session) -> InstitutionSettings:
@@ -57,7 +58,7 @@ def get_institution_settings(db: Session = Depends(get_db), _user=Depends(get_cu
 @router.put(
     "/configuration/institution",
     response_model=InstitutionSettingsOut,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(academic_manager)],
 )
 def update_institution_settings(data: InstitutionSettingsUpdate, db: Session = Depends(get_db)):
     settings = get_or_create_settings(db)
@@ -71,7 +72,7 @@ def update_institution_settings(data: InstitutionSettingsUpdate, db: Session = D
 @router.post(
     "/periods/",
     response_model=AcademicPeriodOut,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(academic_manager)],
 )
 def create_period(data: AcademicPeriodCreate, db: Session = Depends(get_db)):
     if data.active:
@@ -91,7 +92,7 @@ def list_periods(db: Session = Depends(get_db), _user=Depends(get_current_user))
 @router.patch(
     "/periods/{period_id}",
     response_model=AcademicPeriodOut,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(academic_manager)],
 )
 def update_period(period_id: int, data: AcademicPeriodUpdate, db: Session = Depends(get_db)):
     period = db.get(AcademicPeriod, period_id)
@@ -111,7 +112,7 @@ def update_period(period_id: int, data: AcademicPeriodUpdate, db: Session = Depe
     return period
 
 
-@router.post("/periods/{period_id}/close", dependencies=[Depends(require_roles("admin"))])
+@router.post("/periods/{period_id}/close", dependencies=[Depends(academic_manager)])
 def close_period(period_id: int, db: Session = Depends(get_db)):
     period = db.get(AcademicPeriod, period_id)
     if period is None:
@@ -151,7 +152,7 @@ def close_period(period_id: int, db: Session = Depends(get_db)):
 def reopen_period(
     period_id: int,
     db: Session = Depends(get_db),
-    _user=Depends(require_roles("admin")),
+    _user=Depends(academic_manager),
 ):
     period = db.get(AcademicPeriod, period_id)
     if period is None:
@@ -164,7 +165,7 @@ def reopen_period(
     return period
 
 
-@router.delete("/periods/{period_id}", dependencies=[Depends(require_roles("admin"))])
+@router.delete("/periods/{period_id}", dependencies=[Depends(academic_manager)])
 def delete_period(period_id: int, db: Session = Depends(get_db)):
     period = db.get(AcademicPeriod, period_id)
     if period is None:

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_roles
+from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
 from app.pagination import paginate_and_filter
 from app.schemas.subject_schema import SubjectCreate, SubjectOut, SubjectUpdate
@@ -14,9 +14,10 @@ from app.services.subject_service import (
 )
 
 router = APIRouter(prefix="/subjects", tags=["subjects"])
+subject_manager = require_permissions("academic.manage", fallback_roles=("admin",))
 
 
-@router.post("/", response_model=SubjectOut, dependencies=[Depends(require_roles("admin"))])
+@router.post("/", response_model=SubjectOut, dependencies=[Depends(subject_manager)])
 def create_subject(subject_data: SubjectCreate, db: Session = Depends(get_db)):
     return create_subject_service(db, subject_data)
 
@@ -36,13 +37,11 @@ def get_subject_by_id(subject_id: int, db: Session = Depends(get_db)):
     return get_subject_by_id_service(db, subject_id)
 
 
-@router.patch(
-    "/{subject_id}", response_model=SubjectOut, dependencies=[Depends(require_roles("admin"))]
-)
+@router.patch("/{subject_id}", response_model=SubjectOut, dependencies=[Depends(subject_manager)])
 def update_subject(subject_id: int, subject_data: SubjectUpdate, db: Session = Depends(get_db)):
     return update_subject_service(db, subject_id, subject_data)
 
 
-@router.delete("/{subject_id}", dependencies=[Depends(require_roles("admin"))])
+@router.delete("/{subject_id}", dependencies=[Depends(subject_manager)])
 def delete_subject(subject_id: int, db: Session = Depends(get_db)):
     return delete_subject_service(db, subject_id)

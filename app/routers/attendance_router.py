@@ -3,7 +3,13 @@ from datetime import datetime, time
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_enrollment_access, ensure_section_access, get_current_user, is_admin
+from app.auth import (
+    ensure_enrollment_access,
+    ensure_section_access,
+    get_current_user,
+    is_admin,
+    require_permissions,
+)
 from app.db.Session import get_db
 from app.models.attendance_model import Attendance
 from app.models.enrollment_model import Enrollment
@@ -16,6 +22,7 @@ from app.schemas.attendance_schema import (
 )
 
 router = APIRouter(prefix="/attendances", tags=["attendances"])
+attendance_manager = require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
 ATTENDANCE_STATUSES = {"present", "absent", "late", "excused", "early_departure"}
 
 
@@ -31,7 +38,7 @@ def attendance_values(present: bool, status_value: str | None) -> tuple[bool, st
 def save_section_attendance(
     data: AttendanceBulkCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(attendance_manager),
 ):
     ensure_section_access(db, user, data.section_id)
     enrollment_ids = {item.enrollment_id for item in data.records}
@@ -85,7 +92,7 @@ def require_attendance_writer(db: Session, user: User, enrollment_id: int):
 def create_attendance(
     data: AttendanceCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(attendance_manager),
 ):
     require_attendance_writer(db, user, data.enrollment_id)
     values = data.model_dump(exclude_none=True)
@@ -143,7 +150,7 @@ def update_attendance(
     attendance_id: int,
     data: AttendanceUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(attendance_manager),
 ):
     attendance = db.get(Attendance, attendance_id)
     if attendance is None:
@@ -161,7 +168,7 @@ def update_attendance(
 def delete_attendance(
     attendance_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(attendance_manager),
 ):
     attendance = db.get(Attendance, attendance_id)
     if attendance is None:

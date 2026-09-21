@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_section_access, get_current_user, is_admin, require_roles
+from app.auth import ensure_section_access, get_current_user, is_admin, require_permissions
 from app.db.Session import get_db
 from app.models.user_model import User
 from app.pagination import paginate_and_filter
@@ -15,9 +15,10 @@ from app.services.section_service import (
 )
 
 router = APIRouter(prefix="/sections", tags=["sections"])
+section_manager = require_permissions("academic.manage", fallback_roles=("admin",))
 
 
-@router.post("/", response_model=SectionOut, dependencies=[Depends(require_roles("admin"))])
+@router.post("/", response_model=SectionOut, dependencies=[Depends(section_manager)])
 def create_section(section_data: SectionCreate, db: Session = Depends(get_db)):
     return create_section_service(db, section_data)
 
@@ -49,13 +50,11 @@ def get_section_by_id(
     return get_section_by_id_service(db, section_id)
 
 
-@router.patch(
-    "/{section_id}", response_model=SectionOut, dependencies=[Depends(require_roles("admin"))]
-)
+@router.patch("/{section_id}", response_model=SectionOut, dependencies=[Depends(section_manager)])
 def update_section(section_id: int, section_data: SectionUpdate, db: Session = Depends(get_db)):
     return update_section_service(db, section_id, section_data)
 
 
-@router.delete("/{section_id}", dependencies=[Depends(require_roles("admin"))])
+@router.delete("/{section_id}", dependencies=[Depends(section_manager)])
 def delete_section(section_id: int, db: Session = Depends(get_db)):
     return delete_section_service(db, section_id)

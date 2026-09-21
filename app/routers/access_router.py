@@ -2,13 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_roles
+from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.access_model import Permission, RolePermission
 from app.models.role_model import Role
 from app.models.user_model import User
 
 router = APIRouter(prefix="/access", tags=["access control"])
+access_manager = require_permissions("access.manage", fallback_roles=("admin",))
 
 
 class PermissionCreate(BaseModel):
@@ -20,12 +21,12 @@ class RolePermissionUpdate(BaseModel):
     permissions: list[str]
 
 
-@router.get("/permissions", dependencies=[Depends(require_roles("admin"))])
+@router.get("/permissions", dependencies=[Depends(access_manager)])
 def permissions(db: Session = Depends(get_db)):
     return db.query(Permission).order_by(Permission.slug).all()
 
 
-@router.post("/permissions", dependencies=[Depends(require_roles("admin"))])
+@router.post("/permissions", dependencies=[Depends(access_manager)])
 def create_permission(data: PermissionCreate, db: Session = Depends(get_db)):
     item = Permission(**data.model_dump())
     db.add(item)
@@ -34,7 +35,7 @@ def create_permission(data: PermissionCreate, db: Session = Depends(get_db)):
     return item
 
 
-@router.put("/roles/{role_id}/permissions", dependencies=[Depends(require_roles("admin"))])
+@router.put("/roles/{role_id}/permissions", dependencies=[Depends(access_manager)])
 def set_role_permissions(role_id: int, data: RolePermissionUpdate, db: Session = Depends(get_db)):
     if db.get(Role, role_id) is None:
         raise HTTPException(status_code=404, detail="Role not found")
@@ -49,7 +50,7 @@ def set_role_permissions(role_id: int, data: RolePermissionUpdate, db: Session =
     return {"role_id": role_id, "permissions": sorted(item.slug for item in selected)}
 
 
-@router.get("/roles/{role_id}/permissions", dependencies=[Depends(require_roles("admin"))])
+@router.get("/roles/{role_id}/permissions", dependencies=[Depends(access_manager)])
 def role_permissions(role_id: int, db: Session = Depends(get_db)):
     if db.get(Role, role_id) is None:
         raise HTTPException(status_code=404, detail="Role not found")

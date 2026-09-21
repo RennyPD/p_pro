@@ -1179,6 +1179,189 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(reopened.status_code, 200, reopened.text)
         self.assertEqual(reopened.json()["status"], "active")
 
+    def test_configured_permissions_enforce_management_actions(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+            admin_role = db.query(Role).filter_by(name="admin").one()  # noqa: F405
+            access = Permission(  # noqa: F405
+                slug="access.manage", description="Gestionar acceso"
+            )
+            academic = Permission(  # noqa: F405
+                slug="academic.manage", description="Gestionar academia"
+            )
+            db.add_all([access, academic])
+            db.flush()
+            db.add(  # noqa: F405
+                RolePermission(role_id=admin_role.role_id, permission_id=access.permission_id)
+            )
+            db.commit()
+        token = self.request(
+            "POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}
+        ).json()["access_token"]
+        denied = self.request(
+            "POST",
+            "/subjects/",
+            token=token,
+            json={"code": "PERM-01", "description": "Prueba de permiso"},
+        )
+        self.assertEqual(denied.status_code, 403, denied.text)
+        admin_role_id = self.request("GET", "/roles/", token=token).json()[0]["role_id"]
+        granted = self.request(
+            "PUT",
+            f"/access/roles/{admin_role_id}/permissions",
+            token=token,
+            json={"permissions": ["access.manage", "academic.manage"]},
+        )
+        self.assertEqual(granted.status_code, 200, granted.text)
+        allowed = self.request(
+            "POST",
+            "/subjects/",
+            token=token,
+            json={"code": "PERM-01", "description": "Prueba de permiso"},
+        )
+        self.assertEqual(allowed.status_code, 200, allowed.text)
+
+    def test_scheduling_rejects_room_and_teacher_conflicts(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        token = self.request(
+            "POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}
+        ).json()["access_token"]
+        sections = self.request("GET", "/sections/", token=token).json()
+        room = self.request(
+            "POST",
+            "/scheduling/classrooms",
+            token=token,
+            json={"name": "Aula Magna", "capacity": 60, "location": "Edificio A"},
+        )
+        self.assertEqual(room.status_code, 200, room.text)
+        first = self.request(
+            "POST",
+            "/scheduling/meetings",
+            token=token,
+            json={
+                "section_id": sections[0]["section_id"],
+                "classroom_id": room.json()["classroom_id"],
+                "day_of_week": "Lunes",
+                "start_time": "08:00:00",
+                "end_time": "09:30:00",
+                "modality": "in_person",
+            },
+        )
+        self.assertEqual(first.status_code, 200, first.text)
+        conflict = self.request(
+            "POST",
+            "/scheduling/meetings",
+            token=token,
+            json={
+                "section_id": sections[1]["section_id"],
+                "classroom_id": room.json()["classroom_id"],
+                "day_of_week": "Lunes",
+                "start_time": "09:00:00",
+                "end_time": "10:00:00",
+                "modality": "in_person",
+            },
+        )
+        self.assertEqual(conflict.status_code, 409, conflict.text)
+        listed = self.request(
+            "GET", f"/scheduling/sections/{sections[0]['section_id']}/meetings", token=token
+        )
+        self.assertEqual(listed.status_code, 200, listed.text)
+        self.assertEqual(len(listed.json()), 1)
+        deleted = self.request(
+            "DELETE", f"/scheduling/meetings/{first.json()['meeting_id']}", token=token
+        )
+        self.assertEqual(deleted.status_code, 200, deleted.text)
+
+    def test_finance_account_adjustments_plans_and_cash_closing(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        token = self.request(
+            "POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}
+        ).json()["access_token"]
+        student_id = self.request("GET", "/students/", token=token).json()[0]["student_id"]
+        account = self.request(
+            "PUT",
+            f"/finance/students/{student_id}/account",
+            token=token,
+            json={"cutoff_day": 10, "due_day": 20},
+        )
+        self.assertEqual(account.status_code, 200, account.text)
+        charge = self.request(
+            "POST",
+            f"/finance/students/{student_id}/charges",
+            token=token,
+            json={"description": "Matrícula especial", "amount": 1200, "due_date": "2026-10-20"},
+        )
+        self.assertEqual(charge.status_code, 200, charge.text)
+        adjustment = self.request(
+            "POST",
+            f"/finance/students/{student_id}/adjustments",
+            token=token,
+            json={"kind": "scholarship", "description": "Beca académica", "amount": 200},
+        )
+        self.assertEqual(adjustment.status_code, 200, adjustment.text)
+        plan = self.request(
+            "POST",
+            f"/finance/students/{student_id}/payment-plans",
+            token=token,
+            json={"name": "Plan de dos cuotas", "installments": 2, "first_due_date": "2026-10-30"},
+        )
+        self.assertEqual(plan.status_code, 200, plan.text)
+        self.assertEqual(plan.json()["installments"], 2)
+        accounts = self.request("GET", "/finance/accounts", token=token)
+        self.assertEqual(accounts.status_code, 200, accounts.text)
+        closing = self.request("POST", "/finance/cash-closings/2026-09-21", token=token)
+        self.assertEqual(closing.status_code, 200, closing.text)
+        duplicate = self.request("POST", "/finance/cash-closings/2026-09-21", token=token)
+        self.assertEqual(duplicate.status_code, 409, duplicate.text)
+
+    def test_curriculum_crud_preserves_university_course_metadata(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        token = self.request(
+            "POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}
+        ).json()["access_token"]
+        career = self.request("GET", "/careers/", token=token).json()[0]
+        subject = self.request(
+            "POST",
+            "/subjects/",
+            token=token,
+            json={"code": "CAP-401", "description": "Proyecto de grado"},
+        ).json()
+        created = self.request(
+            "POST",
+            "/curriculum/courses",
+            token=token,
+            json={
+                "career_id": career["career_id"],
+                "subject_id": subject["subject_id"],
+                "term_number": 8,
+                "credits": 6,
+                "course_type": "capstone",
+                "curriculum_version": "2027",
+            },
+        )
+        self.assertEqual(created.status_code, 200, created.text)
+        self.assertEqual(created.json()["course_type"], "capstone")
+        self.assertEqual(created.json()["curriculum_version"], "2027")
+        course_id = created.json()["curriculum_course_id"]
+        updated = self.request(
+            "PATCH",
+            f"/curriculum/courses/{course_id}",
+            token=token,
+            json={"credits": 7, "curriculum_version": "2027.1"},
+        )
+        self.assertEqual(updated.status_code, 200, updated.text)
+        self.assertEqual(updated.json()["credits"], 7)
+        listed = self.request(
+            "GET", f"/curriculum/courses?career_id={career['career_id']}", token=token
+        )
+        self.assertEqual(listed.status_code, 200, listed.text)
+        self.assertTrue(any(item["curriculum_course_id"] == course_id for item in listed.json()))
+        deleted = self.request("DELETE", f"/curriculum/courses/{course_id}", token=token)
+        self.assertEqual(deleted.status_code, 200, deleted.text)
+
 
 if __name__ == "__main__":
     unittest.main()

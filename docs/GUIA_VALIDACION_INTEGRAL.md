@@ -79,7 +79,9 @@
 3. Confirma que los contadores de riesgo cambien al asignar o resolver una alerta.
 4. Exporta expedientes CSV desde la API o documentación interactiva.
 5. Asigna permisos a un rol y confirma la consulta de permisos propios.
-6. Verifica eventos sensibles en el historial de auditoría.
+6. Retira temporalmente `finance.manage`, `grades.manage` o `academic.manage` de un rol de prueba y confirma que desaparece la opción correspondiente y que la API responde 403.
+7. Devuelve el permiso y comprueba que el acceso se restaura sin cambiar el rol.
+8. Verifica eventos sensibles en el historial de auditoría.
 
 ## 12. Experiencia y accesibilidad
 

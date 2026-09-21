@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_enrollment_access, get_current_user, is_admin, require_roles
+from app.auth import ensure_enrollment_access, get_current_user, is_admin, require_permissions
 from app.db.Session import get_db
 from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
@@ -15,9 +15,10 @@ from app.services.enrollment_service import (
 )
 
 router = APIRouter(prefix="/enrollments", tags=["enrollment"])
+enrollment_manager = require_permissions("academic.manage", fallback_roles=("admin",))
 
 
-@router.post("/", response_model=EnrollmentOut, dependencies=[Depends(require_roles("admin"))])
+@router.post("/", response_model=EnrollmentOut, dependencies=[Depends(enrollment_manager)])
 def create_enrollment(enrollment_data: EnrollmentCreate, db: Session = Depends(get_db)):
     return create_enrollment_service(db, enrollment_data)
 
@@ -52,7 +53,7 @@ def get_enrollment_by_id(
 
 
 @router.patch(
-    "/{enrollment_id}", response_model=EnrollmentOut, dependencies=[Depends(require_roles("admin"))]
+    "/{enrollment_id}", response_model=EnrollmentOut, dependencies=[Depends(enrollment_manager)]
 )
 def update_enrollment(
     enrollment_id: int, enrollment_data: EnrollmentUpdate, db: Session = Depends(get_db)
@@ -60,6 +61,6 @@ def update_enrollment(
     return update_enrollment_service(db, enrollment_id, enrollment_data)
 
 
-@router.delete("/{enrollment_id}", dependencies=[Depends(require_roles("admin"))])
+@router.delete("/{enrollment_id}", dependencies=[Depends(enrollment_manager)])
 def delete_enrollment(enrollment_id: int, db: Session = Depends(get_db)):
     return delete_enrollment_service(db, enrollment_id)

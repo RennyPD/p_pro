@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_student_access, get_current_user, require_roles
+from app.auth import ensure_student_access, get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.finance_model import (
     BillingConcept,
@@ -30,6 +30,7 @@ from app.schemas.finance_schema import (
 )
 
 router = APIRouter(prefix="/finance", tags=["finance"])
+finance_manager = require_permissions("finance.manage", fallback_roles=("admin",))
 
 
 def get_or_create_account(db: Session, student_id: int) -> StudentAccount:
@@ -101,7 +102,7 @@ def build_summary(account: StudentAccount) -> StudentFinanceSummary:
 @router.get(
     "/accounts",
     response_model=list[FinanceAccountListItem],
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(finance_manager)],
 )
 def list_accounts(db: Session = Depends(get_db)):
     results = []
@@ -130,7 +131,7 @@ def student_finance(
 @router.put(
     "/students/{student_id}/account",
     response_model=StudentFinanceSummary,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(finance_manager)],
 )
 def update_account(student_id: int, data: AccountUpdate, db: Session = Depends(get_db)):
     account = get_or_create_account(db, student_id)
@@ -144,7 +145,7 @@ def update_account(student_id: int, data: AccountUpdate, db: Session = Depends(g
 @router.post(
     "/students/{student_id}/charges",
     response_model=StudentFinanceSummary,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(finance_manager)],
 )
 def add_charge(student_id: int, data: ChargeCreate, db: Session = Depends(get_db)):
     account = get_or_create_account(db, student_id)
@@ -157,7 +158,7 @@ def add_charge(student_id: int, data: ChargeCreate, db: Session = Depends(get_db
 @router.post(
     "/students/{student_id}/payments",
     response_model=StudentFinanceSummary,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(finance_manager)],
 )
 def add_payment(student_id: int, data: PaymentCreate, db: Session = Depends(get_db)):
     account = get_or_create_account(db, student_id)
@@ -181,7 +182,7 @@ def add_payment(student_id: int, data: PaymentCreate, db: Session = Depends(get_
 @router.post(
     "/students/{student_id}/adjustments",
     response_model=StudentFinanceSummary,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(finance_manager)],
 )
 def add_adjustment(student_id: int, data: AdjustmentCreate, db: Session = Depends(get_db)):
     account = get_or_create_account(db, student_id)
@@ -197,7 +198,7 @@ def add_adjustment(student_id: int, data: AdjustmentCreate, db: Session = Depend
 
 @router.post(
     "/students/{student_id}/payment-plans",
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(finance_manager)],
 )
 def create_payment_plan(student_id: int, data: PaymentPlanCreate, db: Session = Depends(get_db)):
     account = get_or_create_account(db, student_id)
@@ -228,12 +229,12 @@ def create_payment_plan(student_id: int, data: PaymentPlanCreate, db: Session = 
     return {"payment_plan_id": plan.payment_plan_id, "installments": data.installments}
 
 
-@router.get("/billing-concepts", dependencies=[Depends(require_roles("admin"))])
+@router.get("/billing-concepts", dependencies=[Depends(finance_manager)])
 def billing_concepts(db: Session = Depends(get_db)):
     return db.query(BillingConcept).order_by(BillingConcept.name).all()
 
 
-@router.post("/billing-concepts", dependencies=[Depends(require_roles("admin"))])
+@router.post("/billing-concepts", dependencies=[Depends(finance_manager)])
 def create_billing_concept(data: BillingConceptCreate, db: Session = Depends(get_db)):
     item = BillingConcept(**data.model_dump())
     db.add(item)
@@ -242,7 +243,7 @@ def create_billing_concept(data: BillingConceptCreate, db: Session = Depends(get
     return item
 
 
-@router.post("/cash-closings/{closing_date}", dependencies=[Depends(require_roles("admin"))])
+@router.post("/cash-closings/{closing_date}", dependencies=[Depends(finance_manager)])
 def close_cash_day(
     closing_date: date,
     db: Session = Depends(get_db),

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_student_academic_access, get_current_user, require_roles
+from app.auth import ensure_student_academic_access, get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.configuration_model import InstitutionSettings
 from app.models.curriculum_model import CurriculumCourse
@@ -16,6 +16,7 @@ from app.schemas.curriculum_schema import (
 )
 
 router = APIRouter(prefix="/curriculum", tags=["curriculum"])
+curriculum_manager = require_permissions("academic.manage", fallback_roles=("admin",))
 
 
 def course_out(course: CurriculumCourse) -> CurriculumCourseOut:
@@ -25,6 +26,8 @@ def course_out(course: CurriculumCourse) -> CurriculumCourseOut:
         subject_id=course.subject_id,
         term_number=course.term_number,
         credits=course.credits,
+        course_type=course.course_type,
+        curriculum_version=course.curriculum_version,
         prerequisite_subject_id=course.prerequisite_subject_id,
         subject_code=course.subject.code,
         subject_name=course.subject.description,
@@ -34,7 +37,7 @@ def course_out(course: CurriculumCourse) -> CurriculumCourseOut:
 
 
 @router.post(
-    "/courses", response_model=CurriculumCourseOut, dependencies=[Depends(require_roles("admin"))]
+    "/courses", response_model=CurriculumCourseOut, dependencies=[Depends(curriculum_manager)]
 )
 def add_curriculum_course(data: CurriculumCourseCreate, db: Session = Depends(get_db)):
     if data.subject_id in {data.prerequisite_subject_id, data.corequisite_subject_id}:
@@ -61,7 +64,7 @@ def list_curriculum_courses(
 @router.patch(
     "/courses/{course_id}",
     response_model=CurriculumCourseOut,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(curriculum_manager)],
 )
 def update_curriculum_course(
     course_id: int, data: CurriculumCourseUpdate, db: Session = Depends(get_db)
@@ -78,7 +81,7 @@ def update_curriculum_course(
     return course_out(course)
 
 
-@router.delete("/courses/{course_id}", dependencies=[Depends(require_roles("admin"))])
+@router.delete("/courses/{course_id}", dependencies=[Depends(curriculum_manager)])
 def delete_curriculum_course(course_id: int, db: Session = Depends(get_db)):
     course = db.get(CurriculumCourse, course_id)
     if course is None:

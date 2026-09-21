@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_roles
+from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
 from app.pagination import paginate_and_filter
 from app.schemas.career_schema import CareerCreate, CareerOut, CareerUpdate
@@ -14,9 +14,10 @@ from app.services.career_service import (
 )
 
 router = APIRouter(prefix="/careers", tags=["careers"])
+career_manager = require_permissions("academic.manage", fallback_roles=("admin",))
 
 
-@router.post("/", response_model=CareerOut, dependencies=[Depends(require_roles("admin"))])
+@router.post("/", response_model=CareerOut, dependencies=[Depends(career_manager)])
 def create_career(data: CareerCreate, db: Session = Depends(get_db)):
     return create_career_service(db, data)
 
@@ -36,13 +37,11 @@ def get_career(career_id: int, db: Session = Depends(get_db)):
     return get_career_service(db, career_id)
 
 
-@router.patch(
-    "/{career_id}", response_model=CareerOut, dependencies=[Depends(require_roles("admin"))]
-)
+@router.patch("/{career_id}", response_model=CareerOut, dependencies=[Depends(career_manager)])
 def update_career(career_id: int, data: CareerUpdate, db: Session = Depends(get_db)):
     return update_career_service(db, career_id, data)
 
 
-@router.delete("/{career_id}", dependencies=[Depends(require_roles("admin"))])
+@router.delete("/{career_id}", dependencies=[Depends(career_manager)])
 def delete_career(career_id: int, db: Session = Depends(get_db)):
     return delete_career_service(db, career_id)
