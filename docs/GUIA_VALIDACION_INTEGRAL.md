@@ -37,6 +37,8 @@
 1. Como administrador crea o edita una sección con docente, asignatura, período, cupos, modalidad y estado.
 2. Confirma las vistas de horario en lista, semana, 12 horas y 24 horas.
 3. Intenta crear reuniones superpuestas para docente o aula.
+4. En **Configuración → Períodos académicos**, intenta cerrar un período con evaluaciones incompletas y confirma el bloqueo.
+5. Completa y cierra las evaluaciones, vuelve a cerrar el período y verifica que las selecciones queden consolidadas.
 
 ## 5. Carreras y pensum
 
@@ -61,6 +63,14 @@
 4. En **Control institucional**, asigna un responsable y una fecha de seguimiento a una alerta.
 5. Registra una actuación con el resultado de una llamada o reunión y luego resuelve el caso con una conclusión.
 6. Cambia el estado de una admisión aceptada y conviértela en estudiante.
+7. Abre **Casos y seguimientos**, consulta el historial de actuaciones, resuelve un caso y comprueba que puede reabrirse.
+
+## Portal familiar
+
+1. Entra como `tutor.01` y abre **Seguimiento familiar**.
+2. Comprueba promedio, asistencia, balance, horario y alertas del estudiante vinculado.
+3. Verifica que el tutor no vea herramientas para crear tareas ni publicar comunicaciones.
+4. Si el tutor tiene varios estudiantes, cambia la selección y confirma que cada resumen sea independiente.
 
 ## 10–11. Reportes, permisos y auditoría
 

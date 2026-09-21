@@ -69,6 +69,8 @@ Este comando elimina los registros ficticios anteriores y carga un escenario rep
 
 También se crean `profesor.02` a `profesor.06`, `estudiante.002` a `estudiante.120` y `tutor.02` a `tutor.12`, usando la contraseña correspondiente a su perfil. Este cargador es destructivo y debe utilizarse únicamente con datos locales ficticios.
 
+El portal familiar muestra únicamente estudiantes vinculados e incluye promedio, asistencia, horario, balance y alertas. La administración dispone además de cierre controlado de períodos, permisos por rol aplicados a reportes y comunicaciones, e historial de intervenciones de alertas.
+
 ### Frontend React
 
 ```powershell

@@ -8,7 +8,9 @@ class CurriculumCourseBase(BaseModel):
     credits: float = Field(gt=0, le=30)
     prerequisite_subject_id: int | None = None
     corequisite_subject_id: int | None = None
-    course_type: str = Field(default="required", pattern=r"^(required|elective|internship|capstone)$")
+    course_type: str = Field(
+        default="required", pattern=r"^(required|elective|internship|capstone)$"
+    )
     curriculum_version: str = "current"
 
 
@@ -21,7 +23,9 @@ class CurriculumCourseUpdate(BaseModel):
     credits: float | None = Field(default=None, gt=0, le=30)
     prerequisite_subject_id: int | None = None
     corequisite_subject_id: int | None = None
-    course_type: str | None = Field(default=None, pattern=r"^(required|elective|internship|capstone)$")
+    course_type: str | None = Field(
+        default=None, pattern=r"^(required|elective|internship|capstone)$"
+    )
     curriculum_version: str | None = None
 
 

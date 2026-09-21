@@ -54,11 +54,11 @@ def schedule_item(section: Section) -> ScheduleItem:
 
 
 @router.get("/catalog", response_model=list[CourseOffering])
-def course_catalog(
-    db: Session = Depends(get_db), user: User = Depends(get_current_user)
-):
+def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if user.student_id is None:
-        raise HTTPException(status_code=403, detail="Course selection is only available to students")
+        raise HTTPException(
+            status_code=403, detail="Course selection is only available to students"
+        )
     student = db.get(Student, user.student_id)
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     if period is None:
@@ -138,11 +138,11 @@ def course_catalog(
 
 
 @router.get("/catalog/summary", response_model=CourseSelectionSummary)
-def course_selection_summary(
-    db: Session = Depends(get_db), user: User = Depends(get_current_user)
-):
+def course_selection_summary(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if user.student_id is None:
-        raise HTTPException(status_code=403, detail="Course selection is only available to students")
+        raise HTTPException(
+            status_code=403, detail="Course selection is only available to students"
+        )
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     settings = db.get(InstitutionSettings, 1)
     maximum = settings.max_credits_per_period if settings else 24
@@ -188,7 +188,9 @@ def select_course(
     user: User = Depends(get_current_user),
 ):
     if user.student_id is None:
-        raise HTTPException(status_code=403, detail="Course selection is only available to students")
+        raise HTTPException(
+            status_code=403, detail="Course selection is only available to students"
+        )
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     if period is None or period.status not in {"registration", "active"}:
         raise HTTPException(status_code=409, detail="Course selection is currently closed")
@@ -205,7 +207,9 @@ def select_course(
         .first()
     )
     if offered_in_program is None:
-        raise HTTPException(status_code=409, detail="This subject is not part of the student's program")
+        raise HTTPException(
+            status_code=409, detail="This subject is not part of the student's program"
+        )
     return create_enrollment_service(
         db,
         EnrollmentCreate(
@@ -223,7 +227,9 @@ def withdraw_course_selection(
     user: User = Depends(get_current_user),
 ):
     if user.student_id is None:
-        raise HTTPException(status_code=403, detail="Course selection is only available to students")
+        raise HTTPException(
+            status_code=403, detail="Course selection is only available to students"
+        )
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     enrollment = (
         db.query(Enrollment)
@@ -480,7 +486,9 @@ def section_workspace(
                         status=item.status,
                         note=item.note,
                     )
-                    for item in sorted(enrollment.attendances, key=lambda record: record.date, reverse=True)
+                    for item in sorted(
+                        enrollment.attendances, key=lambda record: record.date, reverse=True
+                    )
                 ],
             )
         )

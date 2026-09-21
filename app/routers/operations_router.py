@@ -11,6 +11,7 @@ from app.auth import (
     ensure_student_academic_access,
     get_current_user,
     is_admin,
+    require_permissions,
     require_roles,
 )
 from app.db.Session import get_db
@@ -39,8 +40,8 @@ from app.schemas.operations_schema import (
     AdmissionCreate,
     AdmissionOut,
     AdmissionUpdate,
-    AlertCreate,
     AlertAssignment,
+    AlertCreate,
     AlertInterventionCreate,
     AlertInterventionOut,
     AlertOut,
@@ -422,22 +423,103 @@ def resolve_alert(
     return item
 
 
+@router.patch("/alerts/{alert_id}/reopen", response_model=AlertOut)
+def reopen_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles("admin", "teacher")),
+):
+    item = db.get(EarlyAlert, alert_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    ensure_student_academic_access(db, user, item.student_id)
+    item.status = "open"
+    item.resolved_at = None
+    item.resolution_notes = ""
+    db.commit()
+    db.refresh(item)
+    return item
+
+
 @router.get("/guardian/overview")
 def guardian_overview(
     db: Session = Depends(get_db), user: User = Depends(require_roles("guardian"))
 ):
     ids = student_scope_ids(db, user) or []
-    return [
-        {
-            "student_id": s.student_id,
-            "student_name": f"{s.first_name} {s.last_name}",
-            "enrollment_number": s.enrollment_number,
-            "open_alerts": db.query(EarlyAlert)
-            .filter_by(student_id=s.student_id, status="open")
-            .count(),
-        }
-        for s in db.query(Student).filter(Student.student_id.in_(ids)).all()
-    ]
+    result = []
+    for student in db.query(Student).filter(Student.student_id.in_(ids)).all():
+        enrollments = db.query(Enrollment).filter_by(student_id=student.student_id).all()
+        enrollment_ids = [item.enrollment_id for item in enrollments]
+        grades = (
+            [
+                row[0]
+                for row in db.query(Grade.grade_value).filter(
+                    Grade.enrollment_id.in_(enrollment_ids)
+                )
+            ]
+            if enrollment_ids
+            else []
+        )
+        attendance = (
+            [
+                bool(row[0])
+                for row in db.query(Attendance.present).filter(
+                    Attendance.enrollment_id.in_(enrollment_ids)
+                )
+            ]
+            if enrollment_ids
+            else []
+        )
+        account = db.query(StudentAccount).filter_by(student_id=student.student_id).first()
+        balance = (
+            sum(item.amount for item in account.charges)
+            - sum(item.amount for item in account.payments)
+            if account
+            else 0
+        )
+        alerts = (
+            db.query(EarlyAlert)
+            .filter_by(student_id=student.student_id, status="open")
+            .order_by(EarlyAlert.created_at.desc())
+            .all()
+        )
+        result.append(
+            {
+                "student_id": student.student_id,
+                "student_name": f"{student.first_name} {student.last_name}",
+                "enrollment_number": student.enrollment_number,
+                "career_name": student.career.name,
+                "active": student.active,
+                "average_grade": round(sum(grades) / len(grades), 2) if grades else 0,
+                "attendance_percentage": percentage(sum(attendance), len(attendance)),
+                "balance": round(float(balance), 2),
+                "schedule": [
+                    {
+                        "section_id": item.section_id,
+                        "section_code": item.section.code,
+                        "subject_name": item.section.subject.description,
+                        "days_of_week": item.section.days_of_week,
+                        "start_time": item.section.start_time.isoformat(),
+                        "end_time": item.section.end_time.isoformat(),
+                        "room": item.section.room,
+                        "modality": item.section.modality,
+                    }
+                    for item in enrollments
+                    if item.state == "enrolled"
+                ],
+                "alerts": [
+                    {
+                        "early_alert_id": alert.early_alert_id,
+                        "category": alert.category,
+                        "severity": alert.severity,
+                        "reason": alert.reason,
+                        "follow_up_date": alert.follow_up_date,
+                    }
+                    for alert in alerts
+                ],
+            }
+        )
+    return result
 
 
 @router.get(
@@ -588,7 +670,10 @@ def download_document(
     )
 
 
-@router.get("/analytics/summary", dependencies=[Depends(require_roles("admin"))])
+@router.get(
+    "/analytics/summary",
+    dependencies=[Depends(require_permissions("reports.view", fallback_roles=("admin",)))],
+)
 def analytics(db: Session = Depends(get_db)):
     students = db.query(Student).count()
     active = db.query(Student).filter(Student.active.is_(True)).count()
@@ -613,7 +698,10 @@ def percentage(numerator: int | float, denominator: int | float) -> float:
     return round(float(numerator) * 100 / float(denominator), 2) if denominator else 0
 
 
-@router.get("/analytics/academic", dependencies=[Depends(require_roles("admin"))])
+@router.get(
+    "/analytics/academic",
+    dependencies=[Depends(require_permissions("reports.view", fallback_roles=("admin",)))],
+)
 def academic_analytics(db: Session = Depends(get_db)):
     open_alerts = db.query(EarlyAlert).filter_by(status="open").all()
     career_metrics = []

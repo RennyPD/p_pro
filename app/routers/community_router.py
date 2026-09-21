@@ -8,6 +8,7 @@ from app.auth import (
     ensure_student_academic_access,
     get_current_user,
     is_admin,
+    require_permissions,
     require_roles,
 )
 from app.db.Session import get_db
@@ -86,7 +87,9 @@ def target_users(db: Session, data: AnnouncementCreate) -> list[User]:
 def create_announcement(
     data: AnnouncementCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(
+        require_permissions("communications.manage", fallback_roles=("admin", "teacher"))
+    ),
 ):
     if data.audience == "section":
         ensure_section_access(db, user, data.section_id or 0)
@@ -103,6 +106,17 @@ def create_announcement(
     db.commit()
     db.refresh(announcement)
     return announcement
+
+
+@router.get("/announcements", response_model=list[AnnouncementOut])
+def announcements(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles("admin", "teacher")),
+):
+    query = db.query(Announcement)
+    if not is_admin(user):
+        query = query.filter(Announcement.created_by == user.user_id)
+    return query.order_by(Announcement.published_at.desc()).all()
 
 
 @router.get("/notifications", response_model=list[NotificationOut])

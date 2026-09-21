@@ -717,9 +717,7 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertIn("available_seats", offering)
         self.assertIn("credits", offering)
         self.assertIn("selectable", offering)
-        selection_summary = self.request(
-            "GET", "/academic/catalog/summary", token=student_token
-        )
+        selection_summary = self.request("GET", "/academic/catalog/summary", token=student_token)
         self.assertEqual(selection_summary.status_code, 200, selection_summary.text)
         self.assertEqual(selection_summary.json()["selected_credits"], 7.0)
         self.assertGreater(selection_summary.json()["maximum_credits"], 0)
@@ -734,9 +732,7 @@ class ApiIntegrationTests(unittest.TestCase):
         denied = self.request("GET", "/academic/catalog", token=admin_token)
         self.assertEqual(denied.status_code, 403, denied.text)
 
-        summaries = self.request(
-            "GET", "/academic/sections/academic-summary", token=admin_token
-        )
+        summaries = self.request("GET", "/academic/sections/academic-summary", token=admin_token)
         self.assertEqual(summaries.status_code, 200, summaries.text)
         self.assertEqual(len(summaries.json()), 2)
         programming = next(
@@ -812,22 +808,63 @@ class ApiIntegrationTests(unittest.TestCase):
     def test_equivalences_career_history_and_graduation_audit(self) -> None:
         with self.Session() as db:
             seed_demo(db)
-        admin_token = self.request("POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}).json()["access_token"]
-        student_login = self.request("POST", "/auth/login", json={"username": "demo.estudiante", "password": "NexoEstudiante2026!"}).json()
+        admin_token = self.request(
+            "POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}
+        ).json()["access_token"]
+        student_login = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "demo.estudiante", "password": "NexoEstudiante2026!"},
+        ).json()
         student_token = student_login["access_token"]
         student_id = student_login["user"]["student_id"]
         career = self.request("GET", "/careers/", token=admin_token).json()[0]
         subjects = self.request("GET", "/subjects/", token=admin_token).json()
-        equivalence = self.request("POST", "/governance/equivalences", token=admin_token, json={"career_id": career["career_id"], "source_subject_id": subjects[0]["subject_id"], "target_subject_id": subjects[1]["subject_id"], "curriculum_version": "2026", "notes": "Reconocimiento de prueba"})
+        equivalence = self.request(
+            "POST",
+            "/governance/equivalences",
+            token=admin_token,
+            json={
+                "career_id": career["career_id"],
+                "source_subject_id": subjects[0]["subject_id"],
+                "target_subject_id": subjects[1]["subject_id"],
+                "curriculum_version": "2026",
+                "notes": "Reconocimiento de prueba",
+            },
+        )
         self.assertEqual(equivalence.status_code, 200, equivalence.text)
-        audit = self.request("GET", f"/governance/students/{student_id}/graduation-audit", token=student_token)
+        audit = self.request(
+            "GET", f"/governance/students/{student_id}/graduation-audit", token=student_token
+        )
         self.assertEqual(audit.status_code, 200, audit.text)
         self.assertEqual(len(audit.json()["requirements"]), 2)
-        second_career = self.request("POST", "/careers/", token=admin_token, json={"code": "ADM-TEST", "name": "Administración de prueba", "description": "Programa alternativo", "degree_title": "Licenciado de prueba", "required_credits": 120})
+        second_career = self.request(
+            "POST",
+            "/careers/",
+            token=admin_token,
+            json={
+                "code": "ADM-TEST",
+                "name": "Administración de prueba",
+                "description": "Programa alternativo",
+                "degree_title": "Licenciado de prueba",
+                "required_credits": 120,
+            },
+        )
         self.assertEqual(second_career.status_code, 200, second_career.text)
-        changed = self.request("POST", f"/governance/students/{student_id}/career-change", token=admin_token, json={"new_career_id": second_career.json()["career_id"], "effective_date": "2026-09-21", "reason": "Solicitud académica aprobada"})
+        changed = self.request(
+            "POST",
+            f"/governance/students/{student_id}/career-change",
+            token=admin_token,
+            json={
+                "new_career_id": second_career.json()["career_id"],
+                "effective_date": "2026-09-21",
+                "reason": "Solicitud académica aprobada",
+            },
+        )
         self.assertEqual(changed.status_code, 200, changed.text)
-        history = self.request("GET", f"/governance/students/{student_id}/career-history", token=student_token)
+        history = self.request(
+            "GET", f"/governance/students/{student_id}/career-history", token=student_token
+        )
         self.assertEqual(history.status_code, 200, history.text)
         self.assertEqual(len(history.json()), 1)
 
@@ -1004,7 +1041,9 @@ class ApiIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(alert_resolved.status_code, 200, alert_resolved.text)
         self.assertEqual(alert_resolved.json()["status"], "resolved")
-        self.assertEqual(alert_resolved.json()["resolution_notes"], "Objetivo de recuperación cumplido")
+        self.assertEqual(
+            alert_resolved.json()["resolution_notes"], "Objetivo de recuperación cumplido"
+        )
         careers = self.request("GET", "/careers/", token=admin_token).json()
         admission = self.request(
             "POST",
@@ -1101,6 +1140,44 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(overview.status_code, 200, overview.text)
         self.assertEqual(len(overview.json()), 1)
         self.assertEqual(overview.json()[0]["enrollment_number"], "DEMO-2026-001")
+        self.assertIn("average_grade", overview.json()[0])
+        self.assertIn("attendance_percentage", overview.json()[0])
+        self.assertIn("balance", overview.json()[0])
+        self.assertIn("schedule", overview.json()[0])
+        self.assertIn("alerts", overview.json()[0])
+
+    def test_period_closing_is_controlled_and_reversible(self) -> None:
+        with self.Session() as db:
+            seed_demo(db)
+        token = self.request(
+            "POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}
+        ).json()["access_token"]
+        period = self.request(
+            "POST",
+            "/periods/",
+            token=token,
+            json={
+                "name": "2027-PRUEBA",
+                "start_date": "2027-01-10",
+                "end_date": "2027-04-30",
+                "status": "planning",
+                "period_type": "quadrimester",
+                "sequence": 1,
+                "academic_year": "2027",
+            },
+        )
+        self.assertEqual(period.status_code, 200, period.text)
+        period_id = period.json()["period_id"]
+        direct_close = self.request(
+            "PATCH", f"/periods/{period_id}", token=token, json={"status": "closed"}
+        )
+        self.assertEqual(direct_close.status_code, 409, direct_close.text)
+        closed = self.request("POST", f"/periods/{period_id}/close", token=token)
+        self.assertEqual(closed.status_code, 200, closed.text)
+        self.assertEqual(closed.json()["status"], "closed")
+        reopened = self.request("POST", f"/periods/{period_id}/reopen", token=token)
+        self.assertEqual(reopened.status_code, 200, reopened.text)
+        self.assertEqual(reopened.json()["status"], "active")
 
 
 if __name__ == "__main__":

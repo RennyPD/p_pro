@@ -53,7 +53,12 @@ def set_role_permissions(role_id: int, data: RolePermissionUpdate, db: Session =
 def role_permissions(role_id: int, db: Session = Depends(get_db)):
     if db.get(Role, role_id) is None:
         raise HTTPException(status_code=404, detail="Role not found")
-    values = db.query(Permission.slug).join(RolePermission).filter(RolePermission.role_id == role_id).all()
+    values = (
+        db.query(Permission.slug)
+        .join(RolePermission)
+        .filter(RolePermission.role_id == role_id)
+        .all()
+    )
     return {"role_id": role_id, "permissions": sorted(row[0] for row in values)}
 
 

@@ -13,7 +13,9 @@ class AcademicPeriodBase(BaseModel):
     registration_end: date | None = None
     withdrawal_deadline: date | None = None
     grading_deadline: date | None = None
-    period_type: str = Field(default="semester", pattern=r"^(bimester|trimester|quadrimester|semester|annual)$")
+    period_type: str = Field(
+        default="semester", pattern=r"^(bimester|trimester|quadrimester|semester|annual)$"
+    )
     sequence: int = Field(default=1, ge=1, le=12)
     academic_year: str = Field(default="", max_length=20)
 
@@ -38,7 +40,9 @@ class AcademicPeriodUpdate(BaseModel):
     registration_end: date | None = None
     withdrawal_deadline: date | None = None
     grading_deadline: date | None = None
-    period_type: str | None = Field(default=None, pattern=r"^(bimester|trimester|quadrimester|semester|annual)$")
+    period_type: str | None = Field(
+        default=None, pattern=r"^(bimester|trimester|quadrimester|semester|annual)$"
+    )
     sequence: int | None = Field(default=None, ge=1, le=12)
     academic_year: str | None = Field(default=None, max_length=20)
 

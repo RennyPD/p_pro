@@ -3,6 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.db.Session import get_db
+from app.models.access_model import Permission, RolePermission
 from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
 from app.models.user_model import User
@@ -38,6 +39,37 @@ def require_roles(*allowed_roles: str):
                 detail="Insufficient permissions",
             )
         return current_user
+
+    return dependency
+
+
+def require_permissions(*required_permissions: str, fallback_roles: tuple[str, ...] = ()):
+    """Require configured permissions while keeping unconfigured legacy roles operable."""
+    required = set(required_permissions)
+    fallback = {role.casefold() for role in fallback_roles}
+
+    def dependency(
+        current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    ) -> User:
+        assigned = {
+            row[0]
+            for row in db.query(Permission.slug)
+            .join(RolePermission, RolePermission.permission_id == Permission.permission_id)
+            .filter(RolePermission.role_id == current_user.role_id)
+            .all()
+        }
+        if required.issubset(assigned):
+            return current_user
+        if (
+            not assigned
+            and db.query(Permission).count() == 0
+            and current_user.role.name.casefold() in fallback
+        ):
+            return current_user
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Missing permission: {', '.join(sorted(required - assigned))}",
+        )
 
     return dependency
 

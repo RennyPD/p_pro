@@ -9,7 +9,9 @@ from app.db.database import Base
 class CourseEquivalence(Base):
     __tablename__ = "course_equivalences"
     __table_args__ = (
-        UniqueConstraint("career_id", "source_subject_id", "target_subject_id", name="uq_course_equivalence"),
+        UniqueConstraint(
+            "career_id", "source_subject_id", "target_subject_id", name="uq_course_equivalence"
+        ),
     )
     course_equivalence_id: Mapped[int] = mapped_column(primary_key=True)
     career_id: Mapped[int] = mapped_column(ForeignKey("careers.career_id"))

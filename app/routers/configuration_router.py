@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, require_roles
 from app.db.Session import get_db
+from app.models.assessment_model import Assessment
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
+from app.models.enrollment_model import Enrollment
+from app.models.section_model import Section
 from app.schemas.configuration_schema import (
     AcademicPeriodCreate,
     AcademicPeriodOut,
@@ -95,12 +98,67 @@ def update_period(period_id: int, data: AcademicPeriodUpdate, db: Session = Depe
     if period is None:
         raise HTTPException(status_code=404, detail="Academic period not found")
     values = data.model_dump(exclude_unset=True)
+    if values.get("status") == "closed" and period.status != "closed":
+        raise HTTPException(status_code=409, detail="Use the controlled period closing process")
     if values.get("active"):
         db.query(AcademicPeriod).update({AcademicPeriod.active: False})
     for key, value in values.items():
         setattr(period, key, value)
     if period.start_date >= period.end_date:
         raise HTTPException(status_code=422, detail="End date must be later than start date")
+    db.commit()
+    db.refresh(period)
+    return period
+
+
+@router.post("/periods/{period_id}/close", dependencies=[Depends(require_roles("admin"))])
+def close_period(period_id: int, db: Session = Depends(get_db)):
+    period = db.get(AcademicPeriod, period_id)
+    if period is None:
+        raise HTTPException(status_code=404, detail="Academic period not found")
+    if period.status == "closed":
+        return {"period_id": period_id, "status": "closed", "sections_closed": 0}
+    sections = db.query(Section).filter(Section.period_name == period.name).all()
+    incomplete = []
+    for section in sections:
+        assessments = db.query(Assessment).filter_by(section_id=section.section_id).all()
+        total_weight = sum(item.weight for item in assessments)
+        if (
+            not assessments
+            or abs(total_weight - 100) > 0.001
+            or not all(item.closed for item in assessments)
+        ):
+            incomplete.append(section.code)
+    if incomplete:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Sections with incomplete assessments: {', '.join(incomplete)}",
+        )
+    for section in sections:
+        section.status = "closed"
+        db.query(Enrollment).filter(
+            Enrollment.section_id == section.section_id,
+            Enrollment.period == period.name,
+            Enrollment.state == "enrolled",
+        ).update({Enrollment.state: "completed"}, synchronize_session=False)
+    period.status = "closed"
+    period.active = False
+    db.commit()
+    return {"period_id": period_id, "status": "closed", "sections_closed": len(sections)}
+
+
+@router.post("/periods/{period_id}/reopen", response_model=AcademicPeriodOut)
+def reopen_period(
+    period_id: int,
+    db: Session = Depends(get_db),
+    _user=Depends(require_roles("admin")),
+):
+    period = db.get(AcademicPeriod, period_id)
+    if period is None:
+        raise HTTPException(status_code=404, detail="Academic period not found")
+    period.status = "active"
+    db.query(AcademicPeriod).update({AcademicPeriod.active: False})
+    period.active = True
     db.commit()
     db.refresh(period)
     return period

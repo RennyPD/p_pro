@@ -267,8 +267,12 @@ def seed_institution(db: Session) -> dict[str, int]:
     db.add_all(
         [
             AcademicPeriod(
-                name="2025-2026", start_date=date(2025, 8, 18), end_date=date(2026, 6, 26),
-                status="closed", period_type="quadrimester", sequence=3,
+                name="2025-2026",
+                start_date=date(2025, 8, 18),
+                end_date=date(2026, 6, 26),
+                status="closed",
+                period_type="quadrimester",
+                sequence=3,
                 academic_year="2025-2026",
             ),
             AcademicPeriod(
@@ -353,7 +357,12 @@ def seed_institution(db: Session) -> dict[str, int]:
 
     classrooms = [
         Classroom(name=f"Aula {name}", capacity=32, location=f"Edificio {building}")
-        for name, building in (("A-101", "A"), ("A-202", "A"), ("B-103", "B"), ("LAB-1", "Tecnología"))
+        for name, building in (
+            ("A-101", "A"),
+            ("A-202", "A"),
+            ("B-103", "B"),
+            ("LAB-1", "Tecnología"),
+        )
     ]
     db.add_all(classrooms)
     db.flush()
@@ -391,14 +400,34 @@ def seed_institution(db: Session) -> dict[str, int]:
     assessments_by_section: dict[int, list[Assessment]] = {}
     for index, section in enumerate(all_sections):
         components = [
-            Assessment(section_id=section.section_id, name="Proyecto aplicado", weight=40, due_date=date(2026, 10, 20)),
-            Assessment(section_id=section.section_id, name="Examen final", weight=60, due_date=date(2026, 11, 25)),
+            Assessment(
+                section_id=section.section_id,
+                name="Proyecto aplicado",
+                weight=40,
+                due_date=date(2026, 10, 20),
+            ),
+            Assessment(
+                section_id=section.section_id,
+                name="Examen final",
+                weight=60,
+                due_date=date(2026, 11, 25),
+            ),
         ]
         db.add_all(components)
         assessments_by_section[section.section_id] = components
         classroom = classrooms[index % len(classrooms)]
         for day in section.days_of_week.split(", "):
-            db.add(SectionMeeting(section_id=section.section_id, classroom_id=classroom.classroom_id, day_of_week=day, start_time=section.start_time, end_time=section.end_time, modality=section.modality, virtual_url="https://meet.example/aula" if section.modality == "hybrid" else ""))
+            db.add(
+                SectionMeeting(
+                    section_id=section.section_id,
+                    classroom_id=classroom.classroom_id,
+                    day_of_week=day,
+                    start_time=section.start_time,
+                    end_time=section.end_time,
+                    modality=section.modality,
+                    virtual_url="https://meet.example/aula" if section.modality == "hybrid" else "",
+                )
+            )
     db.flush()
 
     students = []
@@ -563,52 +592,217 @@ def seed_institution(db: Session) -> dict[str, int]:
     admin_user = users[0]
     db.add_all(
         [
-            CalendarEvent(title="Bienvenida institucional", description="Apertura del período académico", event_type="activity", audience="all", starts_at=datetime(2026, 9, 22, 9), ends_at=datetime(2026, 9, 22, 11), created_by=admin_user.user_id),
-            CalendarEvent(title="Semana de parciales", description="Evaluaciones del primer corte", event_type="exam", audience="all", starts_at=datetime(2026, 10, 19, 8), ends_at=datetime(2026, 10, 23, 18), created_by=admin_user.user_id),
-            CalendarEvent(title="Fecha límite de retiro", description="Cierre de retiros académicos", event_type="deadline", audience="student", starts_at=datetime(2026, 10, 30, 8), ends_at=datetime(2026, 10, 30, 18), created_by=admin_user.user_id),
+            CalendarEvent(
+                title="Bienvenida institucional",
+                description="Apertura del período académico",
+                event_type="activity",
+                audience="all",
+                starts_at=datetime(2026, 9, 22, 9),
+                ends_at=datetime(2026, 9, 22, 11),
+                created_by=admin_user.user_id,
+            ),
+            CalendarEvent(
+                title="Semana de parciales",
+                description="Evaluaciones del primer corte",
+                event_type="exam",
+                audience="all",
+                starts_at=datetime(2026, 10, 19, 8),
+                ends_at=datetime(2026, 10, 23, 18),
+                created_by=admin_user.user_id,
+            ),
+            CalendarEvent(
+                title="Fecha límite de retiro",
+                description="Cierre de retiros académicos",
+                event_type="deadline",
+                audience="student",
+                starts_at=datetime(2026, 10, 30, 8),
+                ends_at=datetime(2026, 10, 30, 18),
+                created_by=admin_user.user_id,
+            ),
         ]
     )
     for index, section in enumerate(all_sections[:8]):
         teacher_id = section.teacher_id
-        db.add(LessonPlan(section_id=section.section_id, teacher_id=teacher_id, scheduled_date=date(2026, 9, 21) + timedelta(days=index), title=f"Unidad {index + 1}: aplicación práctica", content="Objetivos, demostración guiada y ejercicio colaborativo.", competencies="Análisis, comunicación y resolución de problemas", status="planned" if index % 3 else "delivered"))
-        assignment = Assignment(section_id=section.section_id, title=f"Actividad práctica {index + 1}", instructions="Desarrolla el caso y presenta conclusiones justificadas.", due_at=datetime(2026, 10, 5 + index, 23, 59), max_score=100, assessment_id=assessments_by_section[section.section_id][0].assessment_id, created_by=admin_user.user_id, published=True)
+        db.add(
+            LessonPlan(
+                section_id=section.section_id,
+                teacher_id=teacher_id,
+                scheduled_date=date(2026, 9, 21) + timedelta(days=index),
+                title=f"Unidad {index + 1}: aplicación práctica",
+                content="Objetivos, demostración guiada y ejercicio colaborativo.",
+                competencies="Análisis, comunicación y resolución de problemas",
+                status="planned" if index % 3 else "delivered",
+            )
+        )
+        assignment = Assignment(
+            section_id=section.section_id,
+            title=f"Actividad práctica {index + 1}",
+            instructions="Desarrolla el caso y presenta conclusiones justificadas.",
+            due_at=datetime(2026, 10, 5 + index, 23, 59),
+            max_score=100,
+            assessment_id=assessments_by_section[section.section_id][0].assessment_id,
+            created_by=admin_user.user_id,
+            published=True,
+        )
         db.add(assignment)
         db.flush()
         for enrollment in section.enrollments[:4]:
-            db.add(Submission(assignment_id=assignment.assignment_id, student_id=enrollment.student_id, content="Entrega ficticia completa para validación funcional.", status="graded" if enrollment.student_id % 2 else "submitted", score=85 if enrollment.student_id % 2 else None, feedback="Buen desarrollo y argumentación." if enrollment.student_id % 2 else ""))
+            db.add(
+                Submission(
+                    assignment_id=assignment.assignment_id,
+                    student_id=enrollment.student_id,
+                    content="Entrega ficticia completa para validación funcional.",
+                    status="graded" if enrollment.student_id % 2 else "submitted",
+                    score=85 if enrollment.student_id % 2 else None,
+                    feedback="Buen desarrollo y argumentación."
+                    if enrollment.student_id % 2
+                    else "",
+                )
+            )
 
     seeded_alerts = []
     for index, student in enumerate(students[:10]):
-        alert = EarlyAlert(student_id=student.student_id, category=("attendance" if index % 2 else "academic"), severity=("high" if index < 3 else "medium"), reason=("Asistencia acumulada inferior al objetivo institucional" if index % 2 else "Rendimiento por debajo de la meta del período"), status="resolved" if index == 9 else "open", created_by=admin_user.user_id, assigned_to=users[1 + index % len(TEACHER_SPECS)].user_id, follow_up_date=date(2026, 9, 24) + timedelta(days=index), resolution_notes="Plan de acompañamiento completado" if index == 9 else "", resolved_at=datetime(2026, 9, 20, 15) if index == 9 else None)
+        alert = EarlyAlert(
+            student_id=student.student_id,
+            category=("attendance" if index % 2 else "academic"),
+            severity=("high" if index < 3 else "medium"),
+            reason=(
+                "Asistencia acumulada inferior al objetivo institucional"
+                if index % 2
+                else "Rendimiento por debajo de la meta del período"
+            ),
+            status="resolved" if index == 9 else "open",
+            created_by=admin_user.user_id,
+            assigned_to=users[1 + index % len(TEACHER_SPECS)].user_id,
+            follow_up_date=date(2026, 9, 24) + timedelta(days=index),
+            resolution_notes="Plan de acompañamiento completado" if index == 9 else "",
+            resolved_at=datetime(2026, 9, 20, 15) if index == 9 else None,
+        )
         db.add(alert)
         db.flush()
         seeded_alerts.append(alert)
-        db.add(AlertIntervention(early_alert_id=alert.early_alert_id, action_type="contact", notes="Contacto inicial realizado y situación académica validada.", performed_by=alert.assigned_to))
+        db.add(
+            AlertIntervention(
+                early_alert_id=alert.early_alert_id,
+                action_type="contact",
+                notes="Contacto inicial realizado y situación académica validada.",
+                performed_by=alert.assigned_to,
+            )
+        )
         if index < 4:
-            db.add(AlertIntervention(early_alert_id=alert.early_alert_id, action_type="agreement", notes="Se acordó seguimiento semanal y revisión de progreso.", performed_by=alert.assigned_to))
+            db.add(
+                AlertIntervention(
+                    early_alert_id=alert.early_alert_id,
+                    action_type="agreement",
+                    notes="Se acordó seguimiento semanal y revisión de progreso.",
+                    performed_by=alert.assigned_to,
+                )
+            )
 
     admission_states = ["submitted", "review", "accepted", "rejected"]
     for index in range(12):
-        db.add(AdmissionApplication(first_name=f"Aspirante {index + 1}", last_name=LAST_NAMES[index % len(LAST_NAMES)], email=f"aspirante{index + 1:02d}@horizonte.example", telephone=f"809-555-40{index + 1:02d}", career_id=careers[index % len(careers)].career_id, status=admission_states[index % len(admission_states)], checklist="Identificación: recibida; Certificado: pendiente" if index % 2 else "Expediente completo", notes="Caso ficticio para validación del flujo de admisiones."))
+        db.add(
+            AdmissionApplication(
+                first_name=f"Aspirante {index + 1}",
+                last_name=LAST_NAMES[index % len(LAST_NAMES)],
+                email=f"aspirante{index + 1:02d}@horizonte.example",
+                telephone=f"809-555-40{index + 1:02d}",
+                career_id=careers[index % len(careers)].career_id,
+                status=admission_states[index % len(admission_states)],
+                checklist="Identificación: recibida; Certificado: pendiente"
+                if index % 2
+                else "Expediente completo",
+                notes="Caso ficticio para validación del flujo de admisiones.",
+            )
+        )
 
-    db.add_all([
-        ApprovalRequest(request_type="grade_change", resource_type="grade", resource_id=1, reason="Corrección documentada de calificación", status="pending", requested_by=users[1].user_id),
-        ApprovalRequest(request_type="attendance_change", resource_type="attendance", resource_id=1, reason="Justificación médica recibida", status="pending", requested_by=users[2].user_id),
-    ])
-    db.add_all([
-        Announcement(title="Inicio del período", body="Consulta tu horario y confirma tus asignaturas.", audience="all", created_by=admin_user.user_id),
-        Announcement(title="Recordatorio de evaluaciones", body="Revisa las fechas publicadas en tu agenda.", audience="student", created_by=admin_user.user_id),
-    ])
+    db.add_all(
+        [
+            ApprovalRequest(
+                request_type="grade_change",
+                resource_type="grade",
+                resource_id=1,
+                reason="Corrección documentada de calificación",
+                status="pending",
+                requested_by=users[1].user_id,
+            ),
+            ApprovalRequest(
+                request_type="attendance_change",
+                resource_type="attendance",
+                resource_id=1,
+                reason="Justificación médica recibida",
+                status="pending",
+                requested_by=users[2].user_id,
+            ),
+        ]
+    )
+    db.add_all(
+        [
+            Announcement(
+                title="Inicio del período",
+                body="Consulta tu horario y confirma tus asignaturas.",
+                audience="all",
+                created_by=admin_user.user_id,
+            ),
+            Announcement(
+                title="Recordatorio de evaluaciones",
+                body="Revisa las fechas publicadas en tu agenda.",
+                audience="student",
+                created_by=admin_user.user_id,
+            ),
+        ]
+    )
     for user in users[:15]:
-        db.add(Notification(user_id=user.user_id, title="Bienvenido a Nexo", body="Tu espacio institucional está listo.", category="general"))
-    db.add_all([
-        BillingConcept(name="Matrícula por período", description="Cargo académico ordinario", amount=4200, frequency="term"),
-        BillingConcept(name="Laboratorio", description="Uso de espacios especializados", amount=850, frequency="term"),
-        BillingConcept(name="Carné estudiantil", description="Emisión o renovación", amount=350, frequency="annual"),
-    ])
+        db.add(
+            Notification(
+                user_id=user.user_id,
+                title="Bienvenido a Nexo",
+                body="Tu espacio institucional está listo.",
+                category="general",
+            )
+        )
+    db.add_all(
+        [
+            BillingConcept(
+                name="Matrícula por período",
+                description="Cargo académico ordinario",
+                amount=4200,
+                frequency="term",
+            ),
+            BillingConcept(
+                name="Laboratorio",
+                description="Uso de espacios especializados",
+                amount=850,
+                frequency="term",
+            ),
+            BillingConcept(
+                name="Carné estudiantil",
+                description="Emisión o renovación",
+                amount=350,
+                frequency="annual",
+            ),
+        ]
+    )
     for student in students[:6]:
-        db.add(StudentDocument(student_id=student.student_id, document_type="identification", filename=f"identificacion-{student.enrollment_number}.pdf", mime_type="application/pdf", content=b"%PDF-1.4\n% escenario ficticio\n", uploaded_by=admin_user.user_id))
-    db.add(AuditLog(user_id=admin_user.user_id, action="institution.seeded", resource="demo_data", detail="Escenario institucional integral generado", created_at=datetime.now(UTC).replace(tzinfo=None)))
+        db.add(
+            StudentDocument(
+                student_id=student.student_id,
+                document_type="identification",
+                filename=f"identificacion-{student.enrollment_number}.pdf",
+                mime_type="application/pdf",
+                content=b"%PDF-1.4\n% escenario ficticio\n",
+                uploaded_by=admin_user.user_id,
+            )
+        )
+    db.add(
+        AuditLog(
+            user_id=admin_user.user_id,
+            action="institution.seeded",
+            resource="demo_data",
+            detail="Escenario institucional integral generado",
+            created_at=datetime.now(UTC).replace(tzinfo=None),
+        )
+    )
     db.commit()
     return {
         "careers": len(careers),
