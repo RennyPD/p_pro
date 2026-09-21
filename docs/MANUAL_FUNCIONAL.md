@@ -61,7 +61,8 @@ Nexo organiza la operación académica local en tres espacios: administración, 
 - Los permisos por rol pueden consultarse y ajustarse desde **Roles y permisos**; la API y el menú aplican la misma decisión.
 - `academic.manage` gobierna configuración académica, personas, secciones, horarios y pensum.
 - `grades.manage` gobierna evaluaciones, notas y asistencia; `finance.manage`, cuentas y caja.
-- `reports.view` habilita analítica; `communications.manage`, avisos; `access.manage`, usuarios, roles y permisos.
+- `operations.manage` controla agenda, tareas, alertas, admisiones, aprobaciones y documentos.
+- `reports.view` habilita analítica y auditoría; `communications.manage`, avisos; `access.manage`, usuarios, roles y permisos.
 - `python -m scripts.backup_database` crea una copia consistente dentro de `backups/`.
 
 ## Lista de revisión manual

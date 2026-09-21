@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.auth import require_roles
+from app.auth import require_permissions
 from app.db.Session import get_db
 from app.models.security_model import AuditLog
 from app.schemas.audit_schema import AuditLogOut
 
-router = APIRouter(prefix="/audit", tags=["audit"], dependencies=[Depends(require_roles("admin"))])
+router = APIRouter(
+    prefix="/audit",
+    tags=["audit"],
+    dependencies=[Depends(require_permissions("reports.view", fallback_roles=("admin",)))],
+)
 
 
 @router.get("/", response_model=list[AuditLogOut])

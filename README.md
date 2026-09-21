@@ -106,7 +106,7 @@ La API limita intentos repetidos de acceso, permite cambiar la contraseña y reg
 
 Además, estudiantes solo pueden consultar su expediente, horario, notas y asistencia. Docentes solo acceden a estudiantes, inscripciones, notas y asistencias pertenecientes a sus secciones.
 
-Los permisos configurables complementan el rol y se aplican tanto en la API como en el menú. El catálogo institucional incluye `academic.manage` (configuración, oferta y pensum), `grades.manage` (evaluaciones, notas y asistencia), `finance.manage` (cuentas y caja), `reports.view` (analítica), `communications.manage` (avisos) y `access.manage` (usuarios, roles y permisos). Un administrador puede asignarlos por rol desde **Roles y permisos**. Las instalaciones antiguas conservan compatibilidad por rol hasta ejecutar las migraciones y configurar su catálogo.
+Los permisos configurables complementan el rol y se aplican tanto en la API como en el menú. El catálogo institucional incluye `academic.manage` (configuración, oferta y pensum), `grades.manage` (evaluaciones, notas y asistencia), `finance.manage` (cuentas y caja), `operations.manage` (agenda, tareas y procesos institucionales), `reports.view` (analítica y auditoría), `communications.manage` (avisos) y `access.manage` (usuarios, roles y permisos). Un administrador puede asignarlos por rol desde **Roles y permisos**. Las instalaciones antiguas conservan compatibilidad por rol hasta ejecutar las migraciones y configurar su catálogo.
 
 ## Consultas académicas
 

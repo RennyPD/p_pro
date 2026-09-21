@@ -1189,7 +1189,10 @@ class ApiIntegrationTests(unittest.TestCase):
             academic = Permission(  # noqa: F405
                 slug="academic.manage", description="Gestionar academia"
             )
-            db.add_all([access, academic])
+            operations = Permission(  # noqa: F405
+                slug="operations.manage", description="Gestionar operaciones"
+            )
+            db.add_all([access, academic, operations])
             db.flush()
             db.add(  # noqa: F405
                 RolePermission(role_id=admin_role.role_id, permission_id=access.permission_id)
@@ -1205,12 +1208,25 @@ class ApiIntegrationTests(unittest.TestCase):
             json={"code": "PERM-01", "description": "Prueba de permiso"},
         )
         self.assertEqual(denied.status_code, 403, denied.text)
+        denied_event = self.request(
+            "POST",
+            "/operations/calendar",
+            token=token,
+            json={
+                "title": "Evento restringido",
+                "starts_at": "2026-11-01T09:00:00",
+                "ends_at": "2026-11-01T10:00:00",
+                "event_type": "activity",
+                "audience": "all",
+            },
+        )
+        self.assertEqual(denied_event.status_code, 403, denied_event.text)
         admin_role_id = self.request("GET", "/roles/", token=token).json()[0]["role_id"]
         granted = self.request(
             "PUT",
             f"/access/roles/{admin_role_id}/permissions",
             token=token,
-            json={"permissions": ["access.manage", "academic.manage"]},
+            json={"permissions": ["access.manage", "academic.manage", "operations.manage"]},
         )
         self.assertEqual(granted.status_code, 200, granted.text)
         allowed = self.request(
@@ -1220,6 +1236,19 @@ class ApiIntegrationTests(unittest.TestCase):
             json={"code": "PERM-01", "description": "Prueba de permiso"},
         )
         self.assertEqual(allowed.status_code, 200, allowed.text)
+        allowed_event = self.request(
+            "POST",
+            "/operations/calendar",
+            token=token,
+            json={
+                "title": "Evento autorizado",
+                "starts_at": "2026-11-01T09:00:00",
+                "ends_at": "2026-11-01T10:00:00",
+                "event_type": "activity",
+                "audience": "all",
+            },
+        )
+        self.assertEqual(allowed_event.status_code, 200, allowed_event.text)
 
     def test_scheduling_rejects_room_and_teacher_conflicts(self) -> None:
         with self.Session() as db:

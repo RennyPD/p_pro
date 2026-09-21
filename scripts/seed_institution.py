@@ -237,6 +237,7 @@ def seed_institution(db: Session) -> dict[str, int]:
         "records.own": "Consultar expediente vinculado",
         "communications.manage": "Publicar comunicaciones",
         "access.manage": "Gestionar usuarios, roles y permisos",
+        "operations.manage": "Gestionar agenda, tareas y procesos institucionales",
     }
     permissions = {
         slug: Permission(slug=slug, description=description)
@@ -246,7 +247,12 @@ def seed_institution(db: Session) -> dict[str, int]:
     db.flush()
     grants = {
         "admin": set(permissions),
-        "teacher": {"academic.manage", "grades.manage", "communications.manage"},
+        "teacher": {
+            "academic.manage",
+            "grades.manage",
+            "communications.manage",
+            "operations.manage",
+        },
         "student": {"records.own"},
         "guardian": {"records.own"},
     }

@@ -65,6 +65,8 @@ from app.schemas.student_schema import StudentCreate
 from app.services.student_service import create_student_service
 
 router = APIRouter(prefix="/operations", tags=["institutional operations"])
+operations_manager = require_permissions("operations.manage", fallback_roles=("admin", "teacher"))
+operations_admin = require_permissions("operations.manage", fallback_roles=("admin",))
 
 
 def student_scope_ids(db: Session, user: User) -> list[int] | None:
@@ -121,7 +123,7 @@ def calendar(db: Session = Depends(get_db), user: User = Depends(get_current_use
 def create_event(
     data: CalendarEventCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     if not is_admin(user):
         if data.audience != "section":
@@ -138,7 +140,7 @@ def create_event(
 def lesson_plans(
     section_id: int | None = None,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     query = db.query(LessonPlan)
     if not is_admin(user):
@@ -152,7 +154,7 @@ def lesson_plans(
 def create_lesson_plan(
     data: LessonPlanCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     section = ensure_section_access(db, user, data.section_id)
     item = LessonPlan(**data.model_dump(), teacher_id=section.teacher_id)
@@ -193,7 +195,7 @@ def assignments(
 def create_assignment(
     data: AssignmentCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     ensure_section_access(db, user, data.section_id)
     item = Assignment(**data.model_dump(), created_by=user.user_id)
@@ -237,7 +239,7 @@ def submit_assignment(
 def assignment_submissions(
     assignment_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     assignment = db.get(Assignment, assignment_id)
     if assignment is None:
@@ -251,7 +253,7 @@ def grade_submission(
     submission_id: int,
     data: SubmissionGrade,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     item = db.get(Submission, submission_id)
     if item is None:
@@ -281,7 +283,7 @@ def alerts(db: Session = Depends(get_db), user: User = Depends(get_current_user)
 def create_alert(
     data: AlertCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     ensure_student_academic_access(db, user, data.student_id)
     item = EarlyAlert(**data.model_dump(), created_by=user.user_id)
@@ -296,7 +298,7 @@ def assign_alert(
     alert_id: int,
     data: AlertAssignment,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     item = db.get(EarlyAlert, alert_id)
     if item is None:
@@ -334,7 +336,7 @@ def add_alert_intervention(
     alert_id: int,
     data: AlertInterventionCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     alert = db.get(EarlyAlert, alert_id)
     if alert is None:
@@ -351,7 +353,7 @@ def add_alert_intervention(
     return item
 
 
-@router.post("/alerts/generate", dependencies=[Depends(require_roles("admin"))])
+@router.post("/alerts/generate", dependencies=[Depends(operations_admin)])
 def generate_alerts(db: Session = Depends(get_db)):
     created = 0
     for student in db.query(Student).filter(Student.active.is_(True)).all():
@@ -409,7 +411,7 @@ def resolve_alert(
     alert_id: int,
     data: AlertResolve | None = None,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     item = db.get(EarlyAlert, alert_id)
     if item is None:
@@ -427,7 +429,7 @@ def resolve_alert(
 def reopen_alert(
     alert_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin", "teacher")),
+    user: User = Depends(operations_manager),
 ):
     item = db.get(EarlyAlert, alert_id)
     if item is None:
@@ -523,15 +525,13 @@ def guardian_overview(
 
 
 @router.get(
-    "/admissions", response_model=list[AdmissionOut], dependencies=[Depends(require_roles("admin"))]
+    "/admissions", response_model=list[AdmissionOut], dependencies=[Depends(operations_admin)]
 )
 def admissions(db: Session = Depends(get_db)):
     return db.query(AdmissionApplication).order_by(AdmissionApplication.created_at.desc()).all()
 
 
-@router.post(
-    "/admissions", response_model=AdmissionOut, dependencies=[Depends(require_roles("admin"))]
-)
+@router.post("/admissions", response_model=AdmissionOut, dependencies=[Depends(operations_admin)])
 def create_admission(data: AdmissionCreate, db: Session = Depends(get_db)):
     item = AdmissionApplication(**data.model_dump())
     db.add(item)
@@ -543,7 +543,7 @@ def create_admission(data: AdmissionCreate, db: Session = Depends(get_db)):
 @router.patch(
     "/admissions/{application_id}",
     response_model=AdmissionOut,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(operations_admin)],
 )
 def update_admission(application_id: int, data: AdmissionUpdate, db: Session = Depends(get_db)):
     item = db.get(AdmissionApplication, application_id)
@@ -558,7 +558,7 @@ def update_admission(application_id: int, data: AdmissionUpdate, db: Session = D
 
 @router.post(
     "/admissions/{application_id}/enroll",
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(operations_admin)],
 )
 def enroll_admission(application_id: int, db: Session = Depends(get_db)):
     item = db.get(AdmissionApplication, application_id)
@@ -583,7 +583,7 @@ def enroll_admission(application_id: int, db: Session = Depends(get_db)):
 
 
 @router.get(
-    "/approvals", response_model=list[ApprovalOut], dependencies=[Depends(require_roles("admin"))]
+    "/approvals", response_model=list[ApprovalOut], dependencies=[Depends(operations_admin)]
 )
 def approvals(db: Session = Depends(get_db)):
     return db.query(ApprovalRequest).order_by(ApprovalRequest.created_at.desc()).all()
@@ -605,7 +605,7 @@ def resolve_approval(
     request_id: int,
     data: ApprovalResolve,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin")),
+    user: User = Depends(operations_admin),
 ):
     item = db.get(ApprovalRequest, request_id)
     if item is None:
@@ -632,7 +632,7 @@ def upload_document(
     student_id: int,
     data: StudentDocumentCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin")),
+    user: User = Depends(operations_admin),
 ):
     try:
         content = base64.b64decode(data.content_base64, validate=True)

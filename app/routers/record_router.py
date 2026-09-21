@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_student_academic_access, get_current_user, require_roles
+from app.auth import ensure_student_academic_access, get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.configuration_model import InstitutionSettings
 from app.models.curriculum_model import CurriculumCourse
@@ -109,7 +109,10 @@ def student_transcript(
     return build_transcript(db, student)
 
 
-@router.get("/reports/students.csv", dependencies=[Depends(require_roles("admin"))])
+@router.get(
+    "/reports/students.csv",
+    dependencies=[Depends(require_permissions("reports.view", fallback_roles=("admin",)))],
+)
 def student_report(db: Session = Depends(get_db)):
     output = io.StringIO()
     writer = csv.writer(output)

@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from app.auth import require_roles
+from app.auth import require_permissions
 from app.db.Session import get_db
 from app.models.student_model import Student
 from app.models.user_model import User
@@ -14,13 +14,14 @@ from app.schemas.student_schema import StudentCreate
 from app.services.student_service import create_student_service
 
 router = APIRouter(prefix="/bulk", tags=["bulk operations"])
+academic_manager = require_permissions("academic.manage", fallback_roles=("admin",))
 
 
 @router.post("/students/import")
 def import_students(
     content: bytes = Body(..., media_type="text/csv"),
     db: Session = Depends(get_db),
-    _user: User = Depends(require_roles("admin")),
+    _user: User = Depends(academic_manager),
 ):
     try:
         decoded = content.decode("utf-8-sig")
@@ -54,7 +55,7 @@ def import_students(
 
 
 @router.get("/students/export")
-def export_students(db: Session = Depends(get_db), _user: User = Depends(require_roles("admin"))):
+def export_students(db: Session = Depends(get_db), _user: User = Depends(academic_manager)):
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(
