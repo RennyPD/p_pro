@@ -93,8 +93,32 @@ class AlertOut(AlertCreate, OrmModel):
     early_alert_id: int
     status: str
     created_by: int | None
+    assigned_to: int | None = None
+    follow_up_date: date | None = None
+    resolution_notes: str = ""
     created_at: datetime
     resolved_at: datetime | None
+
+
+class AlertAssignment(BaseModel):
+    assigned_to: int | None = None
+    follow_up_date: date | None = None
+
+
+class AlertResolve(BaseModel):
+    resolution_notes: str = Field(default="", max_length=5000)
+
+
+class AlertInterventionCreate(BaseModel):
+    action_type: str = Field(pattern=r"^(contact|meeting|referral|agreement|note)$")
+    notes: str = Field(min_length=2, max_length=5000)
+
+
+class AlertInterventionOut(AlertInterventionCreate, OrmModel):
+    alert_intervention_id: int
+    early_alert_id: int
+    performed_by: int
+    created_at: datetime
 
 
 class AdmissionCreate(BaseModel):

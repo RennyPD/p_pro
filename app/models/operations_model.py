@@ -84,8 +84,21 @@ class EarlyAlert(Base):
     reason: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="open")
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    assigned_to: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    follow_up_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    resolution_notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class AlertIntervention(Base):
+    __tablename__ = "alert_interventions"
+    alert_intervention_id: Mapped[int] = mapped_column(primary_key=True)
+    early_alert_id: Mapped[int] = mapped_column(ForeignKey("early_alerts.early_alert_id"))
+    action_type: Mapped[str] = mapped_column(String(30))
+    notes: Mapped[str] = mapped_column(Text)
+    performed_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
 
 class AdmissionApplication(Base):

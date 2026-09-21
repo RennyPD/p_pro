@@ -12,6 +12,7 @@ from app.db.database import SessionLocal
 from app.models import (
     AcademicPeriod,
     AdmissionApplication,
+    AlertIntervention,
     Announcement,
     ApprovalRequest,
     Assessment,
@@ -177,6 +178,7 @@ def clear_application_data(db: Session) -> None:
         Assignment,
         LessonPlan,
         CalendarEvent,
+        AlertIntervention,
         EarlyAlert,
         AdmissionApplication,
         RefreshToken,
@@ -575,8 +577,15 @@ def seed_institution(db: Session) -> dict[str, int]:
         for enrollment in section.enrollments[:4]:
             db.add(Submission(assignment_id=assignment.assignment_id, student_id=enrollment.student_id, content="Entrega ficticia completa para validación funcional.", status="graded" if enrollment.student_id % 2 else "submitted", score=85 if enrollment.student_id % 2 else None, feedback="Buen desarrollo y argumentación." if enrollment.student_id % 2 else ""))
 
+    seeded_alerts = []
     for index, student in enumerate(students[:10]):
-        db.add(EarlyAlert(student_id=student.student_id, category=("attendance" if index % 2 else "academic"), severity=("high" if index < 3 else "medium"), reason=("Asistencia acumulada inferior al objetivo institucional" if index % 2 else "Rendimiento por debajo de la meta del período"), status="resolved" if index == 9 else "open", created_by=admin_user.user_id))
+        alert = EarlyAlert(student_id=student.student_id, category=("attendance" if index % 2 else "academic"), severity=("high" if index < 3 else "medium"), reason=("Asistencia acumulada inferior al objetivo institucional" if index % 2 else "Rendimiento por debajo de la meta del período"), status="resolved" if index == 9 else "open", created_by=admin_user.user_id, assigned_to=users[1 + index % len(TEACHER_SPECS)].user_id, follow_up_date=date(2026, 9, 24) + timedelta(days=index), resolution_notes="Plan de acompañamiento completado" if index == 9 else "", resolved_at=datetime(2026, 9, 20, 15) if index == 9 else None)
+        db.add(alert)
+        db.flush()
+        seeded_alerts.append(alert)
+        db.add(AlertIntervention(early_alert_id=alert.early_alert_id, action_type="contact", notes="Contacto inicial realizado y situación académica validada.", performed_by=alert.assigned_to))
+        if index < 4:
+            db.add(AlertIntervention(early_alert_id=alert.early_alert_id, action_type="agreement", notes="Se acordó seguimiento semanal y revisión de progreso.", performed_by=alert.assigned_to))
 
     admission_states = ["submitted", "review", "accepted", "rejected"]
     for index in range(12):

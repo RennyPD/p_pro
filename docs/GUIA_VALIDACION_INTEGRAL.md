@@ -58,14 +58,18 @@
 1. Abre **Agenda y tareas** y crea eventos, tareas y planes de clase.
 2. Entrega una tarea como estudiante y califícala como docente.
 3. Genera alertas tempranas y comprueba su visibilidad.
-4. En **Control institucional**, cambia el estado de una admisión aceptada y conviértela en estudiante.
+4. En **Control institucional**, asigna un responsable y una fecha de seguimiento a una alerta.
+5. Registra una actuación con el resultado de una llamada o reunión y luego resuelve el caso con una conclusión.
+6. Cambia el estado de una admisión aceptada y conviértela en estudiante.
 
 ## 10–11. Reportes, permisos y auditoría
 
-1. Revisa los indicadores de **Control institucional**.
-2. Exporta expedientes CSV desde la API o documentación interactiva.
-3. Asigna permisos a un rol y confirma la consulta de permisos propios.
-4. Verifica eventos sensibles en el historial de auditoría.
+1. Revisa los indicadores de **Control institucional** y compara permanencia, promedio, asistencia y alertas por carrera.
+2. Comprueba que **Asignaturas críticas** ordene primero las materias con menor aprobación y rendimiento.
+3. Confirma que los contadores de riesgo cambien al asignar o resolver una alerta.
+4. Exporta expedientes CSV desde la API o documentación interactiva.
+5. Asigna permisos a un rol y confirma la consulta de permisos propios.
+6. Verifica eventos sensibles en el historial de auditoría.
 
 ## 12. Experiencia y accesibilidad
 

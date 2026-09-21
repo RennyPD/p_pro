@@ -58,7 +58,7 @@ Para sustituir los datos locales por una institución ficticia completa, crea pr
 python -m scripts.seed_institution
 ```
 
-Este comando elimina los registros ficticios anteriores y carga un escenario reproducible del Instituto Técnico Horizonte con 120 estudiantes, 6 docentes, 12 tutores, 3 carreras, 15 asignaturas, 15 secciones, evaluaciones, selección académica, notas, asistencia, finanzas, calendario, tareas, alertas, admisiones, documentos, comunicaciones y permisos. No elimina el archivo de base de datos ni modifica su esquema.
+Este comando elimina los registros ficticios anteriores y carga un escenario reproducible del Instituto Técnico Horizonte con 120 estudiantes, 6 docentes, 12 tutores, 3 carreras, 15 asignaturas, 15 secciones, evaluaciones, selección académica, notas, asistencia, finanzas, calendario, tareas, alertas con responsables e intervenciones, admisiones, documentos, comunicaciones y permisos. No elimina el archivo de base de datos ni modifica su esquema.
 
 | Perfil | Usuario de ejemplo | Contraseña |
 | --- | --- | --- |

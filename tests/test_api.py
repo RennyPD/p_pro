@@ -976,6 +976,35 @@ class ApiIntegrationTests(unittest.TestCase):
             },
         )
         self.assertEqual(alert.status_code, 200, alert.text)
+        alert_id = alert.json()["early_alert_id"]
+        assigned = self.request(
+            "PATCH",
+            f"/operations/alerts/{alert_id}/assignment",
+            token=admin_token,
+            json={"assigned_to": None, "follow_up_date": "2026-10-01"},
+        )
+        self.assertEqual(assigned.status_code, 200, assigned.text)
+        intervention = self.request(
+            "POST",
+            f"/operations/alerts/{alert_id}/interventions",
+            token=admin_token,
+            json={"action_type": "meeting", "notes": "Reunión de seguimiento realizada"},
+        )
+        self.assertEqual(intervention.status_code, 200, intervention.text)
+        intervention_list = self.request(
+            "GET", f"/operations/alerts/{alert_id}/interventions", token=admin_token
+        )
+        self.assertEqual(intervention_list.status_code, 200, intervention_list.text)
+        self.assertEqual(len(intervention_list.json()), 1)
+        alert_resolved = self.request(
+            "PATCH",
+            f"/operations/alerts/{alert_id}/resolve",
+            token=admin_token,
+            json={"resolution_notes": "Objetivo de recuperación cumplido"},
+        )
+        self.assertEqual(alert_resolved.status_code, 200, alert_resolved.text)
+        self.assertEqual(alert_resolved.json()["status"], "resolved")
+        self.assertEqual(alert_resolved.json()["resolution_notes"], "Objetivo de recuperación cumplido")
         careers = self.request("GET", "/careers/", token=admin_token).json()
         admission = self.request(
             "POST",
@@ -1019,6 +1048,12 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(generated.status_code, 200, generated.text)
         analytics = self.request("GET", "/operations/analytics/summary", token=admin_token)
         self.assertEqual(analytics.status_code, 200, analytics.text)
+        academic_analytics = self.request(
+            "GET", "/operations/analytics/academic", token=admin_token
+        )
+        self.assertEqual(academic_analytics.status_code, 200, academic_analytics.text)
+        self.assertIn("career_metrics", academic_analytics.json())
+        self.assertIn("subject_metrics", academic_analytics.json())
         document = self.request(
             "POST",
             f"/operations/students/{student['student_id']}/documents",
