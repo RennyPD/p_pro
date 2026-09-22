@@ -440,6 +440,8 @@ def student_grade_history(
 ):
     ensure_student_academic_access(db, user, student_id)
     query = db.query(Grade).join(Grade.enrollment).filter(Enrollment.student_id == student_id)
+    if user.student_id is not None:
+        query = query.filter(Grade.status == "published")
     if period:
         query = query.filter(Enrollment.period == period)
     grades = query.offset(skip).limit(limit).all()

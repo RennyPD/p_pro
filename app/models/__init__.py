@@ -17,7 +17,7 @@ from .finance_model import (
     StudentAccount,
 )
 from .governance_model import CourseEquivalence, StudentCareerHistory
-from .grade_model import Grade
+from .grade_model import Grade, GradeChange
 from .operations_model import (
     AdmissionApplication,
     AlertIntervention,

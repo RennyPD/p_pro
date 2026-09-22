@@ -1,14 +1,28 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_enrollment_access, get_current_user, is_admin, require_permissions
+from app.auth import (
+    ensure_enrollment_access,
+    ensure_section_access,
+    get_current_user,
+    is_admin,
+    require_permissions,
+)
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
 from app.models.enrollment_model import Enrollment
-from app.models.grade_model import Grade
+from app.models.grade_model import Grade, GradeChange
 from app.models.section_model import Section
 from app.models.user_model import User
-from app.schemas.grade_schema import GradeBulkCreate, GradeCreate, GradeOut, GradeUpdate
+from app.schemas.grade_schema import (
+    GradeBulkCreate,
+    GradeChangeOut,
+    GradeCreate,
+    GradeOut,
+    GradeUpdate,
+)
 from app.services.grade_service import (
     create_grade_service,
     delete_grade_service,
@@ -67,6 +81,7 @@ def save_section_grades(
             )
             .first()
         )
+        previous = grade.grade_value if grade is not None else None
         if grade is None:
             grade = Grade(
                 enrollment_id=item.enrollment_id,
@@ -76,6 +91,20 @@ def save_section_grades(
             db.add(grade)
         grade.grade_value = item.grade_value
         grade.date_recorded = data.date_recorded
+        grade.status = data.status
+        grade.updated_by = user.user_id
+        grade.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        db.flush()
+        if previous != item.grade_value:
+            db.add(
+                GradeChange(
+                    grade_id=grade.grade_id,
+                    previous_value=previous,
+                    new_value=item.grade_value,
+                    changed_by=user.user_id,
+                    reason=data.reason,
+                )
+            )
         saved.append(grade)
     db.commit()
     for grade in saved:
@@ -109,12 +138,52 @@ def get_grades(
     if not is_admin(user):
         query = query.join(Grade.enrollment)
         if user.student_id is not None:
-            query = query.filter(Enrollment.student_id == user.student_id)
+            query = query.filter(
+                Enrollment.student_id == user.student_id, Grade.status == "published"
+            )
         elif user.teacher_id is not None:
             query = query.join(Enrollment.section).filter(Section.teacher_id == user.teacher_id)
         else:
             return []
     return query.all()
+
+
+@router.post("/assessments/{assessment_id}/publish")
+def publish_assessment_grades(
+    assessment_id: int, db: Session = Depends(get_db), user: User = Depends(grade_manager)
+):
+    assessment = db.get(Assessment, assessment_id)
+    if assessment is None:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    ensure_section_access(db, user, assessment.section_id)
+    updated = (
+        db.query(Grade)
+        .filter(Grade.assessment_id == assessment_id)
+        .update(
+            {
+                Grade.status: "published",
+                Grade.updated_by: user.user_id,
+                Grade.updated_at: datetime.now(UTC).replace(tzinfo=None),
+            },
+            synchronize_session=False,
+        )
+    )
+    db.commit()
+    return {"published": updated}
+
+
+@router.get("/{grade_id}/history", response_model=list[GradeChangeOut])
+def grade_history(
+    grade_id: int, db: Session = Depends(get_db), user: User = Depends(grade_manager)
+):
+    grade = get_grade_by_id_service(db, grade_id)
+    ensure_enrollment_access(db, user, grade.enrollment_id)
+    return (
+        db.query(GradeChange)
+        .filter_by(grade_id=grade_id)
+        .order_by(GradeChange.changed_at.desc())
+        .all()
+    )
 
 
 @router.get("/{grade_id}", response_model=GradeOut, dependencies=[Depends(get_current_user)])
