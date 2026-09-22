@@ -43,6 +43,7 @@ class CourseOffering(BaseModel):
     capacity: int
     available_seats: int
     selection_status: str | None
+    waitlist_position: int | None = None
     period: str
     section_status: str
     prerequisite_code: str | None
@@ -58,6 +59,19 @@ class CourseSelectionSummary(BaseModel):
     maximum_credits: int
     enrolled_sections: int
     waitlisted_sections: int
+    cart_sections: int = 0
+    cart_credits: float = 0
+
+
+class CartItemOut(BaseModel):
+    cart_item_id: int
+    section_id: int
+    section_code: str
+    subject_code: str
+    subject_name: str
+    credits: float
+    available_seats: int
+    period: str
 
 
 class SectionStudentItem(BaseModel):

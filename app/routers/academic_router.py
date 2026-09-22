@@ -12,13 +12,14 @@ from app.auth import (
 from app.db.Session import get_db
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.curriculum_model import CurriculumCourse
-from app.models.enrollment_model import Enrollment
+from app.models.enrollment_model import CourseSelectionCart, Enrollment
 from app.models.grade_model import Grade
 from app.models.section_model import Section
 from app.models.student_model import Student
 from app.models.user_model import User
 from app.schemas.academic_schema import (
     AttendanceCourseSummary,
+    CartItemOut,
     CourseOffering,
     CourseSelectionSummary,
     GradeHistoryItem,
@@ -75,6 +76,21 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
         .filter(Enrollment.student_id == student.student_id, Enrollment.period == period.name)
         .all()
     }
+    waitlist_positions = {
+        item.section_id: item.waitlist_position
+        for item in db.query(Enrollment)
+        .filter(Enrollment.student_id == student.student_id, Enrollment.period == period.name)
+        .all()
+    }
+    cart = {
+        item.section_id: item
+        for item in db.query(CourseSelectionCart)
+        .filter(
+            CourseSelectionCart.student_id == student.student_id,
+            CourseSelectionCart.period == period.name,
+        )
+        .all()
+    }
     selected_subjects = {
         item.section.subject_id: item.state
         for item in db.query(Enrollment)
@@ -85,6 +101,7 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
         )
         .all()
     }
+    selected_subjects.update({item.section.subject_id: "cart" for item in cart.values()})
     results = []
     for section in (
         db.query(Section)
@@ -121,7 +138,9 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
                 capacity=section.capacity,
                 available_seats=max(section.capacity - occupied, 0),
                 selection_status=current.get(section.section_id)
+                or ("cart" if section.section_id in cart else None)
                 or selected_subjects.get(section.subject_id),
+                waitlist_position=waitlist_positions.get(section.section_id),
                 period=period.name,
                 section_status=section.status,
                 prerequisite_code=course.prerequisite.code if course.prerequisite else None,
@@ -154,6 +173,8 @@ def course_selection_summary(db: Session = Depends(get_db), user: User = Depends
             maximum_credits=maximum,
             enrolled_sections=0,
             waitlisted_sections=0,
+            cart_sections=0,
+            cart_credits=0,
         )
     student = db.get(Student, user.student_id)
     enrollments = (
@@ -171,6 +192,11 @@ def course_selection_summary(db: Session = Depends(get_db), user: User = Depends
         .filter(CurriculumCourse.career_id == student.career_id)
         .all()
     }
+    cart = (
+        db.query(CourseSelectionCart)
+        .filter_by(student_id=user.student_id, period=period.name)
+        .all()
+    )
     return CourseSelectionSummary(
         period=period.name,
         period_status=period.status,
@@ -178,7 +204,157 @@ def course_selection_summary(db: Session = Depends(get_db), user: User = Depends
         maximum_credits=maximum,
         enrolled_sections=sum(item.state == "enrolled" for item in enrollments),
         waitlisted_sections=sum(item.state == "waitlisted" for item in enrollments),
+        cart_sections=len(cart),
+        cart_credits=sum(credits.get(item.section.subject_id, 0) for item in cart),
     )
+
+
+@router.get("/catalog/cart", response_model=list[CartItemOut])
+def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if user.student_id is None:
+        raise HTTPException(
+            status_code=403, detail="Course selection is only available to students"
+        )
+    period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
+    if period is None:
+        return []
+    student = db.get(Student, user.student_id)
+    credits = {
+        item.subject_id: item.credits
+        for item in db.query(CurriculumCourse).filter_by(career_id=student.career_id).all()
+    }
+    items = (
+        db.query(CourseSelectionCart)
+        .filter_by(student_id=user.student_id, period=period.name)
+        .all()
+    )
+    result = []
+    for item in items:
+        occupied = (
+            db.query(Enrollment)
+            .filter_by(section_id=item.section_id, period=period.name, state="enrolled")
+            .count()
+        )
+        result.append(
+            CartItemOut(
+                cart_item_id=item.cart_item_id,
+                section_id=item.section_id,
+                section_code=item.section.code,
+                subject_code=item.section.subject.code,
+                subject_name=item.section.subject.description,
+                credits=credits.get(item.section.subject_id, 0),
+                available_seats=max(item.section.capacity - occupied, 0),
+                period=period.name,
+            )
+        )
+    return result
+
+
+@router.post("/catalog/cart/{section_id}")
+def add_to_selection_cart(
+    section_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    if user.student_id is None:
+        raise HTTPException(
+            status_code=403, detail="Course selection is only available to students"
+        )
+    period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
+    if period is None or period.status not in {"registration", "active"}:
+        raise HTTPException(status_code=409, detail="Course selection is currently closed")
+    section = db.get(Section, section_id)
+    student = db.get(Student, user.student_id)
+    if section is None:
+        raise HTTPException(status_code=404, detail="Section not found")
+    if (
+        db.query(CurriculumCourse)
+        .filter_by(career_id=student.career_id, subject_id=section.subject_id)
+        .first()
+        is None
+    ):
+        raise HTTPException(
+            status_code=409, detail="This subject is not part of the student's program"
+        )
+    existing = (
+        db.query(CourseSelectionCart)
+        .join(Section)
+        .filter(
+            CourseSelectionCart.student_id == user.student_id,
+            CourseSelectionCart.period == period.name,
+            Section.subject_id == section.subject_id,
+        )
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="This subject is already in the cart")
+    item = CourseSelectionCart(
+        student_id=user.student_id, section_id=section_id, period=period.name
+    )
+    db.add(item)
+    db.commit()
+    return {"cart_item_id": item.cart_item_id, "status": "cart"}
+
+
+@router.delete("/catalog/cart/{section_id}")
+def remove_from_selection_cart(
+    section_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    item = (
+        db.query(CourseSelectionCart)
+        .filter_by(student_id=user.student_id, section_id=section_id)
+        .first()
+    )
+    if item is None:
+        raise HTTPException(status_code=404, detail="Cart item not found")
+    db.delete(item)
+    db.commit()
+    return {"message": "Cart item removed"}
+
+
+@router.post("/catalog/confirm")
+def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if user.student_id is None:
+        raise HTTPException(
+            status_code=403, detail="Course selection is only available to students"
+        )
+    period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
+    if period is None:
+        raise HTTPException(status_code=409, detail="No active academic period")
+    items = (
+        db.query(CourseSelectionCart)
+        .filter_by(student_id=user.student_id, period=period.name)
+        .order_by(CourseSelectionCart.created_at)
+        .all()
+    )
+    confirmed = []
+    errors = []
+    for item in items:
+        section_id = item.section_id
+        try:
+            enrollment = create_enrollment_service(
+                db,
+                EnrollmentCreate(
+                    student_id=user.student_id, section_id=section_id, period=period.name
+                ),
+            )
+            refreshed = (
+                db.query(CourseSelectionCart)
+                .filter_by(student_id=user.student_id, section_id=section_id, period=period.name)
+                .first()
+            )
+            if refreshed:
+                db.delete(refreshed)
+                db.commit()
+            confirmed.append(
+                {
+                    "section_id": section_id,
+                    "state": enrollment.state,
+                    "waitlist_position": enrollment.waitlist_position,
+                }
+            )
+        except HTTPException as exc:
+            db.rollback()
+            errors.append({"section_id": section_id, "detail": exc.detail})
+    return {"confirmed": confirmed, "errors": errors}
 
 
 @router.post("/catalog/sections/{section_id}/select")

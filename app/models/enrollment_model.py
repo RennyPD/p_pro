@@ -45,3 +45,22 @@ class Enrollment(Base):
     @property
     def subject_name(self) -> str:
         return self.section.subject.description
+
+
+class CourseSelectionCart(Base):
+    __tablename__ = "course_selection_cart"
+    __table_args__ = (
+        UniqueConstraint(
+            "student_id", "section_id", "period", name="uq_cart_student_section_period"
+        ),
+    )
+
+    cart_item_id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.student_id"))
+    section_id: Mapped[int] = mapped_column(ForeignKey("sections.section_id"))
+    period: Mapped[str] = mapped_column(String(50))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+
+    section: Mapped["Section"] = relationship("Section")

@@ -1,0 +1,1 @@
+.selection-cart{margin-bottom:1rem}.selection-cart h2{display:flex;align-items:center;gap:.55rem}.cart-list{display:grid;gap:.55rem;margin:1rem 0}.cart-list article{display:flex;align-items:center;gap:1rem;padding:.8rem;border:1px solid var(--line);border-radius:12px;background:#fafcff}.cart-list article>div{display:grid;flex:1}.cart-list small{color:var(--muted)}
