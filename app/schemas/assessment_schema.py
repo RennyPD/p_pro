@@ -26,6 +26,21 @@ class AssessmentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AssessmentTemplateCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    weight: float = Field(gt=0, le=100)
+
+
+class AssessmentTemplateOut(AssessmentTemplateCreate):
+    assessment_template_id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AssessmentTemplateApply(BaseModel):
+    section_id: int
+    due_date: date | None = None
+
+
 class FinalGradeOut(BaseModel):
     enrollment_id: int
     student_id: int

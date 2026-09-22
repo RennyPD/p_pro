@@ -9,19 +9,69 @@ from app.auth import (
     require_permissions,
 )
 from app.db.Session import get_db
-from app.models.assessment_model import Assessment
+from app.models.assessment_model import Assessment, AssessmentTemplate
 from app.models.configuration_model import InstitutionSettings
 from app.models.enrollment_model import Enrollment
 from app.models.user_model import User
 from app.schemas.assessment_schema import (
     AssessmentCreate,
     AssessmentOut,
+    AssessmentTemplateApply,
+    AssessmentTemplateCreate,
+    AssessmentTemplateOut,
     AssessmentUpdate,
     FinalGradeOut,
 )
 
 router = APIRouter(prefix="/assessments", tags=["weighted assessments"])
 assessment_manager = require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
+
+
+@router.get("/templates", response_model=list[AssessmentTemplateOut])
+def assessment_templates(db: Session = Depends(get_db), user: User = Depends(assessment_manager)):
+    return (
+        db.query(AssessmentTemplate)
+        .filter_by(owner_id=user.user_id)
+        .order_by(AssessmentTemplate.name)
+        .all()
+    )
+
+
+@router.post("/templates", response_model=AssessmentTemplateOut)
+def create_assessment_template(
+    data: AssessmentTemplateCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(assessment_manager),
+):
+    item = AssessmentTemplate(owner_id=user.user_id, **data.model_dump())
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.post("/templates/{template_id}/apply", response_model=AssessmentOut)
+def apply_assessment_template(
+    template_id: int,
+    data: AssessmentTemplateApply,
+    db: Session = Depends(get_db),
+    user: User = Depends(assessment_manager),
+):
+    template = db.get(AssessmentTemplate, template_id)
+    if template is None or template.owner_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Assessment template not found")
+    ensure_section_access(db, user, data.section_id)
+    validate_total_weight(db, data.section_id, template.weight)
+    item = Assessment(
+        section_id=data.section_id,
+        name=template.name,
+        weight=template.weight,
+        due_date=data.due_date,
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
 
 
 def ensure_assessment_writer(db: Session, user: User, assessment: Assessment) -> None:

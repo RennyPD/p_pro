@@ -19,3 +19,15 @@ class Assessment(Base):
 
     section: Mapped["Section"] = relationship("Section")
     grades: Mapped[list["Grade"]] = relationship("Grade", back_populates="assessment")
+
+
+class AssessmentTemplate(Base):
+    __tablename__ = "assessment_templates"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "name", name="uq_assessment_template_owner_name"),
+    )
+
+    assessment_template_id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
+    name: Mapped[str] = mapped_column(String(100))
+    weight: Mapped[float] = mapped_column(Float)

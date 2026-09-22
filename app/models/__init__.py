@@ -1,5 +1,5 @@
 from .access_model import Permission, RolePermission
-from .assessment_model import Assessment
+from .assessment_model import Assessment, AssessmentTemplate
 from .attendance_model import Attendance
 from .career_model import Career
 from .community_model import Announcement, Guardian, Notification, StudentGuardian
