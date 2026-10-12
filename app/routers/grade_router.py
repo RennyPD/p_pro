@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -7,7 +5,6 @@ from app.auth import (
     ensure_enrollment_access,
     ensure_section_access,
     get_current_user,
-    is_admin,
     require_permissions,
 )
 from app.db.Session import get_db
@@ -16,6 +13,7 @@ from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade, GradeChange
 from app.models.section_model import Section
 from app.models.user_model import User
+from app.schemas.assessment_schema import ReasonRequest
 from app.schemas.grade_schema import (
     GradeBulkCreate,
     GradeChangeOut,
@@ -23,20 +21,14 @@ from app.schemas.grade_schema import (
     GradeOut,
     GradeUpdate,
 )
-from app.services.grade_service import (
-    create_grade_service,
-    delete_grade_service,
-    get_grade_by_id_service,
-    update_grade_service,
-)
+from app.services.academic_grading import ensure_grading_open, record_change, write_grade
+from app.services.grade_service import get_grade_by_id_service
 
 router = APIRouter(prefix="/grades", tags=["grades"])
 grade_manager = require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
 
 
-def validate_assessment(
-    db: Session, assessment_id: int | None, section_id: int
-) -> Assessment | None:
+def validate_assessment(db: Session, assessment_id: int | None, section_id: int):
     if assessment_id is None:
         return None
     assessment = db.get(Assessment, assessment_id)
@@ -49,93 +41,66 @@ def validate_assessment(
 
 @router.post("/bulk", response_model=list[GradeOut])
 def save_section_grades(
-    data: GradeBulkCreate,
-    db: Session = Depends(get_db),
-    user: User = Depends(grade_manager),
+    data: GradeBulkCreate, db: Session = Depends(get_db), user: User = Depends(grade_manager)
 ):
-    enrollment_ids = {item.enrollment_id for item in data.records}
-    enrollments = (
-        db.query(Enrollment)
-        .filter(
-            Enrollment.section_id == data.section_id,
-            Enrollment.enrollment_id.in_(enrollment_ids),
-        )
+    section = ensure_section_access(db, user, data.section_id)
+    ensure_grading_open(db, section)
+    ids = [item.enrollment_id for item in data.records]
+    if len(set(ids)) != len(ids):
+        raise HTTPException(status_code=422, detail="No se puede repetir un estudiante en la carga")
+    enrollments = {
+        item.enrollment_id: item
+        for item in db.query(Enrollment)
+        .filter(Enrollment.section_id == data.section_id, Enrollment.enrollment_id.in_(ids))
         .all()
-    )
-    if len(enrollments) != len(enrollment_ids):
+    }
+    if len(enrollments) != len(ids):
         raise HTTPException(status_code=422, detail="Every grade must belong to the section")
-    if enrollments and not is_admin(user) and user.teacher_id != enrollments[0].section.teacher_id:
-        raise HTTPException(
-            status_code=403, detail="Only the assigned teacher can grade this section"
+    assessment = validate_assessment(db, data.assessment_id, section.section_id)
+    saved = [
+        write_grade(
+            db,
+            enrollments[item.enrollment_id],
+            assessment,
+            item.grade_value,
+            data.grade_type,
+            data.date_recorded,
+            data.status,
+            user.user_id,
+            data.reason,
         )
-    assessment = validate_assessment(db, data.assessment_id, data.section_id)
-    grade_type = assessment.name if assessment else data.grade_type
-    saved = []
-    for item in data.records:
-        grade = (
-            db.query(Grade)
-            .filter(
-                Grade.enrollment_id == item.enrollment_id,
-                Grade.assessment_id == data.assessment_id,
-                Grade.grade_type == grade_type,
-            )
-            .first()
-        )
-        previous = grade.grade_value if grade is not None else None
-        if grade is None:
-            grade = Grade(
-                enrollment_id=item.enrollment_id,
-                assessment_id=data.assessment_id,
-                grade_type=grade_type,
-            )
-            db.add(grade)
-        grade.grade_value = item.grade_value
-        grade.date_recorded = data.date_recorded
-        grade.status = data.status
-        grade.updated_by = user.user_id
-        grade.updated_at = datetime.now(UTC).replace(tzinfo=None)
-        db.flush()
-        if previous != item.grade_value:
-            db.add(
-                GradeChange(
-                    grade_id=grade.grade_id,
-                    previous_value=previous,
-                    new_value=item.grade_value,
-                    changed_by=user.user_id,
-                    reason=data.reason,
-                )
-            )
-        saved.append(grade)
+        for item in data.records
+    ]
     db.commit()
-    for grade in saved:
-        db.refresh(grade)
     return saved
 
 
-@router.post("/", response_model=GradeOut, dependencies=[Depends(grade_manager)])
+@router.post("/", response_model=GradeOut)
 def create_grade(
-    grade_data: GradeCreate,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    data: GradeCreate, db: Session = Depends(get_db), user: User = Depends(grade_manager)
 ):
-    enrollment = ensure_enrollment_access(db, user, grade_data.enrollment_id)
-    if not is_admin(user) and user.teacher_id != enrollment.section.teacher_id:
-        raise HTTPException(
-            status_code=403, detail="Only the assigned teacher can grade this enrollment"
-        )
-    assessment = validate_assessment(db, grade_data.assessment_id, enrollment.section_id)
-    if assessment:
-        grade_data = grade_data.model_copy(update={"grade_type": assessment.name})
-    return create_grade_service(db, grade_data)
+    enrollment = ensure_enrollment_access(db, user, data.enrollment_id)
+    ensure_section_access(db, user, enrollment.section_id)
+    assessment = validate_assessment(db, data.assessment_id, enrollment.section_id)
+    grade = write_grade(
+        db,
+        enrollment,
+        assessment,
+        data.grade_value,
+        data.grade_type,
+        data.date_recorded,
+        data.status,
+        user.user_id,
+        data.reason,
+    )
+    db.commit()
+    return grade
 
 
-@router.get("/", response_model=list[GradeOut], dependencies=[Depends(get_current_user)])
-def get_grades(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    query = db.query(Grade)
-    if not is_admin(user):
+@router.get("/", response_model=list[GradeOut])
+def get_grades(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    query = db.query(Grade).filter(Grade.status != "voided")
+    if user.role.name.casefold() != "admin":
         query = query.join(Grade.enrollment)
         if user.student_id is not None:
             query = query.filter(
@@ -156,20 +121,32 @@ def publish_assessment_grades(
     if assessment is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
     ensure_section_access(db, user, assessment.section_id)
-    updated = (
+    ensure_grading_open(db, assessment.section)
+    if assessment.closed:
+        raise HTTPException(status_code=409, detail="La evaluación está cerrada")
+    grades = (
         db.query(Grade)
-        .filter(Grade.assessment_id == assessment_id)
-        .update(
-            {
-                Grade.status: "published",
-                Grade.updated_by: user.user_id,
-                Grade.updated_at: datetime.now(UTC).replace(tzinfo=None),
-            },
-            synchronize_session=False,
+        .join(Grade.enrollment)
+        .filter(
+            Grade.assessment_id == assessment_id,
+            Grade.status == "draft",
+            Enrollment.state.in_(("enrolled", "completed", "failed")),
         )
+        .all()
     )
+    for grade in grades:
+        grade.status = "published"
+        record_change(
+            db,
+            grade,
+            user.user_id,
+            "Publicación de resultados",
+            grade.grade_value,
+            "draft",
+            "published",
+        )
     db.commit()
-    return {"published": updated}
+    return {"published": len(grades)}
 
 
 @router.get("/{grade_id}/history", response_model=list[GradeChangeOut])
@@ -177,60 +154,81 @@ def grade_history(
     grade_id: int, db: Session = Depends(get_db), user: User = Depends(grade_manager)
 ):
     grade = get_grade_by_id_service(db, grade_id)
-    ensure_enrollment_access(db, user, grade.enrollment_id)
-    return (
+    ensure_section_access(db, user, grade.enrollment.section_id)
+    history = (
         db.query(GradeChange)
         .filter_by(grade_id=grade_id)
-        .order_by(GradeChange.changed_at.desc())
+        .order_by(GradeChange.changed_at.desc(), GradeChange.grade_change_id.desc())
         .all()
     )
+    return [
+        GradeChangeOut.model_validate(item).model_copy(
+            update={"changed_by_name": db.get(User, item.changed_by).username}
+        )
+        for item in history
+    ]
 
 
-@router.get("/{grade_id}", response_model=GradeOut, dependencies=[Depends(get_current_user)])
+@router.get("/{grade_id}", response_model=GradeOut)
 def get_grade_by_id(
-    grade_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    grade_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
     grade = get_grade_by_id_service(db, grade_id)
     ensure_enrollment_access(db, user, grade.enrollment_id)
+    if grade.status == "voided" or (user.student_id is not None and grade.status != "published"):
+        raise HTTPException(status_code=404, detail="Grade not found")
     return grade
 
 
-@router.patch(
-    "/{grade_id}",
-    response_model=GradeOut,
-    dependencies=[Depends(grade_manager)],
-)
+@router.patch("/{grade_id}", response_model=GradeOut)
 def update_grade(
     grade_id: int,
-    grade_data: GradeUpdate,
+    data: GradeUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(grade_manager),
 ):
     grade = get_grade_by_id_service(db, grade_id)
-    enrollment = ensure_enrollment_access(db, user, grade.enrollment_id)
-    if grade.assessment and grade.assessment.closed:
-        raise HTTPException(status_code=409, detail="Closed assessments cannot receive changes")
-    if not is_admin(user) and user.teacher_id != enrollment.section.teacher_id:
-        raise HTTPException(
-            status_code=403, detail="Only the assigned teacher can update this grade"
-        )
-    return update_grade_service(db, grade_id, grade_data)
+    ensure_section_access(db, user, grade.enrollment.section_id)
+    values = data.model_dump(exclude_unset=True)
+    for field in ("enrollment_id", "assessment_id"):
+        if field in values and values[field] != getattr(grade, field):
+            raise HTTPException(
+                status_code=422,
+                detail="No se puede trasladar una nota a otro estudiante o evaluación",
+            )
+    for field in ("grade_value", "grade_type", "date_recorded", "status"):
+        if field in values and values[field] is None:
+            raise HTTPException(status_code=422, detail="Los campos de la nota no pueden ser nulos")
+    assessment = validate_assessment(db, grade.assessment_id, grade.enrollment.section_id)
+    write_grade(
+        db,
+        grade.enrollment,
+        assessment,
+        values.get("grade_value", grade.grade_value),
+        values.get("grade_type", grade.grade_type),
+        values.get("date_recorded", grade.date_recorded),
+        values.get("status", grade.status),
+        user.user_id,
+        data.reason,
+        grade,
+    )
+    db.commit()
+    return grade
 
 
-@router.delete("/{grade_id}", dependencies=[Depends(grade_manager)])
+@router.delete("/{grade_id}")
 def delete_grade(
     grade_id: int,
+    data: ReasonRequest,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(grade_manager),
 ):
     grade = get_grade_by_id_service(db, grade_id)
-    enrollment = ensure_enrollment_access(db, user, grade.enrollment_id)
-    if grade.assessment and grade.assessment.closed:
-        raise HTTPException(status_code=409, detail="Closed assessments cannot receive changes")
-    if not is_admin(user) and user.teacher_id != enrollment.section.teacher_id:
-        raise HTTPException(
-            status_code=403, detail="Only the assigned teacher can delete this grade"
-        )
-    return delete_grade_service(db, grade_id)
+    ensure_section_access(db, user, grade.enrollment.section_id)
+    ensure_grading_open(db, grade.enrollment.section, grade.enrollment)
+    validate_assessment(db, grade.assessment_id, grade.enrollment.section_id)
+    previous = grade.status
+    grade.status = "voided"
+    record_change(db, grade, user.user_id, data.reason, grade.grade_value, previous, "voided")
+    db.commit()
+    return {"message": "Nota anulada; historial conservado"}

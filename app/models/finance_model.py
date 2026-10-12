@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -13,6 +13,7 @@ class StudentAccount(Base):
     student_id: Mapped[int] = mapped_column(ForeignKey("students.student_id"), unique=True)
     cutoff_day: Mapped[int] = mapped_column(Integer, default=15)
     due_day: Mapped[int] = mapped_column(Integer, default=30)
+    ledger_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     student: Mapped["Student"] = relationship("Student")
     charges: Mapped[list["Charge"]] = relationship("Charge", cascade="all, delete-orphan")
     payments: Mapped[list["Payment"]] = relationship("Payment", cascade="all, delete-orphan")
@@ -34,6 +35,9 @@ class Charge(Base):
     description: Mapped[str] = mapped_column(String(200))
     amount: Mapped[float] = mapped_column(Float)
     due_date: Mapped[date] = mapped_column(Date)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="posted", server_default="posted")
+    reversal_reason: Mapped[str | None] = mapped_column(String(250), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
@@ -50,6 +54,13 @@ class Payment(Base):
     reference: Mapped[str] = mapped_column(String(100))
     receipt_number: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     note: Mapped[str] = mapped_column(String(250), default="")
+    method: Mapped[str] = mapped_column(String(20), default="legacy", server_default="legacy")
+    status: Mapped[str] = mapped_column(String(20), default="posted", server_default="posted")
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    reversed_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    reversed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reversal_reason: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     paid_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
@@ -65,6 +76,10 @@ class FinancialAdjustment(Base):
     kind: Mapped[str] = mapped_column(String(20))
     description: Mapped[str] = mapped_column(String(200))
     amount: Mapped[float] = mapped_column(Float)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="posted", server_default="posted")
+    reversal_reason: Mapped[str | None] = mapped_column(String(250), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
@@ -79,6 +94,10 @@ class PaymentPlan(Base):
     )
     name: Mapped[str] = mapped_column(String(100))
     active: Mapped[bool] = mapped_column(default=True)
+    credit_baseline: Mapped[float] = mapped_column(Float, default=0, server_default="0")
+    credit_snapshot: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     installments: Mapped[list["Installment"]] = relationship(
         "Installment", cascade="all, delete-orphan"
     )
@@ -110,7 +129,50 @@ class CashClosing(Base):
     closing_date: Mapped[date] = mapped_column(Date, unique=True)
     total_payments: Mapped[float] = mapped_column(Float)
     payment_count: Mapped[int] = mapped_column(Integer)
+    cash_total: Mapped[float] = mapped_column(Float, default=0, server_default="0")
+    transfer_total: Mapped[float] = mapped_column(Float, default=0, server_default="0")
     closed_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
+
+
+class TransferRequest(Base):
+    __tablename__ = "transfer_requests"
+    transfer_request_id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.student_id"))
+    amount_cents: Mapped[int] = mapped_column(Integer)
+    reference: Mapped[str] = mapped_column(String(100), unique=True)
+    bank: Mapped[str] = mapped_column(String(100))
+    note: Mapped[str] = mapped_column(String(250), default="")
+    proof: Mapped[bytes] = mapped_column(LargeBinary)
+    proof_type: Mapped[str] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    submitted_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+    reviewed_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    review_reason: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    payment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("payments.payment_id"), unique=True, nullable=True
+    )
+
+
+class FinanceEvent(Base):
+    __tablename__ = "finance_events"
+    finance_event_id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int | None] = mapped_column(ForeignKey("students.student_id"), nullable=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
+    action: Mapped[str] = mapped_column(String(80))
+    detail: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+
+
+class FinanceControl(Base):
+    __tablename__ = "finance_control"
+    finance_control_id: Mapped[int] = mapped_column(primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, default=0)

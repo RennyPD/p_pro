@@ -8,10 +8,12 @@ from sqlalchemy.orm import Session
 from app.auth import ensure_student_academic_access, get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.configuration_model import InstitutionSettings
-from app.models.curriculum_model import CurriculumCourse
 from app.models.student_model import Student
+from app.models.subject_model import Subject
 from app.models.user_model import User
 from app.schemas.record_schema import AcademicTranscript, PeriodRecord, TranscriptCourse
+from app.services.academic_grading import academic_result
+from app.services.academic_recognition import current_courses, recognize
 
 router = APIRouter(prefix="/records", tags=["academic records"])
 
@@ -19,40 +21,40 @@ router = APIRouter(prefix="/records", tags=["academic records"])
 def build_transcript(db: Session, student: Student) -> AcademicTranscript:
     settings = db.get(InstitutionSettings, 1)
     passing = settings.passing_grade if settings else 70.0
-    curriculum = {
-        item.subject_id: item
-        for item in db.query(CurriculumCourse)
-        .filter(CurriculumCourse.career_id == student.career_id)
-        .all()
-    }
+    curriculum = {item.subject_id: item for item in current_courses(db, student)}
     attempts: dict[int, int] = {}
     period_values: dict[str, dict[str, float]] = {}
     courses = []
     all_grades = []
     attempted = 0.0
     earned = 0.0
+    credited_subjects = set()
     for enrollment in student.enrollments:
+        if enrollment.state in {"withdrawn", "waitlisted"}:
+            continue
         subject = enrollment.section.subject
         attempts[subject.subject_id] = attempts.get(subject.subject_id, 0) + 1
-        grades = [item.grade_value for item in enrollment.grades]
-        average = round(sum(grades) / len(grades), 2) if grades else None
+        result = academic_result(db, enrollment)
+        average = result.value
         credits = (
             curriculum.get(subject.subject_id).credits if subject.subject_id in curriculum else 0
         )
         attempted += credits
-        if average is not None:
-            all_grades.extend(grades)
-        passed = average is not None and average >= passing
-        if passed:
+        if result.final and average is not None:
+            all_grades.append(average)
+        passed = result.status == "passed"
+        new_credit = passed and subject.subject_id not in credited_subjects
+        if new_credit:
             earned += credits
+            credited_subjects.add(subject.subject_id)
         bucket = period_values.setdefault(
             enrollment.period,
             {"grade_sum": 0, "grade_count": 0, "attempted": 0, "earned": 0, "courses": 0},
         )
         bucket["attempted"] += credits
-        bucket["earned"] += credits if passed else 0
+        bucket["earned"] += credits if new_credit else 0
         bucket["courses"] += 1
-        if average is not None:
+        if result.final and average is not None:
             bucket["grade_sum"] += average
             bucket["grade_count"] += 1
         courses.append(
@@ -63,10 +65,31 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
                 period=enrollment.period,
                 credits=credits,
                 average=average,
-                result="passed" if passed else "failed" if average is not None else "in_progress",
+                result=result.status,
                 attempts=attempts[subject.subject_id],
             )
         )
+    recognition = recognize(db, student)
+    recognized_credits = 0.0
+    for subject_id, rule_ids in sorted(recognition.paths.items()):
+        course = curriculum[subject_id]
+        recognized_credits += course.credits
+        courses.append(
+            TranscriptCourse(
+                subject_code=course.subject.code,
+                subject_name=course.subject.description,
+                section_code="Equivalencia",
+                period=f"Reconocimiento · Plan {student.career.curriculum_version}",
+                credits=course.credits,
+                average=None,
+                result="recognized",
+                attempts=0,
+                recognition_type="equivalence",
+                equivalence_ids=rule_ids,
+                origin_subject_code=db.get(Subject, recognition.sources[subject_id]).code,
+            )
+        )
+    earned += recognized_credits
     cumulative = round(sum(all_grades) / len(all_grades), 2) if all_grades else 0
     standing = "honors" if cumulative >= 90 else "good" if cumulative >= passing else "probation"
     periods = [
@@ -93,6 +116,8 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
         academic_standing=standing,
         periods=periods,
         courses=courses,
+        recognized_credits=recognized_credits,
+        curriculum_version=student.career.curriculum_version,
     )
 
 

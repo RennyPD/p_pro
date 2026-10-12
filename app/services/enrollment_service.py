@@ -16,6 +16,7 @@ from app.repositories.enrollment_repository import (
     update_enrollment,
 )
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate
+from app.services.academic_recognition import recognize
 
 
 def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
@@ -48,27 +49,18 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
             raise HTTPException(status_code=409, detail="Registration has not started")
         if period.registration_end and today > period.registration_end:
             raise HTTPException(status_code=409, detail="Registration is closed")
+    recognition = recognize(db, student)
     curriculum_course = (
         db.query(CurriculumCourse)
         .filter(
             CurriculumCourse.career_id == student.career_id,
             CurriculumCourse.subject_id == requested_section.subject_id,
+            CurriculumCourse.curriculum_version == student.career.curriculum_version,
         )
         .first()
     )
     if curriculum_course and curriculum_course.prerequisite_subject_id:
-        prerequisite_grades = [
-            grade.grade_value
-            for enrollment in student.enrollments
-            if enrollment.section.subject_id == curriculum_course.prerequisite_subject_id
-            for grade in enrollment.grades
-        ]
-        settings = db.get(InstitutionSettings, 1)
-        passing_grade = settings.passing_grade if settings else 70.0
-        average = (
-            sum(prerequisite_grades) / len(prerequisite_grades) if prerequisite_grades else None
-        )
-        if average is None or average < passing_grade:
+        if curriculum_course.prerequisite_subject_id not in recognition.completed:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Prerequisite {curriculum_course.prerequisite.code} is not completed",
@@ -80,25 +72,14 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
             and enrollment.section.subject_id == curriculum_course.corequisite_subject_id
             for enrollment in student.enrollments
         )
-        completed_corequisite = any(
-            enrollment.section.subject_id == curriculum_course.corequisite_subject_id
-            and enrollment.grades
-            for enrollment in student.enrollments
-        )
+        completed_corequisite = curriculum_course.corequisite_subject_id in recognition.completed
         if not has_corequisite and not completed_corequisite:
             raise HTTPException(
                 status_code=409,
                 detail=f"Corequisite {curriculum_course.corequisite.code} must be selected first",
             )
     settings = db.get(InstitutionSettings, 1)
-    passing_grade = settings.passing_grade if settings else 70.0
-    same_subject_grades = [
-        grade.grade_value
-        for enrollment in student.enrollments
-        if enrollment.section.subject_id == requested_section.subject_id
-        for grade in enrollment.grades
-    ]
-    if same_subject_grades and sum(same_subject_grades) / len(same_subject_grades) >= passing_grade:
+    if requested_section.subject_id in recognition.completed:
         raise HTTPException(status_code=409, detail="The subject is already completed")
     current = (
         db.query(Enrollment)
@@ -130,6 +111,7 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
             .filter(
                 CurriculumCourse.career_id == student.career_id,
                 CurriculumCourse.subject_id == enrollment.section.subject_id,
+                CurriculumCourse.curriculum_version == student.career.curriculum_version,
             )
             .first()
         )
@@ -223,6 +205,12 @@ def update_enrollment_service(db: Session, enrollment_id: int, enrollment_data: 
 
 
 def delete_enrollment_service(db: Session, enrollment_id: int):
+    current = get_enrollment_by_id(db, enrollment_id)
+    if current and current.grades:
+        raise HTTPException(
+            status_code=409,
+            detail="No se puede eliminar una selección con historial de calificaciones; usa retiro para conservar el expediente",
+        )
     enrollment = delete_enrollment(db, enrollment_id)
 
     if not enrollment:

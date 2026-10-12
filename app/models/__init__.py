@@ -1,6 +1,6 @@
 from .access_model import Permission, RolePermission
 from .assessment_model import Assessment, AssessmentTemplate
-from .attendance_model import Attendance
+from .attendance_model import Attendance, AttendanceChange
 from .career_model import Career
 from .community_model import Announcement, Guardian, Notification, StudentGuardian
 from .configuration_model import AcademicPeriod, InstitutionSettings
@@ -15,6 +15,9 @@ from .finance_model import (
     Payment,
     PaymentPlan,
     StudentAccount,
+    TransferRequest,
+    FinanceEvent,
+    FinanceControl,
 )
 from .governance_model import CourseEquivalence, StudentCareerHistory
 from .grade_model import Grade, GradeChange
@@ -28,6 +31,7 @@ from .operations_model import (
     LessonPlan,
     StudentDocument,
     Submission,
+    SubmissionRevision,
 )
 from .role_model import Role
 from .scheduling_model import Classroom, SectionMeeting

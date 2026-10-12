@@ -30,7 +30,7 @@ export function ResourcePage({config,rowActions,toolbarContent,queryParams={}}:{
     placeholderData:keepPreviousData,
   });
   const remove=useMutation({mutationFn:(row:EntityRecord)=>api.delete(`${config.endpoint}${row[config.idField]}`),onSuccess:()=>{toast.success(`${capitalize(config.singular)} eliminado correctamente`);client.invalidateQueries({queryKey:[config.key]});},onError:(e)=>toast.error(apiMessage(e))});
-  const hasWorkspace=["students","sections","careers"].includes(config.key);
+  const hasWorkspace=["students","sections","careers","subjects"].includes(config.key);
   const columns=useMemo(()=>[...config.columns.map(c=>({accessorKey:c.key,header:c.label,cell:({row,getValue}:{row:{original:EntityRecord};getValue:()=>unknown})=>c.render?c.render(getValue() as never,row.original):display(getValue())})),...((canWrite||hasWorkspace)?[{id:"actions",header:"",cell:({row}:{row:{original:EntityRecord}})=><div className="row-actions">{canWrite&&rowActions?.(row.original)}{hasWorkspace&&<button onClick={()=>navigate(`/${config.key}/${row.original[config.idField]}`)} aria-label={`Abrir ${config.singular}`}><Eye/></button>}{canWrite&&<button onClick={()=>setEditing(row.original)} aria-label={`Editar ${config.singular}`}><Edit3/></button>}{canWrite&&config.allowDelete!==false&&<button className="danger" onClick={()=>confirm(`¿Eliminar este ${config.singular}?`)&&remove.mutate(row.original)} aria-label={`Eliminar ${config.singular}`}><Trash2/></button>}</div>}]:[])],[config,canWrite,hasWorkspace,navigate,remove,rowActions]);
   const table=useReactTable({data,columns,getCoreRowModel:getCoreRowModel()});
   const columnClass=(id:string,index:number)=>id==="actions"?"table-actions":index>=4?"table-detail":"table-primary";

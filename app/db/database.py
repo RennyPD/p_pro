@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
     cors_origins: str = "http://localhost:5173"
     cors_origin_regex: str | None = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+    finance_transfer_instructions: str = ""
+    finance_simulator_enabled: bool = True
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

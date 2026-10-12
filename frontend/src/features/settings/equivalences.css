@@ -1,0 +1,41 @@
+.equivalences-page > .panel { margin-bottom: 1rem; }
+.equivalences-page .resource-form { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+.equivalence-create > .resource-form { padding: 0; }
+.equivalences-page .form-field { margin: 0; min-width: 0; }
+.equivalence-fields, .equivalence-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.equivalence-fields > div { display: grid; align-content: start; gap: .75rem; min-width: 0; }
+.equivalences-page .form-field :is(input, select, textarea) { color: #344258; font-weight: 400; }
+.equivalences-page .form-field :is(input, select, textarea):focus { border-color: #4771cf; box-shadow: 0 0 0 3px #4771cf18; }
+.equivalences-page textarea { width: 100%; min-height: 100px; padding: .8rem .9rem; border: 1px solid #dce2e9; border-radius: 11px; background: var(--surface); font: inherit; resize: vertical; }
+.equivalences-page :is(input, select, textarea):disabled { background: #f4f6f8; color: var(--muted); }
+.equivalence-create summary { cursor: pointer; color: var(--ink); font: 700 1.05rem "Manrope", sans-serif; }
+.equivalence-create[open] summary { margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
+.equivalence-check { display: flex; align-items: center; gap: .6rem; margin: .25rem 0; color: #344258; font-size: .88rem; }
+.equivalence-check input { width: 17px; height: 17px; accent-color: var(--blue); }
+.equivalences-page .resource-form > .button { justify-self: start; }
+.equivalences-page > section > h2 { margin-bottom: 1.2rem; font-size: 1.2rem; }
+.equivalence-filters { grid-template-columns: minmax(200px, 1.6fr) minmax(160px, 1.2fr) repeat(2, minmax(100px, .8fr)); }
+.equivalence-filters + p { margin: 1rem 0; color: var(--muted); font-size: .8rem; }
+.equivalence-rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.equivalence-rules > article, .equivalence-impact, .equivalence-history article { min-width: 0; border: 1px solid var(--line); border-radius: 14px; padding: 1.1rem; background: var(--surface); overflow-wrap: anywhere; }
+.equivalence-rules > article { display: flex; flex-direction: column; }
+.equivalence-rules header, .equivalence-rules footer { display: flex; align-items: center; justify-content: space-between; gap: .65rem; flex-wrap: wrap; }
+.equivalence-rules header > span:first-child { flex: 1; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.equivalence-rules footer { justify-content: flex-start; margin-top: auto; padding-top: .9rem; border-top: 1px solid var(--line); }
+.equivalence-route { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 1rem; margin: 1.1rem 0; }
+.equivalence-route div, .equivalence-impact article, .equivalence-history article { display: flex; flex-direction: column; gap: .35rem; }
+.equivalence-route strong { color: var(--blue); font-size: .9rem; }
+.equivalence-route span { color: #344258; font-size: .88rem; line-height: 1.5; }
+.equivalence-route > svg { width: 19px; color: #8b96a6; }
+.equivalence-route small, .equivalence-history time { color: var(--muted); font-size: .76rem; }
+.equivalence-rules article > p, .equivalence-impact p, .equivalence-history p { color: var(--muted); font-size: .85rem; line-height: 1.6; white-space: pre-wrap; }
+.equivalence-impact { margin: .25rem 0; max-height: 360px; overflow: auto; background: #f5f7fc; }
+.equivalence-impact h3 { font-size: 1rem; }
+.equivalence-impact article { padding: .7rem 0; border-top: 1px solid var(--line); font-size: .82rem; }
+.equivalence-impact article span { color: var(--muted); }
+.equivalence-notice { color: #53627a; font-size: .88rem; line-height: 1.65; }
+.equivalence-history { display: grid; gap: .75rem; max-height: 60vh; overflow: auto; padding: 1.5rem; }
+.equivalence-history strong { color: #344258; font-size: .88rem; }
+.equivalence-history article p { margin-bottom: 0; }
+@media (max-width: 1100px) { .equivalence-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .equivalence-fields, .equivalence-filters, .equivalence-rules { grid-template-columns: minmax(0, 1fr); } .equivalence-route { gap: .6rem; } }

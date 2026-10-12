@@ -10,6 +10,7 @@ from app.auth import (
     get_current_user,
 )
 from app.db.Session import get_db
+from app.models.assessment_model import Assessment
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import CourseSelectionCart, Enrollment
@@ -34,6 +35,8 @@ from app.schemas.academic_schema import (
     StudentEnrollmentSummary,
 )
 from app.schemas.enrollment_schema import EnrollmentCreate
+from app.services.academic_grading import academic_result
+from app.services.academic_recognition import current_courses, recognize
 from app.services.enrollment_service import create_enrollment_service
 
 router = APIRouter(prefix="/academic", tags=["academic queries"])
@@ -64,12 +67,8 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     if period is None:
         return []
-    curriculum = {
-        item.subject_id: item
-        for item in db.query(CurriculumCourse)
-        .filter(CurriculumCourse.career_id == student.career_id)
-        .all()
-    }
+    curriculum = {item.subject_id: item for item in current_courses(db, student)}
+    recognition = recognize(db, student)
     current = {
         item.section_id: item.state
         for item in db.query(Enrollment)
@@ -145,9 +144,12 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
                 section_status=section.status,
                 prerequisite_code=course.prerequisite.code if course.prerequisite else None,
                 corequisite_code=course.corequisite.code if course.corequisite else None,
-                selectable=section.subject_id not in selected_subjects,
+                selectable=section.subject_id not in selected_subjects
+                and section.subject_id not in recognition.completed,
                 restriction_reason=(
-                    "Ya seleccionaste esta asignatura"
+                    "Asignatura ya completada o reconocida por equivalencia"
+                    if section.subject_id in recognition.completed
+                    else "Ya seleccionaste esta asignatura"
                     if section.subject_id in selected_subjects
                     else None
                 ),
@@ -186,12 +188,7 @@ def course_selection_summary(db: Session = Depends(get_db), user: User = Depends
         )
         .all()
     )
-    credits = {
-        item.subject_id: item.credits
-        for item in db.query(CurriculumCourse)
-        .filter(CurriculumCourse.career_id == student.career_id)
-        .all()
-    }
+    credits = {item.subject_id: item.credits for item in current_courses(db, student)}
     cart = (
         db.query(CourseSelectionCart)
         .filter_by(student_id=user.student_id, period=period.name)
@@ -219,10 +216,7 @@ def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_curre
     if period is None:
         return []
     student = db.get(Student, user.student_id)
-    credits = {
-        item.subject_id: item.credits
-        for item in db.query(CurriculumCourse).filter_by(career_id=student.career_id).all()
-    }
+    credits = {item.subject_id: item.credits for item in current_courses(db, student)}
     items = (
         db.query(CourseSelectionCart)
         .filter_by(student_id=user.student_id, period=period.name)
@@ -267,12 +261,20 @@ def add_to_selection_cart(
         raise HTTPException(status_code=404, detail="Section not found")
     if (
         db.query(CurriculumCourse)
-        .filter_by(career_id=student.career_id, subject_id=section.subject_id)
+        .filter_by(
+            career_id=student.career_id,
+            subject_id=section.subject_id,
+            curriculum_version=student.career.curriculum_version,
+        )
         .first()
         is None
     ):
         raise HTTPException(
             status_code=409, detail="This subject is not part of the student's program"
+        )
+    if section.subject_id in recognize(db, student).completed:
+        raise HTTPException(
+            status_code=409, detail="Asignatura ya completada o reconocida por equivalencia"
         )
     existing = (
         db.query(CourseSelectionCart)
@@ -379,6 +381,7 @@ def select_course(
         .filter(
             CurriculumCourse.career_id == student.career_id,
             CurriculumCourse.subject_id == section.subject_id,
+            CurriculumCourse.curriculum_version == student.career.curriculum_version,
         )
         .first()
     )
@@ -439,7 +442,11 @@ def student_grade_history(
     user: User = Depends(get_current_user),
 ):
     ensure_student_academic_access(db, user, student_id)
-    query = db.query(Grade).join(Grade.enrollment).filter(Enrollment.student_id == student_id)
+    query = (
+        db.query(Grade)
+        .join(Grade.enrollment)
+        .filter(Enrollment.student_id == student_id, Grade.status != "voided")
+    )
     if user.student_id is not None:
         query = query.filter(Grade.status == "published")
     if period:
@@ -453,8 +460,12 @@ def student_grade_history(
             section_code=grade.enrollment.section.code,
             period=grade.enrollment.period,
             grade_value=grade.grade_value,
-            grade_type=grade.grade_type,
+            grade_type=grade.assessment.name if grade.assessment else grade.grade_type,
             date_recorded=grade.date_recorded,
+            assessment_weight=grade.assessment.weight if grade.assessment else None,
+            contribution=round(grade.grade_value * grade.assessment.weight / 100, 2)
+            if grade.assessment and grade.status == "published"
+            else None,
         )
         for grade in grades
     ]
@@ -524,8 +535,13 @@ def _percentage(present: int, total: int) -> float | None:
 
 @router.get("/sections/academic-summary", response_model=list[SectionAcademicSummary])
 def section_academic_summaries(
-    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    start: date | None = None,
+    end: date | None = None,
 ):
+    if start and end and start > end:
+        raise HTTPException(422, "El inicio debe ser anterior al fin")
     query = db.query(Section)
     if user.role.name.casefold() == "teacher":
         query = query.filter(Section.teacher_id == user.teacher_id)
@@ -533,14 +549,21 @@ def section_academic_summaries(
         raise HTTPException(status_code=403, detail="Academic summaries are for staff only")
     summaries = []
     for section in query.order_by(Section.code).all():
-        active_enrollments = [item for item in section.enrollments if item.state == "enrolled"]
+        active_enrollments = [
+            item
+            for item in section.enrollments
+            if item.state in {"enrolled", "completed", "failed"}
+        ]
         attendances = [record for item in active_enrollments for record in item.attendances]
-        grades = [record.grade_value for item in active_enrollments for record in item.grades]
-        assessments = {
-            record.assessment_id or record.grade_type
-            for item in active_enrollments
-            for record in item.grades
-        }
+        attendances = [
+            r
+            for r in attendances
+            if (not start or r.date.date() >= start) and (not end or r.date.date() <= end)
+        ]
+        results = [academic_result(db, item) for item in active_enrollments]
+        grades = [result.value for result in results if result.value is not None]
+        assessments = db.query(Assessment).filter_by(section_id=section.section_id).all()
+        notes = [grade for enrollment in active_enrollments for grade in enrollment.grades]
         summaries.append(
             SectionAcademicSummary(
                 section_id=section.section_id,
@@ -554,6 +577,19 @@ def section_academic_summaries(
                 ),
                 grade_average=round(sum(grades) / len(grades), 1) if grades else None,
                 assessment_count=len(assessments),
+                period_name=section.period_name,
+                graded_student_count=len(grades),
+                final_student_count=sum(result.final for result in results),
+                pending_student_count=sum(not result.final for result in results),
+                draft_grade_count=sum(grade.status == "draft" for grade in notes),
+                published_grade_count=sum(grade.status == "published" for grade in notes),
+                closed_assessment_count=sum(item.closed for item in assessments),
+                configured_weight=sum(item.weight for item in assessments),
+                attendance_total=len(attendances),
+                attendance_counts={
+                    status: sum(r.status == status for r in attendances)
+                    for status in ("present", "absent", "late", "excused", "early_departure")
+                },
             )
         )
     return summaries
@@ -574,7 +610,8 @@ def student_academic_profile(
     total_attendances = 0
     total_present = 0
     for enrollment in student.enrollments:
-        grades = [grade.grade_value for grade in enrollment.grades]
+        result = academic_result(db, enrollment)
+        grades = [result.value] if result.value is not None else []
         attendances = enrollment.attendances
         present = sum(item.present for item in attendances)
         all_grades.extend(grades)
@@ -589,7 +626,11 @@ def student_academic_profile(
                 subject_name=enrollment.section.subject.description,
                 period=enrollment.period,
                 state=enrollment.state,
-                average_grade=round(sum(grades) / len(grades), 1) if grades else None,
+                average_grade=result.value,
+                result_final=result.final,
+                result_status=result.status,
+                completed_weight=result.completed_weight,
+                calculation_mode=result.mode,
                 attendance_percentage=_percentage(present, len(attendances)),
             )
         )
@@ -627,11 +668,15 @@ def section_workspace(
     period: str | None = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    start: date | None = None,
+    end: date | None = None,
 ):
+    if start and end and start > end:
+        raise HTTPException(422, "El inicio debe ser anterior al fin")
     section = ensure_section_access(db, user, section_id)
     query = db.query(Enrollment).filter(
         Enrollment.section_id == section_id,
-        Enrollment.state == "enrolled",
+        Enrollment.state.in_(("enrolled", "completed", "failed")),
     )
     if period:
         query = query.filter(Enrollment.period == period)
@@ -641,16 +686,27 @@ def section_workspace(
             RosterGradeItem(
                 grade_id=item.grade_id,
                 assessment_id=item.assessment_id,
-                grade_type=item.grade_type,
+                grade_type=item.assessment.name if item.assessment else item.grade_type,
+                status=item.status,
                 grade_value=item.grade_value,
                 date_recorded=item.date_recorded,
+                assessment_weight=item.assessment.weight if item.assessment else None,
+                contribution=round(item.grade_value * item.assessment.weight / 100, 2)
+                if item.assessment and item.status == "published"
+                else None,
             )
             for item in enrollment.grades
         ]
         attendance = next(
             (item for item in enrollment.attendances if item.date.date() == attendance_date), None
         )
-        present = sum(item.present for item in enrollment.attendances)
+        attendance_records = [
+            r
+            for r in enrollment.attendances
+            if (not start or r.date.date() >= start) and (not end or r.date.date() <= end)
+        ]
+        present = sum(item.present for item in attendance_records)
+        result = academic_result(db, enrollment)
         roster.append(
             SectionRosterItem(
                 student_id=enrollment.student_id,
@@ -662,10 +718,12 @@ def section_workspace(
                 state=enrollment.state,
                 period=enrollment.period,
                 grades=grades,
-                average_grade=round(sum(item.grade_value for item in grades) / len(grades), 1)
-                if grades
-                else None,
-                attendance_percentage=_percentage(present, len(enrollment.attendances)),
+                average_grade=result.value,
+                result_final=result.final,
+                result_status=result.status,
+                completed_weight=result.completed_weight,
+                calculation_mode=result.mode,
+                attendance_percentage=_percentage(present, len(attendance_records)),
                 attendance_status=attendance.present if attendance else None,
                 attendances=[
                     RosterAttendanceItem(
@@ -673,14 +731,17 @@ def section_workspace(
                         date=item.date.date(),
                         status=item.status,
                         note=item.note,
+                        excuse_reference=item.excuse_reference,
                     )
                     for item in sorted(
-                        enrollment.attendances, key=lambda record: record.date, reverse=True
+                        attendance_records, key=lambda record: record.date, reverse=True
                     )
                 ],
             )
         )
     return SectionWorkspace(
+        subject_id=section.subject_id,
+        period_name=section.period_name,
         section_id=section.section_id,
         section_code=section.code,
         description=section.description,
@@ -703,22 +764,48 @@ def student_attendance_summary(
     period: str | None = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    start: date | None = None,
+    end: date | None = None,
 ):
+    if start and end and start > end:
+        raise HTTPException(422, "El inicio debe ser anterior al fin")
     ensure_student_academic_access(db, user, student_id)
     query = db.query(Enrollment).filter(Enrollment.student_id == student_id)
     if period:
         query = query.filter(Enrollment.period == period)
-    return [
-        AttendanceCourseSummary(
-            section_id=item.section_id,
-            section_code=item.section.code,
-            subject_code=item.section.subject.code,
-            subject_name=item.section.subject.description,
-            present_count=sum(record.present for record in item.attendances),
-            total_count=len(item.attendances),
-            percentage=_percentage(
-                sum(record.present for record in item.attendances), len(item.attendances)
-            ),
+    results = []
+    for item in query.all():
+        records = [
+            r
+            for r in item.attendances
+            if (not start or r.date.date() >= start) and (not end or r.date.date() <= end)
+        ]
+        results.append(
+            AttendanceCourseSummary(
+                section_id=item.section_id,
+                section_code=item.section.code,
+                subject_code=item.section.subject.code,
+                subject_name=item.section.subject.description,
+                present_count=sum(record.present for record in records),
+                total_count=len(records),
+                percentage=_percentage(sum(record.present for record in records), len(records)),
+                enrollment_id=item.enrollment_id,
+                period=item.period,
+                state=item.state,
+                counts={
+                    status: sum(r.status == status for r in records)
+                    for status in ("present", "absent", "late", "excused", "early_departure")
+                },
+                records=[
+                    RosterAttendanceItem(
+                        attendance_id=r.attendance_id,
+                        date=r.date.date(),
+                        status=r.status,
+                        note=r.note,
+                        excuse_reference=r.excuse_reference,
+                    )
+                    for r in sorted(records, key=lambda r: r.date, reverse=True)
+                ],
+            )
         )
-        for item in query.all()
-    ]
+    return results

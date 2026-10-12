@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PeriodRecord(BaseModel):
@@ -10,6 +10,9 @@ class PeriodRecord(BaseModel):
 
 
 class TranscriptCourse(BaseModel):
+    recognition_type: str = "direct"
+    equivalence_ids: list[int] = Field(default_factory=list)
+    origin_subject_code: str | None = None
     subject_code: str
     subject_name: str
     section_code: str
@@ -21,6 +24,8 @@ class TranscriptCourse(BaseModel):
 
 
 class AcademicTranscript(BaseModel):
+    recognized_credits: float = 0
+    curriculum_version: str = "current"
     student_id: int
     enrollment_number: str
     student_name: str

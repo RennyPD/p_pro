@@ -4,63 +4,20 @@ from sqlalchemy.orm import Session
 from app.auth import ensure_student_academic_access, get_current_user, require_roles
 from app.db.Session import get_db
 from app.models.career_model import Career
-from app.models.configuration_model import InstitutionSettings
-from app.models.curriculum_model import CurriculumCourse
-from app.models.governance_model import CourseEquivalence, StudentCareerHistory
+from app.models.governance_model import StudentCareerHistory
 from app.models.student_model import Student
-from app.models.subject_model import Subject
 from app.models.user_model import User
+from app.routers.equivalence_router import router as equivalence_routes
 from app.schemas.governance_schema import (
     CareerChangeCreate,
     CareerHistoryOut,
-    EquivalenceCreate,
-    EquivalenceOut,
     GraduationAudit,
     GraduationRequirement,
 )
+from app.services.academic_recognition import current_courses, recognize
 
 router = APIRouter(prefix="/governance", tags=["academic governance"])
-
-
-def equivalence_out(db: Session, item: CourseEquivalence) -> EquivalenceOut:
-    source = db.get(Subject, item.source_subject_id)
-    target = db.get(Subject, item.target_subject_id)
-    return EquivalenceOut(
-        **{key: value for key, value in item.__dict__.items() if not key.startswith("_")},
-        source_code=source.code,
-        source_name=source.description,
-        target_code=target.code,
-        target_name=target.description,
-    )
-
-
-@router.get("/equivalences", response_model=list[EquivalenceOut])
-def equivalences(
-    career_id: int | None = None, db: Session = Depends(get_db), _user=Depends(get_current_user)
-):
-    query = db.query(CourseEquivalence)
-    if career_id is not None:
-        query = query.filter(CourseEquivalence.career_id == career_id)
-    return [equivalence_out(db, item) for item in query.all()]
-
-
-@router.post(
-    "/equivalences", response_model=EquivalenceOut, dependencies=[Depends(require_roles("admin"))]
-)
-def create_equivalence(data: EquivalenceCreate, db: Session = Depends(get_db)):
-    if data.source_subject_id == data.target_subject_id:
-        raise HTTPException(status_code=422, detail="Equivalent subjects must be different")
-    if (
-        db.get(Career, data.career_id) is None
-        or db.get(Subject, data.source_subject_id) is None
-        or db.get(Subject, data.target_subject_id) is None
-    ):
-        raise HTTPException(status_code=404, detail="Career or subject not found")
-    item = CourseEquivalence(**data.model_dump())
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return equivalence_out(db, item)
+router.include_router(equivalence_routes)
 
 
 @router.post("/students/{student_id}/career-change", response_model=CareerHistoryOut)
@@ -125,17 +82,9 @@ def graduation_audit(
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
-    passing = db.get(InstitutionSettings, 1).passing_grade if db.get(InstitutionSettings, 1) else 70
-    passed_subjects = set()
-    for enrollment in student.enrollments:
-        values = [grade.grade_value for grade in enrollment.grades]
-        if values and sum(values) / len(values) >= passing:
-            passed_subjects.add(enrollment.section.subject_id)
-    equivalents = db.query(CourseEquivalence).filter_by(career_id=student.career_id).all()
-    for item in equivalents:
-        if item.source_subject_id in passed_subjects:
-            passed_subjects.add(item.target_subject_id)
-    courses = db.query(CurriculumCourse).filter_by(career_id=student.career_id).all()
+    recognition = recognize(db, student)
+    passed_subjects = recognition.completed
+    courses = current_courses(db, student)
     requirements = [
         GraduationRequirement(
             subject_code=item.subject.code,
@@ -143,6 +92,12 @@ def graduation_audit(
             credits=item.credits,
             course_type=item.course_type,
             status="completed" if item.subject_id in passed_subjects else "pending",
+            recognition_type="equivalence"
+            if item.subject_id in recognition.paths
+            else "direct"
+            if item.subject_id in recognition.direct
+            else "pending",
+            equivalence_ids=recognition.paths.get(item.subject_id, []),
         )
         for item in courses
     ]

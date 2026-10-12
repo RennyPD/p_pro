@@ -12,6 +12,7 @@ from app.models.student_model import Student
 from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.schemas.dashboard_schema import DashboardMetric, DashboardSummary
+from app.services.academic_grading import academic_result
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -99,7 +100,11 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
             alerts=alerts,
         )
     enrollments = db.query(Enrollment).filter(Enrollment.student_id == user.student_id).all()
-    grades = [grade.grade_value for item in enrollments for grade in item.grades]
+    grades = [
+        result.value
+        for item in enrollments
+        if (result := academic_result(db, item)).value is not None
+    ]
     attendances = [record for item in enrollments for record in item.attendances]
     metrics = [
         DashboardMetric(

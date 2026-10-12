@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
@@ -13,7 +13,7 @@ class CalendarEventCreate(BaseModel):
     event_type: str = Field(
         default="activity", pattern=r"^(activity|exam|meeting|deadline|holiday)$"
     )
-    audience: str = Field(default="all", pattern=r"^(all|admin|teacher|student|section)$")
+    audience: str = Field(default="all", pattern=r"^(all|admin|teacher|student|guardian|section)$")
     section_id: int | None = None
     starts_at: datetime
     ends_at: datetime
@@ -21,6 +21,19 @@ class CalendarEventCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_range(self):
+        self.title = self.title.strip()
+        if len(self.title) < 2:
+            raise ValueError("Escribe un título para el evento")
+        self.starts_at = (
+            self.starts_at.astimezone(UTC).replace(tzinfo=None)
+            if self.starts_at.tzinfo
+            else self.starts_at
+        )
+        self.ends_at = (
+            self.ends_at.astimezone(UTC).replace(tzinfo=None)
+            if self.ends_at.tzinfo
+            else self.ends_at
+        )
         if self.ends_at <= self.starts_at:
             raise ValueError("ends_at must be after starts_at")
         if self.audience == "section" and self.section_id is None:
@@ -55,6 +68,17 @@ class AssignmentCreate(BaseModel):
     max_score: float = Field(default=100, gt=0, le=1000)
     assessment_id: int | None = None
     published: bool = True
+    lifecycle: str = Field(default="open", pattern=r"^(open|closed|archived)$")
+    allow_late: bool = False
+    allow_resubmit: bool = True
+
+    @model_validator(mode="after")
+    def clean_assignment(self):
+        self.title = self.title.strip()
+        self.instructions = self.instructions.strip()
+        if len(self.title) < 2 or len(self.instructions) < 2:
+            raise ValueError("Escribe un título e instrucciones completos")
+        return self
 
 
 class AssignmentOut(AssignmentCreate, OrmModel):
@@ -64,6 +88,13 @@ class AssignmentOut(AssignmentCreate, OrmModel):
 
 class SubmissionCreate(BaseModel):
     content: str = Field(min_length=1, max_length=20000)
+
+    @model_validator(mode="after")
+    def clean_content(self):
+        self.content = self.content.strip()
+        if not self.content:
+            raise ValueError("La entrega no puede estar vacía")
+        return self
 
 
 class SubmissionGrade(BaseModel):

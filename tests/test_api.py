@@ -73,6 +73,69 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertNotIn("password", response.json()["user"])
         return response.json()["access_token"], response.json()["user"]
 
+    def test_subject_overview_shared_between_careers_and_delete_protection(self) -> None:
+        token, _ = self.bootstrap()
+        with self.Session() as db:
+            seed_demo(db)
+            course = db.query(CurriculumCourse).first()
+            subject_id = course.subject_id
+            career_id = course.career_id
+            other = Career(name="Programa compartido", description="Prueba", code="COMP")
+            db.add(other)
+            db.commit()
+            other_id = other.career_id
+        added = self.request("POST", "/curriculum/courses", token, json={
+            "career_id": other_id, "subject_id": subject_id, "term_number": 2,
+            "credits": 4.5, "curriculum_version": "current",
+        })
+        self.assertEqual(added.status_code, 200, added.text)
+        overview = self.request("GET", f"/subjects/{subject_id}/overview", token)
+        self.assertEqual(overview.status_code, 200, overview.text)
+        payload = overview.json()
+        self.assertEqual({item["career_id"] for item in payload["programs"]}, {career_id, other_id})
+        self.assertEqual(next(item["credits"] for item in payload["programs"] if item["career_id"] == other_id), 4.5)
+        filtered = self.request("GET", "/subjects/", token, params={"career_id": other_id})
+        self.assertEqual([item["subject_id"] for item in filtered.json()], [subject_id])
+        self.assertTrue(payload["sections"])
+        self.assertIn("teacher_name", payload["sections"][0])
+        blocked = self.request("DELETE", f"/subjects/{subject_id}", token)
+        self.assertEqual(blocked.status_code, 409, blocked.text)
+        self.assertEqual(self.request("GET", f"/subjects/{subject_id}", token).status_code, 200)
+        anonymous = self.request("GET", f"/subjects/{subject_id}/overview")
+        self.assertEqual(anonymous.status_code, 401)
+
+    def test_subject_validation_and_independent_catalog_lifecycle(self) -> None:
+        token, _ = self.bootstrap()
+        created = self.request("POST", "/subjects/", token, json={"code": " MAT-X ", "description": " Matemática "})
+        self.assertEqual(created.status_code, 200, created.text)
+        subject_id = created.json()["subject_id"]
+        self.assertEqual(created.json()["code"], "MAT-X")
+        duplicate = self.request("POST", "/subjects/", token, json={"code": "mat-x", "description": "Otra"})
+        self.assertEqual(duplicate.status_code, 409)
+        for values in ({"description": None}, {"code": "  "}):
+            self.assertEqual(self.request("PATCH", f"/subjects/{subject_id}", token, json=values).status_code, 422)
+        overview = self.request("GET", f"/subjects/{subject_id}/overview", token).json()
+        self.assertEqual(overview["programs"], [])
+        self.assertEqual(overview["sections"], [])
+        self.assertEqual(self.request("DELETE", f"/subjects/{subject_id}", token).status_code, 200)
+
+    def test_curriculum_links_validate_duration_duplicates_and_missing_subject(self) -> None:
+        token, _ = self.bootstrap()
+        with self.Session() as db:
+            seed_demo(db)
+            course = db.query(CurriculumCourse).first()
+            course_id = course.curriculum_course_id
+            values = {"career_id": course.career_id, "subject_id": course.subject_id, "term_number": 1, "credits": 3}
+            duration = course.career.duration_terms
+        duplicate = self.request("POST", "/curriculum/courses", token, json=values)
+        self.assertEqual(duplicate.status_code, 409, duplicate.text)
+        missing = self.request("POST", "/curriculum/courses", token, json={**values, "subject_id": 99999})
+        self.assertEqual(missing.status_code, 404)
+        invalid = self.request("PATCH", f"/curriculum/courses/{course_id}", token, json={"term_number": duration + 1})
+        self.assertEqual(invalid.status_code, 422)
+        invalid_null = self.request("PATCH", f"/curriculum/courses/{course_id}", token, json={"credits": None})
+        self.assertEqual(invalid_null.status_code, 422)
+
     def test_career_catalog_fields_filters_and_version_scoped_offer(self) -> None:
         token, _ = self.bootstrap()
         with self.Session() as db:
@@ -542,7 +605,7 @@ class ApiIntegrationTests(unittest.TestCase):
         grade_id = grade.json()["grade_id"]
         self.assertEqual(
             self.request(
-                "PATCH", f"/grades/{grade_id}", token=token, json={"grade_value": 97}
+                "PATCH", f"/grades/{grade_id}", token=token, json={"grade_value": 97, "reason": "Corrección verificada"}
             ).status_code,
             200,
         )
@@ -604,7 +667,7 @@ class ApiIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(
             self.request(
-                "PATCH", f"/grades/{grade_id}", token=teacher_login, json={"grade_value": 98}
+                "PATCH", f"/grades/{grade_id}", token=teacher_login, json={"grade_value": 98, "reason": "Corrección docente"}
             ).status_code,
             200,
         )
@@ -645,7 +708,7 @@ class ApiIntegrationTests(unittest.TestCase):
                 "PATCH",
                 f"/attendances/{attendance_id}",
                 token=teacher_login,
-                json={"present": False},
+                json={"present": False, "reason": "Corrección del pase de lista"},
             ).status_code,
             200,
         )
@@ -671,28 +734,28 @@ class ApiIntegrationTests(unittest.TestCase):
             self.request("GET", f"/sections/{section_id}", token=token).status_code, 200
         )
         self.assertEqual(
-            self.request("DELETE", f"/grades/{grade_id}", token=token).status_code, 200
+            self.request("DELETE", f"/grades/{grade_id}", token=token, json={"reason": "Anulación de prueba"}).status_code, 200
         )
         self.assertEqual(
-            self.request("DELETE", f"/enrollments/{enrollment_id}", token=token).status_code, 200
+            self.request("DELETE", f"/enrollments/{enrollment_id}", token=token).status_code, 409
         )
         self.assertEqual(
-            self.request("DELETE", f"/sections/{section_id}", token=token).status_code, 200
+            self.request("DELETE", f"/sections/{section_id}", token=token).status_code, 409
         )
         self.assertEqual(
-            self.request("DELETE", f"/subjects/{subject_id}", token=token).status_code, 200
+            self.request("DELETE", f"/subjects/{subject_id}", token=token).status_code, 409
         )
         self.assertEqual(
             self.request(
                 "DELETE", f"/users/{teacher_user.json()['user_id']}", token=token
             ).status_code,
-            200,
+            409,
         )
         self.assertEqual(
             self.request(
                 "DELETE", f"/roles/{teacher_role.json()['role_id']}", token=token
             ).status_code,
-            200,
+            409,
         )
         self.assertEqual(
             self.request("DELETE", f"/teachers/{teacher_id}", token=token).status_code, 200
@@ -1044,6 +1107,129 @@ class ApiIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(student_denied.status_code, 403, student_denied.text)
 
+    def grading_fixture(self):
+        with self.Session() as db:
+            seed_demo(db)
+            section = db.query(Section).first()
+            enrollment = db.query(Enrollment).filter_by(section_id=section.section_id).first()
+            ids = section.section_id, enrollment.enrollment_id, enrollment.student_id
+        admin = self.request("POST", "/auth/login", json={"username": "demo.admin", "password": "NexoAdmin2026!"}).json()["access_token"]
+        student = self.request("POST", "/auth/login", json={"username": "demo.estudiante", "password": "NexoEstudiante2026!"}).json()["access_token"]
+        return admin, student, *ids
+
+    def test_draft_privacy_zero_and_consistent_weighted_results(self):
+        admin, student, section_id, enrollment_id, student_id = self.grading_fixture()
+        items = [self.request("POST", "/assessments/", admin, json={"section_id": section_id, "name": name, "weight": weight}).json() for name, weight in (("Parcial", 20), ("Proyecto", 80))]
+        for item, value in zip(items, (0, 90)):
+            response = self.request("POST", "/grades/bulk", admin, json={"section_id": section_id, "assessment_id": item["assessment_id"], "grade_type": item["name"], "date_recorded": "2026-10-12", "status": "draft", "records": [{"enrollment_id": enrollment_id, "grade_value": value}]})
+            self.assertEqual(response.status_code, 200, response.text)
+            item["grade_id"] = response.json()[0]["grade_id"]
+            self.assertEqual(self.request("GET", f"/grades/{item['grade_id']}", student).status_code, 404)
+            self.assertEqual(self.request("POST", f"/assessments/{item['assessment_id']}/close", admin).status_code, 409)
+        final_path = f"/assessments/enrollments/{enrollment_id}/final"
+        self.assertEqual(self.request("GET", final_path, student).json()["completed_weight"], 0)
+        progress = self.request("GET", f"/curriculum/students/{student_id}/progress", student).json()
+        self.assertEqual(progress["completed_credits"], 0)
+        for item in items:
+            self.assertEqual(self.request("POST", f"/grades/assessments/{item['assessment_id']}/publish", admin).status_code, 200)
+        provisional = self.request("GET", final_path, student).json()
+        self.assertEqual(provisional["weighted_grade"], 72)
+        self.assertFalse(provisional["final"])
+        for item in items:
+            self.assertEqual(self.request("POST", f"/assessments/{item['assessment_id']}/close", admin).status_code, 200)
+        final = self.request("GET", final_path, student).json()
+        self.assertEqual(final["status"], "passed")
+        transcript = self.request("GET", f"/records/students/{student_id}/transcript", student).json()
+        self.assertEqual(next(row["average"] for row in transcript["courses"] if row["section_code"] == self.request("GET", f"/sections/{section_id}", admin).json()["code"]), 72)
+        progress = self.request("GET", f"/curriculum/students/{student_id}/progress", student).json()
+        self.assertEqual(progress["courses"][0]["final_average"], 72)
+        history = self.request("GET", f"/grades/{items[0]['grade_id']}/history", admin)
+        self.assertEqual(history.status_code, 200, history.text)
+        self.assertEqual(history.json()[0]["action"], "published")
+
+    def test_rename_distribution_transaction_and_grade_annulment(self):
+        admin, _, section_id, enrollment_id, _ = self.grading_fixture()
+        items = [self.request("POST", "/assessments/", admin, json={"section_id": section_id, "name": name, "weight": weight}).json() for name, weight in (("Examen", 40), ("Práctica", 60))]
+        payload = {"section_id": section_id, "assessment_id": items[0]["assessment_id"], "grade_type": "Examen", "date_recorded": "2026-10-12", "records": [{"enrollment_id": enrollment_id, "grade_value": 70}]}
+        grade_id = self.request("POST", "/grades/bulk", admin, json=payload).json()[0]["grade_id"]
+        renamed = self.request("PATCH", f"/assessments/{items[0]['assessment_id']}", admin, json={"name": "Examen renombrado"})
+        self.assertEqual(renamed.status_code, 200, renamed.text)
+        saved = self.request("POST", "/grades/bulk", admin, json={**payload, "records": [{"enrollment_id": enrollment_id, "grade_value": 80}]})
+        self.assertEqual(saved.json()[0]["grade_id"], grade_id)
+        distribution = {"reason": "Redistribución aprobada", "components": [{"assessment_id": item["assessment_id"], "weight": 50} for item in items]}
+        updated = self.request("PATCH", f"/assessments/sections/{section_id}/distribution", admin, json=distribution)
+        self.assertEqual(updated.status_code, 200, updated.text)
+        distribution["components"][0]["weight"] = 60
+        self.assertEqual(self.request("PATCH", f"/assessments/sections/{section_id}/distribution", admin, json=distribution).status_code, 422)
+        self.assertEqual([item["weight"] for item in self.request("GET", f"/assessments/sections/{section_id}", admin).json()], [50, 50])
+        duplicate = self.request("POST", "/grades/bulk", admin, json={**payload, "records": payload["records"] * 2})
+        self.assertEqual(duplicate.status_code, 422)
+        self.assertEqual(self.request("PATCH", f"/grades/{grade_id}", admin, json={"assessment_id": items[1]["assessment_id"], "reason": "Intento de traslado"}).status_code, 422)
+        self.assertEqual(self.request("DELETE", f"/grades/{grade_id}", admin, json={"reason": "Anulación justificada"}).status_code, 200)
+        history = self.request("GET", f"/grades/{grade_id}/history", admin).json()
+        self.assertEqual(history[0]["action"], "voided")
+        with self.Session() as db:
+            self.assertEqual(db.query(Grade).filter_by(assessment_id=items[0]["assessment_id"]).count(), 1)
+            self.assertEqual(db.get(Grade, grade_id).status, "voided")
+
+    def test_subject_plan_templates_copy_without_overwriting(self):
+        admin, _, section_id, _, _ = self.grading_fixture()
+        with self.Session() as db:
+            section = db.get(Section, section_id)
+            subject_id = section.subject_id
+            new = Section(code="PLAN-COPY", description="Copia", teacher_id=section.teacher_id, subject_id=subject_id,
+                days_of_week=section.days_of_week, start_time=section.start_time, end_time=section.end_time)
+            db.add(new)
+            db.commit()
+            copy_id = new.section_id
+        payload = {"name": "Esquema regular", "subject_id": subject_id, "components": [{"name": "Parcial", "weight": 30}, {"name": "Proyecto", "weight": 70}]}
+        template = self.request("POST", "/assessments/plans/templates", admin, json=payload)
+        self.assertEqual(template.status_code, 200, template.text)
+        teacher = self.request("POST", "/auth/login", json={"username": "demo.docente", "password": "NexoDocente2026!"}).json()["access_token"]
+        visible = self.request("GET", "/assessments/plans/templates", teacher, params={"subject_id": subject_id})
+        self.assertEqual(visible.status_code, 200)
+        self.assertEqual(len(visible.json()), 1)
+        path = f"/assessments/plans/templates/{template.json()['assessment_template_id']}/apply"
+        copied = self.request("POST", path, teacher, json={"section_id": copy_id})
+        self.assertEqual(copied.status_code, 200, copied.text)
+        self.assertEqual(sum(item["weight"] for item in copied.json()), 100)
+        self.assertEqual(self.request("POST", path, teacher, json={"section_id": copy_id}).status_code, 409)
+        self.assertEqual(len(self.request("GET", f"/assessments/sections/{section_id}", admin).json()), 0)
+
+    def test_period_lock_and_reopen_audit(self):
+        admin, _, section_id, enrollment_id, _ = self.grading_fixture()
+        item = self.request("POST", "/assessments/", admin, json={"section_id": section_id, "name": "Única", "weight": 100}).json()
+        saved = self.request("POST", "/grades/bulk", admin, json={"section_id": section_id, "assessment_id": item["assessment_id"], "grade_type": "Única", "date_recorded": "2026-10-12", "status": "published", "records": [{"enrollment_id": enrollment_id, "grade_value": 85}]}).json()[0]
+        with self.Session() as db:
+            # Waiting and withdrawn selections must not prevent closing.
+            db.add(Enrollment(student_id=db.get(Enrollment, enrollment_id).student_id, section_id=section_id, period="WAIT-TEST", state="waitlisted"))
+            db.commit()
+        self.assertEqual(self.request("POST", f"/assessments/{item['assessment_id']}/close", admin).status_code, 200)
+        self.assertEqual(self.request("POST", f"/assessments/{item['assessment_id']}/reopen", admin, json={"reason": "Revisión autorizada"}).status_code, 200)
+        audit = self.request("GET", f"/assessments/sections/{section_id}/audit", admin).json()
+        self.assertTrue(any(row["action"] == "assessment.reopened" for row in audit))
+        with self.Session() as db:
+            period = db.query(AcademicPeriod).filter_by(name=db.get(Enrollment, enrollment_id).period).one()
+            period.status = "closed"
+            db.commit()
+        self.assertEqual(self.request("POST", f"/grades/assessments/{item['assessment_id']}/publish", admin).status_code, 409)
+        self.assertEqual(self.request("PATCH", f"/grades/{saved['grade_id']}", admin, json={"grade_value": 90, "reason": "Corrección"}).status_code, 409)
+        self.assertEqual(self.request("POST", "/assessments/", admin, json={"section_id": section_id, "name": "Otra", "weight": 1}).status_code, 409)
+        with self.Session() as db:
+            period = db.query(AcademicPeriod).filter_by(name=db.get(Enrollment, enrollment_id).period).one()
+            period.status = "active"
+            section = db.get(Section, section_id)
+            section.status = "closed"
+            db.get(Enrollment, enrollment_id).state = "completed"
+            db.get(Assessment, item["assessment_id"]).closed = True
+            db.commit()
+        reopened = self.request("POST", f"/assessments/{item['assessment_id']}/reopen", admin, json={"reason": "Corrección histórica autorizada"})
+        self.assertEqual(reopened.status_code, 200, reopened.text)
+        roster = self.request("GET", f"/academic/sections/{section_id}/workspace", admin).json()["roster"]
+        self.assertEqual(len(roster), 1)
+        corrected = self.request("PATCH", f"/grades/{saved['grade_id']}", admin, json={"grade_value": 90, "reason": "Corrección histórica"})
+        self.assertEqual(corrected.status_code, 200, corrected.text)
+
     def test_weighted_assessments_and_closing_rules(self) -> None:
         with self.Session() as db:
             seed_demo(db)
@@ -1081,6 +1267,7 @@ class ApiIntegrationTests(unittest.TestCase):
                     "assessment_id": assessment["assessment_id"],
                     "grade_type": assessment["name"],
                     "date_recorded": "2026-09-18",
+                    "status": "published",
                     "records": [
                         {"enrollment_id": enrollment["enrollment_id"], "grade_value": value}
                     ],
@@ -1125,7 +1312,7 @@ class ApiIntegrationTests(unittest.TestCase):
                 "career_id": career["career_id"],
                 "source_subject_id": subjects[0]["subject_id"],
                 "target_subject_id": subjects[1]["subject_id"],
-                "curriculum_version": "2026",
+                "curriculum_version": career["curriculum_version"],
                 "notes": "Reconocimiento de prueba",
             },
         )
@@ -1228,6 +1415,546 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(transcript_pdf.status_code, 200, transcript_pdf.text)
         self.assertEqual(transcript_pdf.headers["content-type"], "application/pdf")
         self.assertTrue(transcript_pdf.content.startswith(b"%PDF-1.4"))
+
+    def test_section_followup_consistent_population_and_published_contributions(self):
+        tokens, section = self.task_fixture()
+        with self.Session() as db:
+            enrollment = db.query(Enrollment).filter_by(section_id=section).first()
+            enrollment.state = "completed"
+            assessment = Assessment(section_id=section, name="Parcial de seguimiento", weight=40, closed=False)
+            other = Assessment(section_id=section, name="Final de seguimiento", weight=60, closed=False)
+            db.add_all([assessment, other])
+            db.flush()
+            published = Grade(enrollment_id=enrollment.enrollment_id, assessment_id=assessment.assessment_id, grade_type=assessment.name, grade_value=80, date_recorded="2026-10-12", status="published")
+            draft = Grade(enrollment_id=enrollment.enrollment_id, assessment_id=other.assessment_id, grade_type=other.name, grade_value=90, date_recorded="2026-10-12", status="draft")
+            db.add_all([published, draft])
+            db.commit()
+            enrollment_id = enrollment.enrollment_id
+            draft_id = draft.grade_id
+        summaries = self.request("GET", "/academic/sections/academic-summary", tokens["teacher"])
+        self.assertEqual(summaries.status_code, 200, summaries.text)
+        summary = next(s for s in summaries.json() if s["section_id"] == section)
+        workspace = self.request("GET", f"/academic/sections/{section}/workspace", tokens["teacher"])
+        self.assertEqual(workspace.status_code, 200, workspace.text)
+        row = next(s for s in workspace.json()["roster"] if s["enrollment_id"] == enrollment_id)
+        self.assertEqual(summary["student_count"], len(workspace.json()["roster"]))
+        self.assertEqual(summary["grade_average"], 32)
+        self.assertEqual(summary["graded_student_count"], 1)
+        self.assertEqual(summary["pending_student_count"], 1)
+        self.assertEqual(summary["final_student_count"], 0)
+        self.assertEqual(summary["draft_grade_count"], 1)
+        self.assertEqual(summary["assessment_count"], 2)
+        self.assertEqual(summary["configured_weight"], 100)
+        self.assertEqual(row["completed_weight"], 40)
+        self.assertEqual(row["average_grade"], 32)
+        notes = {g["status"]: g for g in row["grades"] if g["assessment_id"] is not None}
+        self.assertEqual(notes["published"]["assessment_weight"], 40)
+        self.assertEqual(notes["published"]["contribution"], 32)
+        self.assertIsNone(notes["draft"]["contribution"])
+        with self.Session() as db:
+            db.get(Grade, draft_id).status = "voided"
+            db.get(Enrollment, enrollment_id).state = "withdrawn"
+            db.commit()
+        summary = next(s for s in self.request("GET", "/academic/sections/academic-summary", tokens["teacher"]).json() if s["section_id"] == section)
+        self.assertEqual(summary["student_count"], 0)
+        self.assertIsNone(summary["grade_average"])
+        self.assertEqual(self.request("GET", f"/academic/sections/{section}/workspace", tokens["teacher"]).json()["roster"], [])
+        self.assertEqual(self.request("GET", "/academic/sections/academic-summary", tokens["student"]).status_code, 403)
+
+    def test_attendance_explicit_states_counts_and_audited_boolean_correction(self):
+        tokens, section = self.task_fixture()
+        with self.Session() as db:
+            db.get(Section, section).days_of_week = "Lunes, Miércoles"
+            db.query(SectionMeeting).filter_by(section_id=section).delete()
+            enrollment_id = db.query(Enrollment).filter_by(section_id=section).first().enrollment_id
+            db.commit()
+        session = self.request("GET", f"/attendances/sections/{section}/session", tokens["teacher"], params={"day": "2026-09-21"})
+        self.assertEqual(session.status_code, 200, session.text)
+        self.assertIsNone(session.json()["roster"][0]["status"])
+        self.assertEqual(self.request("GET", f"/attendances/sections/{section}/session", tokens["student"]).status_code, 403)
+        blank = self.request("POST", "/attendances/bulk", tokens["teacher"], json={"section_id": section, "date": "2026-09-21", "records": [{"enrollment_id": enrollment_id}]})
+        self.assertEqual(blank.status_code, 422)
+        records = []
+        for day, status in (("2026-09-21", "present"), ("2026-09-23", "late"), ("2026-09-28", "early_departure"), ("2026-09-30", "excused"), ("2026-10-05", "absent")):
+            response = self.request("POST", "/attendances/bulk", tokens["teacher"], json={"section_id": section, "date": day, "records": [{"enrollment_id": enrollment_id, "status": status, "note": "Certificado médico" if status == "excused" else ""}]})
+            self.assertEqual(response.status_code, 200, response.text)
+            records.append(response.json()[0])
+        student_id = self.request("GET", "/students/", tokens["admin"]).json()[0]["student_id"]
+        params = {"start": "2026-09-21", "end": "2026-10-05"}
+        student = next(r for r in self.request("GET", f"/academic/students/{student_id}/attendance-summary", tokens["student"], params=params).json() if r["enrollment_id"] == enrollment_id)
+        self.assertEqual((student["present_count"], student["total_count"], student["percentage"]), (3, 5, 60))
+        self.assertEqual(student["counts"], {"present": 1, "absent": 1, "late": 1, "excused": 1, "early_departure": 1})
+        self.assertEqual(len(student["records"]), 5)
+        summary = next(r for r in self.request("GET", "/academic/sections/academic-summary", tokens["teacher"], params=params).json() if r["section_id"] == section)
+        self.assertEqual((summary["attendance_total"], summary["attendance_percentage"]), (5, 60))
+        correction = self.request("PATCH", f"/attendances/{records[1]['attendance_id']}", tokens["teacher"], json={"present": False, "reason": "No asistió; corregir tardanza"})
+        self.assertEqual(correction.status_code, 200, correction.text)
+        self.assertEqual((correction.json()["present"], correction.json()["status"]), (False, "absent"))
+        history = self.request("GET", f"/attendances/{records[1]['attendance_id']}/history", tokens["teacher"])
+        self.assertEqual(history.status_code, 200, history.text)
+        self.assertEqual(history.json()[0]["previous"]["status"], "late")
+        self.assertEqual(history.json()[0]["current"]["status"], "absent")
+        self.assertEqual(len(history.json()), 2)
+        self.assertEqual(self.request("GET", f"/attendances/{records[1]['attendance_id']}/history", tokens["student"]).status_code, 403)
+
+    def test_attendance_identity_atomicity_and_validation(self):
+        tokens, section = self.task_fixture()
+        with self.Session() as db:
+            db.get(Section, section).days_of_week = "Lunes, Miércoles"
+            db.query(SectionMeeting).filter_by(section_id=section).delete()
+            enrollment_id = db.query(Enrollment).filter_by(section_id=section).first().enrollment_id
+            db.commit()
+        body = {"section_id": section, "date": "2026-09-21", "reason": "Pase de lista", "records": [{"enrollment_id": enrollment_id, "status": "present"}]}
+        duplicate = {**body, "records": body["records"] * 2}
+        self.assertEqual(self.request("POST", "/attendances/bulk", tokens["teacher"], json=duplicate).status_code, 422)
+        wrong = {**body, "records": body["records"] + [{"enrollment_id": 999999, "status": "absent"}]}
+        self.assertEqual(self.request("POST", "/attendances/bulk", tokens["teacher"], json=wrong).status_code, 422)
+        record = self.request("POST", "/attendances/bulk", tokens["teacher"], json=body)
+        self.assertEqual(record.status_code, 200, record.text)
+        record_id = record.json()[0]["attendance_id"]
+        body["records"][0]["status"] = "excused"
+        self.assertEqual(self.request("POST", "/attendances/bulk", tokens["teacher"], json=body).status_code, 422)
+        self.assertEqual(self.request("GET", f"/attendances/{record_id}", tokens["teacher"]).json()["status"], "present")
+        self.assertEqual(self.request("POST", "/attendances/", tokens["teacher"], json={"enrollment_id": enrollment_id, "date": "2026-09-21T18:00:00", "present": True}).status_code, 409)
+        body["records"][0]["status"] = "absent"
+        response = self.request("POST", "/attendances/bulk", tokens["teacher"], json=body)
+        self.assertEqual(response.json()[0]["attendance_id"], record_id)
+        future = {**body, "date": "2099-01-01"}
+        self.assertEqual(self.request("POST", "/attendances/bulk", tokens["teacher"], json=future).status_code, 422)
+        self.assertEqual(self.request("PATCH", f"/attendances/{record_id}", tokens["teacher"], json={"status": None, "reason": "Corrección"}).status_code, 422)
+        self.assertEqual(self.request("PATCH", f"/attendances/{record_id}", tokens["teacher"], json={"status": "present"}).status_code, 422)
+        from sqlalchemy.exc import IntegrityError
+        from datetime import datetime
+        with self.Session() as db:
+            db.add(Attendance(enrollment_id=enrollment_id, date=datetime(2026, 9, 21, 20), present=True, status="present"))
+            with self.assertRaises(IntegrityError):
+                db.commit()
+            db.rollback()
+        self.assertEqual(self.request("GET", "/attendances/", tokens["teacher"], params={"start": "2026-10-05", "end": "2026-09-01"}).status_code, 422)
+
+    def test_attendance_schedule_exception_and_closed_period(self):
+        tokens, section = self.task_fixture()
+        with self.Session() as db:
+            db.get(Section, section).days_of_week = "Lunes, Miércoles"
+            db.query(SectionMeeting).filter_by(section_id=section).delete()
+            enrollment_id = db.query(Enrollment).filter_by(section_id=section).first().enrollment_id
+            db.commit()
+        body = {"section_id": section, "date": "2026-09-22", "records": [{"enrollment_id": enrollment_id, "status": "present"}], "reason": "Clase extraordinaria"}
+        self.assertEqual(self.request("POST", "/attendances/bulk", tokens["teacher"], json=body).status_code, 422)
+        self.assertEqual(self.request("POST", "/attendances/bulk", tokens["admin"], json=body).status_code, 422)
+        body["exception_reason"] = "Recuperación autorizada de clase"
+        saved = self.request("POST", "/attendances/bulk", tokens["admin"], json=body)
+        self.assertEqual(saved.status_code, 200, saved.text)
+        record_id = saved.json()[0]["attendance_id"]
+        with self.Session() as db:
+            db.get(Enrollment, enrollment_id).state = "completed"
+            db.commit()
+        self.assertEqual(self.request("PATCH", f"/attendances/{record_id}", tokens["teacher"], json={"status": "late", "reason": "Llegó después"}).status_code, 200)
+        body["date"] = "2026-09-23"
+        self.assertEqual(self.request("POST", "/attendances/bulk", tokens["admin"], json=body).status_code, 409)
+        with self.Session() as db:
+            db.query(AcademicPeriod).first().status = "closed"
+            db.commit()
+        self.assertEqual(self.request("PATCH", f"/attendances/{record_id}", tokens["admin"], json={"status": "present", "reason": "Corregir"}).status_code, 409)
+
+    def test_equivalence_consistency_impact_history_and_permissions(self):
+        tokens, _ = self.task_fixture()
+        with self.Session() as db:
+            student = db.query(Student).first()
+            sid, career_id = student.student_id, student.career_id
+            source = db.query(Subject).filter_by(code="PROG-101").one().subject_id
+            target = db.query(Subject).filter_by(code="MAT-101").one().subject_id
+            version = student.career.curriculum_version
+            grades_before = db.query(Grade).count()
+        body = dict(career_id=career_id, source_subject_id=source, target_subject_id=target,
+                    curriculum_version=version, reason="Reconocimiento curricular", notes="Prueba")
+        path = "/governance/equivalences"
+        preview = self.request("POST", path + "/preview", tokens["admin"], json=body)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        self.assertEqual(preview.json()["affected_students"], 1)
+        self.assertEqual(preview.json()["students"][0]["credit_delta"], 3)
+        self.assertEqual(self.request("GET", path, tokens["admin"]).json(), [])
+        for role in ("student", "teacher"):
+            self.assertEqual(self.request("POST", path, tokens[role], json=body).status_code, 403)
+        created = self.request("POST", path, tokens["admin"], json=body)
+        self.assertEqual(created.status_code, 200, created.text)
+        rid = created.json()["course_equivalence_id"]
+        self.assertEqual(self.request("POST", path, tokens["admin"], json=body).status_code, 409)
+        invalid = dict(body, curriculum_version="inexistente")
+        self.assertEqual(self.request("POST", path + "/preview", tokens["admin"], json=invalid).status_code, 422)
+        cycle = dict(body, source_subject_id=target, target_subject_id=source)
+        self.assertEqual(self.request("POST", path, tokens["admin"], json=cycle).status_code, 409)
+        progress = self.request("GET", f"/curriculum/students/{sid}/progress", tokens["student"]).json()
+        record = self.request("GET", f"/records/students/{sid}/transcript", tokens["student"]).json()
+        audit = self.request("GET", f"/governance/students/{sid}/graduation-audit", tokens["student"]).json()
+        self.assertEqual(progress["completed_credits"], 7)
+        self.assertEqual(record["earned_credits"], audit["earned_credits"])
+        self.assertEqual(record["earned_credits"], progress["completed_credits"])
+        self.assertEqual(record["cumulative_average"], 92)
+        recognized = next(c for c in record["courses"] if c["result"] == "recognized")
+        self.assertIsNone(recognized["average"])
+        self.assertEqual(recognized["attempts"], 0)
+        self.assertEqual(recognized["origin_subject_code"], "PROG-101")
+        self.assertEqual(recognized["equivalence_ids"], [rid])
+        self.assertIsNone(next(c for c in progress["courses"] if c["subject_id"] == target)["final_average"])
+        impact = self.request("GET", f"{path}/{rid}/impact", tokens["admin"], params={"active": False})
+        self.assertEqual(impact.status_code, 200, impact.text)
+        self.assertEqual(impact.json()["students"][0]["credit_delta"], -3)
+        edit = self.request("PATCH", f"{path}/{rid}", tokens["admin"], json={"active": False, "notes": "Suspendida", "reason": "Revisión del comité"})
+        self.assertEqual(edit.status_code, 200, edit.text)
+        history = self.request("GET", f"{path}/{rid}/history", tokens["admin"]).json()
+        self.assertEqual(len(history), 2)
+        self.assertEqual(history[0]["action"], "equivalence.deactivated")
+        self.assertEqual(history[0]["actor"], "demo.admin")
+        self.assertEqual(self.request("GET", f"/curriculum/students/{sid}/progress", tokens["student"]).json()["completed_credits"], 4)
+        with self.Session() as db:
+            self.assertEqual(db.query(Grade).count(), grades_before)
+
+    def test_equivalence_chains_versions_prerequisites_and_no_double_credit(self):
+        from app.services.academic_recognition import recognize
+        from app.services.enrollment_service import create_enrollment_service
+        from app.schemas.enrollment_schema import EnrollmentCreate
+        from fastapi import HTTPException
+        tokens, _ = self.task_fixture()
+        with self.Session() as db:
+            student = db.query(Student).first()
+            origin = db.query(Subject).filter_by(code="PROG-101").one()
+            target = db.query(Subject).filter_by(code="MAT-101").one()
+            third = Subject(code="TER-101", description="Materia avanzada")
+            fourth = Subject(code="CUA-101", description="Materia con requisito")
+            db.add_all([third, fourth])
+            db.flush()
+            for subject in (third, fourth):
+                db.add(CurriculumCourse(career_id=student.career_id, subject_id=subject.subject_id, term_number=3, credits=2, curriculum_version=student.career.curriculum_version, prerequisite_subject_id=target.subject_id, corequisite_subject_id=third.subject_id if subject == fourth else None))
+            # Insert the downstream rule first: closure must not depend on ID ordering.
+            db.add(CourseEquivalence(career_id=student.career_id, source_subject_id=target.subject_id, target_subject_id=third.subject_id, curriculum_version=student.career.curriculum_version))
+            db.flush()
+            db.add(CourseEquivalence(career_id=student.career_id, source_subject_id=origin.subject_id, target_subject_id=target.subject_id, curriculum_version=student.career.curriculum_version))
+            db.flush()
+            db.add(CourseEquivalence(career_id=student.career_id, source_subject_id=origin.subject_id, target_subject_id=fourth.subject_id, curriculum_version="histórica"))
+            section = Section(code="CUA-A", description="Avanzada", teacher_id=db.query(Teacher).first().teacher_id, subject_id=fourth.subject_id, days_of_week="Viernes", start_time=time(14), end_time=time(15), status="active")
+            db.add(section)
+            db.commit()
+            db.refresh(student)
+            recognition = recognize(db, student)
+            self.assertIn(third.subject_id, recognition.completed)
+            self.assertNotIn(fourth.subject_id, recognition.completed)
+            self.assertEqual(len(recognition.paths[third.subject_id]), 2)
+            enrollment = create_enrollment_service(db, EnrollmentCreate(student_id=student.student_id, section_id=section.section_id, period="2026-2027"))
+            self.assertEqual(enrollment.state, "enrolled")
+            target_section = db.query(Section).filter_by(subject_id=target.subject_id).one()
+            with self.assertRaises(HTTPException) as rejected:
+                create_enrollment_service(db, EnrollmentCreate(student_id=student.student_id, section_id=target_section.section_id, period="2026-2027"))
+            self.assertEqual(rejected.exception.status_code, 409)
+            # Direct approval takes priority over a rule; no duplicate recognized row or credit.
+            target_enrollment = db.query(Enrollment).filter_by(student_id=student.student_id, section_id=target_section.section_id).one()
+            db.add(Grade(enrollment_id=target_enrollment.enrollment_id, grade_type="Final", grade_value=80, date_recorded="2026-09-20", status="published"))
+            db.commit()
+            recognition = recognize(db, student)
+            self.assertNotIn(target.subject_id, recognition.paths)
+            self.assertIn(target.subject_id, recognition.direct)
+            sid = student.student_id
+        record = self.request("GET", f"/records/students/{sid}/transcript", tokens["student"])
+        self.assertEqual(record.status_code, 200, record.text)
+        self.assertEqual(record.json()["earned_credits"], 9)
+        self.assertEqual(record.json()["recognized_credits"], 2)
+
+    def test_equivalence_inactive_cycle_invalid_destination_and_draft_source(self):
+        tokens, _ = self.task_fixture()
+        with self.Session() as db:
+            student = db.query(Student).first()
+            sid = student.student_id
+            source = db.query(Subject).filter_by(code="PROG-101").one().subject_id
+            target = db.query(Subject).filter_by(code="MAT-101").one().subject_id
+            outside = Subject(code="OUT-101", description="Fuera del pensum")
+            db.add(outside)
+            db.commit()
+            body = dict(career_id=student.career_id, source_subject_id=source, target_subject_id=target, curriculum_version=student.career.curriculum_version, reason="Regla del comité")
+            invalid = dict(body, target_subject_id=outside.subject_id)
+        path = "/governance/equivalences"
+        self.assertEqual(self.request("POST", path, tokens["admin"], json=invalid).status_code, 422)
+        first = self.request("POST", path, tokens["admin"], json=body)
+        self.assertEqual(first.status_code, 200, first.text)
+        inverse = self.request("POST", path, tokens["admin"], json=dict(body, source_subject_id=target, target_subject_id=source, active=False))
+        self.assertEqual(inverse.status_code, 200, inverse.text)
+        rid = inverse.json()["course_equivalence_id"]
+        self.assertEqual(self.request("GET", f"{path}/{rid}/impact", tokens["admin"], params={"active": True}).status_code, 409)
+        self.assertEqual(self.request("PATCH", f"{path}/{rid}", tokens["admin"], json={"active": True, "notes": "", "reason": "Activar"}).status_code, 409)
+        self.assertEqual(len(self.request("GET", path, tokens["admin"], params={"active": False}).json()), 1)
+        with self.Session() as db:
+            db.query(Grade).first().status = "draft"
+            db.commit()
+        progress = self.request("GET", f"/curriculum/students/{sid}/progress", tokens["student"]).json()
+        self.assertEqual(progress["completed_credits"], 0)
+
+    def finance_fixture(self, amount="1000.01"):
+        tokens, _ = self.task_fixture()
+        with self.Session() as db:
+            sid = db.query(Student).first().student_id
+        base = f"/finance/students/{sid}"
+        response = self.request("POST", base + "/charges", tokens["admin"], json={"description": "Mensualidad", "amount": amount, "due_date": "2020-01-01"})
+        self.assertEqual(response.status_code, 200, response.text)
+        return tokens, sid, base
+
+    def test_finance_cents_audit_reversal_and_idempotency(self):
+        tokens, sid, base = self.finance_fixture()
+        for amount in ("0", "-1", "1.001", "Infinity", "1000000000"):
+            invalid = self.request("POST", base + "/payments", tokens["admin"], json={"amount": amount, "reference": "INVALIDA"})
+            self.assertEqual(invalid.status_code, 422, invalid.text)
+        body = {"amount": "100.01", "reference": "EFECTIVO-001", "idempotency_key": "operacion-001"}
+        first = self.request("POST", base + "/payments", tokens["admin"], json=body)
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(first.json()["balance"], 900)
+        self.assertEqual(self.request("POST", base + "/payments", tokens["admin"], json=body).json()["balance"], 900)
+        self.assertEqual(self.request("POST", base + "/payments", tokens["admin"], json=dict(body, amount="101")).status_code, 409)
+        self.assertEqual(self.request("POST", base + "/payments", tokens["admin"], json=dict(body, idempotency_key="otra-clave")).status_code, 409)
+        adjustment = self.request("POST", base + "/adjustments", tokens["admin"], json={"kind": "scholarship", "description": "Beca aprobada", "amount": "200"})
+        self.assertEqual(adjustment.status_code, 200, adjustment.text)
+        self.assertEqual(adjustment.json()["balance"], 700)
+        self.assertEqual(adjustment.json()["overdue_balance"], 700)
+        self.assertEqual(self.request("GET", "/operations/analytics/summary", tokens["admin"]).json()["receivables"], 700)
+        self.assertEqual({t["type"] for t in adjustment.json()["transactions"]}, {"charge", "payment", "adjustment"})
+        payment = next(t for t in first.json()["transactions"] if t["type"] == "payment")
+        receipt = self.request("GET", f"/finance/payments/{payment['transaction_id']}/receipt.pdf", tokens["student"])
+        self.assertEqual(receipt.status_code, 200, receipt.text)
+        self.assertEqual(receipt.headers["content-type"], "application/pdf")
+        reversal = self.request("POST", f"{base}/transactions/payment/{payment['transaction_id']}/reverse", tokens["admin"], json={"reason": "Registro equivocado"})
+        self.assertEqual(reversal.status_code, 200, reversal.text)
+        self.assertEqual(reversal.json()["balance"], 800.01)
+        self.assertEqual(next(t for t in reversal.json()["transactions"] if t["type"] == "payment")["status"], "reversed")
+        self.assertEqual(self.request("POST", f"{base}/transactions/payment/{payment['transaction_id']}/reverse", tokens["admin"], json={"reason": "Repetido"}).status_code, 409)
+        history = self.request("GET", base + "/history", tokens["admin"]).json()
+        self.assertEqual(len(history), 4)
+        self.assertTrue(all(h["actor"] == "demo.admin" for h in history))
+        with self.Session() as db:
+            self.assertEqual(db.query(Payment).count(), 1)
+            self.assertEqual(db.query(FinanceEvent).filter_by(student_id=sid).count(), 4)
+
+    def test_finance_transfers_private_proof_manual_approval_and_rejection(self):
+        import base64
+        from unittest.mock import patch
+        from app.db.database import settings
+        tokens, sid, base = self.finance_fixture()
+        body = {"amount": "250", "reference": "BANCO-001", "bank": "Banco de pruebas", "proof_base64": base64.b64encode(b"%PDF-1.4\ncomprobante ficticio").decode()}
+        with patch.object(settings, "finance_transfer_instructions", ""):
+            self.assertEqual(self.request("POST", base + "/transfers", tokens["student"], json=body).status_code, 409)
+        with patch.object(settings, "finance_transfer_instructions", "Cuenta ficticia exclusiva de pruebas"):
+            invalid = self.request("POST", base + "/transfers", tokens["student"], json=dict(body, proof_base64=base64.b64encode(b"archivo exe").decode()))
+            self.assertEqual(invalid.status_code, 422)
+            submitted = self.request("POST", base + "/transfers", tokens["student"], json=body)
+            self.assertEqual(submitted.status_code, 200, submitted.text)
+            rid = submitted.json()["transfer_request_id"]
+            self.assertEqual(self.request("GET", base, tokens["student"]).json()["balance"], 1000.01)
+            self.assertEqual(self.request("POST", base + "/transfers", tokens["student"], json=body).status_code, 409)
+            self.assertEqual(self.request("GET", f"/finance/transfers/{rid}/proof", tokens["teacher"]).status_code, 403)
+            proof = self.request("GET", f"/finance/transfers/{rid}/proof", tokens["student"])
+            self.assertEqual(proof.content, b"%PDF-1.4\ncomprobante ficticio")
+            self.assertEqual(proof.headers["cache-control"], "no-store")
+            review_body = {"approve": True, "reason": "Ingreso confirmado en banco"}
+            self.assertEqual(self.request("POST", f"/finance/transfers/{rid}/review", tokens["student"], json=review_body).status_code, 403)
+            approved = self.request("POST", f"/finance/transfers/{rid}/review", tokens["admin"], json=review_body)
+            self.assertEqual(approved.status_code, 200, approved.text)
+            self.assertEqual(approved.json()["status"], "approved")
+            self.assertEqual(self.request("POST", f"/finance/transfers/{rid}/review", tokens["admin"], json=review_body).status_code, 409)
+            self.assertEqual(self.request("GET", base, tokens["student"]).json()["balance"], 750.01)
+            second = self.request("POST", base + "/transfers", tokens["student"], json=dict(body, reference="BANCO-002")).json()["transfer_request_id"]
+            rejected = self.request("POST", f"/finance/transfers/{second}/review", tokens["admin"], json={"approve": False, "reason": "Comprobante no verificable"})
+            self.assertEqual(rejected.json()["status"], "rejected")
+            self.assertEqual(self.request("GET", base, tokens["student"]).json()["balance"], 750.01)
+        with self.Session() as db:
+            self.assertEqual(db.query(Payment).count(), 1)
+
+    def test_finance_monthly_plans_partial_credits_cancel_and_no_duplicate_debt(self):
+        from app.services.finance_workflow import business_date
+        tokens, _, base = self.finance_fixture()
+        first = f"{business_date().year + 1}-01-31"
+        created = self.request("POST", base + "/payment-plans", tokens["admin"], json={"name": "Plan mensual", "installments": 3, "first_due_date": first})
+        self.assertEqual(created.status_code, 200, created.text)
+        pid = created.json()["payment_plan_id"]
+        duplicate = self.request("POST", base + "/payment-plans", tokens["admin"], json={"name": "Duplicado", "installments": 2, "first_due_date": first})
+        self.assertEqual(duplicate.status_code, 409)
+        items = self.request("GET", base + "/payment-plans", tokens["student"]).json()[0]["installments"]
+        self.assertEqual(round(sum(i["amount"] for i in items), 2), 1000.01)
+        self.assertIn(items[1]["due_date"][-5:], ("02-28", "02-29"))
+        self.assertTrue(items[2]["due_date"].endswith("03-31"))
+        paid = self.request("POST", base + "/payments", tokens["admin"], json={"amount": "100", "reference": "PLAN-001"})
+        self.assertEqual(paid.status_code, 200, paid.text)
+        items = self.request("GET", base + "/payment-plans", tokens["student"]).json()[0]["installments"]
+        self.assertEqual(items[0]["paid_amount"], 100)
+        self.assertEqual(items[0]["status"], "partial")
+        self.request("POST", base + "/adjustments", tokens["admin"], json={"kind": "discount", "description": "Descuento académico", "amount": "233.34"})
+        items = self.request("GET", base + "/payment-plans", tokens["student"]).json()[0]["installments"]
+        self.assertEqual(items[0]["status"], "paid")
+        cancelled = self.request("POST", f"{base}/payment-plans/{pid}/cancel", tokens["admin"], json={"reason": "Reprogramar compromisos"})
+        self.assertEqual(cancelled.status_code, 200)
+        self.request("POST", base + "/payments", tokens["admin"], json={"amount": "10", "reference": "PLAN-002"})
+        frozen = self.request("GET", base + "/payment-plans", tokens["student"]).json()[0]
+        self.assertFalse(frozen["active"])
+        self.assertEqual(frozen["installments"][1]["paid_amount"], 0)
+        self.assertEqual(self.request("GET", base, tokens["student"]).json()["balance"], 656.67)
+
+    def test_finance_closed_cash_and_simulator_never_posts_real_money(self):
+        from app.services.finance_workflow import business_date
+        tokens, _, base = self.finance_fixture()
+        paid = self.request("POST", base + "/payments", tokens["admin"], json={"amount": "100", "reference": "CIERRE-001"})
+        self.assertEqual(paid.status_code, 200, paid.text)
+        payment_id = next(t for t in paid.json()["transactions"] if t["type"] == "payment")["transaction_id"]
+        today = business_date().isoformat()
+        closing = self.request("POST", f"/finance/cash-closings/{today}", tokens["admin"])
+        self.assertEqual(closing.status_code, 200, closing.text)
+        self.assertEqual(closing.json()["cash_total"], 100)
+        blocked = self.request("POST", base + "/payments", tokens["admin"], json={"amount": "50", "reference": "CIERRE-002"})
+        self.assertEqual(blocked.status_code, 409)
+        self.assertEqual(self.request("POST", f"{base}/transactions/payment/{payment_id}/reverse", tokens["admin"], json={"reason": "Intento fuera de cierre"}).status_code, 409)
+        for outcome in ("approved", "declined", "cancelled"):
+            simulated = self.request("POST", base + "/simulate", tokens["admin"], json={"amount": "100", "outcome": outcome})
+            self.assertEqual(simulated.status_code, 200, simulated.text)
+            self.assertFalse(simulated.json()["balance_changed"])
+        self.assertEqual(self.request("POST", base + "/simulate", tokens["student"], json={"amount": "1", "outcome": "approved"}).status_code, 403)
+        self.assertEqual(self.request("GET", base, tokens["student"]).json()["balance"], 900.01)
+        with self.Session() as db:
+            self.assertEqual(db.query(Payment).count(), 1)
+
+    def test_finance_read_only_empty_accounts_and_cross_student_access(self):
+        tokens, _ = self.task_fixture()
+        with self.Session() as db:
+            student = db.query(Student).first()
+            sid = student.student_id
+            other = Student(first_name="Otra", last_name="Persona", enrollment_number="OTRA-001", email="otra@example.test", telephone="8095550101", address="Pruebas", career_id=student.career_id)
+            db.add(other)
+            db.commit()
+            other_id = other.student_id
+        self.assertEqual(self.request("GET", "/finance/accounts", tokens["admin"]).status_code, 200)
+        self.assertEqual(self.request("GET", f"/finance/students/{sid}", tokens["student"]).json()["balance"], 0)
+        self.assertEqual(self.request("GET", f"/finance/students/{other_id}", tokens["student"]).status_code, 403)
+        with self.Session() as db:
+            self.assertEqual(db.query(StudentAccount).count(), 0)
+            self.assertEqual(db.query(FinanceControl).count(), 0)
+
+    def task_fixture(self):
+        with self.Session() as db:
+            seed_demo(db)
+        tokens = {}
+        for role, username, password in (("admin", "demo.admin", "NexoAdmin2026!"), ("teacher", "demo.docente", "NexoDocente2026!"), ("student", "demo.estudiante", "NexoEstudiante2026!")):
+            tokens[role] = self.request("POST", "/auth/login", json={"username": username, "password": password}).json()["access_token"]
+        section = self.request("GET", "/sections/", tokens["admin"]).json()[0]
+        return tokens, section["section_id"]
+
+    def test_task_drafts_policies_attempts_and_roster(self):
+        tokens, section = self.task_fixture()
+        body = {"section_id": section, "title": "Actividad organizada", "instructions": "Resolver y explicar", "due_at": "2099-01-01T23:00:00-04:00", "published": False, "max_score": 20}
+        response = self.request("POST", "/operations/assignments", tokens["teacher"], json=body)
+        self.assertEqual(response.status_code, 200, response.text)
+        task_id = response.json()["assignment_id"]
+        path = f"/operations/assignments/{task_id}"
+        self.assertEqual(self.request("GET", "/operations/assignments", tokens["student"], params={"section_id": section}).json(), [])
+        self.assertEqual(self.request("POST", f"{path}/submit", tokens["student"], json={"content": "Intento"}).status_code, 404)
+        body["published"] = True
+        self.assertEqual(self.request("PUT", path, tokens["teacher"], json=body).status_code, 200)
+        first = self.request("POST", f"{path}/submit", tokens["student"], json={"content": "Primera solución"})
+        self.assertEqual(first.status_code, 200, first.text)
+        sub_id = first.json()["submission_id"]
+        second = self.request("POST", f"{path}/submit", tokens["student"], json={"content": "Segunda solución"})
+        self.assertEqual(second.json()["attempts"], 2)
+        history = self.request("GET", f"/operations/submissions/{sub_id}/revisions", tokens["student"])
+        self.assertEqual([r["content"] for r in history.json()], ["Primera solución", "Segunda solución"])
+        roster = self.request("GET", f"{path}/submissions", tokens["teacher"])
+        self.assertEqual(roster.status_code, 200, roster.text)
+        self.assertIn("student_name", roster.json()[0])
+        self.assertEqual(self.request("GET", f"{path}/submissions", tokens["student"]).status_code, 403)
+        self.assertEqual(self.request("POST", "/operations/assignments", tokens["student"], json=body).status_code, 403)
+        self.assertEqual(self.request("POST", f"{path}/submit", tokens["student"], json={"content": " "}).status_code, 422)
+        graded = self.request("PATCH", f"/operations/submissions/{sub_id}/grade", tokens["teacher"], json={"score": 0, "feedback": "Revisar fundamentos"})
+        self.assertEqual(graded.status_code, 200, graded.text)
+        own = self.request("GET", "/operations/assignments", tokens["student"]).json()[0]
+        self.assertEqual(own["submission"]["score"], 0)
+        self.assertEqual(own["submission"]["feedback"], "Revisar fundamentos")
+        self.assertEqual(self.request("POST", f"{path}/submit", tokens["student"], json={"content": "Otra"}).status_code, 409)
+        body["max_score"] = 50
+        self.assertEqual(self.request("PUT", path, tokens["teacher"], json=body).status_code, 409)
+
+    def test_task_deadline_lifecycle_and_active_enrollment(self):
+        tokens, section = self.task_fixture()
+        body = {"section_id": section, "title": "Fuera de plazo", "instructions": "Resolver actividad", "due_at": "2000-01-01T00:00:00Z"}
+        task = self.request("POST", "/operations/assignments", tokens["teacher"], json=body).json()
+        path = f"/operations/assignments/{task['assignment_id']}"
+        self.assertEqual(self.request("POST", f"{path}/submit", tokens["student"], json={"content": "Solución"}).status_code, 409)
+        body["allow_late"] = True
+        self.assertEqual(self.request("PUT", path, tokens["teacher"], json=body).status_code, 200)
+        self.assertEqual(self.request("POST", f"{path}/submit", tokens["student"], json={"content": "Solución tardía"}).status_code, 200)
+        for lifecycle in ("closed", "archived"):
+            body["lifecycle"] = lifecycle
+            self.assertEqual(self.request("PUT", path, tokens["teacher"], json=body).status_code, 200)
+            self.assertEqual(self.request("POST", f"{path}/submit", tokens["student"], json={"content": "Reenvío"}).status_code, 409)
+        body["lifecycle"] = "open"
+        self.request("PUT", path, tokens["teacher"], json=body)
+        with self.Session() as db:
+            enrollment = db.query(Enrollment).filter_by(section_id=section).first()
+            enrollment.state = "withdrawn"
+            db.commit()
+        self.assertEqual(self.request("POST", f"{path}/submit", tokens["student"], json={"content": "Retirado"}).status_code, 404)
+
+    def test_task_transfer_normalization_privacy_and_idempotence(self):
+        tokens, section = self.task_fixture()
+        assessment = self.request("POST", "/assessments/", tokens["teacher"], json={"section_id": section, "name": "Proyecto entregable", "weight": 100, "due_date": "2099-01-01"}).json()
+        body = {"section_id": section, "title": "Proyecto final", "instructions": "Desarrollar solución", "due_at": "2099-01-01T00:00:00Z", "max_score": 20, "assessment_id": assessment["assessment_id"]}
+        task = self.request("POST", "/operations/assignments", tokens["teacher"], json=body)
+        self.assertEqual(task.status_code, 200, task.text)
+        path = f"/operations/assignments/{task.json()['assignment_id']}"
+        duplicate = self.request("POST", "/operations/assignments", tokens["teacher"], json=body)
+        self.assertEqual(duplicate.status_code, 409)
+        submission = self.request("POST", f"{path}/submit", tokens["student"], json={"content": "Proyecto"}).json()
+        self.request("PATCH", f"/operations/submissions/{submission['submission_id']}/grade", tokens["teacher"], json={"score": 18, "feedback": "Muy bien"})
+        transferred = self.request("POST", f"{path}/transfer-grades", tokens["teacher"], json={"reason": "Revisión de proyecto"})
+        self.assertEqual(transferred.status_code, 200, transferred.text)
+        self.assertEqual(transferred.json()["transferred"], 1)
+        self.assertEqual(self.request("POST", f"{path}/transfer-grades", tokens["teacher"], json={"reason": "Revisión"}).json()["skipped"], 1)
+        with self.Session() as db:
+            note = db.query(Grade).filter_by(assessment_id=assessment["assessment_id"]).one()
+            self.assertEqual((note.grade_value, note.status), (90, "draft"))
+            note_id = note.grade_id
+        self.assertEqual(self.request("GET", f"/grades/{note_id}", tokens["student"]).status_code, 404)
+        self.assertEqual(self.request("POST", f"{path}/transfer-grades", tokens["student"], json={"reason": "Cambiar"}).status_code, 403)
+        changed = self.request("PATCH", f"/operations/submissions/{submission['submission_id']}/grade", tokens["teacher"], json={"score": 16, "feedback": "Corrección"})
+        self.assertEqual(changed.status_code, 200)
+        self.assertEqual(self.request("POST", f"{path}/transfer-grades", tokens["teacher"], json={"reason": "Corrección"}).status_code, 409)
+        with self.Session() as db:
+            self.assertEqual(db.get(Grade, note_id).grade_value, 90)
+        agenda = self.request("GET", "/operations/agenda", tokens["student"])
+        self.assertEqual(agenda.status_code, 200, agenda.text)
+        self.assertTrue({"task", "assessment"}.issubset({e["kind"] for e in agenda.json()}))
+
+    def test_task_section_assessment_period_and_event_scope(self):
+        tokens, section = self.task_fixture()
+        all_sections = self.request("GET", "/sections/", tokens["admin"]).json()
+        other = next(s["section_id"] for s in all_sections if s["section_id"] != section)
+        assessment = self.request("POST", "/assessments/", tokens["teacher"], json={"section_id": other, "name": "Otra evaluación", "weight": 100}).json()
+        body = {"section_id": section, "title": "Actividad segura", "instructions": "Explicar razonamiento", "due_at": "2099-01-01T00:00:00Z", "assessment_id": assessment["assessment_id"]}
+        self.assertEqual(self.request("POST", "/operations/assignments", tokens["teacher"], json=body).status_code, 422)
+        body["assessment_id"] = None
+        task = self.request("POST", "/operations/assignments", tokens["teacher"], json=body).json()
+        path = f"/operations/assignments/{task['assignment_id']}"
+        event_body = {"title": "Orientación de sección", "starts_at": "2099-01-01T09:00:00-04:00", "ends_at": "2099-01-01T10:00:00-04:00", "audience": "section", "section_id": section}
+        event = self.request("POST", "/operations/calendar", tokens["teacher"], json=event_body)
+        self.assertEqual(event.status_code, 200, event.text)
+        self.assertTrue(event.json()["starts_at"].startswith("2099-01-01T13:"))
+        event_path = f"/operations/calendar/{event.json()['calendar_event_id']}"
+        self.assertEqual(self.request("PUT", event_path, tokens["student"], json=event_body).status_code, 403)
+        event_body["audience"] = "all"
+        self.assertEqual(self.request("PUT", event_path, tokens["teacher"], json=event_body).status_code, 403)
+        with self.Session() as db:
+            teacher = db.query(User).filter_by(username="demo.docente").one()
+            teacher.teacher_id = None
+            db.commit()
+        self.assertEqual(self.request("GET", "/operations/assignments", tokens["teacher"]).json(), [])
+        self.assertEqual(self.request("GET", f"{path}/submissions", tokens["teacher"]).status_code, 404)
+        self.assertEqual(self.request("GET", "/operations/calendar", tokens["teacher"]).json(), [])
+        with self.Session() as db:
+            period = db.query(AcademicPeriod).first()
+            period.status = "closed"
+            db.commit()
+        self.assertEqual(self.request("POST", f"{path}/submit", tokens["student"], json={"content": "Solución"}).status_code, 409)
+        self.assertEqual(self.request("PUT", path, tokens["admin"], json=body).status_code, 409)
 
     def test_calendar_assignments_alerts_admissions_and_approvals(self) -> None:
         with self.Session() as db:

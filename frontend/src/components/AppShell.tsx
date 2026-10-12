@@ -31,7 +31,7 @@ const studentNav = [
   { to: "/my-transcript", label: "Mi expediente", icon: FileText }, { to: "/my-finance", label: "Mi cuenta", icon: Wallet },
   { to: "/communications", label: "Comunicaciones", icon: Bell },
 ];
-const guardianNav = [{ to: "/guardian", label: "Seguimiento familiar", icon: Users }, { to: "/communications", label: "Comunicaciones", icon: Bell }, { to: "/account", label: "Mi cuenta", icon: Settings2 }];
+const guardianNav = [{ to: "/guardian", label: "Seguimiento familiar", icon: Users }, { to: "/operations", label: "Agenda y tareas", icon: CalendarDays }, { to: "/communications", label: "Comunicaciones", icon: Bell }, { to: "/account", label: "Mi cuenta", icon: Settings2 }];
 const navPermissions: Record<string, string> = { "/institutional-control": "reports.view", "/finance": "finance.manage", "/grades": "grades.manage", "/attendances": "grades.manage", "/students": "academic.manage", "/teachers": "academic.manage", "/careers": "academic.manage", "/subjects": "academic.manage", "/sections": "academic.manage", "/assessments": "grades.manage", "/equivalences": "academic.manage", "/roles": "access.manage", "/users": "access.manage" };
 const legacyPermissions: Record<Role, string[]> = { admin: ["academic.manage", "grades.manage", "finance.manage", "reports.view", "communications.manage", "access.manage", "operations.manage"], teacher: ["academic.manage", "grades.manage", "communications.manage", "operations.manage"], student: ["records.own"], guardian: ["records.own"] };
 const roleLabels: Record<Role, string> = { admin: "Administración", teacher: "Docente", student: "Estudiante", guardian: "Tutor" };

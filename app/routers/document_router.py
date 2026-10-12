@@ -42,9 +42,15 @@ def transcript_pdf(
         f"Carrera: {record.career_name}",
         f"Promedio acumulado: {record.cumulative_average}",
         f"Creditos aprobados: {record.earned_credits}",
+        f"Creditos por equivalencia (sin nota): {record.recognized_credits}",
         "",
         *[
-            f"{item.period} | {item.subject_code} | {item.average or '-'} | {item.result}"
+            f"{item.period} | {item.subject_code} | {item.average if item.average is not None else '-'} | "
+            + (
+                f"Equivalencia desde {item.origin_subject_code}; sin nota"
+                if item.recognition_type == "equivalence"
+                else item.result
+            )
             for item in record.courses
         ],
     ]
@@ -124,7 +130,12 @@ def report_card(
         f"Matricula: {record.enrollment_number}",
         "",
         *[
-            f"{item.subject_code} | {item.subject_name} | Nota: {item.average or '-'}"
+            f"{item.subject_code} | {item.subject_name} | "
+            + (
+                f"Equivalencia desde {item.origin_subject_code}; sin nota"
+                if item.recognition_type == "equivalence"
+                else f"Nota: {item.average if item.average is not None else '-'}"
+            )
             for item in record.courses
         ],
     ]

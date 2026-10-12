@@ -5,10 +5,12 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     LargeBinary,
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -47,6 +49,15 @@ class LessonPlan(Base):
 
 class Assignment(Base):
     __tablename__ = "assignments"
+    __table_args__ = (
+        Index(
+            "uq_assignment_assessment",
+            "assessment_id",
+            unique=True,
+            sqlite_where=text("assessment_id IS NOT NULL"),
+            postgresql_where=text("assessment_id IS NOT NULL"),
+        ),
+    )
     assignment_id: Mapped[int] = mapped_column(primary_key=True)
     section_id: Mapped[int] = mapped_column(ForeignKey("sections.section_id"))
     title: Mapped[str] = mapped_column(String(150))
@@ -58,6 +69,9 @@ class Assignment(Base):
     )
     created_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
     published: Mapped[bool] = mapped_column(default=True)
+    lifecycle: Mapped[str] = mapped_column(String(20), default="open", server_default="open")
+    allow_late: Mapped[bool] = mapped_column(default=False, server_default="0")
+    allow_resubmit: Mapped[bool] = mapped_column(default=True, server_default="1")
 
 
 class Submission(Base):
@@ -73,6 +87,14 @@ class Submission(Base):
     status: Mapped[str] = mapped_column(String(20), default="submitted")
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
     feedback: Mapped[str] = mapped_column(Text, default="")
+
+
+class SubmissionRevision(Base):
+    __tablename__ = "submission_revisions"
+    revision_id: Mapped[int] = mapped_column(primary_key=True)
+    submission_id: Mapped[int] = mapped_column(ForeignKey("submissions.submission_id"))
+    content: Mapped[str] = mapped_column(Text)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
 
 class EarlyAlert(Base):

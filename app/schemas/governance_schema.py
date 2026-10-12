@@ -1,22 +1,42 @@
 from datetime import date, datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+
+Reason = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=250)]
+Version = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]
 
 
-class EquivalenceCreate(BaseModel):
+class EquivalenceBase(BaseModel):
     career_id: int
     source_subject_id: int
     target_subject_id: int
-    curriculum_version: str = "current"
-    notes: str = ""
+    curriculum_version: Version = "current"
+    notes: str = Field(default="", max_length=2000)
+    active: bool = True
 
 
-class EquivalenceOut(EquivalenceCreate):
+class EquivalenceCreate(EquivalenceBase):
+    reason: Reason = "Registro de regla de equivalencia"
+
+
+class EquivalenceUpdate(BaseModel):
+    notes: str = Field(max_length=2000)
+    active: bool
+    reason: Reason
+
+
+class EquivalenceOut(EquivalenceBase):
     course_equivalence_id: int
     source_code: str
     source_name: str
     target_code: str
     target_name: str
+    career_name: str = ""
+    career_code: str = ""
+    created_by: int | None = None
+    updated_by: int | None = None
+    updated_at: datetime | None = None
 
 
 class CareerChangeCreate(BaseModel):
@@ -45,6 +65,8 @@ class GraduationRequirement(BaseModel):
     credits: float
     course_type: str
     status: str
+    recognition_type: str = "direct"
+    equivalence_ids: list[int] = Field(default_factory=list)
 
 
 class GraduationAudit(BaseModel):

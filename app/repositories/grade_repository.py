@@ -6,7 +6,7 @@ from app.schemas.grade_schema import GradeCreate, GradeUpdate
 
 def create_grade(db: Session, grade_data: GradeCreate) -> Grade:
 
-    new_grade = Grade(**grade_data.model_dump())
+    new_grade = Grade(**grade_data.model_dump(exclude={"reason"}))
 
     db.add(new_grade)
     db.commit()
@@ -30,7 +30,7 @@ def update_grade(db: Session, grade_id: int, grade_data: GradeUpdate) -> Grade:
     if not grade:
         return None
 
-    update_data = grade_data.model_dump(exclude_unset=True)
+    update_data = grade_data.model_dump(exclude_unset=True, exclude={"reason"})
 
     for key, value in update_data.items():
         setattr(grade, key, value)

@@ -1,24 +1,31 @@
 from datetime import date, datetime
-from typing import Optional
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+
+AttendanceStatus = Literal["present", "absent", "late", "excused", "early_departure"]
+Reason = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=250)]
 
 
 class AttendanceCreate(BaseModel):
     enrollment_id: int
-    date: Optional[datetime] = None
-    present: bool = False
-    status: str | None = None
-    note: str = ""
-    excuse_reference: str = ""
+    date: datetime | None = None
+    present: bool | None = None
+    status: AttendanceStatus | None = None
+    note: str = Field(default="", max_length=300)
+    excuse_reference: str = Field(default="", max_length=300)
+    reason: Reason = "Registro de asistencia"
+    exception_reason: Reason | None = None
 
 
 class AttendanceUpdate(BaseModel):
-    date: Optional[datetime] = None
-    present: Optional[bool] = None
-    status: str | None = None
-    note: str | None = None
-    excuse_reference: str | None = None
+    date: datetime | None = None
+    present: bool | None = None
+    status: AttendanceStatus | None = None
+    note: str | None = Field(default=None, max_length=300)
+    excuse_reference: str | None = Field(default=None, max_length=300)
+    reason: Reason
+    exception_reason: Reason | None = None
 
 
 class AttendanceOut(BaseModel):
@@ -37,12 +44,15 @@ class AttendanceOut(BaseModel):
 
 class AttendanceBulkItem(BaseModel):
     enrollment_id: int
-    present: bool
-    status: str | None = None
-    note: str = ""
+    present: bool | None = None
+    status: AttendanceStatus | None = None
+    note: str = Field(default="", max_length=300)
+    excuse_reference: str = Field(default="", max_length=300)
 
 
 class AttendanceBulkCreate(BaseModel):
     section_id: int
     date: date
-    records: list[AttendanceBulkItem]
+    records: list[AttendanceBulkItem] = Field(min_length=1, max_length=500)
+    reason: Reason = "Registro de asistencia"
+    exception_reason: Reason | None = None

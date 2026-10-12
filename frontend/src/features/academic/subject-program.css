@@ -1,0 +1,6 @@
+.subject-guide { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-block: 24px; }
+.subject-guide p { color: var(--muted); line-height: 1.6; }
+.subject-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 20px; }
+.subject-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.subject-card-heading h2 { overflow-wrap: anywhere; }
+@media (max-width: 760px) { .subject-guide { grid-template-columns: 1fr; gap: 12px; } }

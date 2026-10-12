@@ -38,6 +38,8 @@ class CurriculumCourseOut(CurriculumCourseBase):
 
 
 class CurriculumProgressItem(BaseModel):
+    recognition_type: str = "direct"
+    equivalence_ids: list[int] = Field(default_factory=list)
     curriculum_course_id: int
     subject_id: int
     subject_code: str

@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, String
+from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -10,6 +10,14 @@ class Grade(Base):
     __tablename__ = "grades"
     __table_args__ = (
         CheckConstraint("grade_value >= 0 AND grade_value <= 100", name="ck_grades_value_range"),
+        Index(
+            "uq_grade_enrollment_assessment",
+            "enrollment_id",
+            "assessment_id",
+            unique=True,
+            sqlite_where=text("assessment_id IS NOT NULL"),
+            postgresql_where=text("assessment_id IS NOT NULL"),
+        ),
     )
 
     grade_id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -38,6 +46,9 @@ class GradeChange(Base):
     new_value: Mapped[float] = mapped_column(Float)
     changed_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
     reason: Mapped[str] = mapped_column(String(250), default="Registro de calificación")
+    action: Mapped[str] = mapped_column(String(20), default="updated")
+    previous_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    new_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     changed_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )

@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Float, ForeignKey, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, Float, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -14,6 +14,7 @@ class Assessment(Base):
     section_id: Mapped[int] = mapped_column(ForeignKey("sections.section_id"))
     name: Mapped[str] = mapped_column(String(100))
     weight: Mapped[float] = mapped_column(Float)
+
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     closed: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -31,3 +32,5 @@ class AssessmentTemplate(Base):
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
     name: Mapped[str] = mapped_column(String(100))
     weight: Mapped[float] = mapped_column(Float)
+    subject_id: Mapped[int | None] = mapped_column(ForeignKey("subjects.subject_id"), nullable=True)
+    components: Mapped[list | None] = mapped_column(JSON, nullable=True)

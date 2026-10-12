@@ -14,6 +14,8 @@ class GradeHistoryItem(BaseModel):
     grade_value: float
     grade_type: str
     date_recorded: str
+    assessment_weight: float | None = None
+    contribution: float | None = None
 
 
 class ScheduleItem(BaseModel):
@@ -96,6 +98,10 @@ class StudentEnrollmentSummary(BaseModel):
     state: str
     average_grade: float | None
     attendance_percentage: float | None
+    result_final: bool = False
+    result_status: str = "in_progress"
+    completed_weight: float = 0
+    calculation_mode: str = "weighted"
 
 
 class StudentAcademicProfile(StudentDossierFields):
@@ -122,6 +128,9 @@ class RosterGradeItem(BaseModel):
     grade_type: str
     grade_value: float
     date_recorded: str
+    status: str = "published"
+    assessment_weight: float | None = None
+    contribution: float | None = None
 
 
 class RosterAttendanceItem(BaseModel):
@@ -129,6 +138,7 @@ class RosterAttendanceItem(BaseModel):
     date: date
     status: str
     note: str
+    excuse_reference: str = ""
 
 
 class SectionRosterItem(SectionStudentItem):
@@ -138,6 +148,10 @@ class SectionRosterItem(SectionStudentItem):
     attendance_percentage: float | None
     attendance_status: bool | None
     attendances: list[RosterAttendanceItem]
+    result_final: bool = False
+    result_status: str = "in_progress"
+    completed_weight: float = 0
+    calculation_mode: str = "weighted"
 
 
 class SectionAcademicSummary(BaseModel):
@@ -150,6 +164,16 @@ class SectionAcademicSummary(BaseModel):
     attendance_percentage: float | None
     grade_average: float | None
     assessment_count: int
+    period_name: str = ""
+    graded_student_count: int = 0
+    final_student_count: int = 0
+    pending_student_count: int = 0
+    draft_grade_count: int = 0
+    published_grade_count: int = 0
+    closed_assessment_count: int = 0
+    configured_weight: float = 0
+    attendance_total: int = 0
+    attendance_counts: dict[str, int] = {}
 
 
 class SectionWorkspace(BaseModel):
@@ -164,6 +188,8 @@ class SectionWorkspace(BaseModel):
     end_time: time
     attendance_date: date
     roster: list[SectionRosterItem]
+    subject_id: int = 0
+    period_name: str = ""
 
 
 class AttendanceCourseSummary(BaseModel):
@@ -174,3 +200,8 @@ class AttendanceCourseSummary(BaseModel):
     present_count: int
     total_count: int
     percentage: float | None
+    enrollment_id: int = 0
+    period: str = ""
+    state: str = "enrolled"
+    counts: dict[str, int] = {}
+    records: list[RosterAttendanceItem] = []
