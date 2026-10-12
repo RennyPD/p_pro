@@ -2,6 +2,8 @@ from datetime import date, time
 
 from pydantic import BaseModel
 
+from app.schemas.student_schema import StudentDossierFields
+
 
 class GradeHistoryItem(BaseModel):
     grade_id: int
@@ -96,7 +98,7 @@ class StudentEnrollmentSummary(BaseModel):
     attendance_percentage: float | None
 
 
-class StudentAcademicProfile(BaseModel):
+class StudentAcademicProfile(StudentDossierFields):
     student_id: int
     enrollment_number: str
     first_name: str
@@ -105,6 +107,8 @@ class StudentAcademicProfile(BaseModel):
     telephone: str
     address: str
     active: bool
+    academic_hold: bool = False
+    financial_hold: bool = False
     career_id: int
     career_name: str
     overall_average: float | None

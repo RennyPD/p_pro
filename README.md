@@ -110,6 +110,22 @@ Los permisos configurables complementan el rol y se aplican tanto en la API como
 
 ## Consultas académicas
 
+### Expediente estudiantil
+
+El directorio permite buscar por nombre completo, matrícula, correo o documento y combinar filtros de programa, estado y bloqueos. Cada expediente organiza el resumen institucional, los datos personales, el historial académico por período y los tutores/contactos de emergencia.
+
+La migración `20261010_0024` incorpora campos opcionales de documento de identidad, nacimiento, nacionalidad, fecha de ingreso, centro de procedencia y contacto de emergencia. Los registros anteriores se conservan. El cargador institucional incluye información ficticia para estos campos.
+
+Los promedios del expediente se calculan con las notas registradas y pueden incluir evaluaciones en proceso. La auditoría de graduación y la cuenta financiera se consultan desde sus accesos específicos.
+
+### Expediente docente
+
+El directorio docente permite buscar por nombre completo, código, especialidad, departamento, correo o documento y combinar filtros de departamento, estado y tipo de vinculación. El expediente reúne identificación, formación, experiencia, categoría docente, vinculación y contacto de emergencia.
+
+La migración `20261010_0025` incorpora estos campos opcionales y conserva los docentes existentes. El cargador institucional incluye información ficticia para los seis docentes de Horizonte.
+
+`GET /teachers/{id}/workload` muestra secciones, horario y estudiantes atendidos sin duplicarlos, por período. Por defecto utiliza el período vigente; `period=` permite consultar el acumulado. Las horas se calculan a partir de los encuentros semanales o, si no existen, del horario de la sección. Los indicadores excluyen las secciones cerradas y canceladas. El acceso conserva el ámbito de administración o del propio docente.
+
 - `GET /academic/students/{id}/grades`: historial de notas, con filtro por período.
 - `GET /academic/students/{id}/schedule`: horario del estudiante.
 - `GET /academic/teachers/{id}/schedule`: horario del docente.

@@ -28,27 +28,51 @@ def create_student(student_data: StudentCreate, db: Session = Depends(get_db)):
 @router.get("/", response_model=list[StudentOut], dependencies=[Depends(get_current_user)])
 def get_students(
     q: str | None = None,
+    career_id: int | None = None,
+    active: bool | None = None,
+    hold: str | None = Query(None, pattern="^(academic|financial|clear)$"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     query = db.query(Student)
+    if career_id is not None:
+        query = query.filter(Student.career_id == career_id)
+    if active is not None:
+        query = query.filter(Student.active == active)
+    if hold == "academic":
+        query = query.filter(Student.academic_hold.is_(True))
+    elif hold == "financial":
+        query = query.filter(Student.financial_hold.is_(True))
+    elif hold == "clear":
+        query = query.filter(Student.academic_hold.is_(False), Student.financial_hold.is_(False))
     if is_admin(user):
         return paginate_and_filter(
-            query.all(), skip, limit, q, ("first_name", "last_name", "email", "enrollment_number")
+            query.order_by(Student.last_name, Student.first_name).all(),
+            skip,
+            limit,
+            q,
+            ("full_name", "email", "enrollment_number", "document_number"),
         )
     if user.student_id is not None:
-        return query.filter(Student.student_id == user.student_id).all()
-    if user.teacher_id is not None:
-        return (
+        query = query.filter(Student.student_id == user.student_id)
+    elif user.teacher_id is not None:
+        query = (
             query.join(Student.enrollments)
             .join(Enrollment.section)
             .filter(Section.teacher_id == user.teacher_id)
             .distinct()
-            .all()
         )
-    return []
+    else:
+        return []
+    return paginate_and_filter(
+        query.order_by(Student.last_name, Student.first_name).all(),
+        skip,
+        limit,
+        q,
+        ("full_name", "email", "enrollment_number", "document_number"),
+    )
 
 
 @router.get("/{student_id}", response_model=StudentOut, dependencies=[Depends(get_current_user)])

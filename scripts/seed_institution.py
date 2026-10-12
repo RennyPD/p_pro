@@ -108,6 +108,62 @@ TEACHER_SPECS = [
     ("Andrés", "Peña", "Analítica y estrategia digital"),
 ]
 
+
+def career_catalog_demo(index: int) -> dict:
+    faculties = ["Escuela de Tecnología", "Escuela de Negocios", "Escuela de Comunicación y Mercadeo"]
+    profiles = [
+        ("Desarrolla soluciones informáticas con seguridad, ética y calidad.", "Desarrollo de software, análisis de sistemas y consultoría tecnológica."),
+        ("Gestiona organizaciones y diseña estrategias con responsabilidad social.", "Administración, emprendimiento y consultoría empresarial."),
+        ("Diseña estrategias de mercadeo, analiza audiencias y gestiona marcas con responsabilidad y creatividad.", "Mercadeo digital, investigación de mercados, comunicación estratégica y gestión de marcas."),
+    ]
+    graduate, professional = profiles[(index - 1) % 3]
+    return {
+        "faculty": faculties[(index - 1) % 3],
+        "department": "Coordinación de programas de grado",
+        "coordinator_name": ["Elena Martínez", "Rafael Santos", "Lucía Torres"][(index - 1) % 3],
+        "contact_email": f"coordinacion.{index}@horizonte.example.com",
+        "campus": "Campus Central Horizonte (demostración)",
+        "authorization_reference": f"DEMO-CA-2026-{index:03d} · referencia ficticia",
+        "admission_profile": "Bachiller con interés en el área, pensamiento crítico y disposición para el trabajo colaborativo.",
+        "graduate_profile": graduate,
+        "professional_fields": professional,
+        "admission_requirements": "Bachillerato concluido, documento de identidad, certificación de estudios y entrevista. Requisitos ficticios para pruebas.",
+        "graduation_requirements": "Completar los créditos, aprobar el trabajo final y cumplir las prácticas y trámites institucionales. Criterios demostrativos.",
+        "status": "active",
+        "modality": "hybrid" if index == 2 else "in_person",
+    }
+
+
+def teacher_dossier_demo(index: int) -> dict:
+    """Información adicional exclusivamente ficticia para los docentes de Horizonte."""
+    area = (index - 1) // 2
+    return {
+        "employee_code": f"DOC-ITH-{index:03d}",
+        "document_number": f"DEMO-DOC-{index:03d}",
+        "birth_date": date(1979 + index * 2, 1 + index % 12, 1 + index % 27),
+        "nationality": "Dominicana",
+        "academic_degree": [
+            "Maestría en Ingeniería de Software",
+            "Maestría en Administración y Finanzas",
+            "Maestría en Comunicación Digital",
+        ][area],
+        "alma_mater": "Universidad Ficticia Horizonte",
+        "professional_license": f"REG-DEMO-{index:04d}",
+        "experience_years": 5 + index,
+        "department": [
+            "Tecnología y Sistemas",
+            "Administración y Finanzas",
+            "Comunicación y Mercadeo",
+        ][area],
+        "teaching_category": "Titular" if index % 2 else "Adjunto",
+        "employment_type": "full_time" if index <= 3 else "part_time" if index <= 5 else "adjunct",
+        "appointment_date": date(2020 + index % 4, 8, 17),
+        "emergency_contact_name": f"Contacto familiar ficticio del docente {index:02d}",
+        "emergency_contact_phone": f"809-555-{4100 + index}",
+        "emergency_contact_relationship": "Familiar",
+    }
+
+
 FIRST_NAMES = [
     "Sofía",
     "Mateo",
@@ -304,6 +360,7 @@ def seed_institution(db: Session) -> dict[str, int]:
     for career_index, (career_name, description, subject_specs) in enumerate(CAREER_SPECS, start=1):
         career = Career(
             code=f"ITH-{career_index:02d}",
+            **career_catalog_demo(career_index),
             name=career_name,
             description=description,
             academic_level="undergraduate",
@@ -354,6 +411,7 @@ def seed_institution(db: Session) -> dict[str, int]:
             last_name=last_name,
             specialty=specialty,
             email=f"docente{index:02d}@horizonte.example",
+            **teacher_dossier_demo(index),
             telephone=f"809-555-11{index:02d}",
             address="Santo Domingo, República Dominicana",
             active=True,
@@ -453,6 +511,14 @@ def seed_institution(db: Session) -> dict[str, int]:
             last_name=last_name,
             email=f"estudiante{index:03d}@horizonte.example",
             enrollment_number=f"ITH-2026-{index:05d}",
+            document_number=f"DEMO-ITH-{index:05d}",
+            birth_date=date(2003 + index % 5, 1 + index % 12, 1 + index % 27),
+            nationality="Dominicana",
+            admission_date=date(2026, 8, 17),
+            previous_school=f"Centro educativo ficticio {1 + index % 6}",
+            emergency_contact_name=f"Contacto familiar ficticio {index:03d}",
+            emergency_contact_phone=f"809-555-{3000 + index}",
+            emergency_contact_relationship="Familiar",
             telephone=f"809-555-{2000 + index}",
             address=f"Sector académico {1 + index % 8}, Santo Domingo",
             active=True,

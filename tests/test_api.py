@@ -1,4 +1,5 @@
 import unittest
+from datetime import time
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -71,6 +72,302 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 201, response.text)
         self.assertNotIn("password", response.json()["user"])
         return response.json()["access_token"], response.json()["user"]
+
+    def test_career_catalog_fields_filters_and_version_scoped_offer(self) -> None:
+        token, _ = self.bootstrap()
+        with self.Session() as db:
+            seed_demo(db)
+            career = db.query(Career).first()
+            career_id = career.career_id
+            code = career.code
+            courses = db.query(CurriculumCourse).filter_by(career_id=career_id).all()
+            for course in courses:
+                course.curriculum_version = "2026"
+            career.curriculum_version = "2026"
+            db.commit()
+        fields = {
+            "faculty": "Escuela de Tecnología", "coordinator_name": "Elena Demo",
+            "modality": "hybrid", "status": "suspended",
+            "graduate_profile": "Resuelve problemas con ética y calidad.",
+            "admission_requirements": "Bachillerato concluido.",
+            "contact_email": "coordinacion@example.com",
+        }
+        saved = self.request("PATCH", f"/careers/{career_id}", token, json=fields)
+        self.assertEqual(saved.status_code, 200, saved.text)
+        for key, value in fields.items():
+            self.assertEqual(saved.json()[key], value)
+        matches = self.request("GET", "/careers/", token, params={"q": code, "status": "suspended", "modality": "hybrid"})
+        self.assertEqual([row["career_id"] for row in matches.json()], [career_id])
+        self.assertEqual(self.request("GET", "/careers/", token, params={"status": "active"}).json(), [])
+        self.assertEqual(self.request("GET", "/careers/catalog-options", token).json()["faculties"], [fields["faculty"]])
+        self.assertEqual(self.request("PATCH", f"/careers/{career_id}", token, json={"status": None}).status_code, 422)
+        self.assertEqual(self.request("PATCH", f"/careers/{career_id}", token, json={"contact_email": "bad"}).status_code, 422)
+        self.assertIsNone(self.request("PATCH", f"/careers/{career_id}", token, json={"coordinator_name": None}).json()["coordinator_name"])
+        overview = self.request("GET", f"/careers/{career_id}/overview", token).json()
+        self.assertEqual(overview["active_students"], 1)
+        self.assertGreater(len(overview["sections"]), 0)
+        empty = self.request("GET", f"/careers/{career_id}/overview", token, params={"version": "other"}).json()
+        self.assertEqual(empty["sections"], [])
+        self.assertEqual(self.request("GET", f"/careers/{career_id}/overview").status_code, 401)
+        created = self.request("POST", "/careers/", token, json={
+            "code": "POS-TEST", "name": "Programa de prueba", "description": "Catálogo institucional",
+            "academic_level": "postgraduate", "status": "draft", "modality": "virtual",
+            "faculty": "Escuela de Postgrado", "graduate_profile": "Perfil ficticio de egreso",
+        })
+        self.assertEqual(created.status_code, 200, created.text)
+        self.assertEqual(created.json()["status"], "draft")
+        filtered = self.request("GET", "/careers/", token, params={"academic_level": "postgraduate", "faculty": "Escuela de Postgrado"}).json()
+        self.assertEqual([item["code"] for item in filtered], ["POS-TEST"])
+        student_login = self.request("POST", "/auth/login", json={"username": "demo.estudiante", "password": "NexoEstudiante2026!"})
+        student_token = student_login.json()["access_token"]
+        self.assertEqual(self.request("GET", f"/careers/{career_id}/overview", student_token).status_code, 403)
+        self.assertEqual(self.request("PATCH", f"/careers/{career_id}", student_token, json={"status": "active"}).status_code, 403)
+
+    def test_teacher_dossier_filters_workload_and_access(self) -> None:
+        token, _ = self.bootstrap()
+        with self.Session() as db:
+            seed_demo(db)
+            teacher = db.query(Teacher).first()
+            teacher_id = teacher.teacher_id
+            sections = (
+                db.query(Section)
+                .filter_by(teacher_id=teacher_id)
+                .order_by(Section.section_id)
+                .all()
+            )
+            for section in sections:
+                section.period_name = "DEMO-2026"
+                for enrollment in section.enrollments:
+                    enrollment.period = "DEMO-2026"
+            sections[0].status = "published"
+            sections[1].status = "closed"
+            db.add(
+                SectionMeeting(
+                    section_id=sections[0].section_id,
+                    day_of_week="Lunes",
+                    start_time=time(8),
+                    end_time=time(10),
+                )
+            )
+            db.commit()
+        updated = self.request(
+            "PATCH",
+            f"/teachers/{teacher_id}",
+            token=token,
+            json={
+                "employee_code": "DOC-TEST-001",
+                "document_number": "DEMO-TEACHER",
+                "academic_degree": "Maestría en Educación",
+                "alma_mater": "Universidad ficticia",
+                "experience_years": 12,
+                "department": "Tecnología",
+                "teaching_category": "Titular",
+                "employment_type": "full_time",
+                "appointment_date": "2020-08-17",
+                "emergency_contact_name": "Contacto ficticio",
+                "emergency_contact_phone": "555-0100",
+            },
+        )
+        self.assertEqual(updated.status_code, 200, updated.text)
+        self.assertEqual(updated.json()["assigned_sections"], 1)
+        other = self.request(
+            "POST",
+            "/teachers/",
+            token=token,
+            json={
+                "first_name": "Otra",
+                "last_name": "Docente",
+                "specialty": "Ciencias",
+                "email": "other-teacher@example.com",
+                "telephone": "555-0200",
+                "address": "Dirección ficticia",
+                "active": False,
+                "employment_type": "part_time",
+            },
+        )
+        self.assertEqual(other.status_code, 200, other.text)
+        listed = self.request(
+            "GET",
+            "/teachers/",
+            token=token,
+            params={
+                "q": "DOC-TEST",
+                "department": "Tecnología",
+                "active": "true",
+                "employment_type": "full_time",
+                "limit": 1,
+            },
+        )
+        self.assertEqual(listed.status_code, 200, listed.text)
+        self.assertEqual([item["teacher_id"] for item in listed.json()], [teacher_id])
+        self.assertEqual(
+            self.request("GET", "/teachers/departments", token=token).json(), ["Tecnología"]
+        )
+        self.assertEqual(
+            self.request("GET", "/teachers/", token=token, params={"skip": 2}).json(), []
+        )
+        self.assertEqual(
+            self.request("GET", "/teachers/", token=token, params={"active": "false"}).json()[0][
+                "teacher_id"
+            ],
+            other.json()["teacher_id"],
+        )
+        cleared = self.request(
+            "PATCH", f"/teachers/{teacher_id}", token=token, json={"emergency_contact_phone": None}
+        )
+        self.assertIsNone(cleared.json()["emergency_contact_phone"])
+        self.assertEqual(cleared.json()["academic_degree"], "Maestría en Educación")
+        self.assertEqual(
+            self.request(
+                "PATCH", f"/teachers/{teacher_id}", token=token, json={"experience_years": -1}
+            ).status_code,
+            422,
+        )
+        load = self.request(
+            "GET", f"/teachers/{teacher_id}/workload", token=token, params={"period": "DEMO-2026"}
+        )
+        self.assertEqual(load.status_code, 200, load.text)
+        self.assertEqual(load.json()["unique_students"], 1)
+        self.assertEqual(load.json()["active_sections"], 1)
+        self.assertEqual(load.json()["scheduled_weekly_hours"], 2)
+        self.assertEqual(len(load.json()["sections"]), 2)
+        self.assertEqual(len(load.json()["sections"][0]["meetings"]), 1)
+        with self.Session() as db:
+            section = db.query(Section).filter_by(teacher_id=teacher_id, status="closed").one()
+            section.status = "published"
+            db.commit()
+        expanded = self.request(
+            "GET", f"/teachers/{teacher_id}/workload", token=token, params={"period": "DEMO-2026"}
+        ).json()
+        self.assertEqual(expanded["active_sections"], 2)
+        self.assertEqual(expanded["unique_students"], 1)
+        self.assertEqual(expanded["scheduled_weekly_hours"], 5)
+        self.assertEqual(
+            self.request(
+                "GET", f"/teachers/{teacher_id}/workload", token=token, params={"period": "OTHER"}
+            ).json()["sections"],
+            [],
+        )
+        login = self.request(
+            "POST", "/auth/login", json={"username": "demo.docente", "password": "NexoDocente2026!"}
+        )
+        self.assertEqual(login.status_code, 200, login.text)
+        teacher_token = login.json()["access_token"]
+        self.assertEqual(len(self.request("GET", "/teachers/", token=teacher_token).json()), 1)
+        self.assertEqual(
+            self.request(
+                "GET", f"/teachers/{other.json()['teacher_id']}/workload", token=teacher_token
+            ).status_code,
+            403,
+        )
+        self.assertEqual(self.request("GET", f"/teachers/{teacher_id}/workload").status_code, 401)
+        self.assertEqual(
+            self.request("GET", "/teachers/99999/workload", token=token).status_code, 404
+        )
+
+    def test_student_dossier_and_combined_directory_filters(self) -> None:
+        token, _ = self.bootstrap()
+        career = self.request(
+            "POST",
+            "/careers/",
+            token=token,
+            json={
+                "name": "Dossier test program",
+                "description": "Test curriculum",
+            },
+        ).json()
+        base = {
+            "first_name": "Ana",
+            "last_name": "Prueba",
+            "telephone": "555-0100",
+            "address": "Dirección ficticia",
+            "career_id": career["career_id"],
+        }
+        created = self.request(
+            "POST",
+            "/students/",
+            token=token,
+            json={
+                **base,
+                "email": "dossier@example.com",
+                "document_number": "TEST-DOC-24",
+                "birth_date": "2005-02-12",
+                "nationality": "Dominicana",
+                "admission_date": "2026-09-01",
+                "previous_school": "Centro ficticio",
+                "emergency_contact_name": "Contacto ficticio",
+                "emergency_contact_phone": "555-0200",
+                "emergency_contact_relationship": "Madre",
+                "academic_hold": True,
+            },
+        )
+        self.assertEqual(created.status_code, 200, created.text)
+        student_id = created.json()["student_id"]
+        second = self.request(
+            "POST",
+            "/students/",
+            token=token,
+            json={
+                **base,
+                "email": "other-dossier@example.com",
+                "active": False,
+            },
+        )
+        self.assertEqual(second.status_code, 200, second.text)
+        filtered = self.request(
+            "GET",
+            "/students/",
+            token=token,
+            params={
+                "career_id": career["career_id"],
+                "active": "true",
+                "hold": "academic",
+                "q": "TEST-DOC",
+                "limit": 1,
+            },
+        )
+        self.assertEqual(filtered.status_code, 200, filtered.text)
+        self.assertEqual([item["student_id"] for item in filtered.json()], [student_id])
+        profile = self.request("GET", f"/academic/students/{student_id}/profile", token=token)
+        self.assertEqual(profile.status_code, 200, profile.text)
+        self.assertEqual(profile.json()["birth_date"], "2005-02-12")
+        self.assertTrue(profile.json()["academic_hold"])
+        self.assertEqual(profile.json()["emergency_contact_name"], "Contacto ficticio")
+        patched = self.request(
+            "PATCH",
+            f"/students/{student_id}",
+            token=token,
+            json={
+                "emergency_contact_phone": None,
+            },
+        )
+        self.assertEqual(patched.status_code, 200, patched.text)
+        self.assertIsNone(patched.json()["emergency_contact_phone"])
+        self.assertEqual(patched.json()["document_number"], "TEST-DOC-24")
+        self.assertEqual(
+            self.request(
+                "GET",
+                "/students/",
+                token=token,
+                params={
+                    "active": "false",
+                    "hold": "clear",
+                },
+            ).json()[0]["student_id"],
+            second.json()["student_id"],
+        )
+        self.assertEqual(
+            self.request(
+                "GET",
+                "/students/",
+                token=token,
+                params={
+                    "hold": "invalid",
+                },
+            ).status_code,
+            422,
+        )
+        self.assertEqual(self.request("GET", "/students/").status_code, 401)
 
     def test_full_crud_auth_validation_and_constraints(self) -> None:
         self.assertEqual(self.request("GET", "/students/").status_code, 401)

@@ -1,9 +1,21 @@
+from datetime import date
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 
-class StudentBase(BaseModel):
+class StudentDossierFields(BaseModel):
+    document_number: str | None = None
+    birth_date: date | None = None
+    nationality: str | None = None
+    admission_date: date | None = None
+    previous_school: str | None = None
+    emergency_contact_name: str | None = None
+    emergency_contact_phone: str | None = None
+    emergency_contact_relationship: str | None = None
+
+
+class StudentBase(StudentDossierFields):
     first_name: str
     last_name: str
     email: EmailStr
@@ -20,7 +32,7 @@ class StudentCreate(StudentBase):
     pass
 
 
-class StudentUpdate(BaseModel):
+class StudentUpdate(StudentDossierFields):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     email: EmailStr | None = None

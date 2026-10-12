@@ -29,6 +29,7 @@ def course_out(course: CurriculumCourse) -> CurriculumCourseOut:
         course_type=course.course_type,
         curriculum_version=course.curriculum_version,
         prerequisite_subject_id=course.prerequisite_subject_id,
+        corequisite_subject_id=course.corequisite_subject_id,
         subject_code=course.subject.code,
         subject_name=course.subject.description,
         prerequisite_code=course.prerequisite.code if course.prerequisite else None,
