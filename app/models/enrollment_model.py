@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -24,6 +24,7 @@ class Enrollment(Base):
     state: Mapped[str] = mapped_column(String(50), default="enrolled")
     period: Mapped[str] = mapped_column(String(50))
     waitlist_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    passing_grade: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     student: Mapped["Student"] = relationship("Student", back_populates="enrollments")
     section: Mapped["Section"] = relationship("Section", back_populates="enrollments")

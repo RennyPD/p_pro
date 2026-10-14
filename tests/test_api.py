@@ -1831,6 +1831,183 @@ class ApiIntegrationTests(unittest.TestCase):
             self.assertEqual(db.query(StudentAccount).count(), 0)
             self.assertEqual(db.query(FinanceControl).count(), 0)
 
+    def test_communications_scoped_preview_delivery_retry_and_read_provenance(self):
+        tokens, section = self.task_fixture()
+        body = {"title": "Aviso de sección", "body": "Recordatorio académico", "audience": "section", "section_id": section, "delivery_key": "publicacion-001"}
+        self.assertEqual(self.request("POST", "/community/announcements", tokens["teacher"], json=dict(body, audience="all", section_id=None)).status_code, 403)
+        preview = self.request("POST", "/community/announcements/preview", tokens["teacher"], json=body)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        self.assertEqual(preview.json()["count"], 1)
+        self.assertEqual(self.request("GET", "/community/notifications", tokens["student"]).json(), [])
+        body["expected_recipients"] = preview.json()["fingerprint"]
+        created = self.request("POST", "/community/announcements", tokens["teacher"], json=body)
+        self.assertEqual(created.status_code, 200, created.text)
+        self.assertEqual(created.json()["delivery_count"], 1)
+        self.assertEqual(self.request("POST", "/community/announcements", tokens["teacher"], json=body).json()["announcement_id"], created.json()["announcement_id"])
+        self.assertEqual(self.request("POST", "/community/announcements", tokens["teacher"], json=dict(body, body="Texto diferente")).status_code, 409)
+        notices = self.request("GET", "/community/notifications", tokens["student"]).json()
+        self.assertEqual(len(notices), 1)
+        self.assertEqual(notices[0]["announcement_id"], created.json()["announcement_id"])
+        path = f"/community/notifications/{notices[0]['notification_id']}/read"
+        first = self.request("POST", path, tokens["student"]).json()["read_at"]
+        self.assertEqual(self.request("POST", path, tokens["student"]).json()["read_at"], first)
+        self.assertEqual(self.request("POST", path, tokens["teacher"]).status_code, 404)
+        self.assertEqual(self.request("GET", "/community/announcements", tokens["teacher"]).json()[0]["read_count"], 1)
+        self.assertEqual(self.request("POST", "/community/notifications/read-all", tokens["student"]).json()["marked"], 0)
+        with self.Session() as db:
+            db.query(Enrollment).filter_by(section_id=section).one().state = "waitlisted"
+            db.commit()
+        empty = dict(body, delivery_key="publicacion-002", expected_recipients=None)
+        self.assertEqual(self.request("POST", "/community/announcements/preview", tokens["teacher"], json=empty).json()["count"], 0)
+        self.assertEqual(self.request("POST", "/community/announcements", tokens["teacher"], json=empty).status_code, 409)
+
+    def test_communications_guardians_and_stale_recipient_preview(self):
+        from app.security import hash_password
+        tokens, section = self.task_fixture()
+        with self.Session() as db:
+            student = db.query(Student).first()
+            role = Role(name="guardian", description="Tutor")
+            guardian = Guardian(first_name="Tutora", last_name="Prueba", email="tutora@example.test", telephone="8095550100")
+            db.add_all([role, guardian])
+            db.flush()
+            db.add(StudentGuardian(student_id=student.student_id, guardian_id=guardian.guardian_id, relationship="madre"))
+            db.add(User(username="tutora.prueba", email="tutora.login@example.test", password=hash_password("PruebaTutor2026!"), role_id=role.role_id, guardian_id=guardian.guardian_id))
+            db.commit()
+        body = {"title":"Reunión con tutores", "body":"Revisar seguimiento", "audience":"section_guardians", "section_id":section, "delivery_key":"aviso-tutores-001"}
+        preview = self.request("POST", "/community/announcements/preview", tokens["teacher"], json=body).json()
+        self.assertEqual(preview["count"], 1)
+        self.assertEqual(preview["roles"]["guardian"], 1)
+        created = self.request("POST", "/community/announcements", tokens["teacher"], json=dict(body, expected_recipients=preview["fingerprint"]))
+        self.assertEqual(created.status_code, 200, created.text)
+        with self.Session() as db:
+            db.query(Enrollment).filter_by(section_id=section).one().state = "withdrawn"
+            db.commit()
+        stale = self.request("POST", "/community/announcements", tokens["teacher"], json=dict(body, audience="section", delivery_key="aviso-tutores-002", expected_recipients=preview["fingerprint"]))
+        self.assertEqual(stale.status_code, 409)
+        with self.Session() as db:
+            self.assertEqual(db.query(Announcement).count(), 1)
+            self.assertEqual(db.query(Notification).count(), 1)
+
+    def test_configuration_preserves_existing_threshold_and_rejects_stale_edits(self):
+        from app.services.academic_grading import academic_result
+        tokens, _ = self.task_fixture()
+        current = self.request("GET", "/configuration/institution", tokens["admin"]).json()
+        body = {k: current[k] for k in ("institution_name","enrollment_prefix","enrollment_digits","passing_grade","max_credits_per_period")}
+        body.update(passing_grade=95, reason="Nuevo criterio para futuras selecciones", expected_revision=current["revision"])
+        preview = self.request("POST", "/configuration/institution/preview", tokens["admin"], json=body)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        self.assertEqual(preview.json()["existing_selections_preserved"], 2)
+        saved = self.request("PUT", "/configuration/institution", tokens["admin"], json=body)
+        self.assertEqual(saved.status_code, 200, saved.text)
+        with self.Session() as db:
+            enrollment = db.query(Enrollment).join(Section).join(Subject).filter(Subject.code=="PROG-101").one()
+            self.assertEqual(enrollment.passing_grade, 70)
+            self.assertEqual(academic_result(db,enrollment).status,"passed")
+            from app.repositories.enrollment_repository import create_enrollment
+            from app.schemas.enrollment_schema import EnrollmentCreate
+            future = create_enrollment(db, EnrollmentCreate(student_id=enrollment.student_id, section_id=enrollment.section_id, period="2030"))
+            self.assertEqual(future.passing_grade, 95)
+            db.add(Grade(enrollment_id=future.enrollment_id, grade_type="Final", grade_value=92, date_recorded="2030-01-01"))
+            db.commit()
+            self.assertEqual(academic_result(db,future).status,"failed")
+        self.assertEqual(self.request("PUT", "/configuration/institution", tokens["admin"], json=dict(body, institution_name="Otro nombre")).status_code, 409)
+        self.assertEqual(len(self.request("GET", "/configuration/institution/history", tokens["admin"]).json()), 1)
+        self.assertEqual(self.request("PUT", "/configuration/institution", tokens["student"], json=body).status_code, 403)
+        self.request("POST", "/operations/alerts/generate", tokens["admin"])
+        with self.Session() as db:
+            self.assertEqual(db.query(EarlyAlert).filter_by(category="academic").count(), 1)
+
+    def test_admissions_controlled_atomic_transition_and_retry(self):
+        from unittest.mock import patch
+        from fastapi import HTTPException
+        tokens, _ = self.task_fixture()
+        with self.Session() as db:
+            career = db.query(Career).first().career_id
+        created = self.request("POST", "/operations/admissions", tokens["admin"], json={"first_name":"Nueva","last_name":"Solicitud","email":"solicitud.control@example.com","telephone":"8095550101","career_id":career})
+        self.assertEqual(created.status_code, 200, created.text)
+        path = f"/operations/admissions/{created.json()['admission_application_id']}"
+        self.assertEqual(self.request("POST", path+"/enroll", tokens["admin"]).status_code, 409)
+        self.assertEqual(self.request("PATCH", path, tokens["admin"], json={"status":"enrolled"}).status_code, 409)
+        self.assertEqual(self.request("PATCH", path, tokens["admin"], json={"status":"accepted"}).status_code, 409)
+        self.assertEqual(self.request("PATCH", path, tokens["admin"], json={"status":"review", "expected_status":"submitted"}).status_code, 200)
+        self.assertEqual(self.request("PATCH", path, tokens["admin"], json={"status":"accepted", "expected_status":"submitted"}).status_code, 409)
+        self.assertEqual(self.request("PATCH", path, tokens["admin"], json={"status":"accepted"}).status_code, 200)
+        with patch("app.services.student_service.create_student", side_effect=HTTPException(409,"Fallo de prueba controlado")):
+            self.assertEqual(self.request("POST", path+"/enroll", tokens["admin"]).status_code, 409)
+        with self.Session() as db:
+            self.assertEqual(db.query(Student).count(), 1)
+            self.assertEqual(db.query(AdmissionApplication).one().status, "accepted")
+        first = self.request("POST", path+"/enroll", tokens["admin"])
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(self.request("POST", path+"/enroll", tokens["admin"]).json(), first.json())
+        self.assertEqual(self.request("PATCH", path, tokens["admin"], json={"status":"review"}).status_code, 409)
+        self.assertEqual(self.request("POST", path+"/enroll", tokens["teacher"]).status_code, 403)
+        self.assertEqual(len(self.request("GET", path+"/history", tokens["admin"]).json()), 4)
+
+    def test_period_close_requires_published_grades_and_restores_only_changed_states(self):
+        tokens, section = self.task_fixture()
+        with self.Session() as db:
+            period = db.query(AcademicPeriod).first()
+            pid = period.period_id
+            for item in db.query(Section):
+                item.period_name = period.name
+                assessment = Assessment(section_id=item.section_id, name="Final controlada", weight=100, closed=True)
+                db.add(assessment)
+                db.flush()
+                enrollment = db.query(Enrollment).filter_by(section_id=item.section_id).one()
+                db.add(Grade(enrollment_id=enrollment.enrollment_id, assessment_id=assessment.assessment_id, grade_type="Final controlada", grade_value=80, date_recorded="2026-10-01", status="draft"))
+            db.commit()
+        path = f"/periods/{pid}"
+        self.assertFalse(self.request("GET", path+"/closing-preview", tokens["admin"]).json()["can_close"])
+        self.assertEqual(self.request("POST", path+"/close", tokens["admin"]).status_code, 409)
+        with self.Session() as db:
+            for grade in db.query(Grade).filter(Grade.assessment_id.is_not(None)):
+                grade.status = "published"
+            independent = db.query(Section).filter(Section.section_id!=section).one()
+            independent.status = "closed"
+            independent_id = independent.section_id
+            db.commit()
+        closed = self.request("POST", path+"/close", tokens["admin"], json={"reason":"Cierre revisado y autorizado"})
+        self.assertEqual(closed.status_code, 200, closed.text)
+        with self.Session() as db:
+            self.assertTrue(all(e.state=="completed" for e in db.query(Enrollment)))
+        self.assertEqual(self.request("POST", path+"/reopen", tokens["admin"], json={"reason":"Corrección autorizada"}).status_code, 200)
+        with self.Session() as db:
+            self.assertEqual(db.get(Section, section).status, "published")
+            self.assertEqual(db.get(Section, independent_id).status, "closed")
+            self.assertTrue(all(e.state=="enrolled" for e in db.query(Enrollment)))
+            self.assertTrue(all(a.closed for a in db.query(Assessment)))
+        self.assertEqual(self.request("PATCH", path, tokens["admin"], json={"name":"RENOMBRADO"}).status_code, 409)
+        self.assertEqual(self.request("DELETE", path, tokens["admin"]).status_code, 409)
+
+    def test_period_dates_permission_safety_and_empty_analytics(self):
+        tokens, _ = self.task_fixture()
+        invalid = self.request("POST", "/periods/", tokens["admin"], json={"name":"Fechas inválidas","start_date":"2030-01-01","end_date":"2030-06-01","registration_start":"2030-02-01","registration_end":"2030-01-01"})
+        self.assertEqual(invalid.status_code, 422)
+        valid = self.request("POST", "/periods/", tokens["admin"], json={"name":"Sin resultados","start_date":"2030-01-01","end_date":"2030-06-01"})
+        self.assertEqual(valid.status_code, 200, valid.text)
+        metrics = self.request("GET", "/operations/analytics/academic", tokens["admin"], params={"period":"Sin resultados"})
+        self.assertEqual(metrics.status_code, 200, metrics.text)
+        self.assertTrue(all(m["average_grade"] is None and m["pass_rate"] is None for m in metrics.json()["subject_metrics"]))
+        with self.Session() as db:
+            role = db.query(Role).filter_by(name="admin").one()
+            rid = role.role_id
+            for slug in ("access.manage","academic.manage"):
+                permission = Permission(slug=slug, description=slug)
+                db.add(permission)
+                db.flush()
+                db.add(RolePermission(role_id=rid, permission_id=permission.permission_id))
+            db.commit()
+        path = f"/access/roles/{rid}/permissions"
+        self.assertEqual(self.request("PUT", path, tokens["admin"], json={"permissions":["academic.manage"], "reason":"Prueba de protección"}).status_code, 409)
+        self.assertEqual(self.request("PUT", path, tokens["admin"], json={"permissions":["access.manage"], "reason":"Prueba de protección"}).status_code, 409)
+        self.assertEqual(self.request("PUT", path, tokens["admin"], json={"permissions":["access.manage","academic.manage"], "expected_permissions":[], "reason":"Edición desactualizada"}).status_code, 409)
+        with self.Session() as db:
+            admin_id = db.query(User).filter_by(username="demo.admin").one().user_id
+            teacher_role = db.query(Role).filter_by(name="teacher").one().role_id
+        self.assertEqual(self.request("DELETE", f"/users/{admin_id}", tokens["admin"]).status_code, 409)
+        self.assertEqual(self.request("PATCH", f"/users/{admin_id}", tokens["admin"], json={"role_id":teacher_role}).status_code, 409)
+
     def task_fixture(self):
         with self.Session() as db:
             seed_demo(db)
@@ -2082,6 +2259,10 @@ class ApiIntegrationTests(unittest.TestCase):
             },
         )
         self.assertEqual(admission.status_code, 200, admission.text)
+        application_path = f"/operations/admissions/{admission.json()['admission_application_id']}"
+        self.assertEqual(self.request("POST", application_path + "/enroll", admin_token).status_code, 409)
+        self.assertEqual(self.request("PATCH", application_path, admin_token, json={"status": "review"}).status_code, 200)
+        self.assertEqual(self.request("PATCH", application_path, admin_token, json={"status": "accepted"}).status_code, 200)
         enrolled = self.request(
             "POST",
             f"/operations/admissions/{admission.json()['admission_application_id']}/enroll",

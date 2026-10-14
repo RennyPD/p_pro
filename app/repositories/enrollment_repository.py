@@ -1,12 +1,17 @@
 from sqlalchemy.orm import Session
 
+from app.models.configuration_model import InstitutionSettings
 from app.models.enrollment_model import Enrollment
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate
+from app.services.governance_workflow import lock_governance
 
 
 def create_enrollment(db: Session, enrollment_data: EnrollmentCreate) -> Enrollment:
-
-    new_enrollment = Enrollment(**enrollment_data.model_dump())
+    lock_governance(db)
+    settings = db.get(InstitutionSettings, 1)
+    new_enrollment = Enrollment(
+        **enrollment_data.model_dump(), passing_grade=settings.passing_grade if settings else 70
+    )
 
     db.add(new_enrollment)
     db.commit()

@@ -4,12 +4,15 @@ from app.models.student_model import Student
 from app.schemas.student_schema import StudentCreate, StudentUpdate
 
 
-def create_student(db: Session, student_data: StudentCreate):
+def create_student(db: Session, student_data: StudentCreate, commit: bool = True):
     student = Student(**student_data.model_dump())
 
     db.add(student)
-    db.commit()
-    db.refresh(student)
+    if commit:
+        db.commit()
+        db.refresh(student)
+    else:
+        db.flush()
 
     return student
 

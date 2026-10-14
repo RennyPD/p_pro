@@ -132,6 +132,7 @@ class AdmissionApplication(Base):
     telephone: Mapped[str] = mapped_column(String(30))
     career_id: Mapped[int] = mapped_column(ForeignKey("careers.career_id"))
     status: Mapped[str] = mapped_column(String(20), default="submitted")
+    student_id: Mapped[int | None] = mapped_column(ForeignKey("students.student_id"), nullable=True)
     checklist: Mapped[str] = mapped_column(Text, default="")
     notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)

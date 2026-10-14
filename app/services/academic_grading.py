@@ -27,7 +27,13 @@ def academic_result(db: Session, enrollment: Enrollment) -> AcademicResult:
     assessments = db.query(Assessment).filter_by(section_id=enrollment.section_id).all()
     published = [grade for grade in enrollment.grades if grade.status == "published"]
     settings = db.get(InstitutionSettings, 1)
-    passing = settings.passing_grade if settings else 70
+    passing = (
+        enrollment.passing_grade
+        if enrollment.passing_grade is not None
+        else settings.passing_grade
+        if settings
+        else 70
+    )
     if enrollment.state in {"withdrawn", "waitlisted"}:
         return AcademicResult(
             None, 0, 0, False, enrollment.state, "weighted" if assessments else "legacy"

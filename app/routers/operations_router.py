@@ -17,7 +17,7 @@ from app.db.Session import get_db
 from app.models.attendance_model import Attendance
 from app.models.career_model import Career
 from app.models.community_model import StudentGuardian
-from app.models.configuration_model import InstitutionSettings
+from app.models.configuration_model import AcademicPeriod
 from app.models.enrollment_model import Enrollment
 from app.models.finance_model import StudentAccount
 from app.models.operations_model import (
@@ -32,6 +32,7 @@ from app.models.operations_model import (
 from app.models.section_model import Section
 from app.models.student_model import Student
 from app.models.subject_model import Subject
+from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.routers.assignment_router import router as assignment_routes
 from app.routers.assignment_router import scope, utc
@@ -59,6 +60,8 @@ from app.schemas.student_schema import StudentCreate
 from app.services.academic_grading import academic_result
 from app.services.finance_workflow import cents, money
 from app.services.finance_workflow import summary as finance_summary
+from app.services.governance_workflow import history as governance_history
+from app.services.governance_workflow import lock_governance, record
 from app.services.student_service import create_student_service
 
 
@@ -197,7 +200,42 @@ def alerts(db: Session = Depends(get_db), user: User = Depends(get_current_user)
     ids = student_scope_ids(db, user)
     if ids is not None:
         query = query.filter(EarlyAlert.student_id.in_(ids))
-    return query.order_by(EarlyAlert.created_at.desc()).all()
+    result = []
+    for item in query.order_by(EarlyAlert.created_at.desc()):
+        value = AlertOut.model_validate(item)
+        student = db.get(Student, item.student_id)
+        value.student_name, value.enrollment_number = student.full_name, student.enrollment_number
+        result.append(value)
+    return result
+
+
+@router.get("/alert-assignees")
+def alert_assignees(
+    student_id: int, db: Session = Depends(get_db), user: User = Depends(operations_manager)
+):
+    ensure_student_academic_access(db, user, student_id)
+    result = []
+    for candidate in (
+        db.query(User)
+        .join(User.role)
+        .filter(User.role.has(name="admin") | User.role.has(name="teacher"))
+    ):
+        try:
+            ensure_student_academic_access(db, candidate, student_id)
+        except HTTPException:
+            continue
+        teacher = db.get(Teacher, candidate.teacher_id) if candidate.teacher_id else None
+        if teacher and not teacher.active:
+            continue
+        result.append(
+            {
+                "user_id": candidate.user_id,
+                "name": f"{teacher.first_name} {teacher.last_name}"
+                if teacher
+                else candidate.username,
+            }
+        )
+    return result
 
 
 @router.post("/alerts", response_model=AlertOut)
@@ -221,14 +259,31 @@ def assign_alert(
     db: Session = Depends(get_db),
     user: User = Depends(operations_manager),
 ):
+    lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Alert not found")
     ensure_student_academic_access(db, user, item.student_id)
-    if data.assigned_to is not None and db.get(User, data.assigned_to) is None:
-        raise HTTPException(status_code=422, detail="Assigned user not found")
+    if item.status != "open":
+        raise HTTPException(409, "Solo se asignan casos abiertos")
+    if data.assigned_to is not None:
+        assignee = db.get(User, data.assigned_to)
+        if assignee is None or assignee.role.name.casefold() not in {"admin", "teacher"}:
+            raise HTTPException(422, "El responsable debe ser un administrador o docente")
+        if assignee.teacher_id:
+            teacher = db.get(Teacher, assignee.teacher_id)
+            if not teacher or not teacher.active:
+                raise HTTPException(422, "El docente responsable debe estar activo")
+        ensure_student_academic_access(db, assignee, item.student_id)
     item.assigned_to = data.assigned_to
     item.follow_up_date = data.follow_up_date
+    record(
+        db,
+        user,
+        "alert.assigned",
+        f"alert:{alert_id}",
+        f"Responsable {data.assigned_to}; seguimiento {data.follow_up_date}",
+    )
     db.commit()
     db.refresh(item)
     return item
@@ -244,12 +299,19 @@ def alert_interventions(
     if item is None:
         raise HTTPException(status_code=404, detail="Alert not found")
     ensure_student_academic_access(db, user, item.student_id)
-    return (
+    items = (
         db.query(AlertIntervention)
         .filter_by(early_alert_id=alert_id)
         .order_by(AlertIntervention.created_at.desc())
         .all()
     )
+    result = []
+    for item in items:
+        value = AlertInterventionOut.model_validate(item)
+        actor = db.get(User, item.performed_by)
+        value.performer_name = actor.username if actor else "Registro histórico"
+        result.append(value)
+    return result
 
 
 @router.post("/alerts/{alert_id}/interventions", response_model=AlertInterventionOut)
@@ -259,10 +321,13 @@ def add_alert_intervention(
     db: Session = Depends(get_db),
     user: User = Depends(operations_manager),
 ):
+    lock_governance(db)
     alert = db.get(EarlyAlert, alert_id)
     if alert is None:
         raise HTTPException(status_code=404, detail="Alert not found")
     ensure_student_academic_access(db, user, alert.student_id)
+    if alert.status != "open" or len(data.notes.strip()) < 2:
+        raise HTTPException(409, "Reabre el caso e indica una actuación completa")
     item = AlertIntervention(
         early_alert_id=alert_id,
         performed_by=user.user_id,
@@ -275,24 +340,33 @@ def add_alert_intervention(
 
 
 @router.post("/alerts/generate", dependencies=[Depends(operations_admin)])
-def generate_alerts(db: Session = Depends(get_db)):
+def generate_alerts(db: Session = Depends(get_db), user: User = Depends(operations_admin)):
+    lock_governance(db)
     created = 0
     for student in db.query(Student).filter(Student.active.is_(True)).all():
-        grades = result_values(
-            db, db.query(Enrollment).filter_by(student_id=student.student_id).all()
-        )
+        results = [
+            academic_result(db, e)
+            for e in db.query(Enrollment).filter_by(student_id=student.student_id)
+        ]
         attendance_rows = (
             db.query(Attendance.present)
             .join(Enrollment)
-            .filter(Enrollment.student_id == student.student_id)
+            .filter(
+                Enrollment.student_id == student.student_id,
+                Enrollment.state.in_(("enrolled", "completed", "failed")),
+            )
             .all()
         )
         account = db.query(StudentAccount).filter_by(student_id=student.student_id).first()
         checks = []
-        settings = db.get(InstitutionSettings, 1)
-        passing = settings.passing_grade if settings else 70
-        if grades and sum(grades) / len(grades) < passing:
-            checks.append(("academic", "high", f"Resultado publicado inferior a {passing}"))
+        if any(r.status == "failed" for r in results):
+            checks.append(
+                (
+                    "academic",
+                    "high",
+                    "Hay resultados finales reprobados según el criterio de cada selección",
+                )
+            )
         if (
             attendance_rows
             and sum(bool(row[0]) for row in attendance_rows) / len(attendance_rows) < 0.8
@@ -313,9 +387,17 @@ def generate_alerts(db: Session = Depends(get_db)):
                         category=category,
                         severity=severity,
                         reason=reason,
+                        created_by=user.user_id,
                     )
                 )
                 created += 1
+    record(
+        db,
+        user,
+        "alerts.generated",
+        "institutional-alerts",
+        f"Revisión automática global: {created} casos nuevos; no se cierran casos existentes automáticamente",
+    )
     db.commit()
     return {"created": created}
 
@@ -330,10 +412,22 @@ def resolve_alert(
     db: Session = Depends(get_db),
     user: User = Depends(operations_manager),
 ):
+    lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Alert not found")
     ensure_student_academic_access(db, user, item.student_id)
+    if item.status != "open" or data is None or len(data.resolution_notes.strip()) < 3:
+        raise HTTPException(409, "El caso debe estar abierto e incluir un motivo de resolución")
+    record(db, user, "alert.resolved", f"alert:{alert_id}", data.resolution_notes)
+    db.add(
+        AlertIntervention(
+            early_alert_id=alert_id,
+            performed_by=user.user_id,
+            action_type="note",
+            notes="Resolución: " + data.resolution_notes,
+        )
+    )
     item.status = "resolved"
     item.resolution_notes = data.resolution_notes if data else ""
     item.resolved_at = datetime.now(UTC).replace(tzinfo=None)
@@ -348,10 +442,28 @@ def reopen_alert(
     db: Session = Depends(get_db),
     user: User = Depends(operations_manager),
 ):
+    lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Alert not found")
     ensure_student_academic_access(db, user, item.student_id)
+    if item.status != "resolved":
+        raise HTTPException(409, "El caso ya está abierto")
+    record(
+        db,
+        user,
+        "alert.reopened",
+        f"alert:{alert_id}",
+        "Reapertura; resolución anterior: " + item.resolution_notes,
+    )
+    db.add(
+        AlertIntervention(
+            early_alert_id=alert_id,
+            performed_by=user.user_id,
+            action_type="note",
+            notes="Reapertura. Resolución anterior: " + item.resolution_notes,
+        )
+    )
     item.status = "open"
     item.resolved_at = None
     item.resolution_notes = ""
@@ -431,13 +543,41 @@ def guardian_overview(
     "/admissions", response_model=list[AdmissionOut], dependencies=[Depends(operations_admin)]
 )
 def admissions(db: Session = Depends(get_db)):
-    return db.query(AdmissionApplication).order_by(AdmissionApplication.created_at.desc()).all()
+    items = db.query(AdmissionApplication).order_by(AdmissionApplication.created_at.desc()).all()
+    return [admission_out(db, item) for item in items]
+
+
+def admission_out(db, item):
+    value = AdmissionOut.model_validate(item)
+    career = db.get(Career, item.career_id)
+    value.career_name = career.name if career else "Carrera no disponible"
+    return value
+
+
+@router.get("/admissions/{application_id}/history", dependencies=[Depends(operations_admin)])
+def admission_history(application_id: int, db: Session = Depends(get_db)):
+    if not db.get(AdmissionApplication, application_id):
+        raise HTTPException(404, "Solicitud no encontrada")
+    return governance_history(db, f"admission:{application_id}")
 
 
 @router.post("/admissions", response_model=AdmissionOut, dependencies=[Depends(operations_admin)])
-def create_admission(data: AdmissionCreate, db: Session = Depends(get_db)):
+def create_admission(
+    data: AdmissionCreate, db: Session = Depends(get_db), user: User = Depends(operations_admin)
+):
+    lock_governance(db)
+    if not db.get(Career, data.career_id):
+        raise HTTPException(404, "Carrera no encontrada")
     item = AdmissionApplication(**data.model_dump())
     db.add(item)
+    db.flush()
+    record(
+        db,
+        user,
+        "admission.created",
+        f"admission:{item.admission_application_id}",
+        f"Solicitud recibida: {item.first_name} {item.last_name}",
+    )
     db.commit()
     db.refresh(item)
     return item
@@ -448,11 +588,42 @@ def create_admission(data: AdmissionCreate, db: Session = Depends(get_db)):
     response_model=AdmissionOut,
     dependencies=[Depends(operations_admin)],
 )
-def update_admission(application_id: int, data: AdmissionUpdate, db: Session = Depends(get_db)):
+def update_admission(
+    application_id: int,
+    data: AdmissionUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(operations_admin),
+):
+    lock_governance(db)
     item = db.get(AdmissionApplication, application_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Application not found")
-    for key, value in data.model_dump(exclude_unset=True).items():
+    allowed = {
+        "submitted": {"review", "rejected"},
+        "review": {"accepted", "rejected"},
+        "accepted": {"review", "rejected"},
+        "rejected": {"review"},
+        "enrolled": set(),
+    }
+    if data.expected_status is not None and item.status != data.expected_status:
+        raise HTTPException(409, "La solicitud cambió; recarga su estado antes de continuar")
+    if item.status == "enrolled" or (
+        data.status != item.status and data.status not in allowed.get(item.status, set())
+    ):
+        raise HTTPException(
+            409,
+            "Transición de admisión no permitida; la matrícula se crea desde una solicitud aceptada",
+        )
+    record(
+        db,
+        user,
+        "admission.updated",
+        f"admission:{application_id}",
+        f"{data.reason}; {item.status} → {data.status}",
+    )
+    for key, value in data.model_dump(
+        exclude_unset=True, exclude_none=True, exclude={"reason", "expected_status"}
+    ).items():
         setattr(item, key, value)
     db.commit()
     db.refresh(item)
@@ -463,12 +634,25 @@ def update_admission(application_id: int, data: AdmissionUpdate, db: Session = D
     "/admissions/{application_id}/enroll",
     dependencies=[Depends(operations_admin)],
 )
-def enroll_admission(application_id: int, db: Session = Depends(get_db)):
+def enroll_admission(
+    application_id: int, db: Session = Depends(get_db), user: User = Depends(operations_admin)
+):
+    lock_governance(db)
     item = db.get(AdmissionApplication, application_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Application not found")
     if item.status == "enrolled":
-        raise HTTPException(status_code=409, detail="Application was already enrolled")
+        if item.student_id:
+            student = db.get(Student, item.student_id)
+            return {
+                "student_id": student.student_id,
+                "enrollment_number": student.enrollment_number,
+            }
+        raise HTTPException(
+            409, "Solicitud histórica matriculada sin vínculo; requiere revisión manual"
+        )
+    if item.status != "accepted":
+        raise HTTPException(409, "Primero acepta la solicitud después de revisarla")
     student = create_student_service(
         db,
         StudentCreate(
@@ -479,8 +663,17 @@ def enroll_admission(application_id: int, db: Session = Depends(get_db)):
             address="Pendiente de completar",
             career_id=item.career_id,
         ),
+        commit=False,
     )
     item.status = "enrolled"
+    item.student_id = student.student_id
+    record(
+        db,
+        user,
+        "admission.enrolled",
+        f"admission:{application_id}",
+        f"Creado estudiante {student.enrollment_number}",
+    )
     db.commit()
     return {"student_id": student.student_id, "enrollment_number": student.enrollment_number}
 
@@ -606,99 +799,95 @@ def percentage(numerator: int | float, denominator: int | float) -> float:
     "/analytics/academic",
     dependencies=[Depends(require_permissions("reports.view", fallback_roles=("admin",)))],
 )
-def academic_analytics(db: Session = Depends(get_db)):
+def academic_analytics(period: str | None = None, db: Session = Depends(get_db)):
+    if period and not db.query(AcademicPeriod).filter_by(name=period).first():
+        raise HTTPException(404, "Período no encontrado")
+    query = db.query(Enrollment).filter(Enrollment.state.in_(("enrolled", "completed", "failed")))
+    if period:
+        query = query.filter(Enrollment.period == period)
+    selected = query.all()
+    relevant_students = {e.student_id for e in selected}
     open_alerts = db.query(EarlyAlert).filter_by(status="open").all()
-    career_metrics = []
-    for career in db.query(Career).order_by(Career.name).all():
-        student_ids = [
-            row[0]
-            for row in db.query(Student.student_id).filter(Student.career_id == career.career_id)
-        ]
-        active = (
-            db.query(Student)
-            .filter(Student.career_id == career.career_id, Student.active.is_(True))
-            .count()
+    if period:
+        open_alerts = [a for a in open_alerts if a.student_id in relevant_students]
+
+    def metrics(enrollments):
+        calculations = [academic_result(db, e) for e in enrollments]
+        finals = [r for r in calculations if r.final and r.value is not None]
+        ids = [e.enrollment_id for e in enrollments]
+        attendance = (
+            db.query(Attendance).filter(Attendance.enrollment_id.in_(ids)).all() if ids else []
         )
-        grades = []
-        attendance = []
-        if student_ids:
-            grades = result_values(
-                db, db.query(Enrollment).filter(Enrollment.student_id.in_(student_ids)).all()
-            )
-            attendance = [
-                bool(row[0])
-                for row in db.query(Attendance.present)
-                .join(Enrollment)
-                .filter(Enrollment.student_id.in_(student_ids))
-            ]
+        return {
+            "average_grade": round(sum(r.value for r in finals) / len(finals), 2)
+            if finals
+            else None,
+            "grade_count": len(finals),
+            "attendance_count": len(attendance),
+            "attendance_percentage": percentage(sum(a.present for a in attendance), len(attendance))
+            if attendance
+            else None,
+            "pass_rate": percentage(sum(r.status == "passed" for r in finals), len(finals))
+            if finals
+            else None,
+        }
+
+    career_metrics = []
+    for career in db.query(Career).order_by(Career.name):
+        members = [
+            s
+            for s in db.query(Student).filter_by(career_id=career.career_id)
+            if not period or s.student_id in relevant_students
+        ]
+        ids = {s.student_id for s in members}
+        active = sum(s.active for s in members)
         career_metrics.append(
             {
                 "career_id": career.career_id,
                 "career_code": career.code,
                 "career_name": career.name,
-                "student_count": len(student_ids),
+                "student_count": len(members),
                 "active_count": active,
-                "retention_percentage": percentage(active, len(student_ids)),
-                "average_grade": round(sum(grades) / len(grades), 2) if grades else 0,
-                "attendance_percentage": percentage(sum(attendance), len(attendance)),
-                "open_alerts": sum(a.student_id in student_ids for a in open_alerts),
+                "retention_percentage": percentage(active, len(members)) if members else None,
+                "open_alerts": sum(a.student_id in ids for a in open_alerts),
+                **metrics([e for e in selected if e.student_id in ids]),
             }
         )
-
-    subject_metrics = []
-    for subject in db.query(Subject).order_by(Subject.code).all():
-        enrollment_ids = [
-            row[0]
-            for row in db.query(Enrollment.enrollment_id)
-            .join(Section)
-            .filter(Section.subject_id == subject.subject_id)
-        ]
-        grades = []
-        attendance = []
-        finalized = []
-        if enrollment_ids:
-            finalized = [
-                result
-                for item in db.query(Enrollment)
-                .filter(Enrollment.enrollment_id.in_(enrollment_ids))
-                .all()
-                if (result := academic_result(db, item)).final
-            ]
-            grades = result_values(
-                db, db.query(Enrollment).filter(Enrollment.enrollment_id.in_(enrollment_ids)).all()
-            )
-            attendance = [
-                bool(row[0])
-                for row in db.query(Attendance.present).filter(
-                    Attendance.enrollment_id.in_(enrollment_ids)
-                )
-            ]
-        subject_metrics.append(
-            {
-                "subject_id": subject.subject_id,
-                "subject_code": subject.code,
-                "subject_name": subject.description,
-                "enrollments": len(enrollment_ids),
-                "average_grade": round(sum(grades) / len(grades), 2) if grades else 0,
-                "pass_rate": percentage(
-                    sum(item.status == "passed" for item in finalized), len(finalized)
-                ),
-                "attendance_percentage": percentage(sum(attendance), len(attendance)),
-            }
-        )
-    subject_metrics.sort(key=lambda row: (row["pass_rate"], row["average_grade"]))
-
-    total_students = db.query(Student).count()
-    active_students = db.query(Student).filter(Student.active.is_(True)).count()
+    subject_metrics = [
+        {
+            "subject_id": s.subject_id,
+            "subject_code": s.code,
+            "subject_name": s.description,
+            "enrollments": len(
+                rows := [e for e in selected if e.section.subject_id == s.subject_id]
+            ),
+            **metrics(rows),
+        }
+        for s in db.query(Subject).order_by(Subject.code)
+    ]
+    subject_metrics.sort(
+        key=lambda r: (r["pass_rate"] is None, r["pass_rate"] or 0, r["subject_code"])
+    )
+    total = len(relevant_students) if period else db.query(Student).count()
+    active = db.query(Student).filter(Student.active.is_(True))
+    if period:
+        active = active.filter(Student.student_id.in_(relevant_students))
     return {
+        "period": period,
+        "definitions": {
+            "active_ratio": "Porcentaje de estudiantes marcados como activos; no mide permanencia entre períodos.",
+            "grades": "Solo resultados finales publicados. Sin datos no equivale a cero.",
+            "attendance": "Presencias computables sobre clases registradas; excluye selecciones retiradas y en espera.",
+            "alerts": "Casos abiertos de estudiantes del período; no implica que se originaran en ese período.",
+        },
         "risk_summary": {
-            "students_at_risk": len({alert.student_id for alert in open_alerts}),
-            "academic_alerts": sum(alert.category == "academic" for alert in open_alerts),
-            "attendance_alerts": sum(alert.category == "attendance" for alert in open_alerts),
-            "financial_alerts": sum(alert.category == "financial" for alert in open_alerts),
-            "critical_alerts": sum(alert.severity == "critical" for alert in open_alerts),
-            "unassigned_alerts": sum(alert.assigned_to is None for alert in open_alerts),
-            "institutional_retention": percentage(active_students, total_students),
+            "students_at_risk": len({a.student_id for a in open_alerts}),
+            "academic_alerts": sum(a.category == "academic" for a in open_alerts),
+            "attendance_alerts": sum(a.category == "attendance" for a in open_alerts),
+            "financial_alerts": sum(a.category == "financial" for a in open_alerts),
+            "critical_alerts": sum(a.severity == "critical" for a in open_alerts),
+            "unassigned_alerts": sum(a.assigned_to is None for a in open_alerts),
+            "institutional_retention": percentage(active.count(), total) if total else None,
         },
         "career_metrics": career_metrics,
         "subject_metrics": subject_metrics,

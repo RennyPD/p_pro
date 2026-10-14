@@ -8,22 +8,44 @@ import { SectionResultsDetailPage, SectionResultsPage } from "./SectionResultsPa
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const context = { section_id: 1, section_code: "MAT-A", subject_code: "MAT", subject_name: "Matemática", teacher_name: "Ana Pérez", period_name: "2026-2" };
-function renderPage(detail: boolean, data: unknown) {
+function renderPage(detail: boolean, data: unknown, mode: "grades" | "attendance" = "grades") {
   useAuthStore.setState({ user: { user_id: 2, username: "docente", email: "docente@example.com", role_id: 2, role_name: "teacher", teacher_id: 1, student_id: null }, token: "test" });
   vi.spyOn(api, "get").mockResolvedValue({ data } as never);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(<QueryClientProvider client={client}><MemoryRouter initialEntries={[detail ? "/section-results/1/grades" : "/grades"]}><Routes><Route path="/grades" element={<SectionResultsPage mode="grades" />} /><Route path="/section-results/:sectionId/:mode" element={<SectionResultsDetailPage />} /></Routes></MemoryRouter></QueryClientProvider>);
+  render(<QueryClientProvider client={client}><MemoryRouter initialEntries={[detail ? "/section-results/1/grades" : "/grades"]}><Routes><Route path="/grades" element={<SectionResultsPage mode={mode} />} /><Route path="/section-results/:sectionId/:mode" element={<SectionResultsDetailPage />} /></Routes></MemoryRouter></QueryClientProvider>);
   return client;
 }
 
 it("explains the summary denominator and filters sections with drafts", async () => {
   const client = renderPage(false, [{ ...context, student_count: 2, grade_average: 32, graded_student_count: 1, final_student_count: 0, pending_student_count: 2, draft_grade_count: 1, published_grade_count: 1, assessment_count: 2, closed_assessment_count: 0, configured_weight: 100 }]);
   expect(await screen.findByText("Matemática")).toBeInTheDocument();
+  const breakdown = screen.getByText("Detalle del avance").closest("details")!;
+  expect(breakdown).not.toHaveAttribute("open");
+  fireEvent.click(screen.getByText("Detalle del avance"));
+  expect(breakdown).toHaveAttribute("open");
   expect(screen.getByText(/Media sobre 1 de 2 estudiantes/)).toBeInTheDocument();
   expect(screen.getByText("0/2 evaluaciones cerradas · plan 100%")).toBeInTheDocument();
   expect(client.getQueryData(["section-academic-summary", 2, "", ""])).toBeDefined();
   fireEvent.change(screen.getByLabelText("Seguimiento"), { target: { value: "final" } });
   expect(screen.getByText("Sin secciones en esta vista")).toBeInTheDocument();
+});
+
+it("keeps zero attendance distinct from missing records and exposes the distribution on demand", async () => {
+  renderPage(false, [{ ...context, student_count: 2, attendance_percentage: 0, attendance_total: 3, attendance_counts: { absent: 2, excused: 1 } }], "attendance");
+  expect(await screen.findByText("0%")).toBeInTheDocument();
+  const details = screen.getByText("Distribución de asistencia").closest("details")!;
+  expect(details).not.toHaveAttribute("open");
+  fireEvent.click(screen.getByText("Distribución de asistencia"));
+  expect(details).toHaveAttribute("open");
+  expect(screen.getByLabelText("Distribución de 3 registros")).toBeInTheDocument();
+  expect(screen.getByRole("link", {name:"Ver estudiantes"})).toHaveAttribute("href", "/section-results/1/attendance");
+});
+
+it("does not label an empty section as having definitive results", async () => {
+  renderPage(false, [{ ...context, student_count: 0, grade_average: null, final_student_count: 0, pending_student_count: 0, graded_student_count: 0, draft_grade_count: 0, published_grade_count: 0, assessment_count: 0, closed_assessment_count: 0, configured_weight: 0 }]);
+  expect(await screen.findByText("Sin estudiantes")).toBeInTheDocument();
+  expect(screen.queryByText("Definitivos", {exact:true})).not.toBeInTheDocument();
+  expect(screen.getByText("—")).toBeInTheDocument();
 });
 
 it("distinguishes weighted contributions, drafts and annulled history", async () => {

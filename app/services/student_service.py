@@ -14,7 +14,10 @@ from app.repositories.student_repository import (
 from app.schemas.student_schema import StudentCreate, StudentUpdate
 
 
-def create_student_service(db: Session, student_data: StudentCreate):
+def create_student_service(db: Session, student_data: StudentCreate, commit: bool = True):
+    from app.services.governance_workflow import lock_governance
+
+    lock_governance(db)
     students = get_students(db)
 
     for student in students:
@@ -32,9 +35,15 @@ def create_student_service(db: Session, student_data: StudentCreate):
         year = datetime.now(UTC).year
         sequence = str(settings.next_enrollment_number).zfill(settings.enrollment_digits)
         generated = f"{settings.enrollment_prefix}-{year}-{sequence}"
+        from app.models.student_model import Student
+
+        while db.query(Student).filter_by(enrollment_number=generated).first():
+            settings.next_enrollment_number += 1
+            sequence = str(settings.next_enrollment_number).zfill(settings.enrollment_digits)
+            generated = f"{settings.enrollment_prefix}-{year}-{sequence}"
         settings.next_enrollment_number += 1
         student_data = student_data.model_copy(update={"enrollment_number": generated})
-    return create_student(db, student_data)
+    return create_student(db, student_data, commit=commit)
 
 
 def get_students_service(db: Session):

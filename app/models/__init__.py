@@ -3,7 +3,7 @@ from .assessment_model import Assessment, AssessmentTemplate
 from .attendance_model import Attendance, AttendanceChange
 from .career_model import Career
 from .community_model import Announcement, Guardian, Notification, StudentGuardian
-from .configuration_model import AcademicPeriod, InstitutionSettings
+from .configuration_model import AcademicPeriod, InstitutionSettings, GovernanceControl
 from .curriculum_model import CurriculumCourse
 from .enrollment_model import CourseSelectionCart, Enrollment
 from .finance_model import (

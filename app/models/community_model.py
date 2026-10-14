@@ -41,6 +41,7 @@ class Announcement(Base):
     audience: Mapped[str] = mapped_column(String(20), default="all")
     section_id: Mapped[int | None] = mapped_column(ForeignKey("sections.section_id"), nullable=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
+    delivery_key: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     published_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
@@ -54,6 +55,9 @@ class Notification(Base):
     title: Mapped[str] = mapped_column(String(150))
     body: Mapped[str] = mapped_column(Text)
     category: Mapped[str] = mapped_column(String(30), default="general")
+    announcement_id: Mapped[int | None] = mapped_column(
+        ForeignKey("announcements.announcement_id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )

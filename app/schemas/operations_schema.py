@@ -121,6 +121,8 @@ class AlertCreate(BaseModel):
 
 
 class AlertOut(AlertCreate, OrmModel):
+    student_name: str = ""
+    enrollment_number: str = ""
     early_alert_id: int
     status: str
     created_by: int | None
@@ -137,7 +139,7 @@ class AlertAssignment(BaseModel):
 
 
 class AlertResolve(BaseModel):
-    resolution_notes: str = Field(default="", max_length=5000)
+    resolution_notes: str = Field(min_length=3, max_length=5000)
 
 
 class AlertInterventionCreate(BaseModel):
@@ -146,6 +148,7 @@ class AlertInterventionCreate(BaseModel):
 
 
 class AlertInterventionOut(AlertInterventionCreate, OrmModel):
+    performer_name: str = ""
     alert_intervention_id: int
     early_alert_id: int
     performed_by: int
@@ -163,12 +166,25 @@ class AdmissionCreate(BaseModel):
 
 
 class AdmissionUpdate(BaseModel):
+    expected_status: str | None = None
+    reason: str = Field(
+        default="Actualización del proceso de admisión", min_length=3, max_length=250
+    )
     status: str = Field(pattern=r"^(submitted|review|accepted|rejected|enrolled)$")
     checklist: str | None = None
     notes: str | None = None
 
+    @model_validator(mode="after")
+    def clean_reason(self):
+        self.reason = self.reason.strip()
+        if len(self.reason) < 3:
+            raise ValueError("Explica el motivo de la transición")
+        return self
+
 
 class AdmissionOut(AdmissionCreate, OrmModel):
+    student_id: int | None = None
+    career_name: str = ""
     admission_application_id: int
     status: str
     created_at: datetime
