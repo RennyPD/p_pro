@@ -110,11 +110,24 @@ TEACHER_SPECS = [
 
 
 def career_catalog_demo(index: int) -> dict:
-    faculties = ["Escuela de Tecnología", "Escuela de Negocios", "Escuela de Comunicación y Mercadeo"]
+    faculties = [
+        "Escuela de Tecnología",
+        "Escuela de Negocios",
+        "Escuela de Comunicación y Mercadeo",
+    ]
     profiles = [
-        ("Desarrolla soluciones informáticas con seguridad, ética y calidad.", "Desarrollo de software, análisis de sistemas y consultoría tecnológica."),
-        ("Gestiona organizaciones y diseña estrategias con responsabilidad social.", "Administración, emprendimiento y consultoría empresarial."),
-        ("Diseña estrategias de mercadeo, analiza audiencias y gestiona marcas con responsabilidad y creatividad.", "Mercadeo digital, investigación de mercados, comunicación estratégica y gestión de marcas."),
+        (
+            "Desarrolla soluciones informáticas con seguridad, ética y calidad.",
+            "Desarrollo de software, análisis de sistemas y consultoría tecnológica.",
+        ),
+        (
+            "Gestiona organizaciones y diseña estrategias con responsabilidad social.",
+            "Administración, emprendimiento y consultoría empresarial.",
+        ),
+        (
+            "Diseña estrategias de mercadeo, analiza audiencias y gestiona marcas con responsabilidad y creatividad.",
+            "Mercadeo digital, investigación de mercados, comunicación estratégica y gestión de marcas.",
+        ),
     ]
     graduate, professional = profiles[(index - 1) % 3]
     return {
@@ -304,7 +317,6 @@ def seed_institution(db: Session) -> dict[str, int]:
     grants = {
         "admin": set(permissions),
         "teacher": {
-            "academic.manage",
             "grades.manage",
             "communications.manage",
             "operations.manage",
@@ -421,7 +433,7 @@ def seed_institution(db: Session) -> dict[str, int]:
     db.flush()
 
     classrooms = [
-        Classroom(name=f"Aula {name}", capacity=32, location=f"Edificio {building}")
+        Classroom(name=f"Aula {name}", capacity=40, location=f"Edificio {building}")
         for name, building in (
             ("A-101", "A"),
             ("A-202", "A"),
@@ -449,7 +461,7 @@ def seed_institution(db: Session) -> dict[str, int]:
                 days_of_week=day_pairs[subject_index % len(day_pairs)],
                 start_time=start,
                 end_time=time(start.hour + 1, 30),
-                capacity=30,
+                capacity=40,
                 minimum_capacity=8,
                 room=classrooms[subject_index % len(classrooms)].name,
                 modality=("hybrid" if subject_index == 3 else "in_person"),
@@ -876,6 +888,13 @@ def seed_institution(db: Session) -> dict[str, int]:
             created_at=datetime.now(UTC).replace(tzinfo=None),
         )
     )
+    db.flush()
+    for section in all_sections:
+        confirmed = (
+            db.query(Enrollment).filter_by(section_id=section.section_id, state="enrolled").count()
+        )
+        if confirmed > section.capacity:
+            raise ValueError(f"Seed exceeds capacity for {section.code}")
     db.commit()
     return {
         "careers": len(careers),

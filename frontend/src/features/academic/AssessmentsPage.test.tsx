@@ -40,9 +40,9 @@ describe("Assessment workflow", () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); });
   it("distinguishes a published zero from a missing note and blocks publishing unsaved changes", async () => {
     const { post } = setup();
-    const zero = await screen.findByRole("spinbutton", { name: "Parcial de Luis Demo" });
+    const zero = await screen.findByRole("spinbutton", { name: "Parcial de Luis Demo, matrícula EST-5" });
     expect(zero).toHaveValue(0);
-    expect(screen.getByRole("spinbutton", { name: "Parcial de Eva Demo" })).toHaveValue(null);
+    expect(screen.getByRole("spinbutton", { name: "Parcial de Eva Demo, matrícula EST-6" })).toHaveValue(null);
     const publish = screen.getAllByRole("button", { name: "Publicar" });
     expect(publish[1]).toBeEnabled();
     fireEvent.change(zero, { target: { value: "10" } });
@@ -56,7 +56,7 @@ describe("Assessment workflow", () => {
   });
   it("sends redistribution as one operation instead of changing percentages individually", async () => {
     const { patch } = setup();
-    await screen.findByRole("spinbutton", { name: "Parcial de Luis Demo" });
+    await screen.findByRole("spinbutton", { name: "Parcial de Luis Demo, matrícula EST-5" });
     fireEvent.click(screen.getByRole("button", { name: "Distribución y plantillas" }));
     fireEvent.change(screen.getByRole("spinbutton", { name: "Porcentaje de Parcial" }), { target: { value: "50" } });
     expect(screen.getByRole("button", { name: "Guardar distribución" })).toBeDisabled();

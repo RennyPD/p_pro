@@ -45,7 +45,7 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
             ),
             DashboardMetric(
                 key="enrollments",
-                label="Inscripciones",
+                label="Selecciones académicas",
                 value=db.query(Enrollment).filter(Enrollment.period == active_period.name).count()
                 if active_period
                 else db.query(Enrollment).count(),
@@ -111,7 +111,7 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
             key="courses",
             label="Asignaturas",
             value=len(enrollments),
-            note="Inscripciones acumuladas",
+            note="Asignaturas en el historial",
         ),
         DashboardMetric(
             key="average",

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_student_academic_access, get_current_user, require_roles
+from app.auth import ensure_student_access, get_current_user, require_roles
 from app.db.Session import get_db
 from app.models.career_model import Career
 from app.models.governance_model import StudentCareerHistory
@@ -57,7 +57,7 @@ def change_student_career(
 def career_history(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    ensure_student_academic_access(db, user, student_id)
+    ensure_student_access(user, student_id)
     items = (
         db.query(StudentCareerHistory)
         .filter_by(student_id=student_id)
@@ -78,7 +78,7 @@ def career_history(
 def graduation_audit(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    ensure_student_academic_access(db, user, student_id)
+    ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")

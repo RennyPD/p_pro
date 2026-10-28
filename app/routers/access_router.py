@@ -118,4 +118,7 @@ def my_permissions(user: User = Depends(get_current_user), db: Session = Depends
         .filter(RolePermission.role_id == user.role_id)
         .all()
     )
-    return {"permissions": sorted(row[0] for row in values), "configured": db.query(Permission).count() > 0}
+    return {
+        "permissions": sorted(row[0] for row in values),
+        "configured": db.query(Permission).count() > 0,
+    }

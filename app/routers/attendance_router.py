@@ -96,7 +96,9 @@ def bulk(
         raise HTTPException(422, "Todos los estudiantes deben pertenecer a la sección")
     for enrollment in enrollments.values():
         require_attendance_writer(db, user, enrollment.enrollment_id)
-        if "reason" not in data.model_fields_set and day_record(db, enrollment.enrollment_id, data.date):
+        if "reason" not in data.model_fields_set and day_record(
+            db, enrollment.enrollment_id, data.date
+        ):
             raise HTTPException(422, "Una corrección requiere un motivo explícito")
     saved = [
         write(

@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 
 from app.auth import (
     ensure_section_access,
-    ensure_student_academic_access,
     ensure_student_access,
     get_current_user,
 )
@@ -31,7 +30,7 @@ def pdf_response(filename: str, title: str, lines: list[str]) -> Response:
 def transcript_pdf(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    ensure_student_academic_access(db, user, student_id)
+    ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -100,7 +99,7 @@ def roster_pdf(
 def enrollment_certificate(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    ensure_student_academic_access(db, user, student_id)
+    ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -120,7 +119,7 @@ def enrollment_certificate(
 def report_card(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    ensure_student_academic_access(db, user, student_id)
+    ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")

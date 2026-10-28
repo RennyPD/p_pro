@@ -49,7 +49,7 @@ it("limits admission transitions and requires a reason before applying them", as
   const patch = vi.spyOn(api, "patch").mockResolvedValue({ data: {} } as never);
   renderPage(<InstitutionalControlPage />);
   fireEvent.click(screen.getByRole("button", { name: "Admisiones" }));
-  const select = await screen.findByRole("combobox", { name: "Estado de Paula Demo" });
+  const select = await screen.findByRole("combobox", { name: "Estado de Paula Demo, solicitud 1" });
   expect(select.querySelectorAll("option")).toHaveLength(3);
   fireEvent.change(select, { target: { value: "review" } });
   fireEvent.change(screen.getByLabelText("Motivo de la transición"), { target: { value: "Documentos recibidos" } });

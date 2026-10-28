@@ -94,7 +94,7 @@ export function SubjectProgramPage() {
       {sections.length ? <div className="subject-cards">{sections.map(section => <article className="panel dossier-panel" key={section.section_id}>
         <div className="subject-card-heading"><h2>{section.code}</h2><Badge>{sectionStates[section.status] ?? section.status}</Badge></div>
         <p>{section.teacher_name}</p><p>{section.period_name || "Período por asignar"} · {section.room} · {section.capacity} cupos</p>
-        <Link className="back-link" to={`/sections/${section.section_id}`}>Abrir sección →</Link>
+        <Link className="back-link" to={`/sections/${section.section_id}`}>Ver asistencia →</Link>
       </article>)}</div> : <EmptyState icon={<BookOpen />} title="Todavía no tiene secciones" description="La asignatura ya puede formar parte de un pensum. Crea sus secciones cuando planifiques la oferta académica." />}
     </>}
     {editing && <ResourceForm config={resources.subjects} record={subject} onClose={() => { setEditing(false); refresh(); }} />}

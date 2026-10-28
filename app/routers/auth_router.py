@@ -6,6 +6,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
+from app.db.database import settings
 from app.db.Session import get_db
 from app.models.role_model import Role
 from app.models.security_model import AuditLog, RefreshToken
@@ -63,7 +64,7 @@ def issue_session(db: Session, response: Response, user: User) -> TokenOut:
         httponly=True,
         secure=False,
         samesite="lax",
-        max_age=7 * 24 * 60 * 60,
+        max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
         path="/auth",
     )
     return TokenOut(access_token=create_access_token(user.user_id), user=user)

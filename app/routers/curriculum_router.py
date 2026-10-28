@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_student_academic_access, get_current_user, require_permissions
+from app.auth import ensure_student_access, get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.career_model import Career
 from app.models.curriculum_model import CurriculumCourse
@@ -139,7 +139,7 @@ def student_curriculum_progress(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    ensure_student_academic_access(db, user, student_id)
+    ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Student not found")

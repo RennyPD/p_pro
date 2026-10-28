@@ -58,6 +58,7 @@ def seed_demo(db: Session) -> dict[str, int]:
             db,
             AcademicPeriod,
             {
+                "status": "active",
                 "start_date": datetime(2026, 8, 1).date(),
                 "end_date": datetime(2027, 6, 30).date(),
                 "active": True,

@@ -30,7 +30,7 @@ describe("SubjectProgramPage", () => {
     expect(screen.getByText("4.5 cr. · Obligatoria")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Secciones (1)" }));
     expect(screen.getByText("Ana Pérez")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Abrir sección →" })).toHaveAttribute("href", "/sections/3");
+    expect(screen.getByRole("link", { name: "Ver asistencia →" })).toHaveAttribute("href", "/sections/3");
   });
   it("allows catalog subjects without a career or a section", async () => {
     vi.spyOn(api, "get").mockResolvedValue({ data: {

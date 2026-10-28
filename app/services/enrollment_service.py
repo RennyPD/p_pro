@@ -3,9 +3,10 @@ from datetime import date
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.configuration_model import AcademicPeriod, InstitutionSettings
+from app.models.configuration_model import InstitutionSettings
 from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import Enrollment
+from app.models.scheduling_model import SectionMeeting
 from app.models.section_model import Section
 from app.models.student_model import Student
 from app.repositories.enrollment_repository import (
@@ -17,9 +18,13 @@ from app.repositories.enrollment_repository import (
 )
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate
 from app.services.academic_recognition import recognize
+from app.services.enrollment_policy import selection_period
+from app.services.governance_workflow import lock_governance
 
 
-def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
+def validate_eligibility(
+    db: Session, enrollment_data: EnrollmentCreate, exclude_id: int | None = None
+):
     requested_section = db.get(Section, enrollment_data.section_id)
     if requested_section is None:
         raise HTTPException(status_code=404, detail="Section not found")
@@ -40,15 +45,7 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
             status_code=409,
             detail=f"Student has an active {' and '.join(reasons)} hold",
         )
-    period = db.query(AcademicPeriod).filter(AcademicPeriod.name == enrollment_data.period).first()
-    today = date.today()
-    if period:
-        if period.status == "closed":
-            raise HTTPException(status_code=409, detail="The academic period is closed")
-        if period.registration_start and today < period.registration_start:
-            raise HTTPException(status_code=409, detail="Registration has not started")
-        if period.registration_end and today > period.registration_end:
-            raise HTTPException(status_code=409, detail="Registration is closed")
+    selection_period(db, requested_section.section_id, enrollment_data.period, registration=True)
     recognition = recognize(db, student)
     curriculum_course = (
         db.query(CurriculumCourse)
@@ -86,7 +83,8 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
         .filter(
             Enrollment.student_id == enrollment_data.student_id,
             Enrollment.period == enrollment_data.period,
-            Enrollment.state == "enrolled",
+            Enrollment.state.in_(("enrolled", "waitlisted")),
+            Enrollment.enrollment_id != exclude_id if exclude_id is not None else True,
         )
         .all()
     )
@@ -120,6 +118,56 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
     if current_credits + requested_credits > max_credits:
         raise HTTPException(status_code=409, detail="Maximum credit load exceeded")
 
+    requested_slots = schedule_slots(db, requested_section)
+    for enrollment in current:
+        if enrollment.state != "enrolled":
+            continue
+        section = enrollment.section
+        if any(
+            day == other_day and start < other_end and other_start < end
+            for day, start, end in requested_slots
+            for other_day, other_start, other_end in schedule_slots(db, section)
+        ):
+            raise HTTPException(409, f"Schedule conflict with section {section.code}")
+    return requested_section
+
+
+def schedule_slots(db, section):
+    meetings = db.query(SectionMeeting).filter_by(section_id=section.section_id).all()
+    if meetings:
+        return [(m.day_of_week, m.start_time, m.end_time) for m in meetings]
+    return [
+        (day.strip(), section.start_time, section.end_time)
+        for day in section.days_of_week.split(",")
+    ]
+
+
+def occupied_seats(db, section_id, period):
+    return (
+        db.query(Enrollment)
+        .filter_by(section_id=section_id, period=period, state="enrolled")
+        .count()
+    )
+
+
+def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
+    # Acquire the database-backed writer lock BEFORE reading eligibility/capacity.
+    lock_governance(db)
+    if enrollment_data.state != "enrolled" or enrollment_data.waitlist_position is not None:
+        raise HTTPException(422, "Selection state and queue position are assigned by the system")
+    if (
+        db.query(Enrollment)
+        .filter_by(
+            student_id=enrollment_data.student_id,
+            section_id=enrollment_data.section_id,
+            period=enrollment_data.period,
+        )
+        .first()
+    ):
+        raise HTTPException(409, "A selection already exists for this student, section and period")
+    requested_section = validate_eligibility(db, enrollment_data)
+    # Existing eligible waitlisted candidates have priority over newcomers.
+    promote_waitlist(db, requested_section.section_id, enrollment_data.period)
     enrolled_count = (
         db.query(Enrollment)
         .filter(
@@ -130,32 +178,20 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
         .count()
     )
     if enrolled_count >= requested_section.capacity:
-        waitlist_count = (
+        waiting = (
             db.query(Enrollment)
             .filter(
                 Enrollment.section_id == requested_section.section_id,
                 Enrollment.period == enrollment_data.period,
                 Enrollment.state == "waitlisted",
             )
-            .count()
+            .all()
         )
+        waitlist_position = max((item.waitlist_position or 0 for item in waiting), default=0) + 1
         enrollment_data = enrollment_data.model_copy(
-            update={"state": "waitlisted", "waitlist_position": waitlist_count + 1}
+            update={"state": "waitlisted", "waitlist_position": waitlist_position}
         )
         return create_enrollment(db, enrollment_data)
-    requested_days = set(requested_section.days_of_week.split(", "))
-    for enrollment in current:
-        section = enrollment.section
-        same_day = requested_days.intersection(section.days_of_week.split(", "))
-        overlaps = (
-            requested_section.start_time < section.end_time
-            and section.start_time < requested_section.end_time
-        )
-        if same_day and overlaps:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Schedule conflict with section {section.code}",
-            )
     return create_enrollment(db, enrollment_data)
 
 
@@ -173,47 +209,102 @@ def get_enrollment_by_id_service(db: Session, enrollment_id: int):
 
 
 def update_enrollment_service(db: Session, enrollment_id: int, enrollment_data: EnrollmentUpdate):
+    lock_governance(db)
     current = get_enrollment_by_id(db, enrollment_id)
     if not current:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found")
-    if enrollment_data.state == "withdrawn":
-        period = db.query(AcademicPeriod).filter(AcademicPeriod.name == current.period).first()
+    changes = enrollment_data.model_dump(exclude_unset=True)
+    for field in ("student_id", "section_id", "period"):
+        if field in changes and changes[field] != getattr(current, field):
+            raise HTTPException(
+                409, "Selection identity is immutable; withdraw and create a new selection"
+            )
+    if any(
+        changes.get(field, getattr(current, field)) is None
+        for field in ("student_id", "section_id", "period", "state")
+    ):
+        raise HTTPException(422, "Selection identity and state cannot be null")
+    if "waitlist_position" in changes:
+        raise HTTPException(422, "Queue position is managed by the system")
+    period = selection_period(db, current.section_id, current.period)
+    previous_state = current.state
+    target_state = changes.get("state", previous_state)
+    if target_state == previous_state and all(getattr(current, k) == v for k, v in changes.items()):
+        db.commit()
+        return current
+    if target_state == "withdrawn":
         if period and period.withdrawal_deadline and date.today() > period.withdrawal_deadline:
             raise HTTPException(status_code=409, detail="The withdrawal deadline has passed")
-    enrollment = update_enrollment(db, enrollment_id, enrollment_data)
+    elif target_state != previous_state:
+        raise HTTPException(
+            409, "Only withdrawal is supported here; academic completion uses the grading workflow"
+        )
+    enrollment = update_enrollment(db, enrollment_id, enrollment_data, commit=False)
+    if target_state == "withdrawn":
+        enrollment.waitlist_position = None
+        db.flush()
 
     if not enrollment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found")
 
-    if enrollment.state == "withdrawn":
-        next_waiting = (
-            db.query(Enrollment)
-            .filter(
-                Enrollment.section_id == enrollment.section_id,
-                Enrollment.period == enrollment.period,
-                Enrollment.state == "waitlisted",
-            )
-            .order_by(Enrollment.waitlist_position, Enrollment.enrollment_date)
-            .first()
-        )
-        if next_waiting:
-            next_waiting.state = "enrolled"
-            next_waiting.waitlist_position = None
-            db.commit()
-
+    if previous_state == "enrolled" and target_state == "withdrawn":
+        promote_waitlist(db, enrollment.section_id, enrollment.period)
+    db.commit()
+    db.refresh(enrollment)
     return enrollment
 
 
+def promote_waitlist(db, section_id, period):
+    section = db.get(Section, section_id)
+    waiting = (
+        db.query(Enrollment)
+        .filter_by(section_id=section_id, period=period, state="waitlisted")
+        .order_by(
+            Enrollment.waitlist_position, Enrollment.enrollment_date, Enrollment.enrollment_id
+        )
+        .all()
+    )
+    for candidate in waiting:
+        if occupied_seats(db, section_id, period) >= section.capacity:
+            break
+        try:
+            validate_eligibility(
+                db,
+                EnrollmentCreate(
+                    student_id=candidate.student_id, section_id=section_id, period=period
+                ),
+                exclude_id=candidate.enrollment_id,
+            )
+        except HTTPException as exc:
+            if exc.status_code not in {404, 409}:
+                raise
+            # Preserve ineligible candidates and their queue position. They may
+            # regain eligibility; do not grant a place or remove them silently.
+            continue
+        candidate.state = "enrolled"
+        candidate.waitlist_position = None
+        db.flush()
+
+
 def delete_enrollment_service(db: Session, enrollment_id: int):
+    lock_governance(db)
     current = get_enrollment_by_id(db, enrollment_id)
+    if current:
+        selection_period(db, current.section_id, current.period)
     if current and current.grades:
         raise HTTPException(
             status_code=409,
             detail="No se puede eliminar una selección con historial de calificaciones; usa retiro para conservar el expediente",
         )
-    enrollment = delete_enrollment(db, enrollment_id)
+    section_id, period, previous_state = (
+        (current.section_id, current.period, current.state) if current else (None, None, None)
+    )
+    enrollment = delete_enrollment(db, enrollment_id, commit=False)
 
     if not enrollment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found")
 
+    if previous_state == "enrolled":
+        promote_waitlist(db, section_id, period)
+    db.commit()
     return {"message": "Enrollment deleted successfully"}

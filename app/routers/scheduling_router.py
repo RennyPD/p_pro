@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_section_access, get_current_user, require_permissions
+from app.auth import ensure_section_access, get_current_user, require_permissions, require_roles
 from app.db.Session import get_db
 from app.models.scheduling_model import Classroom, SectionMeeting
 from app.models.section_model import Section
@@ -14,7 +14,8 @@ from app.schemas.scheduling_schema import (
 )
 
 router = APIRouter(prefix="/scheduling", tags=["scheduling"])
-scheduling_manager = require_permissions("academic.manage", fallback_roles=("admin", "teacher"))
+scheduling_manager = require_roles("admin", "teacher")
+classroom_manager = require_permissions("academic.manage", fallback_roles=("admin",))
 
 
 def meeting_out(meeting: SectionMeeting) -> MeetingOut:
@@ -36,7 +37,7 @@ def list_classrooms(db: Session = Depends(get_db), _user=Depends(get_current_use
     return db.query(Classroom).order_by(Classroom.name).all()
 
 
-@router.post("/classrooms", response_model=ClassroomOut, dependencies=[Depends(scheduling_manager)])
+@router.post("/classrooms", response_model=ClassroomOut, dependencies=[Depends(classroom_manager)])
 def create_classroom(data: ClassroomCreate, db: Session = Depends(get_db)):
     room = Classroom(**data.model_dump())
     db.add(room)

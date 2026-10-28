@@ -3,21 +3,21 @@ from .assessment_model import Assessment, AssessmentTemplate
 from .attendance_model import Attendance, AttendanceChange
 from .career_model import Career
 from .community_model import Announcement, Guardian, Notification, StudentGuardian
-from .configuration_model import AcademicPeriod, InstitutionSettings, GovernanceControl
+from .configuration_model import AcademicPeriod, GovernanceControl, InstitutionSettings
 from .curriculum_model import CurriculumCourse
 from .enrollment_model import CourseSelectionCart, Enrollment
 from .finance_model import (
     BillingConcept,
     CashClosing,
     Charge,
+    FinanceControl,
+    FinanceEvent,
     FinancialAdjustment,
     Installment,
     Payment,
     PaymentPlan,
     StudentAccount,
     TransferRequest,
-    FinanceEvent,
-    FinanceControl,
 )
 from .governance_model import CourseEquivalence, StudentCareerHistory
 from .grade_model import Grade, GradeChange

@@ -335,7 +335,17 @@ def institutional_cycle():
                         "description": "Sección ficticia",
                         "subject_id": s["subject_id"],
                         "teacher_id": 1,
-                        "days_of_week": ["Miércoles"],
+                        "days_of_week": [
+                            [
+                                "Lunes",
+                                "Martes",
+                                "Miércoles",
+                                "Jueves",
+                                "Viernes",
+                                "Sábado",
+                                "Domingo",
+                            ][TODAY.weekday()]
+                        ],
                         "start_time": f"{18 + i:02}:00:00",
                         "end_time": f"{19 + i:02}:00:00",
                         "capacity": 1,

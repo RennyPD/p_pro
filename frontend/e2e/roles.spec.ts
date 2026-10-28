@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const profiles = [
   { role: "admin", username: "admin.horizonte", student_id: null, teacher_id: null, expected: "Control institucional", permissions: ["academic.manage", "grades.manage", "finance.manage", "reports.view", "communications.manage"] },
-  { role: "teacher", username: "profesor.01", student_id: null, teacher_id: 1, expected: "Mis secciones", permissions: ["academic.manage", "grades.manage", "communications.manage"] },
+  { role: "teacher", username: "profesor.01", student_id: null, teacher_id: 1, expected: "Mis secciones", permissions: ["grades.manage", "communications.manage"] },
   { role: "student", username: "estudiante.001", student_id: 1, teacher_id: null, expected: "Elegir asignaturas", permissions: ["records.own"] },
   { role: "guardian", username: "tutor.01", student_id: null, teacher_id: null, guardian_id: 1, expected: "Seguimiento familiar", permissions: ["records.own"] },
 ];

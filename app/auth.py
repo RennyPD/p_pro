@@ -43,7 +43,9 @@ def require_roles(*allowed_roles: str):
     return dependency
 
 
-def require_permissions(*required_permissions: str, fallback_roles: tuple[str, ...] = ()):
+def require_permissions(
+    *required_permissions: str, fallback_roles: tuple[str, ...] = (), institutional: bool = False
+):
     """Require configured permissions while keeping unconfigured legacy roles operable."""
     required = set(required_permissions)
     fallback = {role.casefold() for role in fallback_roles}
@@ -51,6 +53,19 @@ def require_permissions(*required_permissions: str, fallback_roles: tuple[str, .
     def dependency(
         current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
     ) -> User:
+        # Institutional administration is not a teaching capability, even when
+        # an older role still carries the broad academic.manage grant.
+        if (institutional or "academic.manage" in required) and (
+            current_user.role.name.casefold() in {"teacher", "student", "guardian"}
+            or (
+                not is_admin(current_user)
+                and (current_user.teacher_id is not None or current_user.student_id is not None)
+            )
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Academic administration requires an institutional staff profile",
+            )
         assigned = {
             row[0]
             for row in db.query(Permission.slug)

@@ -34,13 +34,16 @@ import { InstitutionalControlPage } from "./features/settings/InstitutionalContr
 import { PeriodsPage } from "./features/settings/PeriodsPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { api } from "./lib/api";
+import { useSessionRenewal } from "./lib/useSessionRenewal";
 import { useAuthStore } from "./store/auth";
 import type { Role, User } from "./types";
 
 function SessionGate() {
-  const { token, user, setUser, clearSession, hydrate } = useAuthStore();
-  const query = useQuery({ queryKey: ["session"], queryFn: () => api.get<User>("/auth/me").then(response => response.data), enabled: Boolean(token && !user), retry: false });
-  useEffect(() => { if (query.data) setUser(query.data); if (query.isError) clearSession(); if (!token || query.isSuccess || query.isError || user) hydrate(); }, [query.data, query.isError, query.isSuccess, token, user, setUser, clearSession, hydrate]);
+  const { token, user, sessionGeneration, setUser, hydrate } = useAuthStore();
+  useSessionRenewal();
+  const query = useQuery({ queryKey: ["session", sessionGeneration], queryFn: () => api.get<User>("/auth/me").then(response => response.data), enabled: Boolean(token && !user), retry: false });
+  useEffect(() => { if (query.data && token) setUser(query.data); if (!token || query.isSuccess || query.isError || user) hydrate(); }, [query.data, query.isError, query.isSuccess, token, user, setUser, hydrate]);
+  if (token && !user && query.isError) return <div className="app-loader"><p>No pudimos comprobar tu sesión. Revisa la conexión y vuelve a intentar.</p><button type="button" onClick={() => query.refetch()}>Reintentar conexión</button></div>;
   if (token && !user && !query.isError) return <div className="app-loader"><span className="brand-symbol">N</span><p>Preparando tu espacio…</p></div>;
   return <Outlet />;
 }

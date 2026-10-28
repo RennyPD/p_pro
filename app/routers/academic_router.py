@@ -8,6 +8,7 @@ from app.auth import (
     ensure_student_academic_access,
     ensure_teacher_access,
     get_current_user,
+    is_admin,
 )
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
@@ -107,6 +108,7 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
         .filter(
             Section.subject_id.in_(list(curriculum)),
             Section.status.in_(("published", "active")),
+            (Section.period_name == period.name) | (Section.period_name == ""),
         )
         .all()
     ):
@@ -137,8 +139,7 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
                 capacity=section.capacity,
                 available_seats=max(section.capacity - occupied, 0),
                 selection_status=current.get(section.section_id)
-                or ("cart" if section.section_id in cart else None)
-                or selected_subjects.get(section.subject_id),
+                or ("cart" if section.section_id in cart else None),
                 waitlist_position=waitlist_positions.get(section.section_id),
                 period=period.name,
                 section_status=section.status,
@@ -416,14 +417,12 @@ def withdraw_course_selection(
             Enrollment.student_id == user.student_id,
             Enrollment.section_id == section_id,
             Enrollment.period == (period.name if period else ""),
-            Enrollment.state.in_(("enrolled", "waitlisted")),
+            Enrollment.state.in_(("enrolled", "waitlisted", "withdrawn")),
         )
         .first()
     )
     if enrollment is None:
         raise HTTPException(status_code=404, detail="Active course selection not found")
-    if period and period.withdrawal_deadline and date.today() > period.withdrawal_deadline:
-        raise HTTPException(status_code=409, detail="The withdrawal deadline has passed")
     from app.schemas.enrollment_schema import EnrollmentUpdate
     from app.services.enrollment_service import update_enrollment_service
 
@@ -449,6 +448,8 @@ def student_grade_history(
     )
     if user.student_id is not None:
         query = query.filter(Grade.status == "published")
+    if not is_admin(user) and user.teacher_id is not None:
+        query = query.join(Enrollment.section).filter(Section.teacher_id == user.teacher_id)
     if period:
         query = query.filter(Enrollment.period == period)
     grades = query.offset(skip).limit(limit).all()
@@ -480,6 +481,8 @@ def student_schedule(
 ):
     ensure_student_academic_access(db, user, student_id)
     query = db.query(Section).join(Section.enrollments).filter(Enrollment.student_id == student_id)
+    if not is_admin(user) and user.teacher_id is not None:
+        query = query.filter(Section.teacher_id == user.teacher_id)
     if period:
         query = query.filter(Enrollment.period == period)
     return [schedule_item(section) for section in query.distinct().all()]
@@ -610,6 +613,12 @@ def student_academic_profile(
     total_attendances = 0
     total_present = 0
     for enrollment in student.enrollments:
+        if (
+            not is_admin(user)
+            and user.teacher_id is not None
+            and enrollment.section.teacher_id != user.teacher_id
+        ):
+            continue
         result = academic_result(db, enrollment)
         grades = [result.value] if result.value is not None else []
         attendances = enrollment.attendances
@@ -771,6 +780,8 @@ def student_attendance_summary(
         raise HTTPException(422, "El inicio debe ser anterior al fin")
     ensure_student_academic_access(db, user, student_id)
     query = db.query(Enrollment).filter(Enrollment.student_id == student_id)
+    if not is_admin(user) and user.teacher_id is not None:
+        query = query.join(Enrollment.section).filter(Section.teacher_id == user.teacher_id)
     if period:
         query = query.filter(Enrollment.period == period)
     results = []

@@ -9,7 +9,18 @@ from app.services.academic_grading import audit_event
 
 
 def lock_governance(db):
-    if db.get(GovernanceControl, 1) is None:
+    dialect = db.get_bind().dialect.name
+    if dialect in {"sqlite", "postgresql"}:
+        if dialect == "sqlite":
+            from sqlalchemy.dialects.sqlite import insert
+        else:
+            from sqlalchemy.dialects.postgresql import insert
+        db.execute(
+            insert(GovernanceControl)
+            .values(governance_control_id=1, version=0)
+            .on_conflict_do_nothing()
+        )
+    elif db.get(GovernanceControl, 1) is None:
         db.add(GovernanceControl(governance_control_id=1, version=0))
         db.flush()
     db.execute(

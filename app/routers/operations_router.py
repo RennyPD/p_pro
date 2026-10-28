@@ -76,7 +76,9 @@ def result_values(db, enrollments):
 router = APIRouter(prefix="/operations", tags=["institutional operations"])
 router.include_router(assignment_routes)
 operations_manager = require_permissions("operations.manage", fallback_roles=("admin", "teacher"))
-operations_admin = require_permissions("operations.manage", fallback_roles=("admin",))
+operations_admin = require_permissions(
+    "operations.manage", fallback_roles=("admin",), institutional=True
+)
 
 
 def student_scope_ids(db: Session, user: User) -> list[int] | None:

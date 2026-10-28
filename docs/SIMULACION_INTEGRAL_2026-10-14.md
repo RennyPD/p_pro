@@ -1,5 +1,7 @@
 # Simulación institucional integral — 14 de octubre de 2026
 
+> **Actualización del 15 de octubre:** se implementaron las correcciones de F01–F07 y de las observaciones P2/P3. Este documento conserva el diagnóstico original; el cierre, las pruebas y la reparación autorizada de datos se detallan en [CIERRE_HALLAZGOS_2026-10-15.md](CIERRE_HALLAZGOS_2026-10-15.md).
+
 ## Dictamen
 
 Nexo tiene un recorrido académico y financiero interno funcional, pero **no supera todavía una aceptación institucional exigente**. Los bloqueantes están principalmente en autorización por ámbito y consistencia de la selección académica. Añadir más módulos antes de resolverlos aumentaría el riesgo y la complejidad.
