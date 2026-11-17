@@ -1,7 +1,8 @@
 import hashlib
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth import (
@@ -19,6 +20,7 @@ from app.models.section_model import Section
 from app.models.student_model import Student
 from app.models.teacher_model import Teacher
 from app.models.user_model import User
+from app.pagination import page_query
 from app.schemas.community_schema import (
     AnnouncementCreate,
     AnnouncementOut,
@@ -26,6 +28,7 @@ from app.schemas.community_schema import (
     GuardianLinkCreate,
     GuardianLinkOut,
     NotificationOut,
+    StudentGuardianRegistration,
 )
 from app.services.governance_workflow import lock_governance, record
 
@@ -55,6 +58,26 @@ def create_guardian(data: GuardianCreate, db: Session = Depends(get_db)):
     return guardian
 
 
+@router.get("/guardians", dependencies=[Depends(require_roles("admin"))])
+def list_guardians(
+    response: Response,
+    q: str | None = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Guardian)
+    if q and (term := q.strip()):
+        query = query.filter(
+            or_(
+                Guardian.first_name.icontains(term, autoescape=True),
+                Guardian.last_name.icontains(term, autoescape=True),
+                Guardian.email.icontains(term, autoescape=True),
+            )
+        )
+    return page_query(query.order_by(Guardian.guardian_id), response, skip, limit)
+
+
 @router.post(
     "/guardian-links",
     response_model=GuardianLinkOut,
@@ -77,6 +100,43 @@ def student_guardians(
         link_out(item)
         for item in db.query(StudentGuardian).filter(StudentGuardian.student_id == student_id).all()
     ]
+
+
+@router.post("/students/{student_id}/guardians", response_model=GuardianLinkOut, status_code=201)
+def register_guardian(
+    student_id: int,
+    data: StudentGuardianRegistration,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("admin")),
+):
+    lock_governance(db)
+    if db.get(Student, student_id) is None:
+        raise HTTPException(404, "El expediente del estudiante ya no está disponible")
+    if data.new_guardian:
+        if db.query(Guardian).filter_by(email=data.new_guardian.email).first() is not None:
+            raise HTTPException(409, "Ese correo pertenece a un tutor. Selecciónalo como existente")
+        guardian = Guardian(**data.new_guardian.model_dump())
+        db.add(guardian)
+        db.flush()
+    else:
+        guardian = db.get(Guardian, data.guardian_id)
+        if guardian is None:
+            raise HTTPException(404, "Selecciona un tutor existente")
+    if (
+        db.query(StudentGuardian)
+        .filter_by(student_id=student_id, guardian_id=guardian.guardian_id)
+        .first()
+    ):
+        raise HTTPException(409, "Ese tutor ya está vinculado al estudiante")
+    link = StudentGuardian(
+        student_id=student_id,
+        guardian_id=guardian.guardian_id,
+        **data.model_dump(exclude={"guardian_id", "new_guardian"}),
+    )
+    db.add(link)
+    record(db, actor, "guardian.linked", f"student:{student_id}", "Alta de vínculo familiar")
+    db.commit()
+    return link_out(link)
 
 
 communications_manager = require_permissions(

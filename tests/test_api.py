@@ -73,6 +73,339 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertNotIn("password", response.json()["user"])
         return response.json()["access_token"], response.json()["user"]
 
+    def test_mfa_reconfiguration_preserves_active_factor_and_requires_reverification(self):
+        from unittest.mock import patch
+
+        password = "strong-password"
+        login_data = {"username": "admin", "password": password}
+        token, _ = self.bootstrap()
+
+        with patch(
+            "app.routers.auth_router.verify_totp",
+            side_effect=lambda _secret, code: code == "432109",
+        ):
+            self.assertEqual(self.request("POST", "/auth/mfa/setup", token).status_code, 200)
+            enabled = self.request(
+                "POST",
+                "/auth/mfa/enable",
+                token,
+                json={"code": "432109", "current_password": password},
+            )
+            self.assertEqual(enabled.status_code, 204)
+            self.assertEqual(self.request("GET", "/auth/me", token).status_code, 401)
+            login_data["otp"] = "432109"
+            token = self.request("POST", "/auth/login", json=login_data).json()["access_token"]
+            self.assertEqual(self.request("POST", "/auth/mfa/setup", token).status_code, 200)
+            self.assertEqual(self.request("DELETE", "/auth/mfa/setup", token).status_code, 204)
+            self.assertTrue(self.request("GET", "/auth/me", token).json()["mfa_enabled"])
+            self.assertEqual(self.request("POST", "/auth/mfa/setup", token).status_code, 200)
+            for _ in range(5):
+                self.assertEqual(
+                    self.request(
+                        "POST",
+                        "/auth/mfa/enable",
+                        token,
+                        json={"code": "432109", "current_password": password},
+                    ).status_code,
+                    400,
+                )
+            self.assertEqual(
+                self.request(
+                    "POST",
+                    "/auth/mfa/disable",
+                    token,
+                    json={"code": "432109", "current_password": password},
+                ).status_code,
+                429,
+            )
+            with self.Session() as db:
+                user = db.query(User).filter_by(username="admin").one()
+                self.assertTrue(user.mfa_enabled)
+                self.assertNotEqual(user.mfa_pending_secret, user.mfa_secret)
+                user.mfa_attempt_window = datetime.now(UTC).replace(tzinfo=None) - timedelta(
+                    minutes=1
+                )
+                db.commit()
+            self.assertEqual(
+                self.request(
+                    "POST",
+                    "/auth/mfa/enable",
+                    token,
+                    json={"code": "432109", "current_password": password, "current_code": "432109"},
+                ).status_code,
+                204,
+            )
+            token = self.request("POST", "/auth/login", json=login_data).json()["access_token"]
+            self.assertEqual(
+                self.request(
+                    "POST",
+                    "/auth/mfa/disable",
+                    token,
+                    json={"code": "432109", "current_password": password},
+                ).status_code,
+                204,
+            )
+            self.assertEqual(self.request("GET", "/auth/me", token).status_code, 401)
+            self.assertEqual(self.request("POST", "/auth/refresh").status_code, 401)
+
+    def test_administrative_password_reset_revokes_access_and_refresh(self):
+        admin, info = self.bootstrap()
+        account = {
+            "username": "cuenta-qa",
+            "email": "cuenta-qa@example.com",
+            "password": "clave-anterior-qa",
+            "role_id": info["role_id"],
+        }
+        created = self.request("POST", "/users/", admin, json=account)
+        self.assertEqual(created.status_code, 200)
+        login = self.request("POST", "/auth/login", json=account)
+        self.assertEqual(login.status_code, 200)
+        previous = login.json()["access_token"]
+        user_id = created.json()["user_id"]
+        reset = self.request(
+            "PATCH", f"/users/{user_id}", admin, json={"password": "clave-nueva-qa"}
+        )
+        self.assertEqual(reset.status_code, 200)
+        self.assertEqual(self.request("GET", "/auth/me", previous).status_code, 401)
+        self.assertEqual(self.request("POST", "/auth/refresh").status_code, 401)
+        renewed = self.request(
+            "POST", "/auth/login", json={**account, "password": "clave-nueva-qa"}
+        )
+        self.assertEqual(renewed.status_code, 200)
+
+    def test_academic_history_protects_section_subject_and_attendance(self):
+        admin, _, section_id, enrollment_id, _ = self.grading_fixture()
+        with self.Session() as db:
+            section = db.get(Section, section_id)
+            new_subject = db.query(Subject).filter(Subject.subject_id != section.subject_id).first()
+            new_subject_id = new_subject.subject_id
+            attendance = Attendance(enrollment_id=enrollment_id, present=True, status="present")
+            db.add(attendance)
+            db.commit()
+            attendance_id = attendance.attendance_id
+        self.assertEqual(
+            self.request(
+                "PATCH", f"/sections/{section_id}", admin, json={"subject_id": new_subject_id}
+            ).status_code,
+            409,
+        )
+        self.assertEqual(
+            self.request("DELETE", f"/enrollments/{enrollment_id}", admin).status_code,
+            409,
+        )
+        with self.Session() as db:
+            self.assertIsNotNone(db.get(Attendance, attendance_id))
+
+    def test_period_and_user_directories_return_stable_pagination_metadata(self):
+        from app.services.business_time import business_date
+
+        token, admin = self.bootstrap()
+        day = business_date()
+        with self.Session() as db:
+            account = db.get(User, admin["user_id"])
+            for index in range(101):
+                db.add(
+                    User(
+                        username=f"directory-{index:03d}",
+                        email=f"{'limite' if index < 11 else 'dir'}{index}@example.com",
+                        password=account.password,
+                        role_id=account.role_id,
+                    )
+                )
+                db.add(
+                    AcademicPeriod(
+                        name=f"directory-{index:03d}",
+                        start_date=day + timedelta(days=index),
+                        end_date=day + timedelta(days=index + 30),
+                        active=index == 0,
+                        academic_year="limite" if index < 11 else "",
+                    )
+                )
+            db.commit()
+        for path in ("/periods/", "/users/"):
+            for keyword, total in (
+                ("sin coincidencias", 0),
+                ("directory-100", 1),
+                ("directory-00", 10),
+                ("limite", 11),
+                ("directory-", 101),
+            ):
+                response = self.request("GET", path, token, params={"q": keyword, "limit": 10})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.headers["x-total-count"], str(total))
+                self.assertEqual(len(response.json()), min(total, 10))
+                self.assertEqual(response.headers["x-has-more"], str(total > 10).lower())
+            last = self.request(
+                "GET", path, token, params={"q": "directory-", "skip": 100, "limit": 10}
+            )
+            self.assertEqual(len(last.json()), 1)
+            self.assertEqual(last.headers["x-has-more"], "false")
+            past_end = self.request("GET", path, token, params={"skip": 1000, "limit": 1})
+            self.assertEqual(past_end.json(), [])
+        current = self.request("GET", "/periods/", token, params={"active": True, "limit": 1})
+        self.assertEqual([period["name"] for period in current.json()], ["directory-000"])
+
+    def test_mixed_import_previews_and_retries_rows_without_duplicate_students(self):
+        import csv
+        import io
+
+        admin, _, _, _, _ = self.grading_fixture()
+        template = self.request("GET", "/bulk/students/template", admin)
+        self.assertEqual(template.status_code, 200)
+        with self.Session() as db:
+            career = db.query(Career).filter(Career.code != "").first()
+            code = career.code
+        body = (
+            template.text
+            + f"=1+1,Ureña,import-qa@example.com,8095550101,Ciudad,{code},QA-MATRICULA,true\n"
+            + f"Ana,Ureña,import-otra@example.com,8095550102,Ciudad,{code},QA-MATRICULA,true\n"
+        )
+        headers = {"Content-Type": "text/csv"}
+        path = "/bulk/students/import"
+        preview = self.request(
+            "POST", path, admin, params={"dry_run": True}, content=body, headers=headers
+        )
+        self.assertEqual(preview.status_code, 200)
+        self.assertEqual([row["status"] for row in preview.json()["rows"]], ["valid", "rejected"])
+        with self.Session() as db:
+            self.assertIsNone(db.query(Student).filter_by(email="import-qa@example.com").first())
+        posted = self.request("POST", path, admin, content=body, headers=headers)
+        self.assertEqual(posted.status_code, 200)
+        self.assertEqual([row["status"] for row in posted.json()["rows"]], ["created", "rejected"])
+        retried = self.request("POST", path, admin, content=body, headers=headers)
+        self.assertEqual(
+            [row["status"] for row in retried.json()["rows"]], ["unchanged", "rejected"]
+        )
+        exported = self.request("GET", "/bulk/students/export", admin)
+        rows = csv.DictReader(io.StringIO(exported.text))
+        student = next(row for row in rows if row["enrollment_number"] == "QA-MATRICULA")
+        self.assertEqual(student["first_name"], "'=1+1")
+
+    def test_cart_confirmation_rechecks_the_program_and_preserves_rejected_items(self):
+        admin, student_token, section_id, _, student_id = self.grading_fixture()
+        with self.Session() as db:
+            source = db.get(Section, section_id)
+            student = db.get(Student, student_id)
+            subject = Subject(code="QA-CART-PLAN", description="Asignatura de carrito QA")
+            db.add(subject)
+            db.flush()
+            course = CurriculumCourse(
+                career_id=student.career_id,
+                subject_id=subject.subject_id,
+                term_number=1,
+                credits=3,
+                curriculum_version=student.career.curriculum_version,
+            )
+            section = Section(
+                code="QA-CART-PLAN",
+                description="Sección QA",
+                teacher_id=source.teacher_id,
+                subject_id=subject.subject_id,
+                days_of_week="Domingo",
+                start_time=time(20),
+                end_time=time(21),
+            )
+            db.add_all([course, section])
+            db.commit()
+            new_id, course_id = section.section_id, course.curriculum_course_id
+        self.assertEqual(
+            self.request("POST", f"/academic/catalog/cart/{new_id}", student_token).status_code, 200
+        )
+        self.assertEqual(
+            self.request("DELETE", f"/curriculum/courses/{course_id}", admin).status_code, 200
+        )
+        result = self.request("POST", "/academic/catalog/confirm", student_token).json()
+        self.assertEqual(result["confirmed"], [])
+        self.assertEqual(result["errors"][0]["section_id"], new_id)
+        with self.Session() as db:
+            self.assertIsNone(db.query(Enrollment).filter_by(section_id=new_id).first())
+            self.assertIsNotNone(db.query(CourseSelectionCart).filter_by(section_id=new_id).first())
+
+    def test_cart_confirms_reciprocal_corequisites_together(self):
+        _, student_token, section_id, _, student_id = self.grading_fixture()
+        with self.Session() as db:
+            student = db.get(Student, student_id)
+            teacher_id = db.get(Section, section_id).teacher_id
+            subjects = [Subject(code=f"QA-PAR-{i}", description="Par QA") for i in (1, 2)]
+            db.add_all(subjects)
+            db.flush()
+            sections = []
+            for index, subject in enumerate(subjects):
+                db.add(
+                    CurriculumCourse(
+                        career_id=student.career_id,
+                        subject_id=subject.subject_id,
+                        corequisite_subject_id=subjects[1 - index].subject_id,
+                        term_number=1,
+                        credits=1,
+                        curriculum_version=student.career.curriculum_version,
+                    )
+                )
+                sections.append(
+                    Section(
+                        code=subject.code,
+                        description="Sección QA",
+                        teacher_id=teacher_id,
+                        subject_id=subject.subject_id,
+                        days_of_week="Domingo",
+                        start_time=time(20 + index),
+                        end_time=time(21 + index),
+                    )
+                )
+            db.add_all(sections)
+            db.commit()
+            first, second = [section.section_id for section in sections]
+        self.assertEqual(
+            self.request("POST", f"/academic/catalog/cart/{first}", student_token).status_code, 200
+        )
+        result = self.request("POST", "/academic/catalog/confirm", student_token).json()
+        self.assertEqual(result["confirmed"], [])
+        self.assertEqual(
+            self.request("POST", f"/academic/catalog/cart/{second}", student_token).status_code, 200
+        )
+        with self.Session() as db:
+            second_section = db.get(Section, second)
+            second_section.days_of_week = "Domingo"
+            second_section.start_time, second_section.end_time = time(20, 30), time(21, 30)
+            db.commit()
+        rejected = self.request("POST", "/academic/catalog/confirm", student_token).json()
+        self.assertEqual(rejected["confirmed"], [])
+        self.assertEqual({item["section_id"] for item in rejected["errors"]}, {first, second})
+        with self.Session() as db:
+            self.assertEqual(
+                db.query(Enrollment).filter(Enrollment.section_id.in_([first, second])).count(), 0
+            )
+            second_section = db.get(Section, second)
+            second_section.start_time, second_section.end_time = time(21), time(22)
+            db.commit()
+        result = self.request("POST", "/academic/catalog/confirm", student_token).json()
+        self.assertEqual(result["errors"], [])
+        self.assertEqual({row["section_id"] for row in result["confirmed"]}, {first, second})
+
+    def test_curriculum_rejects_prerequisite_cycles_in_a_version(self):
+        admin, _, _, _, student_id = self.grading_fixture()
+        with self.Session() as db:
+            student = db.get(Student, student_id)
+            courses = (
+                db.query(CurriculumCourse)
+                .filter_by(career_id=student.career_id)
+                .order_by(CurriculumCourse.curriculum_course_id)
+                .all()
+            )
+            a, b = courses[:2]
+            a.prerequisite_subject_id = None
+            b.prerequisite_subject_id = a.subject_id
+            first, second_subject = a.curriculum_course_id, b.subject_id
+            db.commit()
+        response = self.request(
+            "PATCH",
+            f"/curriculum/courses/{first}",
+            admin,
+            json={"prerequisite_subject_id": second_subject},
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertIn("ciclo", response.json()["detail"])
+
     def test_subject_overview_shared_between_careers_and_delete_protection(self) -> None:
         token, _ = self.bootstrap()
         with self.Session() as db:
@@ -785,7 +1118,10 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(
             len(
                 self.request(
-                    "GET", f"/academic/teachers/{teacher_id}/schedule", token=teacher_login
+                    "GET",
+                    f"/academic/teachers/{teacher_id}/schedule",
+                    token=teacher_login,
+                    params={"period": "2026-3"},
                 ).json()
             ),
             1,
@@ -1266,6 +1602,109 @@ class ApiIntegrationTests(unittest.TestCase):
         ).json()["access_token"]
         return admin, student, *ids
 
+    def test_individual_curriculum_preserves_historical_credits(self):
+        admin, student, section_id, enrollment_id, student_id = self.grading_fixture()
+        with self.Session() as db:
+            enrollment = db.get(Enrollment, enrollment_id)
+            career_id = enrollment.student.career_id
+            subject_id = enrollment.section.subject_id
+            section_code = enrollment.section.code
+            original_version = enrollment.curriculum_version
+            enrollment.student.assigned_curriculum_version = None
+            enrollment.curriculum_version = enrollment.curriculum_credits = None
+            db.commit()
+        root = f"/curriculum/students/{student_id}"
+        path = f"{root}/assignment"
+        self.assertEqual(self.request("GET", path, student).status_code, 403)
+        state = self.request("GET", path, admin).json()
+        self.assertIsNone(state["assigned_version"])
+        self.assertEqual(state["operative_version"], original_version)
+        self.assertIn(enrollment_id, [entry["enrollment_id"] for entry in state["unverified"]])
+        response = self.request(
+            "POST",
+            "/curriculum/courses",
+            admin,
+            json={
+                "career_id": career_id,
+                "subject_id": subject_id,
+                "term_number": 1,
+                "curriculum_version": "2027",
+                "credits": 6,
+                "course_type": "required",
+            },
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        response = self.request(
+            "PUT",
+            path,
+            admin,
+            json={"version": "2027", "reason": "Resolución de prueba"},
+        )
+        self.assertEqual(response.json(), {"assigned_version": "2027"})
+
+        def historical_course():
+            response = self.request("GET", f"/records/students/{student_id}/transcript", student)
+            self.assertEqual(response.json()["curriculum_version"], "2027")
+            return next(
+                row for row in response.json()["courses"] if row["section_code"] == section_code
+            )
+
+        self.assertIsNone(historical_course()["credits"])
+        verify = f"{root}/enrollments/{enrollment_id}/verified-credits"
+        data = {"version": original_version, "credits": 4, "reason": "Libro curricular de prueba"}
+        self.assertEqual(self.request("PUT", verify, student, json=data).status_code, 403)
+        response = self.request("PUT", verify, admin, json=data)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(historical_course()["credits"], 4)
+        self.assertEqual(historical_course()["curriculum_version"], original_version)
+        self.assertEqual(self.request("PUT", verify, admin, json=data).status_code, 409)
+
+    def test_custom_modules_are_per_account_and_enforced_on_direct_requests(self):
+        admin, student, *_ = self.grading_fixture()
+        role = self.request(
+            "POST", "/roles/", admin, json={"name": "observador", "description": "Consulta"}
+        )
+        self.assertEqual(role.status_code, 200, role.text)
+        role_id = role.json()["role_id"]
+        tokens = []
+        for username in ("consulta.uno", "consulta.dos"):
+            account = self.request(
+                "POST",
+                "/users/",
+                admin,
+                json={
+                    "username": username,
+                    "email": f"{username}@example.com",
+                    "password": "TestAccount2026!",
+                    "role_id": role_id,
+                },
+            )
+            self.assertEqual(account.status_code, 200, account.text)
+            token = self.request(
+                "POST", "/auth/login", json={"username": username, "password": "TestAccount2026!"}
+            ).json()["access_token"]
+            tokens.append((account.json()["user_id"], token))
+        (user_id, observer), (_, other) = tokens
+        path = f"/module-views/accounts/{user_id}"
+        self.assertEqual(self.request("GET", path, student).status_code, 403)
+        for module in ("students", "teachers", "careers", "subjects", "sections", "periods"):
+            self.assertEqual(
+                self.request("GET", f"/module-views/{module}", observer).status_code, 403
+            )
+        modules = ["students", "teachers", "careers", "subjects", "sections", "periods"]
+        self.assertEqual(
+            self.request("PUT", path, admin, json={"modules": modules}).status_code, 200
+        )
+        self.assertEqual(len(self.request("GET", "/module-views/mine", observer).json()), 6)
+        for module in modules:
+            response = self.request("GET", f"/module-views/{module}?limit=1", observer)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(len(response.json()["rows"]), 1)
+            self.assertEqual(self.request("GET", f"/module-views/{module}", other).status_code, 403)
+        self.assertEqual(self.request("PUT", "/module-views/students", observer).status_code, 405)
+        self.assertEqual(self.request("PUT", path, admin, json={"modules": []}).status_code, 200)
+        self.assertEqual(self.request("GET", "/module-views/students", observer).status_code, 403)
+
     def test_draft_privacy_zero_and_consistent_weighted_results(self):
         admin, student, section_id, enrollment_id, student_id = self.grading_fixture()
         items = [
@@ -1692,6 +2131,26 @@ class ApiIntegrationTests(unittest.TestCase):
             },
         )
         self.assertEqual(second_career.status_code, 200, second_career.text)
+        bypass = self.request(
+            "PATCH",
+            f"/students/{student_id}",
+            token=admin_token,
+            json={"career_id": second_career.json()["career_id"]},
+        )
+        self.assertEqual(bypass.status_code, 409)
+        from app.services.business_time import business_date
+
+        future = self.request(
+            "POST",
+            f"/governance/students/{student_id}/career-change",
+            admin_token,
+            json={
+                "new_career_id": second_career.json()["career_id"],
+                "effective_date": (business_date() + timedelta(days=1)).isoformat(),
+                "reason": "Traslado futuro QA",
+            },
+        )
+        self.assertEqual(future.status_code, 422)
         changed = self.request(
             "POST",
             f"/governance/students/{student_id}/career-change",
@@ -3213,7 +3672,17 @@ class ApiIntegrationTests(unittest.TestCase):
         body["published"] = True
         self.assertEqual(self.request("PUT", path, tokens["teacher"], json=body).status_code, 200)
         first = self.request(
-            "POST", f"{path}/submit", tokens["student"], json={"content": "Primera solución"}
+            "POST",
+            f"{path}/submit",
+            tokens["student"],
+            json={
+                "content": "Primera solución",
+                "attachment": {
+                    "filename": "entrega.pdf",
+                    "mime_type": "application/pdf",
+                    "content_base64": "JVBERi0xLjQK",
+                },
+            },
         )
         self.assertEqual(first.status_code, 200, first.text)
         sub_id = first.json()["submission_id"]
@@ -3227,6 +3696,16 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(
             [r["content"] for r in history.json()], ["Primera solución", "Segunda solución"]
         )
+        attempts = history.json()
+        self.assertEqual([r["filename"] for r in attempts], ["entrega.pdf", None])
+        download = (
+            f"/operations/submissions/{sub_id}/revisions/{attempts[0]['revision_id']}/attachment"
+        )
+        for role in ("student", "teacher"):
+            response = self.request("GET", download, tokens[role])
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.content, b"%PDF-1.4\n")
+        self.assertEqual(self.request("GET", download).status_code, 401)
         roster = self.request("GET", f"{path}/submissions", tokens["teacher"])
         self.assertEqual(roster.status_code, 200, roster.text)
         self.assertIn("student_name", roster.json()[0])
@@ -3502,6 +3981,24 @@ class ApiIntegrationTests(unittest.TestCase):
             },
         )
         self.assertEqual(lesson.status_code, 200, lesson.text)
+        lesson_id = lesson.json()["lesson_plan_id"]
+        finished = self.request(
+            "PATCH",
+            f"/operations/lesson-plans/{lesson_id}/status",
+            teacher_token,
+            json={"status": "delivered"},
+        )
+        self.assertEqual(finished.status_code, 200)
+        self.assertEqual(finished.json()["status"], "delivered")
+        self.assertEqual(
+            self.request(
+                "PATCH",
+                f"/operations/lesson-plans/{lesson_id}/status",
+                teacher_token,
+                json={"status": "cancelled"},
+            ).status_code,
+            409,
+        )
         assignment = self.request(
             "POST",
             "/operations/assignments",
@@ -3620,13 +4117,32 @@ class ApiIntegrationTests(unittest.TestCase):
             },
         )
         self.assertEqual(approval.status_code, 200, approval.text)
+        approval_path = f"/operations/approvals/{approval.json()['approval_request_id']}"
+        submission_id = submission.json()["submission_id"]
+        with self.Session() as db:
+            original = db.get(Submission, submission_id)
+            before = (original.score, original.feedback, original.status)
         resolved = self.request(
             "PATCH",
-            f"/operations/approvals/{approval.json()['approval_request_id']}",
+            approval_path,
             token=admin_token,
             json={"status": "approved", "resolution_notes": "Autorizado"},
         )
         self.assertEqual(resolved.status_code, 200, resolved.text)
+        self.assertEqual(
+            self.request(
+                "PATCH",
+                approval_path,
+                admin_token,
+                json={"status": "rejected", "resolution_notes": "Nueva decisión"},
+            ).status_code,
+            409,
+        )
+        current = self.request("GET", "/operations/approvals/mine", teacher_token)
+        self.assertEqual(current.json()[0]["status"], "approved")
+        with self.Session() as db:
+            original = db.get(Submission, submission_id)
+            self.assertEqual((original.score, original.feedback, original.status), before)
         generated = self.request("POST", "/operations/alerts/generate", token=admin_token)
         self.assertEqual(generated.status_code, 200, generated.text)
         analytics = self.request("GET", "/operations/analytics/summary", token=admin_token)
@@ -3637,6 +4153,27 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(academic_analytics.status_code, 200, academic_analytics.text)
         self.assertIn("career_metrics", academic_analytics.json())
         self.assertIn("subject_metrics", academic_analytics.json())
+        partner = self.request(
+            "POST",
+            f"/community/students/{student['student_id']}/guardians",
+            admin_token,
+            json={
+                "new_guardian": {
+                    "first_name": "Tutoría",
+                    "last_name": "Prueba",
+                    "email": "tutor-nuevo-qa@example.com",
+                    "telephone": "8095550111",
+                },
+                "relationship": "Familiar",
+            },
+        )
+        self.assertEqual(partner.status_code, 201)
+        linked = self.request(
+            "GET", f"/community/students/{student['student_id']}/guardians", teacher_token
+        )
+        self.assertTrue(
+            any(item["guardian_id"] == partner.json()["guardian_id"] for item in linked.json())
+        )
         document = self.request(
             "POST",
             f"/operations/students/{student['student_id']}/documents",
@@ -3836,6 +4373,42 @@ class ApiIntegrationTests(unittest.TestCase):
             },
         )
         self.assertEqual(conflict.status_code, 409, conflict.text)
+        with self.Session() as db:
+            source = db.get(Section, sections[0]["section_id"])
+            period = db.query(AcademicPeriod).filter_by(active=True).one()
+            other_period = AcademicPeriod(
+                name="DEMO-NO-SOLAPA",
+                start_date=period.end_date + timedelta(days=30),
+                end_date=period.end_date + timedelta(days=100),
+            )
+            other = Section(
+                code="SEC-FUTURA-QA",
+                description="Otro período",
+                teacher_id=source.teacher_id,
+                subject_id=source.subject_id,
+                period_name=other_period.name,
+                days_of_week="Domingo",
+                start_time=time(8),
+                end_time=time(10),
+            )
+            db.add_all([other_period, other])
+            db.commit()
+            other_id = other.section_id
+        payload = {
+            "section_id": other_id,
+            "classroom_id": room.json()["classroom_id"],
+            "start_time": "08:00",
+            "end_time": "09:30",
+        }
+        invalid = self.request(
+            "POST", "/scheduling/meetings", token, json={**payload, "day_of_week": "otro"}
+        )
+        self.assertEqual(invalid.status_code, 422)
+        scheduled = self.request(
+            "POST", "/scheduling/meetings", token, json={**payload, "day_of_week": "lunes"}
+        )
+        self.assertEqual(scheduled.status_code, 200)
+        self.assertEqual(scheduled.json()["day_of_week"], "Lunes")
         listed = self.request(
             "GET", f"/scheduling/sections/{sections[0]['section_id']}/meetings", token=token
         )
@@ -3847,6 +4420,8 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(deleted.status_code, 200, deleted.text)
 
     def test_finance_account_adjustments_plans_and_cash_closing(self) -> None:
+        from app.services.finance_workflow import business_date
+
         with self.Session() as db:
             seed_demo(db)
         token = self.request(
@@ -3874,11 +4449,27 @@ class ApiIntegrationTests(unittest.TestCase):
             json={"kind": "scholarship", "description": "Beca académica", "amount": 200},
         )
         self.assertEqual(adjustment.status_code, 200, adjustment.text)
+        expired_plan = self.request(
+            "POST",
+            f"/finance/students/{student_id}/payment-plans",
+            token=token,
+            json={
+                "name": "Plan vencido",
+                "installments": 2,
+                "first_due_date": (business_date() - timedelta(days=1)).isoformat(),
+            },
+        )
+        self.assertEqual(expired_plan.status_code, 422)
+        self.assertIn("pasado", expired_plan.json()["detail"])
         plan = self.request(
             "POST",
             f"/finance/students/{student_id}/payment-plans",
             token=token,
-            json={"name": "Plan de dos cuotas", "installments": 2, "first_due_date": "2026-10-30"},
+            json={
+                "name": "Plan de dos cuotas",
+                "installments": 2,
+                "first_due_date": (business_date() + timedelta(days=1)).isoformat(),
+            },
         )
         self.assertEqual(plan.status_code, 200, plan.text)
         self.assertEqual(plan.json()["installments"], 2)

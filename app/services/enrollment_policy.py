@@ -1,11 +1,10 @@
 """Period invariants shared by service and internal persistence entry points."""
 
-from datetime import date
-
 from fastapi import HTTPException
 
 from app.models.configuration_model import AcademicPeriod
 from app.models.section_model import Section
+from app.services.business_time import business_date
 
 
 def selection_period(db, section_id: int, name: str, *, registration: bool = False):
@@ -24,7 +23,7 @@ def selection_period(db, section_id: int, name: str, *, registration: bool = Fal
     if registration:
         if period.status not in {"registration", "active"}:
             raise HTTPException(409, "Course selection is currently closed")
-        today = date.today()
+        today = business_date()
         if period.registration_start and today < period.registration_start:
             raise HTTPException(409, "Registration has not started")
         if period.registration_end and today > period.registration_end:

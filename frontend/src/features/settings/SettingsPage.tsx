@@ -19,6 +19,7 @@ export function SettingsPage() {
     </div></section>
     <section className="settings-group"><h2>Datos y supervisión</h2><div className="settings-grid">
       <Setting to="/settings/bulk" icon={<FileSpreadsheet />} title="Importar y exportar" text="Carga y descarga de estudiantes en CSV." />
+      <Setting to="/settings/audit" icon={<Shield />} title="Auditoría administrativa" text="Filtra eventos por actor, acción, recurso y fecha." />
       <Setting to="/institutional-control" icon={<Shield />} title="Control institucional" text="Indicadores, casos de seguimiento y admisiones; separado de la configuración de accesos." />
     </div></section>
   </div>;

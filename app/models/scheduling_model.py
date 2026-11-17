@@ -31,5 +31,5 @@ class SectionMeeting(Base):
     modality: Mapped[str] = mapped_column(String(20), default="in_person")
     virtual_url: Mapped[str] = mapped_column(String(500), default="")
 
-    section: Mapped["Section"] = relationship("Section")
+    section: Mapped["Section"] = relationship("Section", back_populates="meetings")
     classroom: Mapped["Classroom | None"] = relationship("Classroom")

@@ -1,18 +1,28 @@
 $ErrorActionPreference = "Stop"
 
-python -m ruff check app tests main.py
-python -m ruff format --check app tests main.py
-python -m coverage run -m unittest discover -s tests -v
-python -m coverage report
-alembic heads
-alembic current
+function Invoke-Check {
+    param([string[]]$Invocation)
+
+    $program = $Invocation[0]
+    $arguments = $Invocation | Select-Object -Skip 1
+    & $program @arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "$($Invocation -join ' ') falló con código $LASTEXITCODE"
+    }
+}
+
+Invoke-Check @('python', '-B', '-m', 'ruff', 'check', 'app', 'tests', 'main.py')
+Invoke-Check @('python', '-B', '-m', 'ruff', 'format', '--check', 'app', 'tests', 'main.py')
+Invoke-Check @('python', '-B', '-m', 'coverage', 'run', '-m', 'pytest', 'tests', '-q', '-p', 'no:cacheprovider')
+Invoke-Check @('python', '-B', '-m', 'coverage', 'report')
+Invoke-Check @('python', '-B', '-m', 'alembic', 'heads')
 
 Push-Location frontend
 try {
-    npm run typecheck
-    npm run lint
-    npm run test
-    npm run build
+    Invoke-Check @('npm', 'run', 'typecheck')
+    Invoke-Check @('npm', 'run', 'lint')
+    Invoke-Check @('npm', 'run', 'test')
+    Invoke-Check @('npm', 'run', 'build')
 } finally {
     Pop-Location
 }

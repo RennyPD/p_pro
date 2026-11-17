@@ -12,7 +12,7 @@ from app.models.student_model import Student
 from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.schemas.dashboard_schema import DashboardMetric, DashboardSummary
-from app.services.academic_grading import academic_result
+from app.services.academic_metrics import summarize_results
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -49,7 +49,7 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
                 value=db.query(Enrollment).filter(Enrollment.period == active_period.name).count()
                 if active_period
                 else db.query(Enrollment).count(),
-                note="En el período activo",
+                note=active_period.name if active_period else "Todos los períodos",
             ),
         ]
         settings = db.get(InstitutionSettings, 1)
@@ -99,33 +99,38 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
             active_period=active_period.name if active_period else None,
             alerts=alerts,
         )
-    enrollments = db.query(Enrollment).filter(Enrollment.student_id == user.student_id).all()
-    grades = [
-        result.value
-        for item in enrollments
-        if (result := academic_result(db, item)).value is not None
-    ]
-    attendances = [record for item in enrollments for record in item.attendances]
+    enrollment_query = db.query(Enrollment).filter(Enrollment.student_id == user.student_id)
+    if active_period:
+        enrollment_query = enrollment_query.filter(Enrollment.period == active_period.name)
+    enrollments = enrollment_query.filter(
+        Enrollment.state.in_(("enrolled", "completed", "failed"))
+    ).all()
+    summary = summarize_results(db, enrollments)
+    period_name = active_period.name if active_period else "Todos los períodos"
     metrics = [
         DashboardMetric(
             key="courses",
             label="Asignaturas",
             value=len(enrollments),
-            note="Asignaturas en el historial",
+            note=f"Selecciones académicas · {period_name}",
         ),
         DashboardMetric(
             key="average",
-            label="Promedio",
-            value=round(sum(grades) / len(grades), 1) if grades else 0,
-            note="Promedio general",
+            label="Promedio definitivo",
+            value=summary["average_grade"],
+            note=f"{summary['final_grade_count']} resultados finales · {period_name}",
+        ),
+        DashboardMetric(
+            key="provisional_average",
+            label="Promedio provisional",
+            value=summary["provisional_average_grade"],
+            note=f"{summary['provisional_grade_count']} resultados publicados sin cierre · {period_name}",
         ),
         DashboardMetric(
             key="attendance",
             label="Asistencia",
-            value=round(sum(item.present for item in attendances) * 100 / len(attendances), 1)
-            if attendances
-            else 0,
-            note="Porcentaje general",
+            value=summary["attendance_percentage"],
+            note=f"{summary['attendance_count']} registros de asistencia · {period_name}",
         ),
     ]
     return DashboardSummary(

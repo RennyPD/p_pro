@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class DashboardMetric(BaseModel):
     key: str
     label: str
-    value: float | int
+    value: float | int | None
     note: str
 
 

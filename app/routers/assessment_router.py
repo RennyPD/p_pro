@@ -27,6 +27,7 @@ from app.schemas.assessment_schema import (
     ReasonRequest,
 )
 from app.services.academic_grading import academic_result, audit_event, ensure_grading_open
+from app.services.governance_workflow import lock_governance
 
 router = APIRouter(prefix="/assessments", tags=["weighted assessments"])
 assessment_manager = require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
@@ -63,6 +64,7 @@ def apply_assessment_template(
     db: Session = Depends(get_db),
     user: User = Depends(assessment_manager),
 ):
+    lock_governance(db)
     template = db.get(AssessmentTemplate, template_id)
     if template is None or template.owner_id != user.user_id:
         raise HTTPException(status_code=404, detail="Assessment template not found")
@@ -117,6 +119,7 @@ def create_assessment(
     db: Session = Depends(get_db),
     user: User = Depends(assessment_manager),
 ):
+    lock_governance(db)
     section = ensure_section_access(db, user, data.section_id)
     ensure_grading_open(db, section)
     validate_total_weight(db, data.section_id, data.weight)
@@ -142,6 +145,7 @@ def update_assessment(
     db: Session = Depends(get_db),
     user: User = Depends(assessment_manager),
 ):
+    lock_governance(db)
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
@@ -168,6 +172,7 @@ def close_assessment(
     db: Session = Depends(get_db),
     user: User = Depends(assessment_manager),
 ):
+    lock_governance(db)
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
@@ -211,6 +216,7 @@ def reopen_assessment(
     db: Session = Depends(get_db),
     user: User = Depends(assessment_manager),
 ):
+    lock_governance(db)
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
@@ -284,6 +290,7 @@ def update_distribution(
     db: Session = Depends(get_db),
     user: User = Depends(assessment_manager),
 ):
+    lock_governance(db)
     section = ensure_section_access(db, user, section_id)
     ensure_grading_open(db, section)
     assessments = db.query(Assessment).filter_by(section_id=section_id).all()
@@ -369,6 +376,7 @@ def apply_plan(
     db: Session = Depends(get_db),
     user: User = Depends(assessment_manager),
 ):
+    lock_governance(db)
     template = db.get(AssessmentTemplate, template_id)
     if template is None or not template.components or not can_use_plan(db, user, template):
         raise HTTPException(status_code=404, detail="Plantilla no encontrada")

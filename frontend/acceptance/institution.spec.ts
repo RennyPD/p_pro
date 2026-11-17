@@ -8,6 +8,76 @@ async function login(page: Page, username: string, password: string) {
   await expect(page).not.toHaveURL(/\/login$/);
 }
 
+test("configura módulos por cuenta y aplica la revocación al abrir el enlace", async ({ page, request, browser }) => {
+  const base = "http://127.0.0.3:8012";
+  const admin = { username: "admin.horizonte", password: "NexoAdmin2026!" };
+  const auth = await request.post(`${base}/auth/login`, { data: admin });
+  expect(auth.status()).toBe(200);
+  const headers = { Authorization: `Bearer ${(await auth.json()).access_token}` };
+  const role = await request.post(`${base}/roles/`, { headers, data: { name: "consulta_qa", description: "Consulta QA" } });
+  expect(role.status()).toBe(200);
+  const username = "consulta.qa";
+  const password = "NexoConsulta2026!";
+  const account = await request.post(`${base}/users/`, { headers, data: {
+    username, password, email: "consulta.qa@example.com", role_id: (await role.json()).role_id,
+  } });
+  expect(account.status()).toBe(200);
+
+  await login(page, admin.username, admin.password);
+  await page.goto("/users");
+  await page.getByPlaceholder(/Buscar/).fill(username);
+  const row = page.getByRole("row").filter({ hasText: username });
+  await row.getByRole("button", { name: "Módulos" }).click();
+  const editor = page.getByRole("dialog", { name: `Módulos de ${username}` });
+  await editor.getByRole("checkbox", { name: "Estudiantes", exact: true }).check();
+  await editor.getByRole("button", { name: "Guardar módulos" }).click();
+  await expect(editor).toHaveCount(0);
+
+  const observerContext = await browser.newContext({ baseURL: "http://127.0.0.3:5176" });
+  try {
+    const observer = await observerContext.newPage();
+    await login(observer, username, password);
+    const nav = observer.getByRole("navigation", { name: "Navegación principal" });
+    await nav.getByRole("link", { name: "Estudiantes", exact: true }).click();
+    await expect(observer.getByRole("heading", { name: "Estudiantes", exact: true })).toBeVisible();
+    await expect(observer.getByRole("columnheader", { name: "Matrícula" })).toBeVisible();
+    await observer.goto("/modules/teachers");
+    await expect(observer.getByRole("heading", { name: "Módulo no disponible" })).toBeVisible();
+    await row.getByRole("button", { name: "Módulos" }).click();
+    await editor.getByRole("checkbox", { name: "Estudiantes", exact: true }).uncheck();
+    await editor.getByRole("button", { name: "Guardar módulos" }).click();
+    await expect(editor).toHaveCount(0);
+    await observer.goto("/modules/students");
+    await expect(observer.getByRole("heading", { name: "Módulo no disponible" })).toBeVisible();
+  } finally {
+    await observerContext.close();
+  }
+});
+
+test("asigna el pensum individual desde el historial del expediente", async ({ page, request }) => {
+  const student = await request.post("http://127.0.0.3:8012/auth/login", {
+    data: { username: "estudiante.001", password: "NexoEstudiante2026!" },
+  });
+  expect(student.status()).toBe(200);
+  const { user } = await student.json();
+  await login(page, "admin.horizonte", "NexoAdmin2026!");
+  await page.goto(`/students/${user.student_id}`);
+  await page.getByRole("button", { name: "Trayectoria académica", exact: true }).click();
+  const version = page.getByRole("combobox", { name: "Versión del pensum", exact: true });
+  const option = await version.locator("option").nth(1).evaluate((item: HTMLOptionElement) => item.value);
+  await version.selectOption(option);
+  await page.getByLabel("Motivo de la asignación").fill("Resolución ficticia de prueba");
+  await page.getByRole("button", { name: "Asignar versión" }).click();
+  await expect(page.getByText(`Versión asignada · ${option}`)).toBeVisible();
+  const course = page.getByRole("listitem").filter({ hasText: "Fundamentos de Programación" });
+  await course.getByRole("button", { name: "Verificar créditos" }).click();
+  await page.getByRole("textbox", { name: "Versión original" }).fill(option);
+  await page.getByRole("spinbutton", { name: "Créditos originales" }).fill("4");
+  await page.getByRole("textbox", { name: "Referencia del respaldo institucional" }).fill("Registro ficticio QA");
+  await page.getByRole("button", { name: "Guardar verificación" }).click();
+  await expect(course).toHaveCount(0);
+});
+
 for (const profile of [
   { name: "admin", username: "admin.horizonte", password: "NexoAdmin2026!", menu: "Control institucional" },
   { name: "teacher", username: "profesor.01", password: "NexoDocente2026!", menu: "Mis secciones" },
@@ -34,6 +104,21 @@ for (const profile of [
       const denied = await request.get("http://127.0.0.3:8012/academic/students/120/grades", { headers });
       expect(denied.status()).toBe(403);
     }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "Abrir menú" }).click();
+    await page.getByRole("link", { name: "Mi seguridad", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Mi seguridad" })).toBeVisible();
+    await expect(page.getByText("Estado: desactivada")).toBeVisible();
+    await expect(page.getByText(/Iniciada el/).first()).toBeVisible();
+    if (profile.name === "teacher") {
+      await page.getByRole("button", { name: "Configurar autenticador" }).click();
+      await expect(page.getByLabel("Código del nuevo autenticador")).toBeVisible();
+      await page.getByRole("button", { name: "Cancelar", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Configurar autenticador" })).toBeVisible();
+      await page.getByRole("button", { name: "Cerrar todas las sesiones" }).click();
+      await expect(page).toHaveURL(/\/login$/);
+      expect((await request.get("http://127.0.0.3:8012/auth/me", { headers })).status()).toBe(401);
+    }
   });
 }
 
@@ -51,6 +136,113 @@ test("admissions can be created from the real interface", async ({ page }) => {
   await dialog.getByRole("button", { name: "Registrar solicitud" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Aceptación Interfaz" })).toBeVisible();
+});
+
+test("admin publishes a draft and can filter the resulting audit event", async ({ page, request }) => {
+  const base = "http://127.0.0.3:8012";
+  const auth = await request.post(`${base}/auth/login`, { data: { username: "admin.horizonte", password: "NexoAdmin2026!" } });
+  expect(auth.status()).toBe(200);
+  const headers = { Authorization: `Bearer ${(await auth.json()).access_token}` };
+  const periods = await request.get(`${base}/periods/?active=true&limit=1`, { headers });
+  const [period] = await periods.json();
+  const existing = await request.get(`${base}/sections/?limit=1`, { headers });
+  const [source] = await existing.json();
+  const code = `PUBLICAR-QA-${Date.now()}`;
+  const draft = await request.post(`${base}/sections/`, {
+    headers,
+    data: {
+      code, description: "Prueba de publicación", subject_id: source.subject_id,
+      teacher_id: source.teacher_id, period_name: period.name, status: "draft",
+      capacity: 20, minimum_capacity: 2, days_of_week: ["Domingo"],
+      start_time: "23:15", end_time: "23:45",
+    },
+  });
+  expect(draft.status()).toBe(200);
+  await login(page, "admin.horizonte", "NexoAdmin2026!");
+  await page.getByRole("link", { name: "Secciones", exact: true }).click();
+  await page.getByPlaceholder("Buscar código o asignatura").fill(code);
+  await page.getByRole("button", { name: `Publicar ${code}`, exact: true }).click();
+  await expect(page.getByRole("dialog", { name: `Publicar ${code}` })).toBeVisible();
+  await page.getByRole("button", { name: "Confirmar publicación" }).click();
+  await expect(page.getByRole("cell", { name: "Publicada", exact: true })).toBeVisible();
+  await page.goto("/settings/audit");
+  await page.getByLabel("Acción exacta").fill("section.published");
+  await page.getByRole("button", { name: "Aplicar filtros" }).click();
+  await expect(page.getByRole("cell", { name: "section.published", exact: true }).first()).toBeVisible();
+});
+
+test("admin edits an account without reentering its password", async ({ page, request }) => {
+  const base = "http://127.0.0.3:8012";
+  const auth = await request.post(`${base}/auth/login`, { data: { username: "admin.horizonte", password: "NexoAdmin2026!" } });
+  expect(auth.status()).toBe(200);
+  const { access_token, user } = await auth.json();
+  const suffix = Date.now();
+  const username = `cuenta-qa-${suffix}`;
+  const headers = { Authorization: `Bearer ${access_token}` };
+  const account = await request.post(`${base}/users/`, {
+    headers, data: { username, email: `cuenta-${suffix}@example.com`, password: "NexoFicticio2026!", role_id: user.role_id },
+  });
+  expect(account.status()).toBe(200);
+  await login(page, "admin.horizonte", "NexoAdmin2026!");
+  await page.goto("/users");
+  await page.getByPlaceholder("Buscar usuario o correo").fill(username);
+  const row = page.getByRole("row").filter({ hasText: username });
+  await row.getByRole("button", { name: /Editar usuario/ }).click();
+  const dialog = page.getByRole("dialog", { name: "Editar usuario" });
+  await expect(dialog.locator('input[type="password"]')).toHaveCount(0);
+  await dialog.getByLabel("Correo", { exact: true }).fill(`editada-${suffix}@example.com`);
+  await dialog.getByRole("button", { name: "Guardar cuenta" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(row.getByText(`editada-${suffix}@example.com`, { exact: true })).toBeVisible();
+});
+
+test("the student can read a filed document and request approval without changing the record", async ({ page, request }) => {
+  const base = "http://127.0.0.3:8012";
+  const studentLogin = await request.post(`${base}/auth/login`, { data: { username: "estudiante.001", password: "NexoEstudiante2026!" } });
+  expect(studentLogin.status()).toBe(200);
+  const { user } = await studentLogin.json();
+  const suffix = Date.now();
+  const filename = `archivo-ficticio-${suffix}.png`;
+  const reason = `Revisión QA de expediente ${suffix}`;
+  await login(page, "admin.horizonte", "NexoAdmin2026!");
+  await page.goto(`/students/${user.student_id}`);
+  await page.getByRole("button", { name: "Documentos", exact: true }).click();
+  await page.getByRole("button", { name: "Agregar documento" }).click();
+  const upload = page.getByRole("dialog", { name: "Agregar documento al expediente" });
+  await upload.getByLabel("Tipo de documento").fill("Archivo ficticio");
+  await upload.locator('input[type="file"]').setInputFiles({
+    name: filename, mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jX1sAAAAASUVORK5CYII=", "base64"),
+  });
+  await upload.getByRole("button", { name: "Guardar documento" }).click();
+  await expect(upload).toHaveCount(0);
+  await expect(page.getByRole("button", { name: `Descargar ${filename}` })).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar sesión", exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await login(page, "estudiante.001", "NexoEstudiante2026!");
+  await page.getByRole("link", { name: "Mi expediente", exact: true }).click();
+  const file = page.getByRole("button", { name: `Descargar ${filename}` });
+  await expect(file).toBeVisible();
+  const [download] = await Promise.all([page.waitForEvent("download"), file.click()]);
+  expect(download.suggestedFilename()).toBe(filename);
+  await page.getByRole("button", { name: "Solicitar revisión", exact: true }).click();
+  await page.getByLabel("Motivo de la solicitud").fill(reason);
+  await page.getByRole("button", { name: "Enviar solicitud" }).click();
+  await expect(page.getByRole("dialog", { name: "Solicitar revisión" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Mis solicitudes", exact: true }).click();
+  await expect(page.getByText(reason, { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar sesión", exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await login(page, "admin.horizonte", "NexoAdmin2026!");
+  await page.getByRole("link", { name: "Mis solicitudes", exact: true }).click();
+  await page.getByRole("button", { name: "Bandeja institucional" }).click();
+  await page.locator("article").filter({ hasText: reason }).getByRole("button", { name: "Revisar solicitud" }).click();
+  await page.getByLabel("Motivo de la decisión").fill("Revisión de aceptación QA");
+  await page.getByRole("button", { name: "Registrar decisión" }).click();
+  await expect(page.locator("article").filter({ hasText: reason }).getByText(/^Aprobada ·/)).toBeVisible();
+  await page.goto(`/students/${user.student_id}`);
+  await page.getByRole("button", { name: "Documentos", exact: true }).click();
+  await expect(page.getByRole("button", { name: `Descargar ${filename}` })).toHaveCount(1);
 });
 
 test("student confirms a real cart without native dialogs and keeps their seat", async ({ page, request }) => {

@@ -40,12 +40,13 @@ def _decode_part(value: str) -> dict:
     return json.loads(base64.urlsafe_b64decode(padded))
 
 
-def create_access_token(user_id: int) -> str:
+def create_access_token(user_id: int, session_version: int) -> str:
     now = int(time.time())
     header = _encode_part({"alg": "HS256", "typ": "JWT"})
     payload = _encode_part(
         {
             "sub": str(user_id),
+            "sv": session_version,
             "iat": now,
             "exp": now + settings.access_token_expire_minutes * 60,
         }
@@ -61,7 +62,7 @@ def create_access_token(user_id: int) -> str:
     return f"{header}.{payload}.{signature}"
 
 
-def decode_access_token(token: str) -> int:
+def decode_access_token(token: str) -> tuple[int, int]:
     credentials_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired access token",
@@ -82,7 +83,7 @@ def decode_access_token(token: str) -> int:
         claims = _decode_part(payload)
         if int(claims["exp"]) < int(time.time()):
             raise credentials_error
-        return int(claims["sub"])
+        return int(claims["sub"]), int(claims.get("sv", 0))
     except (ValueError, KeyError, TypeError, json.JSONDecodeError):
         raise credentials_error
 

@@ -38,9 +38,9 @@ from app.schemas.finance_schema import (
     TransferCreate,
     TransferReview,
 )
+from app.services.business_time import INSTITUTION_TIME_ZONE
 from app.services.finance_workflow import (
     CREDIT_KINDS,
-    RD,
     add_months,
     business_date,
     cents,
@@ -531,7 +531,7 @@ def receipt(identifier: int, db: Session = Depends(get_db), user: User = Depends
         f"Monto RD$: {item.amount:.2f}",
         f"Referencia: {item.reference}",
         f"Metodo: {item.method}",
-        f"Fecha local: {item.paid_at.replace(tzinfo=UTC).astimezone(RD).isoformat()}",
+        f"Fecha local: {item.paid_at.replace(tzinfo=UTC).astimezone(INSTITUTION_TIME_ZONE).isoformat()}",
         f"Estado: {item.status}",
         f"Reverso: {item.reversal_reason or '-'}",
     ]

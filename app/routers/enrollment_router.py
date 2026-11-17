@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, Query, Response
+from sqlalchemy import false, or_
+from sqlalchemy.orm import Session, joinedload
 
 from app.auth import ensure_enrollment_access, get_current_user, is_admin, require_permissions
 from app.db.Session import get_db
 from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
+from app.models.student_model import Student
+from app.models.subject_model import Subject
 from app.models.user_model import User
+from app.pagination import page_query
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentOut, EnrollmentUpdate
 from app.services.enrollment_service import (
     create_enrollment_service,
@@ -25,18 +29,47 @@ def create_enrollment(enrollment_data: EnrollmentCreate, db: Session = Depends(g
 
 @router.get("/", response_model=list[EnrollmentOut], dependencies=[Depends(get_current_user)])
 def get_enrollments(
+    response: Response,
+    q: str | None = None,
+    period: str | None = None,
+    skip: int = Query(0, ge=0),
+    limit: int | None = Query(None, ge=1, le=100),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    query = db.query(Enrollment)
+    query = (
+        db.query(Enrollment)
+        .join(Enrollment.section)
+        .options(
+            joinedload(Enrollment.student),
+            joinedload(Enrollment.section).joinedload(Section.subject),
+        )
+    )
     if not is_admin(user):
         if user.student_id is not None:
             query = query.filter(Enrollment.student_id == user.student_id)
         elif user.teacher_id is not None:
-            query = query.join(Enrollment.section).filter(Section.teacher_id == user.teacher_id)
+            query = query.filter(Section.teacher_id == user.teacher_id)
         else:
-            return []
-    return query.all()
+            query = query.filter(false())
+    if period:
+        query = query.filter(Enrollment.period.icontains(period.strip(), autoescape=True))
+    if q and (term := q.strip()):
+        query = (
+            query.join(Enrollment.student)
+            .join(Section.subject)
+            .filter(
+                or_(
+                    Enrollment.period.icontains(term, autoescape=True),
+                    Student.enrollment_number.icontains(term, autoescape=True),
+                    (Student.first_name + " " + Student.last_name).icontains(term, autoescape=True),
+                    Section.code.icontains(term, autoescape=True),
+                    Subject.code.icontains(term, autoescape=True),
+                    Subject.description.icontains(term, autoescape=True),
+                )
+            )
+        )
+    return page_query(query.order_by(Enrollment.enrollment_id), response, skip, limit)
 
 
 @router.get(

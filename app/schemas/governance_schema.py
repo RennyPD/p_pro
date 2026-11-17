@@ -3,6 +3,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from app.services.business_time import business_date
+
 Reason = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=250)]
 Version = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]
 
@@ -41,8 +43,9 @@ class EquivalenceOut(EquivalenceBase):
 
 class CareerChangeCreate(BaseModel):
     new_career_id: int
-    effective_date: date
-    reason: str = Field(min_length=3)
+    effective_date: date = Field(default_factory=business_date)
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3)]
+    expected_career_id: int | None = None
 
 
 class CareerHistoryOut(BaseModel):

@@ -23,13 +23,21 @@ class SectionBase(BaseModel):
 
     @model_validator(mode="after")
     def validate_time_range(self):
+        if self.start_time.tzinfo is not None or self.end_time.tzinfo is not None:
+            raise ValueError("Usa horas de clase locales sin desfase horario")
         if self.start_time >= self.end_time:
             raise ValueError("end_time must be later than start_time")
         return self
 
 
 class SectionCreate(SectionBase):
-    pass
+    @model_validator(mode="after")
+    def validate_capacity(self):
+        if self.minimum_capacity > self.capacity:
+            raise ValueError("El cupo mínimo no puede superar la capacidad")
+        if self.status in {"published", "active"} and not self.days_of_week:
+            raise ValueError("Selecciona al menos un día de clase")
+        return self
 
 
 class SectionUpdate(BaseModel):
@@ -49,6 +57,11 @@ class SectionUpdate(BaseModel):
 
     @model_validator(mode="after")
     def validate_time_range(self):
+        if any(
+            value is not None and value.tzinfo is not None
+            for value in (self.start_time, self.end_time)
+        ):
+            raise ValueError("Usa horas de clase locales sin desfase horario")
         if (
             self.start_time is not None
             and self.end_time is not None

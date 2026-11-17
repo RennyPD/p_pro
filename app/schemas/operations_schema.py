@@ -60,6 +60,10 @@ class LessonPlanOut(LessonPlanCreate, OrmModel):
     teacher_id: int
 
 
+class LessonPlanResolve(BaseModel):
+    status: str = Field(pattern=r"^(delivered|cancelled)$")
+
+
 class AssignmentCreate(BaseModel):
     section_id: int
     title: str = Field(min_length=2, max_length=150)
@@ -86,13 +90,20 @@ class AssignmentOut(AssignmentCreate, OrmModel):
     created_by: int
 
 
+class SubmissionAttachmentCreate(BaseModel):
+    filename: str = Field(min_length=1, max_length=255)
+    mime_type: str = Field(pattern=r"^(application/pdf|image/png|image/jpeg)$")
+    content_base64: str = Field(min_length=4, max_length=4 * ((5 * 1024 * 1024 + 2) // 3))
+
+
 class SubmissionCreate(BaseModel):
-    content: str = Field(min_length=1, max_length=20000)
+    content: str = Field(default="", max_length=20000)
+    attachment: SubmissionAttachmentCreate | None = None
 
     @model_validator(mode="after")
     def clean_content(self):
         self.content = self.content.strip()
-        if not self.content:
+        if not self.content and self.attachment is None:
             raise ValueError("La entrega no puede estar vacía")
         return self
 
@@ -191,15 +202,15 @@ class AdmissionOut(AdmissionCreate, OrmModel):
 
 
 class ApprovalCreate(BaseModel):
-    request_type: str
-    resource_type: str
-    resource_id: int
-    reason: str = Field(min_length=2)
+    request_type: str = Field(min_length=1, max_length=40)
+    resource_type: str = Field(min_length=1, max_length=40)
+    resource_id: int = Field(ge=1)
+    reason: str = Field(min_length=2, max_length=5000)
 
 
 class ApprovalResolve(BaseModel):
     status: str = Field(pattern=r"^(approved|rejected)$")
-    resolution_notes: str = ""
+    resolution_notes: str = Field(min_length=2, max_length=5000)
 
 
 class ApprovalOut(ApprovalCreate, OrmModel):
@@ -213,10 +224,10 @@ class ApprovalOut(ApprovalCreate, OrmModel):
 
 
 class StudentDocumentCreate(BaseModel):
-    document_type: str
-    filename: str
+    document_type: str = Field(min_length=1, max_length=50)
+    filename: str = Field(min_length=1, max_length=255)
     mime_type: str = Field(pattern=r"^(application/pdf|image/png|image/jpeg)$")
-    content_base64: str
+    content_base64: str = Field(min_length=4, max_length=4 * ((5 * 1024 * 1024 + 2) // 3))
     expires_on: date | None = None
 
 

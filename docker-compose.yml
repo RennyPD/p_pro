@@ -15,6 +15,7 @@ services:
   api:
     build: .
     environment:
+      APP_ENVIRONMENT: development
       DATABASE_URL: postgresql+psycopg://p_pro:local-development-only@db:5432/p_pro
       SECRET_KEY: change-this-before-production
       CORS_ORIGINS: http://localhost:3000

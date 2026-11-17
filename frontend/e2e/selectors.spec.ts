@@ -6,7 +6,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 390, height: 844 
     await page.setViewportSize(viewport);
     const subjects = Array.from({ length: count }, (_, index) => ({ subject_id: index + 1, code: `MAT-${index + 1}`, description: index === count - 1 ? "Álgebra avanzada y métodos cuantitativos para la gestión institucional" : `Asignatura de prueba ${index + 1}` }));
     const user = { user_id: 1, username: "admin.test", email: "admin@example.test", role_id: 1, role_name: "admin", student_id: null, teacher_id: null };
-    await page.route("http://127.0.0.1:8000/**", async route => {
+    await page.route("http://127.0.0.1:48017/**", async route => {
       const url = new URL(route.request().url());
       let data: unknown = [];
       if (url.pathname === "/auth/login") data = { access_token: "test-only", user };
@@ -21,7 +21,8 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 390, height: 844 
     await page.locator('input[name="password"]').fill("TestOnly2026!");
     await page.getByRole("button", { name: "Entrar a Nexo" }).click();
     await expect(page.getByRole("link", { name: "Control institucional" })).toBeAttached();
-    await page.goto("/sections");
+    if (viewport.width < 768) await page.getByRole("button", { name: "Abrir menú" }).click();
+    await page.getByRole("link", { name: "Secciones", exact: true }).click();
     await page.getByRole("button", { name: "Nuevo sección" }).click();
     await page.getByRole("button", { name: /Asignatura.*Buscar asignatura/ }).click();
     await expect(page.getByText(`Mostrando 1–8 de ${count} opciones`)).toBeVisible();
@@ -66,6 +67,15 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 390, height: 844 
     await page.getByRole("button", { name: new RegExp(`^MAT-${count}.*Álgebra`) }).click();
     await expect(page.getByRole("button", { name: new RegExp(`Asignatura.*MAT-${count}`) })).toBeVisible();
     await expect(page.locator(".lookup-popover")).toHaveCount(0);
+    if (count === 17 && viewport.width === 1366) {
+      const confirmation = page.waitForEvent("dialog");
+      await page.evaluate(() => history.back());
+      const change = await confirmation;
+      expect(change.message()).toContain("Hay cambios sin guardar");
+      await change.dismiss();
+      await expect(page).toHaveURL(/\/sections$/);
+      await expect(page.getByRole("button", { name: /Asignatura.*MAT-17/ })).toBeVisible();
+    }
   });
  }
 }

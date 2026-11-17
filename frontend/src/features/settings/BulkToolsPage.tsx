@@ -1,8 +1,100 @@
-import { Download, FileSpreadsheet, Upload } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Download, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
-import "./bulk-tools.css";
 
-export function BulkToolsPage(){const[file,setFile]=useState<File|null>(null);const[busy,setBusy]=useState(false);async function upload(){if(!file)return;setBusy(true);try{const result=await api.post("/bulk/students/import",await file.arrayBuffer(),{headers:{"Content-Type":"text/csv"}});toast.success(`${result.data.created} estudiantes importados`);if(result.data.errors.length)toast.warning(`${result.data.errors.length} filas requieren revisión`)}catch(error){toast.error(apiMessage(error))}finally{setBusy(false)}}async function download(){try{const response=await api.get("/bulk/students/export",{responseType:"blob"});const url=URL.createObjectURL(response.data);const link=document.createElement("a");link.href=url;link.download="estudiantes.csv";link.click();URL.revokeObjectURL(url)}catch(error){toast.error(apiMessage(error))}}return <div className="page"><header className="page-header"><div><span className="kicker">Herramientas administrativas</span><h1>Importación y exportación</h1><p>Mueve listados de estudiantes con un formato CSV verificable.</p></div></header><section className="settings-grid"><article className="panel bulk-card"><span className="bulk-icon"><Upload/></span><h2>Importar estudiantes</h2><p>Columnas requeridas: first_name, last_name, email, telephone, address y career_id. La matrícula puede quedar vacía para generarla automáticamente.</p><label className="file-picker"><FileSpreadsheet/><span>{file?.name??"Seleccionar archivo CSV"}</span><input type="file" accept=".csv,text/csv" onChange={event=>setFile(event.target.files?.[0]??null)}/></label><Button disabled={!file||busy} onClick={upload}>{busy?"Importando…":"Importar archivo"}</Button></article><article className="panel bulk-card"><span className="bulk-icon"><Download/></span><h2>Exportar estudiantes</h2><p>Descarga expedientes, matrículas, contacto, carrera y estado en un archivo compatible con hojas de cálculo.</p><Button variant="secondary" onClick={download}><Download/> Descargar CSV</Button></article></section></div>}
+type ImportRow = { line: number; status: "valid" | "created" | "unchanged" | "rejected"; detail?: string };
+type ImportResult = { rows: ImportRow[]; created: number };
+const rowLabels = { valid: "Lista para importar", created: "Importada", unchanged: "Ya registrada", rejected: "Requiere revisión" };
+
+export function BulkToolsPage() {
+  const client = useQueryClient();
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<ImportResult | null>(null);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function send(dryRun: boolean) {
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await api.post<ImportResult>("/bulk/students/import", await file.arrayBuffer(), {
+        headers: { "Content-Type": "text/csv" },
+        params: { dry_run: dryRun },
+      });
+      if (dryRun) {
+        setPreview(response.data);
+        setResult(null);
+      } else {
+        setResult(response.data);
+        setPreview(null);
+        void client.invalidateQueries({ queryKey: ["students"] });
+        void client.invalidateQueries({ queryKey: ["lookup", "/students/"] });
+      }
+    } catch (failure) {
+      setError(`${file.name}. ${apiMessage(failure)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function download(kind: "template" | "export") {
+    setError("");
+    try {
+      const response = await api.get<Blob>(`/bulk/students/${kind}`, { responseType: "blob" });
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = kind === "template" ? "plantilla-estudiantes.csv" : "estudiantes.csv";
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (failure) {
+      setError(apiMessage(failure));
+    }
+  }
+
+  const valid = preview?.rows.filter(row => row.status === "valid").length ?? 0;
+  const rows = result?.rows ?? preview?.rows;
+  return (
+    <div className="page">
+      <header className="page-header"><h1>Importación y exportación</h1></header>
+      <section className="settings-grid">
+        <article className="panel bulk-card">
+          <h2>Importar estudiantes</h2>
+          <p>Usa el código de la carrera en <code>career_code</code>. Deja la matrícula vacía para que se genere automáticamente.</p>
+          <Button variant="secondary" onClick={() => void download("template")}><Download /> Descargar plantilla</Button>
+          <label className="file-picker">
+            <FileSpreadsheet /><span>{file?.name ?? "Seleccionar archivo CSV"}</span>
+            <input type="file" accept=".csv,text/csv" disabled={busy} onChange={event => {
+              setFile(event.target.files?.[0] ?? null);
+              setPreview(null);
+              setResult(null);
+              setError("");
+            }} />
+          </label>
+          <div className="form-actions">
+            <Button variant="secondary" disabled={!file || busy} onClick={() => void send(true)}>{busy ? "Procesando…" : "Validar archivo"}</Button>
+            {preview && <Button disabled={!valid || busy} onClick={() => void send(false)}>Importar {valid} {valid === 1 ? "fila" : "filas"}</Button>}
+          </div>
+        </article>
+        <article className="panel bulk-card">
+          <h2>Exportar estudiantes</h2>
+          <p>Descarga matrículas, nombres, contactos y carrera en formato CSV.</p>
+          <Button variant="secondary" onClick={() => void download("export")}><Download /> Descargar CSV</Button>
+        </article>
+      </section>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      {rows && <section className="panel">
+        <h2>{result ? "Resultado de la importación" : "Revisión antes de importar"}</h2>
+        <p role="status">{result ? `Filas importadas: ${result.created}.` : `Filas listas: ${valid}.`}</p>
+        {rows.length ? <div className="table-scroll"><table>
+          <thead><tr><th>Fila</th><th>Estado</th><th>Detalle</th></tr></thead>
+          <tbody>{rows.map(row => <tr key={row.line}><td>{row.line}</td><td>{rowLabels[row.status]}</td><td>{row.detail ?? "—"}</td></tr>)}</tbody>
+        </table></div> : <p>El archivo solo contiene encabezados.</p>}
+      </section>}
+    </div>
+  );
+}

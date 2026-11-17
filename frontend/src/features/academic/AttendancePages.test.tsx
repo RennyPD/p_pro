@@ -59,3 +59,16 @@ it("distinguishes attendance controls for students sharing the same name", async
   expect(await screen.findByLabelText("Estado de Luis Demo · EST-5")).toHaveValue("");
   expect(screen.getByLabelText("Estado de Luis Demo · EST-6")).toHaveValue("present");
 });
+
+it("shows the filtered and full attendance scope before adding changes", async () => {
+  setup();
+  await screen.findByLabelText("Estado de Luis Demo · EST-5");
+  fireEvent.change(screen.getByPlaceholderText("Nombre o matrícula"), { target: { value: "Eva" } });
+  fireEvent.click(screen.getByRole("button", { name: "Marcar sin registrar como presentes" }));
+  expect(screen.getByRole("radio", { name: "Solo visibles (0)" })).toBeChecked();
+  expect(screen.getByRole("button", { name: "Marcar 0 como presentes" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("radio", { name: "Todo el grupo (1)" }));
+  fireEvent.click(screen.getByRole("button", { name: "Marcar 1 como presentes" }));
+  fireEvent.change(screen.getByPlaceholderText("Nombre o matrícula"), { target: { value: "" } });
+  expect(screen.getByLabelText("Estado de Luis Demo · EST-5")).toHaveValue("present");
+});

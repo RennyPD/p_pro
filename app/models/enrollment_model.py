@@ -25,6 +25,8 @@ class Enrollment(Base):
     period: Mapped[str] = mapped_column(String(50))
     waitlist_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
     passing_grade: Mapped[float | None] = mapped_column(Float, nullable=True)
+    curriculum_version: Mapped[str | None] = mapped_column(String(30))
+    curriculum_credits: Mapped[float | None] = mapped_column(Float)
 
     student: Mapped["Student"] = relationship("Student", back_populates="enrollments")
     section: Mapped["Section"] = relationship("Section", back_populates="enrollments")

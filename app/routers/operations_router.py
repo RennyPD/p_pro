@@ -1,5 +1,6 @@
 import base64
 from datetime import UTC, datetime
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
@@ -24,10 +25,12 @@ from app.models.operations_model import (
     AdmissionApplication,
     AlertIntervention,
     ApprovalRequest,
+    Assignment,
     CalendarEvent,
     EarlyAlert,
     LessonPlan,
     StudentDocument,
+    Submission,
 )
 from app.models.section_model import Section
 from app.models.student_model import Student
@@ -53,25 +56,19 @@ from app.schemas.operations_schema import (
     CalendarEventOut,
     LessonPlanCreate,
     LessonPlanOut,
+    LessonPlanResolve,
     StudentDocumentCreate,
     StudentDocumentOut,
 )
 from app.schemas.student_schema import StudentCreate
 from app.services.academic_grading import academic_result
+from app.services.academic_metrics import summarize_results
+from app.services.effective_schedule import effective_blocks
 from app.services.finance_workflow import cents, money
 from app.services.finance_workflow import summary as finance_summary
 from app.services.governance_workflow import history as governance_history
 from app.services.governance_workflow import lock_governance, record
 from app.services.student_service import create_student_service
-
-
-def result_values(db, enrollments):
-    return [
-        result.value
-        for item in enrollments
-        if (result := academic_result(db, item)).value is not None
-    ]
-
 
 router = APIRouter(prefix="/operations", tags=["institutional operations"])
 router.include_router(assignment_routes)
@@ -188,11 +185,67 @@ def create_lesson_plan(
     db: Session = Depends(get_db),
     user: User = Depends(operations_manager),
 ):
+    lock_governance(db)
     section = ensure_section_access(db, user, data.section_id)
+    if section.status in {"closed", "cancelled"}:
+        raise HTTPException(409, "La sección está cerrada o cancelada")
     item = LessonPlan(**data.model_dump(), teacher_id=section.teacher_id)
     db.add(item)
+    db.flush()
+    record(
+        db,
+        user,
+        "lesson_plan.created",
+        f"lesson-plan:{item.lesson_plan_id}",
+        f"Sección {section.code}",
+    )
     db.commit()
     db.refresh(item)
+    return item
+
+
+def writable_lesson_plan(db, user, plan_id):
+    item = db.get(LessonPlan, plan_id)
+    if item is None:
+        raise HTTPException(404, "No se encontró el plan de clase")
+    section = ensure_section_access(db, user, item.section_id)
+    if not is_admin(user) and item.teacher_id != user.teacher_id:
+        raise HTTPException(403, "El plan pertenece a otro docente")
+    if section.status in {"closed", "cancelled"} or item.status != "planned":
+        raise HTTPException(409, "Solo se puede cambiar un plan programado en una sección abierta")
+    return item
+
+
+@router.put("/lesson-plans/{plan_id}", response_model=LessonPlanOut)
+def edit_lesson_plan(
+    plan_id: int,
+    data: LessonPlanCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(operations_manager),
+):
+    lock_governance(db)
+    item = writable_lesson_plan(db, user, plan_id)
+    if item.section_id != data.section_id or data.status != "planned":
+        raise HTTPException(409, "Conserva la sección y usa la acción de cierre del plan")
+    for key, value in data.model_dump(exclude={"section_id", "status"}).items():
+        setattr(item, key, value)
+    record(db, user, "lesson_plan.updated", f"lesson-plan:{plan_id}", "Contenido revisado")
+    db.commit()
+    return item
+
+
+@router.patch("/lesson-plans/{plan_id}/status", response_model=LessonPlanOut)
+def finish_lesson_plan(
+    plan_id: int,
+    data: LessonPlanResolve,
+    db: Session = Depends(get_db),
+    user: User = Depends(operations_manager),
+):
+    lock_governance(db)
+    item = writable_lesson_plan(db, user, plan_id)
+    item.status = data.status
+    record(db, user, "lesson_plan.status", f"lesson-plan:{plan_id}", f"planned → {data.status}")
+    db.commit()
     return item
 
 
@@ -246,9 +299,14 @@ def create_alert(
     db: Session = Depends(get_db),
     user: User = Depends(operations_manager),
 ):
+    lock_governance(db)
     ensure_student_academic_access(db, user, data.student_id)
+    if db.get(Student, data.student_id) is None:
+        raise HTTPException(404, "Selecciona un estudiante existente")
     item = EarlyAlert(**data.model_dump(), created_by=user.user_id)
     db.add(item)
+    db.flush()
+    record(db, user, "alert.created", f"alert:{item.early_alert_id}", "Alta manual de caso")
     db.commit()
     db.refresh(item)
     return item
@@ -479,20 +537,13 @@ def guardian_overview(
     db: Session = Depends(get_db), user: User = Depends(require_roles("guardian"))
 ):
     ids = student_scope_ids(db, user) or []
+    active_period = db.query(AcademicPeriod).filter_by(active=True).first()
     result = []
     for student in db.query(Student).filter(Student.student_id.in_(ids)).all():
         enrollments = db.query(Enrollment).filter_by(student_id=student.student_id).all()
-        enrollment_ids = [item.enrollment_id for item in enrollments]
-        grades = result_values(db, enrollments)
-        attendance = (
-            [
-                bool(row[0])
-                for row in db.query(Attendance.present).filter(
-                    Attendance.enrollment_id.in_(enrollment_ids)
-                )
-            ]
-            if enrollment_ids
-            else []
+        summary = summarize_results(
+            db,
+            [item for item in enrollments if active_period and item.period == active_period.name],
         )
         account = db.query(StudentAccount).filter_by(student_id=student.student_id).first()
         balance = finance_summary(account).balance if account else 0
@@ -509,8 +560,8 @@ def guardian_overview(
                 "enrollment_number": student.enrollment_number,
                 "career_name": student.career.name,
                 "active": student.active,
-                "average_grade": round(sum(grades) / len(grades), 2) if grades else 0,
-                "attendance_percentage": percentage(sum(attendance), len(attendance)),
+                **summary,
+                "metrics_period": active_period.name if active_period else None,
                 "balance": round(float(balance), 2),
                 "schedule": [
                     {
@@ -522,9 +573,13 @@ def guardian_overview(
                         "end_time": item.section.end_time.isoformat(),
                         "room": item.section.room,
                         "modality": item.section.modality,
+                        "blocks": effective_blocks(item.section),
                     }
                     for item in enrollments
-                    if item.state == "enrolled"
+                    if active_period
+                    and item.period == active_period.name
+                    and item.state == "enrolled"
+                    and item.section.status in {"published", "active"}
                 ],
                 "alerts": [
                     {
@@ -687,12 +742,61 @@ def approvals(db: Session = Depends(get_db)):
     return db.query(ApprovalRequest).order_by(ApprovalRequest.created_at.desc()).all()
 
 
+@router.get("/approvals/mine", response_model=list[ApprovalOut])
+def my_approvals(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return (
+        db.query(ApprovalRequest)
+        .filter_by(requested_by=user.user_id)
+        .order_by(ApprovalRequest.created_at.desc(), ApprovalRequest.approval_request_id.desc())
+        .all()
+    )
+
+
+def ensure_approval_resource(db, user, data):
+    if data.resource_type == "student":
+        resource = db.get(Student, data.resource_id)
+        ids = student_scope_ids(db, user)
+        allowed = resource is not None and (ids is None or resource.student_id in ids)
+    elif data.resource_type == "section":
+        allowed = (
+            db.query(Section)
+            .filter(Section.section_id == data.resource_id, Section.section_id.in_(scope(db, user)))
+            .first()
+            is not None
+        )
+    elif data.resource_type == "submission":
+        resource = db.get(Submission, data.resource_id)
+        task = db.get(Assignment, resource.assignment_id) if resource else None
+        if task is None:
+            allowed = False
+        elif is_admin(user):
+            allowed = True
+        elif user.teacher_id:
+            allowed = db.get(Section, task.section_id).teacher_id == user.teacher_id
+        else:
+            allowed = task.published and resource.student_id in (student_scope_ids(db, user) or [])
+    else:
+        raise HTTPException(422, "Solicita revisión de una sección, un expediente o una entrega")
+    if not allowed:
+        raise HTTPException(404, "El recurso de esta solicitud no está disponible para tu cuenta")
+
+
 @router.post("/approvals", response_model=ApprovalOut)
 def request_approval(
     data: ApprovalCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
+    lock_governance(db)
+    ensure_approval_resource(db, user, data)
     item = ApprovalRequest(**data.model_dump(), requested_by=user.user_id)
     db.add(item)
+    db.flush()
+    record(
+        db,
+        user,
+        "approval.requested",
+        f"approval:{item.approval_request_id}",
+        "Solicitud registrada",
+    )
     db.commit()
     db.refresh(item)
     return item
@@ -705,13 +809,19 @@ def resolve_approval(
     db: Session = Depends(get_db),
     user: User = Depends(operations_admin),
 ):
+    lock_governance(db)
     item = db.get(ApprovalRequest, request_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Approval not found")
+    if item.status != "pending":
+        raise HTTPException(409, "La solicitud ya fue resuelta. Consulta la decisión registrada")
+    if len(data.resolution_notes.strip()) < 2:
+        raise HTTPException(422, "Explica el motivo de la decisión")
     item.status = data.status
     item.resolution_notes = data.resolution_notes
     item.resolved_by = user.user_id
     item.resolved_at = datetime.now(UTC).replace(tzinfo=None)
+    record(db, user, "approval.resolved", f"approval:{request_id}", f"pending → {data.status}")
     db.commit()
     db.refresh(item)
     return item
@@ -722,7 +832,12 @@ def documents(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
     ensure_student_academic_access(db, user, student_id)
-    return db.query(StudentDocument).filter_by(student_id=student_id).all()
+    return (
+        db.query(StudentDocument)
+        .filter_by(student_id=student_id)
+        .order_by(StudentDocument.uploaded_at.desc(), StudentDocument.student_document_id.desc())
+        .all()
+    )
 
 
 @router.post("/students/{student_id}/documents", response_model=StudentDocumentOut)
@@ -732,22 +847,49 @@ def upload_document(
     db: Session = Depends(get_db),
     user: User = Depends(operations_admin),
 ):
+    if db.get(Student, student_id) is None:
+        raise HTTPException(404, "El expediente del estudiante ya no está disponible")
     try:
         content = base64.b64decode(data.content_base64, validate=True)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail="Invalid base64 content") from exc
+        raise HTTPException(
+            422, "El contenido no se pudo leer. Selecciona otra vez el archivo"
+        ) from exc
     if len(content) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="Document exceeds 5 MB")
+        raise HTTPException(413, "El documento supera 5 MB")
+    signatures = {
+        "application/pdf": (b"%PDF-", (".pdf",)),
+        "image/png": (b"\x89PNG\r\n\x1a\n", (".png",)),
+        "image/jpeg": (b"\xff\xd8\xff", (".jpg", ".jpeg")),
+    }
+    signature, extensions = signatures[data.mime_type]
+    filename = data.filename.replace("\\", "/").split("/")[-1].strip()
+    if (
+        not filename.casefold().endswith(extensions)
+        or not content.startswith(signature)
+        or any(ord(char) < 32 or ord(char) == 127 for char in filename)
+    ):
+        raise HTTPException(
+            422, "Selecciona un PDF, PNG o JPEG cuya extensión coincida con su contenido"
+        )
     item = StudentDocument(
         student_id=student_id,
         document_type=data.document_type,
-        filename=data.filename,
+        filename=filename,
         mime_type=data.mime_type,
         content=content,
         expires_on=data.expires_on,
         uploaded_by=user.user_id,
     )
     db.add(item)
+    db.flush()
+    record(
+        db,
+        user,
+        "document.uploaded",
+        f"document:{item.student_document_id}",
+        f"Expediente {student_id}",
+    )
     db.commit()
     db.refresh(item)
     return item
@@ -764,7 +906,11 @@ def download_document(
     return Response(
         item.content,
         media_type=item.mime_type,
-        headers={"Content-Disposition": f'attachment; filename="{item.filename}"'},
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(item.filename, safe='')}",
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
@@ -772,19 +918,24 @@ def download_document(
     "/analytics/summary",
     dependencies=[Depends(require_permissions("reports.view", fallback_roles=("admin",)))],
 )
-def analytics(db: Session = Depends(get_db)):
+def analytics(period: str | None = None, db: Session = Depends(get_db)):
     students = db.query(Student).count()
     active = db.query(Student).filter(Student.active.is_(True)).count()
-    enrollments = db.query(Enrollment).count()
-    grades = result_values(db, db.query(Enrollment).all())
+    query = db.query(Enrollment)
+    if period:
+        if db.query(AcademicPeriod).filter_by(name=period).first() is None:
+            raise HTTPException(404, "Período no encontrado")
+        query = query.filter(Enrollment.period == period)
+    enrollments = query.all()
     receivables = sum(
         cents(finance_summary(account).balance) for account in db.query(StudentAccount).all()
     )
     return {
         "students": students,
         "active_students": active,
-        "enrollments": enrollments,
-        "average_grade": round(sum(grades) / len(grades), 2) if grades else 0,
+        "enrollments": len(enrollments),
+        "metrics_period": period,
+        **summarize_results(db, enrollments),
         "open_alerts": db.query(EarlyAlert).filter_by(status="open").count(),
         "receivables": money(receivables),
         "admission_pipeline": db.query(AdmissionApplication)

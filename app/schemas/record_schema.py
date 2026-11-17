@@ -17,13 +17,15 @@ class TranscriptCourse(BaseModel):
     subject_name: str
     section_code: str
     period: str
-    credits: float
+    credits: float | None
+    curriculum_version: str | None = None
     average: float | None
     result: str
     attempts: int
 
 
 class AcademicTranscript(BaseModel):
+    unverified_credit_courses: int = 0
     recognized_credits: float = 0
     curriculum_version: str = "current"
     student_id: int

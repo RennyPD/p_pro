@@ -7,9 +7,12 @@ python-dotenv>=1.0,<2.0
 SQLAlchemy>=2.0,<3.0
 psycopg[binary]>=3.2,<4.0
 uvicorn[standard]>=0.34,<1.0
+reportlab>=4.4,<5.0
+tzdata>=2025.2
 
 # Development and tests
 httpx>=0.27,<1.0
 pytest>=8.3,<10.0
 coverage>=7.6,<8.0
 ruff>=0.9,<1.0
+pypdf>=6.0,<7.0

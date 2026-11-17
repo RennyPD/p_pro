@@ -4,17 +4,21 @@ from app.models.security_model import AuditLog, RefreshToken
 from app.models.user_model import User
 from app.schemas.user_schema import UserCreate, UserUpdate
 from app.security import hash_password
+from app.services.account_sessions import lock_account, revoke_account_sessions
 
 
-def create_user(db: Session, user_data: UserCreate) -> User:
+def create_user(db: Session, user_data: UserCreate, *, commit: bool = True) -> User:
 
     data = user_data.model_dump()
     data["password"] = hash_password(data["password"])
     new_user = User(**data)
 
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    if commit:
+        db.commit()
+        db.refresh(new_user)
+    else:
+        db.flush()
 
     return new_user
 
@@ -35,9 +39,13 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate) -> User:
         return None
 
     update_data = user_data.model_dump(exclude_unset=True)
+    if "role_id" in update_data and update_data["role_id"] != user.role_id:
+        user.module_views = None
 
     if "password" in update_data:
+        user = lock_account(db, user)
         update_data["password"] = hash_password(update_data["password"])
+        revoke_account_sessions(db, user)
 
     for key, value in update_data.items():
         setattr(user, key, value)

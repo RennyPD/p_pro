@@ -2,7 +2,7 @@
 
 import calendar
 import json
-from datetime import UTC, date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import HTTPException
@@ -11,17 +11,13 @@ from sqlalchemy import update
 from app.models.finance_model import FinanceControl, FinanceEvent, Payment, StudentAccount
 from app.models.student_model import Student
 from app.schemas.finance_schema import FinanceTransaction, StudentFinanceSummary
+from app.services.business_time import business_date as business_date
 
 CREDIT_KINDS = {"discount", "scholarship", "credit"}
-RD = timezone(timedelta(hours=-4))
 
 
 def now():
     return datetime.now(UTC).replace(tzinfo=None)
-
-
-def business_date(value=None):
-    return (value.replace(tzinfo=UTC) if value else datetime.now(UTC)).astimezone(RD).date()
 
 
 def cents(value):

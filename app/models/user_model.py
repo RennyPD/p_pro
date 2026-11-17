@@ -1,4 +1,6 @@
-from sqlalchemy import Boolean, ForeignKey, String
+from datetime import datetime
+
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -19,9 +21,33 @@ class User(Base):
     )
     mfa_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    mfa_pending_secret: Mapped[str | None] = mapped_column(String(64))
+    mfa_pending_until: Mapped[datetime | None] = mapped_column(DateTime)
+    mfa_attempts: Mapped[int] = mapped_column(default=0, server_default="0")
+    mfa_attempt_window: Mapped[datetime | None] = mapped_column(DateTime)
+    session_version: Mapped[int] = mapped_column(default=0, server_default="0")
+    module_views: Mapped[list[str] | None] = mapped_column(JSON)
 
     role: Mapped["Role"] = relationship("Role", back_populates="users")
+    student: Mapped["Student | None"] = relationship("Student")
+    teacher: Mapped["Teacher | None"] = relationship("Teacher")
+    guardian: Mapped["Guardian | None"] = relationship("Guardian")
 
     @property
     def role_name(self) -> str:
         return self.role.name.casefold()
+
+    @property
+    def role_label(self) -> str | None:
+        return self.role.label
+
+    @property
+    def linked_person(self) -> str | None:
+        if self.student:
+            return f"{self.student.full_name} · {self.student.enrollment_number}"
+        if self.teacher:
+            name = f"{self.teacher.first_name} {self.teacher.last_name}"
+            return f"{name} · {self.teacher.employee_code}" if self.teacher.employee_code else name
+        if self.guardian:
+            return f"{self.guardian.first_name} {self.guardian.last_name}"
+        return None

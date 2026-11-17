@@ -11,6 +11,7 @@ from app.repositories.career_repository import (
     update_career,
 )
 from app.schemas.career_schema import CareerCreate, CareerUpdate
+from app.services.governance_workflow import lock_governance
 
 
 def create_career_service(db: Session, data: CareerCreate):
@@ -32,6 +33,7 @@ def get_career_service(db: Session, career_id: int):
 
 
 def update_career_service(db: Session, career_id: int, data: CareerUpdate):
+    lock_governance(db)
     career = update_career(db, career_id, data)
     if career is None:
         raise HTTPException(status_code=404, detail="Career not found")

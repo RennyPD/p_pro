@@ -26,6 +26,9 @@ class Section(Base):
     subject: Mapped["Subject"] = relationship("Subject", back_populates="sections")
     teacher: Mapped["Teacher"] = relationship("Teacher", back_populates="sections")
     enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="section")
+    meetings: Mapped[list["SectionMeeting"]] = relationship(
+        "SectionMeeting", back_populates="section"
+    )
 
     @property
     def teacher_name(self) -> str:

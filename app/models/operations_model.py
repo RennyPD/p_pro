@@ -89,6 +89,17 @@ class Submission(Base):
     feedback: Mapped[str] = mapped_column(Text, default="")
 
 
+class SubmissionAttachment(Base):
+    __tablename__ = "submission_attachments"
+
+    revision_id: Mapped[int] = mapped_column(
+        ForeignKey("submission_revisions.revision_id", ondelete="CASCADE"), primary_key=True
+    )
+    filename: Mapped[str] = mapped_column(String(255))
+    mime_type: Mapped[str] = mapped_column(String(100))
+    content: Mapped[bytes] = mapped_column(LargeBinary)
+
+
 class SubmissionRevision(Base):
     __tablename__ = "submission_revisions"
     revision_id: Mapped[int] = mapped_column(primary_key=True)

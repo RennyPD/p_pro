@@ -10,7 +10,7 @@ const profiles = [
 for (const [index, profile] of profiles.entries()) {
   test(`${profile.role} receives the correct workspace`, async ({ page }) => {
     const user = { user_id: index + 1, email: `${profile.username}@example.com`, role_id: index + 1, role_name: profile.role, guardian_id: null, ...profile };
-    await page.route("http://127.0.0.1:8000/**", async route => {
+    await page.route("http://127.0.0.1:48017/**", async route => {
       const path = new URL(route.request().url()).pathname;
       if (path === "/auth/login" || path === "/auth/me") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(path === "/auth/login" ? { access_token: "test-token", token_type: "bearer", user } : user) });
       if (path === "/access/me") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ permissions: profile.permissions }) });
@@ -22,5 +22,8 @@ for (const [index, profile] of profiles.entries()) {
     await page.locator('input[name="password"]').fill("NexoPrueba2026!");
     await page.getByRole("button", { name: "Entrar a Nexo" }).click();
     await expect(page.getByRole("link", { name: profile.expected })).toBeVisible();
+    await page.getByRole("link", { name: "Mi seguridad" }).click();
+    await expect(page.getByRole("heading", { name: "Mi seguridad" })).toBeVisible();
+    await expect(page.getByText("No hay sesiones renovables.")).toBeVisible();
   });
 }

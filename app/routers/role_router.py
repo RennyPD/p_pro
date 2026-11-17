@@ -29,7 +29,9 @@ def get_roles(
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    return paginate_and_filter(get_roles_service(db), skip, limit, q, ("name", "description"))
+    return paginate_and_filter(
+        get_roles_service(db), skip, limit, q, ("name", "label", "description")
+    )
 
 
 @router.get("/{role_id}", response_model=RoleOut, dependencies=[Depends(access_manager)])

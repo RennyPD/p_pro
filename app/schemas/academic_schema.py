@@ -2,6 +2,7 @@ from datetime import date, time
 
 from pydantic import BaseModel
 
+from app.schemas.scheduling_schema import ScheduleBlock
 from app.schemas.student_schema import StudentDossierFields
 
 
@@ -29,21 +30,12 @@ class ScheduleItem(BaseModel):
     days_of_week: list[str]
     start_time: time
     end_time: time
+    blocks: list[ScheduleBlock]
 
 
-class CourseOffering(BaseModel):
-    section_id: int
-    section_code: str
+class CourseOffering(ScheduleItem):
     subject_id: int
-    subject_code: str
-    subject_name: str
-    teacher_name: str
-    credits: int
-    days_of_week: list[str]
-    start_time: time
-    end_time: time
-    room: str
-    modality: str
+    credits: float
     capacity: int
     available_seats: int
     selection_status: str | None
@@ -186,6 +178,7 @@ class SectionWorkspace(BaseModel):
     days_of_week: list[str]
     start_time: time
     end_time: time
+    blocks: list[ScheduleBlock]
     attendance_date: date
     roster: list[SectionRosterItem]
     subject_id: int = 0

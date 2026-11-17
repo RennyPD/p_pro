@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session, selectinload
 from app.auth import ensure_teacher_access, get_current_user, is_admin, require_permissions
 from app.db.Session import get_db
 from app.models.configuration_model import AcademicPeriod
-from app.models.scheduling_model import SectionMeeting
 from app.models.section_model import Section
 from app.models.teacher_model import Teacher
 from app.models.user_model import User
@@ -17,6 +16,7 @@ from app.schemas.teacher_schema import (
     TeacherUpdate,
     TeacherWorkload,
 )
+from app.services.effective_schedule import effective_blocks, load_schedule
 from app.services.teacher_service import (
     create_teacher_service,
     delete_teacher_service,
@@ -87,7 +87,7 @@ def teacher_workload(
     teacher = get_teacher_by_id_service(db, teacher_id)
     sections = (
         db.query(Section)
-        .options(selectinload(Section.enrollments), selectinload(Section.subject))
+        .options(selectinload(Section.enrollments), selectinload(Section.subject), load_schedule())
         .filter(Section.teacher_id == teacher.teacher_id)
         .all()
     )
@@ -106,16 +106,6 @@ def teacher_workload(
         if periods
         else None
     )
-    meetings_by_section = {}
-    for meeting in (
-        db.query(SectionMeeting)
-        .join(Section)
-        .options(selectinload(SectionMeeting.classroom))
-        .filter(Section.teacher_id == teacher_id)
-        .order_by(SectionMeeting.day_of_week, SectionMeeting.start_time)
-        .all()
-    ):
-        meetings_by_section.setdefault(meeting.section_id, []).append(meeting)
     rows = []
     unique_students = set()
     hours = 0.0
@@ -123,34 +113,15 @@ def teacher_workload(
     for section in sections:
         if selected_period and section.period_name != selected_period:
             continue
-        days = [day.strip() for day in section.days_of_week.split(",") if day.strip()]
-        start = section.start_time.hour * 60 + section.start_time.minute
-        end = section.end_time.hour * 60 + section.end_time.minute
-        weekly_hours = round((end - start) / 60 * len(set(days)), 2)
-        meetings = meetings_by_section.get(section.section_id, [])
-        day_order = {
-            day: index
-            for index, day in enumerate(
-                ("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
-            )
-        }
-        meetings.sort(
-            key=lambda meeting: (day_order.get(meeting.day_of_week, 7), meeting.start_time)
+        meetings = effective_blocks(section)
+        days = list(dict.fromkeys(meeting.day_of_week for meeting in meetings))
+        minutes = sum(
+            (meeting.end_time.hour - meeting.start_time.hour) * 60
+            + meeting.end_time.minute
+            - meeting.start_time.minute
+            for meeting in meetings
         )
-        if meetings:
-            weekly_hours = round(
-                sum(
-                    (
-                        meeting.end_time.hour * 60
-                        + meeting.end_time.minute
-                        - meeting.start_time.hour * 60
-                        - meeting.start_time.minute
-                    )
-                    / 60
-                    for meeting in meetings
-                ),
-                2,
-            )
+        weekly_hours = round(minutes / 60, 2)
         enrolled = [
             item
             for item in section.enrollments
@@ -182,7 +153,7 @@ def teacher_workload(
                         day=meeting.day_of_week,
                         start_time=meeting.start_time.strftime("%H:%M"),
                         end_time=meeting.end_time.strftime("%H:%M"),
-                        room=meeting.classroom.name if meeting.classroom else section.room,
+                        room=meeting.room,
                         modality=meeting.modality,
                     )
                     for meeting in meetings

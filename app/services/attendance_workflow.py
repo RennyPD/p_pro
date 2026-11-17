@@ -1,13 +1,14 @@
-import unicodedata
-from datetime import date, datetime, time
+from datetime import datetime, time
 
 from fastapi import HTTPException
 from sqlalchemy import func
 
 from app.auth import is_admin
+from app.enums.dayEnum import DAY_ORDER
 from app.models.attendance_model import Attendance, AttendanceChange
 from app.models.configuration_model import AcademicPeriod
-from app.models.scheduling_model import SectionMeeting
+from app.services.business_time import business_date
+from app.services.effective_schedule import effective_blocks
 
 STATUSES = {"present", "absent", "late", "excused", "early_departure"}
 
@@ -33,14 +34,6 @@ def day_record(db, enrollment_id, day):
     )
 
 
-def normalized(value):
-    return "".join(
-        c
-        for c in unicodedata.normalize("NFKD", value.casefold().strip())
-        if not unicodedata.combining(c)
-    )
-
-
 def validate_day(db, user, enrollment, day, existing=None, exception_reason=None):
     section = enrollment.section
     if section.status in {"closed", "cancelled"}:
@@ -49,7 +42,7 @@ def validate_day(db, user, enrollment, day, existing=None, exception_reason=None
         existing and enrollment.state in {"completed", "failed"}
     ):
         raise HTTPException(409, "Solo se registra asistencia nueva para selecciones activas")
-    if day > date.today():
+    if day > business_date():
         raise HTTPException(422, "No se registra asistencia de fechas futuras")
     periods = (
         db.query(AcademicPeriod)
@@ -64,11 +57,9 @@ def validate_day(db, user, enrollment, day, existing=None, exception_reason=None
     # Historical entries are not reinterpreted: their unchanged day may be corrected.
     if existing and existing.date.date() == day:
         return
-    meetings = db.query(SectionMeeting).filter_by(section_id=section.section_id).all()
-    days = [m.day_of_week for m in meetings] if meetings else section.days_of_week.split(",")
-    names = ("lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo")
-    english = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
-    if not {names[day.weekday()], english[day.weekday()]} & {normalized(d) for d in days}:
+    if not any(
+        DAY_ORDER[block.day_of_week] == day.weekday() for block in effective_blocks(section)
+    ):
         if not (is_admin(user) and exception_reason):
             raise HTTPException(
                 422,

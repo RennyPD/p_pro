@@ -21,6 +21,7 @@ from app.schemas.attendance_schema import (
     AttendanceUpdate,
 )
 from app.services.attendance_workflow import change, day_record, snapshot, validate_day, write
+from app.services.business_time import business_date
 
 router = APIRouter(prefix="/attendances", tags=["attendances"])
 attendance_manager = require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
@@ -38,7 +39,7 @@ def require_attendance_writer(db, user, enrollment_id):
 @router.get("/sections/{section_id}/session")
 def session(
     section_id: int,
-    day: date = Query(default_factory=date.today),
+    day: date = Query(default_factory=business_date),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -124,7 +125,7 @@ def create(
     data: AttendanceCreate, db: Session = Depends(get_db), user: User = Depends(attendance_manager)
 ):
     enrollment = require_attendance_writer(db, user, data.enrollment_id)
-    day = data.date.date() if data.date else date.today()
+    day = data.date.date() if data.date else business_date()
     if day_record(db, enrollment.enrollment_id, day):
         raise HTTPException(
             409, "Ya existe asistencia para ese estudiante y día; corrige el registro existente"

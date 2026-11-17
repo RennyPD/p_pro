@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -23,6 +24,7 @@ from app.routers.enrollment_router import router as enrollment_router
 from app.routers.finance_router import router as finance_router
 from app.routers.governance_router import router as governance_router
 from app.routers.grade_router import router as grade_router
+from app.routers.module_router import router as module_router
 from app.routers.operations_router import router as operations_router
 from app.routers.record_router import router as record_router
 from app.routers.role_router import router as role_router
@@ -41,6 +43,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Total-Count", "X-Has-More"],
 )
 
 
@@ -56,6 +59,15 @@ def health():
 @app.exception_handler(IntegrityError)
 def handle_integrity_error(_request, _exc):
     return JSONResponse(status_code=409, content={"detail": "Database constraint conflict"})
+
+
+@app.exception_handler(RequestValidationError)
+def handle_validation_error(_request, exc):
+    # Pydantic's input and context may contain the entire submitted form.
+    errors = [
+        {"loc": error["loc"], "type": error["type"], "msg": error["msg"]} for error in exc.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 
 @app.exception_handler(SQLAlchemyError)
@@ -89,3 +101,4 @@ app.include_router(grade_router)
 app.include_router(governance_router)
 app.include_router(finance_router)
 app.include_router(operations_router)
+app.include_router(module_router)

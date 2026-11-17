@@ -26,6 +26,21 @@ class GuardianLinkOut(GuardianLinkCreate):
     guardian_email: EmailStr
 
 
+class StudentGuardianRegistration(BaseModel):
+    guardian_id: int | None = Field(default=None, ge=1)
+    new_guardian: GuardianCreate | None = None
+    relationship: str = Field(min_length=2, max_length=50)
+    primary_contact: bool = False
+    emergency_contact: bool = False
+    authorized_pickup: bool = False
+
+    @model_validator(mode="after")
+    def require_one_guardian(self):
+        if (self.guardian_id is None) == (self.new_guardian is None):
+            raise ValueError("Selecciona un tutor existente o registra uno nuevo")
+        return self
+
+
 class AnnouncementBase(BaseModel):
     title: str = Field(min_length=2, max_length=150)
     body: str = Field(min_length=2, max_length=5000)

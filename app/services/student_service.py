@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -12,6 +10,7 @@ from app.repositories.student_repository import (
     update_student,
 )
 from app.schemas.student_schema import StudentCreate, StudentUpdate
+from app.services.business_time import business_date
 
 
 def create_student_service(db: Session, student_data: StudentCreate, commit: bool = True):
@@ -32,7 +31,7 @@ def create_student_service(db: Session, student_data: StudentCreate, commit: boo
             settings = InstitutionSettings(settings_id=1)
             db.add(settings)
             db.flush()
-        year = datetime.now(UTC).year
+        year = business_date().year
         sequence = str(settings.next_enrollment_number).zfill(settings.enrollment_digits)
         generated = f"{settings.enrollment_prefix}-{year}-{sequence}"
         from app.models.student_model import Student
@@ -61,6 +60,12 @@ def get_student_by_id_service(db: Session, student_id: int):
 
 
 def update_student_service(db: Session, student_id: int, student_data: StudentUpdate):
+    current = get_student_by_id_service(db, student_id)
+    if "career_id" in student_data.model_fields_set and student_data.career_id != current.career_id:
+        raise HTTPException(
+            409,
+            f"El estudiante {student_id} requiere un traslado de carrera. Registra el motivo en el flujo de traslado",
+        )
 
     student = update_student(db, student_id, student_data)
 

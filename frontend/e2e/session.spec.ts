@@ -10,7 +10,7 @@ async function setup(page: Page, mode: "concurrent" | "proactive" | "revoked") {
   const newToken = jwt(Math.floor(now / 1000) + 7200);
   let refreshes = 0;
   let oldFailures = 0;
-  await page.route("http://127.0.0.1:8000/**", async route => {
+  await page.route("http://127.0.0.1:48017/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     const fulfill = (data: unknown, status = 200, headers = {}) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(data), headers });

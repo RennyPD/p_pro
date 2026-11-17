@@ -1,8 +1,8 @@
 import json
-from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import ValidationError
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, require_permissions
@@ -11,6 +11,7 @@ from app.models.assessment_model import Assessment
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.enrollment_model import CourseSelectionCart, Enrollment
 from app.models.section_model import Section
+from app.pagination import page_query
 from app.schemas.configuration_schema import (
     AcademicPeriodBase,
     AcademicPeriodCreate,
@@ -22,6 +23,7 @@ from app.schemas.configuration_schema import (
     OperationReason,
 )
 from app.services.academic_grading import academic_result
+from app.services.business_time import business_date
 from app.services.governance_workflow import history, lock_governance, record
 
 router = APIRouter(tags=["academic configuration"])
@@ -48,7 +50,7 @@ def get_or_create_settings(db, write=False):
 
 
 def enrollment_number(settings):
-    return f"{settings.enrollment_prefix}-{datetime.now(UTC).year}-{str(settings.next_enrollment_number).zfill(settings.enrollment_digits)}"
+    return f"{settings.enrollment_prefix}-{business_date().year}-{str(settings.next_enrollment_number).zfill(settings.enrollment_digits)}"
 
 
 def settings_out(settings):
@@ -135,6 +137,10 @@ def create_period(
     data: AcademicPeriodCreate, db: Session = Depends(get_db), user=Depends(academic_manager)
 ):
     lock_governance(db)
+    if db.query(AcademicPeriod).filter_by(name=data.name).first():
+        raise HTTPException(
+            409, f"Ya existe el período {data.name}. Usa otro nombre o edita el existente"
+        )
     if data.status == "closed":
         raise HTTPException(409, "Crea el período abierto y usa su cierre controlado")
     if data.active:
@@ -154,8 +160,31 @@ def create_period(
 
 
 @router.get("/periods/", response_model=list[AcademicPeriodOut])
-def list_periods(db: Session = Depends(get_db), _user=Depends(get_current_user)):
-    return db.query(AcademicPeriod).order_by(AcademicPeriod.start_date.desc()).all()
+def list_periods(
+    response: Response,
+    q: str | None = None,
+    active: bool | None = None,
+    skip: int = Query(0, ge=0),
+    limit: int | None = Query(None, ge=1, le=100),
+    db: Session = Depends(get_db),
+    _user=Depends(get_current_user),
+):
+    query = db.query(AcademicPeriod)
+    if active is not None:
+        query = query.filter(AcademicPeriod.active == active)
+    if q and (term := q.strip()):
+        query = query.filter(
+            or_(
+                AcademicPeriod.name.icontains(term, autoescape=True),
+                AcademicPeriod.academic_year.icontains(term, autoescape=True),
+            )
+        )
+    return page_query(
+        query.order_by(AcademicPeriod.start_date.desc(), AcademicPeriod.period_id.desc()),
+        response,
+        skip,
+        limit,
+    )
 
 
 @router.patch("/periods/{period_id}", response_model=AcademicPeriodOut)
@@ -178,6 +207,12 @@ def update_period(
         raise HTTPException(
             409, "No se renombra un período con secciones, selecciones o carritos vinculados"
         )
+    if (
+        "name" in values
+        and values["name"] != period.name
+        and db.query(AcademicPeriod).filter_by(name=values["name"]).first()
+    ):
+        raise HTTPException(409, f"Ya existe el período {values['name']}. Usa otro nombre")
     combined = {k: getattr(period, k) for k in AcademicPeriodBase.model_fields} | values
     validated(combined)
     if values.get("active"):

@@ -1,12 +1,12 @@
-from datetime import date
-
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.attendance_model import AttendanceChange
 from app.models.configuration_model import InstitutionSettings
 from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import Enrollment
-from app.models.scheduling_model import SectionMeeting
+from app.models.operations_model import Assignment, Submission
 from app.models.section_model import Section
 from app.models.student_model import Student
 from app.repositories.enrollment_repository import (
@@ -18,12 +18,19 @@ from app.repositories.enrollment_repository import (
 )
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate
 from app.services.academic_recognition import recognize
+from app.services.business_time import business_date
+from app.services.effective_schedule import effective_blocks, overlap
 from app.services.enrollment_policy import selection_period
 from app.services.governance_workflow import lock_governance
 
 
 def validate_eligibility(
-    db: Session, enrollment_data: EnrollmentCreate, exclude_id: int | None = None
+    db: Session,
+    enrollment_data: EnrollmentCreate,
+    exclude_id: int | None = None,
+    *,
+    require_program: bool = False,
+    paired_corequisite: int | None = None,
 ):
     requested_section = db.get(Section, enrollment_data.section_id)
     if requested_section is None:
@@ -52,10 +59,15 @@ def validate_eligibility(
         .filter(
             CurriculumCourse.career_id == student.career_id,
             CurriculumCourse.subject_id == requested_section.subject_id,
-            CurriculumCourse.curriculum_version == student.career.curriculum_version,
+            CurriculumCourse.curriculum_version == student.curriculum_version,
         )
         .first()
     )
+    if require_program and curriculum_course is None:
+        raise HTTPException(
+            409,
+            f"La asignatura {requested_section.subject.code} ya no está en tu plan vigente. Retírala del carrito",
+        )
     if curriculum_course and curriculum_course.prerequisite_subject_id:
         if curriculum_course.prerequisite_subject_id not in recognition.completed:
             raise HTTPException(
@@ -70,7 +82,11 @@ def validate_eligibility(
             for enrollment in student.enrollments
         )
         completed_corequisite = curriculum_course.corequisite_subject_id in recognition.completed
-        if not has_corequisite and not completed_corequisite:
+        if (
+            not has_corequisite
+            and not completed_corequisite
+            and curriculum_course.corequisite_subject_id != paired_corequisite
+        ):
             raise HTTPException(
                 status_code=409,
                 detail=f"Corequisite {curriculum_course.corequisite.code} must be selected first",
@@ -104,12 +120,15 @@ def validate_eligibility(
     max_credits = settings.max_credits_per_period if settings else 24
     current_credits = 0.0
     for enrollment in current:
+        if enrollment.curriculum_credits is not None:
+            current_credits += enrollment.curriculum_credits
+            continue
         course = (
             db.query(CurriculumCourse)
             .filter(
                 CurriculumCourse.career_id == student.career_id,
                 CurriculumCourse.subject_id == enrollment.section.subject_id,
-                CurriculumCourse.curriculum_version == student.career.curriculum_version,
+                CurriculumCourse.curriculum_version == student.curriculum_version,
             )
             .first()
         )
@@ -118,28 +137,16 @@ def validate_eligibility(
     if current_credits + requested_credits > max_credits:
         raise HTTPException(status_code=409, detail="Maximum credit load exceeded")
 
-    requested_slots = schedule_slots(db, requested_section)
+    requested_slots = effective_blocks(requested_section)
     for enrollment in current:
         if enrollment.state != "enrolled":
             continue
         section = enrollment.section
         if any(
-            day == other_day and start < other_end and other_start < end
-            for day, start, end in requested_slots
-            for other_day, other_start, other_end in schedule_slots(db, section)
+            overlap(slot, other) for slot in requested_slots for other in effective_blocks(section)
         ):
             raise HTTPException(409, f"Schedule conflict with section {section.code}")
     return requested_section
-
-
-def schedule_slots(db, section):
-    meetings = db.query(SectionMeeting).filter_by(section_id=section.section_id).all()
-    if meetings:
-        return [(m.day_of_week, m.start_time, m.end_time) for m in meetings]
-    return [
-        (day.strip(), section.start_time, section.end_time)
-        for day in section.days_of_week.split(",")
-    ]
 
 
 def occupied_seats(db, section_id, period):
@@ -150,7 +157,14 @@ def occupied_seats(db, section_id, period):
     )
 
 
-def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
+def create_enrollment_service(
+    db: Session,
+    enrollment_data: EnrollmentCreate,
+    *,
+    require_program: bool = False,
+    paired_corequisite: int | None = None,
+    commit: bool = True,
+):
     # Acquire the database-backed writer lock BEFORE reading eligibility/capacity.
     lock_governance(db)
     if enrollment_data.state != "enrolled" or enrollment_data.waitlist_position is not None:
@@ -165,7 +179,9 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
         .first()
     ):
         raise HTTPException(409, "A selection already exists for this student, section and period")
-    requested_section = validate_eligibility(db, enrollment_data)
+    requested_section = validate_eligibility(
+        db, enrollment_data, require_program=require_program, paired_corequisite=paired_corequisite
+    )
     # Existing eligible waitlisted candidates have priority over newcomers.
     promote_waitlist(db, requested_section.section_id, enrollment_data.period)
     enrolled_count = (
@@ -191,8 +207,7 @@ def create_enrollment_service(db: Session, enrollment_data: EnrollmentCreate):
         enrollment_data = enrollment_data.model_copy(
             update={"state": "waitlisted", "waitlist_position": waitlist_position}
         )
-        return create_enrollment(db, enrollment_data)
-    return create_enrollment(db, enrollment_data)
+    return create_enrollment(db, enrollment_data, commit=commit)
 
 
 def get_enrollments_service(db: Session):
@@ -233,7 +248,7 @@ def update_enrollment_service(db: Session, enrollment_id: int, enrollment_data: 
         db.commit()
         return current
     if target_state == "withdrawn":
-        if period and period.withdrawal_deadline and date.today() > period.withdrawal_deadline:
+        if period and period.withdrawal_deadline and business_date() > period.withdrawal_deadline:
             raise HTTPException(status_code=409, detail="The withdrawal deadline has passed")
     elif target_state != previous_state:
         raise HTTPException(
@@ -291,10 +306,27 @@ def delete_enrollment_service(db: Session, enrollment_id: int):
     current = get_enrollment_by_id(db, enrollment_id)
     if current:
         selection_period(db, current.section_id, current.period)
-    if current and current.grades:
+    if current and (
+        current.grades
+        or current.attendances
+        or db.scalar(
+            select(AttendanceChange.enrollment_id).filter_by(enrollment_id=enrollment_id).limit(1)
+        )
+        is not None
+        or db.scalar(
+            select(Submission.submission_id)
+            .join(Assignment, Assignment.assignment_id == Submission.assignment_id)
+            .where(
+                Assignment.section_id == current.section_id,
+                Submission.student_id == current.student_id,
+            )
+            .limit(1)
+        )
+        is not None
+    ):
         raise HTTPException(
             status_code=409,
-            detail="No se puede eliminar una selección con historial de calificaciones; usa retiro para conservar el expediente",
+            detail=f"La selección {enrollment_id} tiene historial académico. Usa el retiro para conservar el expediente",
         )
     section_id, period, previous_state = (
         (current.section_id, current.period, current.state) if current else (None, None, None)

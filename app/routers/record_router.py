@@ -14,6 +14,7 @@ from app.models.user_model import User
 from app.schemas.record_schema import AcademicTranscript, PeriodRecord, TranscriptCourse
 from app.services.academic_grading import academic_result
 from app.services.academic_recognition import current_courses, recognize
+from app.services.csv_export import spreadsheet_safe_row
 
 router = APIRouter(prefix="/records", tags=["academic records"])
 
@@ -36,14 +37,12 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
         attempts[subject.subject_id] = attempts.get(subject.subject_id, 0) + 1
         result = academic_result(db, enrollment)
         average = result.value
-        credits = (
-            curriculum.get(subject.subject_id).credits if subject.subject_id in curriculum else 0
-        )
-        attempted += credits
+        credits = enrollment.curriculum_credits
+        attempted += credits or 0
         if result.final and average is not None:
             all_grades.append(average)
         passed = result.status == "passed"
-        new_credit = passed and subject.subject_id not in credited_subjects
+        new_credit = passed and credits is not None and subject.subject_id not in credited_subjects
         if new_credit:
             earned += credits
             credited_subjects.add(subject.subject_id)
@@ -51,7 +50,7 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
             enrollment.period,
             {"grade_sum": 0, "grade_count": 0, "attempted": 0, "earned": 0, "courses": 0},
         )
-        bucket["attempted"] += credits
+        bucket["attempted"] += credits or 0
         bucket["earned"] += credits if new_credit else 0
         bucket["courses"] += 1
         if result.final and average is not None:
@@ -64,6 +63,7 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
                 section_code=enrollment.section.code,
                 period=enrollment.period,
                 credits=credits,
+                curriculum_version=enrollment.curriculum_version,
                 average=average,
                 result=result.status,
                 attempts=attempts[subject.subject_id],
@@ -79,7 +79,7 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
                 subject_code=course.subject.code,
                 subject_name=course.subject.description,
                 section_code="Equivalencia",
-                period=f"Reconocimiento · Plan {student.career.curriculum_version}",
+                period=f"Reconocimiento · Plan {student.curriculum_version}",
                 credits=course.credits,
                 average=None,
                 result="recognized",
@@ -117,7 +117,8 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
         periods=periods,
         courses=courses,
         recognized_credits=recognized_credits,
-        curriculum_version=student.career.curriculum_version,
+        curriculum_version=student.curriculum_version,
+        unverified_credit_courses=sum(course.credits is None for course in courses),
     )
 
 
@@ -147,14 +148,16 @@ def student_report(db: Session = Depends(get_db)):
     for student in db.query(Student).order_by(Student.last_name, Student.first_name).all():
         record = build_transcript(db, student)
         writer.writerow(
-            [
-                record.enrollment_number,
-                record.student_name,
-                record.career_name,
-                record.cumulative_average,
-                record.earned_credits,
-                record.academic_standing,
-            ]
+            spreadsheet_safe_row(
+                [
+                    record.enrollment_number,
+                    record.student_name,
+                    record.career_name,
+                    record.cumulative_average,
+                    record.earned_credits,
+                    record.academic_standing,
+                ]
+            )
         )
     return StreamingResponse(
         iter([output.getvalue()]),

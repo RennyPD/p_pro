@@ -180,7 +180,7 @@ first_name,last_name,email,telephone,address,career_id,enrollment_number,active
 Las pruebas CRUD usan una base SQLite temporal en memoria y no modifican `school.db`:
 
 ```powershell
-python -m unittest discover -s tests -v
+python -B -m pytest tests -q -p no:cacheprovider
 ```
 
 La verificación completa ejecuta lint, formato, cobertura, pruebas, Alembic y frontend:
@@ -197,6 +197,51 @@ npm run e2e
 ```
 
 La misma verificación está configurada en `.github/workflows/backend-quality.yml`.
+La automatización de CI también ejecuta navegador con API simulada y con un
+backend real. En local, `npm run e2e` usa la interfaz en `127.0.0.1:5177` y
+responde con datos simulados. `npm run e2e:acceptance` usa la interfaz en
+`127.0.0.3:5176`, la API en `127.0.0.3:8012` y una base ficticia nueva
+en `backups/acceptance-<id>/acceptance.db`.
+
+## Operación del portal y la API
+
+En Agenda y tareas, cada intento admite texto, un adjunto o ambos. El archivo
+puede ser PDF, PNG o JPEG de hasta 5 MiB. Consulta y descarga los archivos
+desde el historial de intentos de la entrega.
+
+En Elegir asignaturas, agrega al carrito las dos secciones que son correquisitos
+recíprocos. La confirmación de la pareja requiere plaza en ambas secciones.
+
+Para consultar la API desde Swagger usa una sesión de pruebas separada y
+autoriza el token en Swagger. Una respuesta `401` indica que la credencial
+falta, expiró o fue revocada. Una respuesta `403` indica que la cuenta no
+tiene permiso para la operación o para ese registro.
+
+Los directorios de usuarios, períodos, pensum, selecciones y notas conservan
+las respuestas como listas. Cuando se envían `skip` y `limit`, las cabeceras
+`X-Total-Count` y `X-Has-More` corresponden a los registros que cumplen los
+filtros de la consulta. Para obtener el período vigente sin recorrer la lista
+usa `GET /periods/?active=true&limit=1`.
+
+Mi seguridad permite activar o sustituir el autenticador, desactivarlo y
+consultar sesiones renovables. Cambiar la contraseña, restablecerla desde
+Usuarios, cambiar el segundo factor o cerrar todas las sesiones invalida
+los tokens de acceso y renovación anteriores de la cuenta. El cierre
+individual revoca la renovación de esa sesión y deja expirar su token
+de acceso.
+
+## Restauración SQLite
+
+Crea una copia con `python -B -m scripts.backup_database`. Para comprobar
+una restauración usa un archivo nuevo distinto del original.
+
+```powershell
+python -B -m scripts.backup_database --restore backups/respaldo-qa.db --destination backups/restauracion-qa.db
+```
+
+El comando comprueba la integridad y las claves foráneas. Para inspeccionar
+la restauración con Alembic o levantar una API de prueba, configura
+`DATABASE_URL` con el archivo restaurado en una sesión dedicada.
 
 ## Migraciones
 
@@ -228,10 +273,16 @@ docker compose up --build
 
 La API estará en `http://localhost:8000` y Nexo en `http://localhost:3000`. Antes de cualquier despliegue real cambia las contraseñas del compose, define un `SECRET_KEY` aleatorio, configura HTTPS y utiliza un gestor de secretos. Los volúmenes de PostgreSQL deben incluirse en la estrategia de copias de seguridad.
 
-Si Docker no está disponible, todavía puedes revisar que Alembic genere SQL compatible con PostgreSQL sin conectarse a una base:
+Configura `APP_ENVIRONMENT=production`, un `SECRET_KEY` aleatorio de al menos
+32 caracteres y `CORS_ORIGINS` con los orígenes HTTPS permitidos, separados por
+comas. En este modo la cookie de renovación lleva el atributo `Secure`.
 
-```powershell
-$env:DATABASE_URL='postgresql+psycopg://p_pro:local-development-only@localhost:5432/p_pro'
-alembic upgrade head --sql
-Remove-Item Env:DATABASE_URL
-```
+La cadena completa de migraciones requiere una conexión a la base. Las revisiones
+históricas inspeccionan el esquema y los datos durante el upgrade, por lo que
+`alembic upgrade head --sql` falla. Para validar PostgreSQL ejecuta el upgrade
+online en una base descartable y confirma la revisión con `alembic current`.
+
+Para retirar `school.db` del índice en un cambio autorizado, respalda el archivo,
+ejecuta `git rm --cached -- school.db` y verifica que el archivo local siga presente
+y conserve su hash. La retirada del índice requiere un commit posterior y mantiene
+las versiones ya publicadas en el historial de Git.

@@ -1,8 +1,11 @@
 """Section-scoped tasks, submissions and explicit draft grade transfer."""
 
+import base64
 from datetime import UTC, datetime
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -18,12 +21,20 @@ from app.models.assessment_model import Assessment
 from app.models.community_model import StudentGuardian
 from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade, GradeChange
-from app.models.operations_model import Assignment, CalendarEvent, Submission, SubmissionRevision
+from app.models.operations_model import (
+    Assignment,
+    CalendarEvent,
+    Submission,
+    SubmissionAttachment,
+    SubmissionRevision,
+)
 from app.models.section_model import Section
 from app.models.user_model import User
 from app.schemas.operations_schema import AssignmentCreate, SubmissionCreate, SubmissionGrade
 from app.services.academic_grading import audit_event as log_event
 from app.services.academic_grading import ensure_grading_open, write_grade
+from app.services.business_time import business_date
+from app.services.governance_workflow import lock_governance
 
 router = APIRouter()
 
@@ -255,6 +266,7 @@ def validate_task(db, user, data, existing=None):
 def create_task(
     data: AssignmentCreate, db: Session = Depends(get_db), user: User = Depends(manager)
 ):
+    lock_governance(db)
     validate_task(db, user, data)
     values = data.model_dump()
     values["due_at"] = utc(data.due_at)
@@ -275,6 +287,7 @@ def edit_task(
     db: Session = Depends(get_db),
     user: User = Depends(manager),
 ):
+    lock_governance(db)
     item = visible(db, user, assignment_id)
     validate_task(db, user, data, item)
     for key, value in data.model_dump().items():
@@ -298,6 +311,7 @@ def submit(
     db: Session = Depends(get_db),
     user: User = Depends(require_roles("student")),
 ):
+    lock_governance(db)
     task = visible(db, user, assignment_id)
     enrollment = (
         db.query(Enrollment)
@@ -343,9 +357,42 @@ def submit(
         )
         db.add(item)
         db.flush()
-    db.add(
-        SubmissionRevision(submission_id=item.submission_id, content=data.content, submitted_at=now)
+    revision = SubmissionRevision(
+        submission_id=item.submission_id, content=data.content, submitted_at=now
     )
+    db.add(revision)
+    if data.attachment:
+        attachment = data.attachment
+        signatures = {
+            "application/pdf": (b"%PDF-", (".pdf",)),
+            "image/png": (b"\x89PNG\r\n\x1a\n", (".png",)),
+            "image/jpeg": (b"\xff\xd8\xff", (".jpg", ".jpeg")),
+        }
+        try:
+            binary = base64.b64decode(attachment.content_base64, validate=True)
+        except ValueError as exc:
+            raise HTTPException(422, "Vuelve a seleccionar el archivo de entrega") from exc
+        if len(binary) > 5 * 1024 * 1024:
+            raise HTTPException(413, "El archivo de entrega supera 5 MB")
+        signature, extensions = signatures[attachment.mime_type]
+        filename = attachment.filename.replace("\\", "/").rsplit("/", 1)[-1].strip()
+        if (
+            not filename.casefold().endswith(extensions)
+            or not binary.startswith(signature)
+            or any(ord(char) < 32 or ord(char) == 127 for char in filename)
+        ):
+            raise HTTPException(
+                422, "Selecciona un PDF, PNG o JPEG con una extensión que coincida con su contenido"
+            )
+        db.flush()
+        db.add(
+            SubmissionAttachment(
+                revision_id=revision.revision_id,
+                filename=filename,
+                mime_type=attachment.mime_type,
+                content=binary,
+            )
+        )
     audit_event(
         db,
         user.user_id,
@@ -389,6 +436,24 @@ def roster(assignment_id: int, db: Session = Depends(get_db), user: User = Depen
 def revisions(
     submission_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
+    ensure_attempt_access(db, user, submission_id)
+    return [
+        {
+            "revision_id": r.revision_id,
+            "content": r.content,
+            "submitted_at": r.submitted_at,
+            "filename": filename,
+        }
+        for r, filename in db.query(SubmissionRevision, SubmissionAttachment.filename)
+        .outerjoin(
+            SubmissionAttachment, SubmissionAttachment.revision_id == SubmissionRevision.revision_id
+        )
+        .filter(SubmissionRevision.submission_id == submission_id)
+        .order_by(SubmissionRevision.revision_id)
+    ]
+
+
+def ensure_attempt_access(db, user, submission_id):
     item = db.get(Submission, submission_id)
     if not item:
         raise HTTPException(404, "Entrega no disponible")
@@ -397,12 +462,31 @@ def revisions(
         user.role.name != "student" or user.student_id != item.student_id
     ):
         raise HTTPException(403, "Solo puedes consultar tus propios intentos")
-    return [
-        {"revision_id": r.revision_id, "content": r.content, "submitted_at": r.submitted_at}
-        for r in db.query(SubmissionRevision)
-        .filter_by(submission_id=submission_id)
-        .order_by(SubmissionRevision.revision_id)
-    ]
+
+
+@router.get("/submissions/{submission_id}/revisions/{revision_id}/attachment")
+def download_attempt_attachment(
+    submission_id: int,
+    revision_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    ensure_attempt_access(db, user, submission_id)
+    revision = db.get(SubmissionRevision, revision_id)
+    if revision is None or revision.submission_id != submission_id:
+        raise HTTPException(404, "Adjunto de entrega no disponible")
+    attachment = db.get(SubmissionAttachment, revision_id)
+    if attachment is None:
+        raise HTTPException(404, "Este intento no contiene un adjunto")
+    return Response(
+        attachment.content,
+        media_type=attachment.mime_type,
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(attachment.filename, safe='')}",
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.patch("/submissions/{submission_id}/grade")
@@ -412,6 +496,7 @@ def grade(
     db: Session = Depends(get_db),
     user: User = Depends(manager),
 ):
+    lock_governance(db)
     item = db.get(Submission, submission_id)
     if not item:
         raise HTTPException(404, "Entrega no disponible")
@@ -447,6 +532,7 @@ def transfer(
     db: Session = Depends(get_db),
     user: User = Depends(grader),
 ):
+    lock_governance(db)
     task = visible(db, user, assignment_id)
     if len(data.reason.strip()) < 2:
         raise HTTPException(422, "Indica el motivo de la transferencia")
@@ -514,7 +600,7 @@ def transfer(
             assessment,
             round(item.score * 100 / task.max_score, 2),
             assessment.name,
-            datetime.now(UTC).date().isoformat(),
+            business_date().isoformat(),
             "draft",
             user.user_id,
             f"[Tarea {assignment_id}] {data.reason.strip()}"[:250],

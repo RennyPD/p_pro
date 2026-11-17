@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 class AuditLogOut(BaseModel):
     audit_log_id: int
     user_id: int | None
+    actor: str | None = None
     action: str
     resource: str
     detail: str

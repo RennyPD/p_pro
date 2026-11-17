@@ -37,7 +37,10 @@ def get_sections(
             sections = []
         else:
             sections = [item for item in sections if item.teacher_id == user.teacher_id]
-    return paginate_and_filter(sections, skip, limit, q, ("code", "description"))
+    sections.sort(key=lambda item: item.section_id)
+    return paginate_and_filter(
+        sections, skip, limit, q, ("code", "description", "subject_code", "subject_name")
+    )
 
 
 @router.get("/{section_id}", response_model=SectionOut)
@@ -50,9 +53,14 @@ def get_section_by_id(
     return get_section_by_id_service(db, section_id)
 
 
-@router.patch("/{section_id}", response_model=SectionOut, dependencies=[Depends(section_manager)])
-def update_section(section_id: int, section_data: SectionUpdate, db: Session = Depends(get_db)):
-    return update_section_service(db, section_id, section_data)
+@router.patch("/{section_id}", response_model=SectionOut)
+def update_section(
+    section_id: int,
+    section_data: SectionUpdate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(section_manager),
+):
+    return update_section_service(db, section_id, section_data, actor)
 
 
 @router.delete("/{section_id}", dependencies=[Depends(section_manager)])

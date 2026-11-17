@@ -29,6 +29,19 @@ it("shows readable subject context and records a student delivery", async () => 
   expect(get).not.toHaveBeenCalledWith("/operations/alerts");
 });
 
+it("submits an attachment without requiring text", async () => {
+  setup("student");
+  const post = vi.spyOn(api, "post").mockResolvedValue({ data: {} } as never);
+  fireEvent.click(await screen.findByText("Ver tarea"));
+  const file = new File(["%PDF-1.4\n"], "informe.pdf", { type: "application/pdf" });
+  fireEvent.change(screen.getByLabelText(/Adjunto opcional/), { target: { files: [file] } });
+  fireEvent.click(screen.getByText("Entregar tarea"));
+  await waitFor(() => expect(post).toHaveBeenCalledWith("/operations/assignments/1/submit", {
+    content: "",
+    attachment: { filename: "informe.pdf", mime_type: "application/pdf", content_base64: "JVBERi0xLjQK" },
+  }));
+});
+
 it("preserves a graded zero and prevents resubmission", async () => {
   setup("student", { submission_id: 4, content: "Intento inicial", submitted_at: "2026-10-10T12:00:00", score: 0, feedback: "Revisa los fundamentos", status: "graded", attempts: 1 });
   fireEvent.click(await screen.findByText("Ver tarea"));

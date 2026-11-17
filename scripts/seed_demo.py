@@ -107,6 +107,7 @@ def seed_demo(db: Session) -> dict[str, int]:
                 "address": "Santo Domingo",
                 "active": True,
                 "career_id": career.career_id,
+                "assigned_curriculum_version": "current",
             },
             enrollment_number="DEMO-2026-001",
         )
@@ -175,7 +176,8 @@ def seed_demo(db: Session) -> dict[str, int]:
             _one_or_create(
                 db,
                 Enrollment,
-                {"state": "enrolled"},
+                {"state": "enrolled", "curriculum_version": "current",
+                 "curriculum_credits": 4 if section.subject_id == subjects["PROG-101"].subject_id else 3},
                 student_id=student.student_id,
                 section_id=section.section_id,
                 period="2026-2027",

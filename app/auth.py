@@ -22,10 +22,12 @@ def get_current_user(
             detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    user_id = decode_access_token(credentials.credentials)
+    user_id, version = decode_access_token(credentials.credentials)
     user = db.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="User no longer exists")
+    if user.session_version != version:
+        raise HTTPException(status_code=401, detail="La sesión se revocó. Inicia sesión de nuevo")
     return user
 
 

@@ -11,7 +11,7 @@ def current_courses(db, student):
     return (
         db.query(CurriculumCourse)
         .filter_by(
-            career_id=student.career_id, curriculum_version=student.career.curriculum_version
+            career_id=student.career_id, curriculum_version=student.curriculum_version
         )
         .order_by(CurriculumCourse.term_number, CurriculumCourse.curriculum_course_id)
         .all()
@@ -41,7 +41,7 @@ def recognize(db, student, rules=None):
             db.query(CourseEquivalence)
             .filter_by(
                 career_id=student.career_id,
-                curriculum_version=student.career.curriculum_version,
+                curriculum_version=student.curriculum_version,
                 active=True,
             )
             .all()
@@ -52,7 +52,7 @@ def recognize(db, student, rules=None):
             for r in rules
             if r.active
             and r.career_id == student.career_id
-            and r.curriculum_version == student.career.curriculum_version
+            and r.curriculum_version == student.curriculum_version
             and r.target_subject_id in plan
         ),
         key=lambda r: r.course_equivalence_id or 0,

@@ -18,6 +18,7 @@ def main():
     # Refuse any existing output, so no demo seed can replace earlier data.
     output.mkdir(parents=True, exist_ok=False)
     os.environ["DATABASE_URL"] = f"sqlite:///{(output / 'acceptance.db').as_posix()}"
+    os.environ["APP_ENVIRONMENT"] = "development"
     os.environ["SECRET_KEY"] = "acceptance-tests-only-never-use-for-a-real-installation"
     os.environ["CORS_ORIGINS"] = "http://127.0.0.3:5176"
     os.environ["CORS_ORIGIN_REGEX"] = r"http://127\.0\.0\.3:5176"

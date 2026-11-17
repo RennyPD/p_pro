@@ -226,7 +226,7 @@ Usa el sufijo `QA-20261015`. Si ya existe, cambia todo el sufijo por otro único
 5. Pasa a En revisión con motivo `Documentos ficticios revisados`.
 6. Pasa a Aceptada con motivo `Cumple requisitos de prueba`.
 7. Pulsa Crear estudiante. Abre su expediente y anota `A` y `MAT_A`. La solicitud debe quedar Matriculada, vinculada a esa persona.
-8. Consulta Historial. No intentes seleccionar Matriculada directamente como si fuera otro estado manual.
+8. Consulta Historial. No intentes seleccionar Matriculada directamente co mo si fuera otro estado manual.
 9. Crea otra solicitud desechable, `Solicitud Rechazada QA`, con correo único. Revisa, rechaza con motivo y devuélvela a revisión; todavía no debe existir estudiante por solo aceptar/rechazar.
 
 **Esperado:** admisión es un aspirante, no una selección de asignatura. Crear estudiante genera expediente/matrícula; no crea asignaturas elegidas, usuario ni tutor. Si necesitas comprobar el reintento de conversión, repite `POST /operations/admissions/{id}/enroll` por API: debe devolver el mismo estudiante, no otro nuevo.
@@ -426,7 +426,7 @@ La pantalla Usuarios no tiene actualmente el campo de vínculo `guardian_id`; no
 5. Devuelve ambos a 40/60 con motivo; estas serán las ponderaciones para el cálculo de ejemplo.
 6. Edita nombre/fecha de un componente y comprueba que no se duplican sus notas.
 7. Guarda el plan completo como `Esquema QA 40-60`; guarda además un componente como plantilla.
-8. Crea una segunda sección QA **sin alumnos**, de la misma asignatura y período, con código distinto. Copia el esquema completo a esa sección vacía; no debe copiar calificaciones.
+8. Crea una segunda sección QA **sin alumnos**, de la misma asignatura y período, con código distinto. Copia el esquema completo a esa sección vacía; no debe copiar calificacionses.
 9. Comprueba que no puedes aplicar otro esquema completo sobre un plan ya existente. En otra sección vacía prueba plantilla individual, respetando 100%.
 10. Compara alcance: esquema creado por admin compartido; uno personal docente no debe aparecer al otro profesor. No confundas guardar una plantilla con aplicarla.
 

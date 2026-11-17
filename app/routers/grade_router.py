@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy import false
 from sqlalchemy.orm import Session
 
 from app.auth import (
@@ -13,6 +14,7 @@ from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade, GradeChange
 from app.models.section_model import Section
 from app.models.user_model import User
+from app.pagination import page_query
 from app.schemas.assessment_schema import ReasonRequest
 from app.schemas.grade_schema import (
     GradeBulkCreate,
@@ -22,6 +24,7 @@ from app.schemas.grade_schema import (
     GradeUpdate,
 )
 from app.services.academic_grading import ensure_grading_open, record_change, write_grade
+from app.services.governance_workflow import lock_governance
 from app.services.grade_service import get_grade_by_id_service
 
 router = APIRouter(prefix="/grades", tags=["grades"])
@@ -43,6 +46,7 @@ def validate_assessment(db: Session, assessment_id: int | None, section_id: int)
 def save_section_grades(
     data: GradeBulkCreate, db: Session = Depends(get_db), user: User = Depends(grade_manager)
 ):
+    lock_governance(db)
     section = ensure_section_access(db, user, data.section_id)
     ensure_grading_open(db, section)
     ids = [item.enrollment_id for item in data.records]
@@ -79,6 +83,7 @@ def save_section_grades(
 def create_grade(
     data: GradeCreate, db: Session = Depends(get_db), user: User = Depends(grade_manager)
 ):
+    lock_governance(db)
     enrollment = ensure_enrollment_access(db, user, data.enrollment_id)
     ensure_section_access(db, user, enrollment.section_id)
     assessment = validate_assessment(db, data.assessment_id, enrollment.section_id)
@@ -98,7 +103,16 @@ def create_grade(
 
 
 @router.get("/", response_model=list[GradeOut])
-def get_grades(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def get_grades(
+    response: Response,
+    grade_type: str | None = None,
+    q: str | None = None,
+    enrollment_id: int | None = Query(None, ge=1),
+    skip: int = Query(0, ge=0),
+    limit: int | None = Query(None, ge=1, le=100),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     query = db.query(Grade).filter(Grade.status != "voided")
     if user.role.name.casefold() != "admin":
         query = query.join(Grade.enrollment)
@@ -109,14 +123,20 @@ def get_grades(db: Session = Depends(get_db), user: User = Depends(get_current_u
         elif user.teacher_id is not None:
             query = query.join(Enrollment.section).filter(Section.teacher_id == user.teacher_id)
         else:
-            return []
-    return query.all()
+            query = query.filter(false())
+    if enrollment_id is not None:
+        query = query.filter(Grade.enrollment_id == enrollment_id)
+    for term in (grade_type, q):
+        if term and term.strip():
+            query = query.filter(Grade.grade_type.icontains(term.strip(), autoescape=True))
+    return page_query(query.order_by(Grade.grade_id), response, skip, limit)
 
 
 @router.post("/assessments/{assessment_id}/publish")
 def publish_assessment_grades(
     assessment_id: int, db: Session = Depends(get_db), user: User = Depends(grade_manager)
 ):
+    lock_governance(db)
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
@@ -187,6 +207,7 @@ def update_grade(
     db: Session = Depends(get_db),
     user: User = Depends(grade_manager),
 ):
+    lock_governance(db)
     grade = get_grade_by_id_service(db, grade_id)
     ensure_section_access(db, user, grade.enrollment.section_id)
     values = data.model_dump(exclude_unset=True)
@@ -223,6 +244,7 @@ def delete_grade(
     db: Session = Depends(get_db),
     user: User = Depends(grade_manager),
 ):
+    lock_governance(db)
     grade = get_grade_by_id_service(db, grade_id)
     ensure_section_access(db, user, grade.enrollment.section_id)
     ensure_grading_open(db, grade.enrollment.section, grade.enrollment)

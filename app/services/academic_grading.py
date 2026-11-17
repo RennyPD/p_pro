@@ -1,7 +1,7 @@
 """One published result for records, curriculum, eligibility and dashboards."""
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -11,6 +11,7 @@ from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade, GradeChange
 from app.models.security_model import AuditLog
+from app.services.business_time import business_date
 
 
 @dataclass
@@ -81,7 +82,7 @@ def ensure_grading_open(
         )
     for period in db.query(AcademicPeriod).filter(AcademicPeriod.name.in_(names - {""})).all():
         if period.status == "closed" or (
-            period.grading_deadline and date.today() > period.grading_deadline
+            period.grading_deadline and business_date() > period.grading_deadline
         ):
             raise HTTPException(
                 status_code=409,

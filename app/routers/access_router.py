@@ -46,7 +46,8 @@ def set_role_permissions(
     user: User = Depends(access_manager),
 ):
     lock_governance(db)
-    if db.get(Role, role_id) is None:
+    role = db.get(Role, role_id)
+    if role is None:
         raise HTTPException(status_code=404, detail="Role not found")
     selected = db.query(Permission).filter(Permission.slug.in_(data.permissions)).all()
     if len(selected) != len(set(data.permissions)):
@@ -61,11 +62,11 @@ def set_role_permissions(
         raise HTTPException(409, "Los permisos cambiaron; recarga antes de guardar")
     if len(data.reason.strip()) < 3:
         raise HTTPException(422, "Indica un motivo para cambiar permisos")
-    if role_id == user.role_id and (
+    if (role_id == user.role_id or role.name.casefold() == "admin") and (
         {"access.manage", "academic.manage", "reports.view"} & set(before)
     ) - set(data.permissions):
         raise HTTPException(
-            409, "No puedes retirar tus propios permisos esenciales desde esta sesión"
+            409, "Conserva los permisos esenciales de tu sesión y del rol Administración"
         )
     if "access.manage" in before and "access.manage" not in data.permissions:
         alternatives = (

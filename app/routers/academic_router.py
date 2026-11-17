@@ -38,23 +38,29 @@ from app.schemas.academic_schema import (
 from app.schemas.enrollment_schema import EnrollmentCreate
 from app.services.academic_grading import academic_result
 from app.services.academic_recognition import current_courses, recognize
+from app.services.business_time import business_date
+from app.services.effective_schedule import effective_blocks, load_schedule
 from app.services.enrollment_service import create_enrollment_service
+from app.services.governance_workflow import lock_governance
 
 router = APIRouter(prefix="/academic", tags=["academic queries"])
 
 
 def schedule_item(section: Section) -> ScheduleItem:
+    blocks = effective_blocks(section)
+    first = blocks[0] if blocks else None
     return ScheduleItem(
         section_id=section.section_id,
         section_code=section.code,
         subject_code=section.subject.code,
         subject_name=section.subject.description,
         teacher_name=f"{section.teacher.first_name} {section.teacher.last_name}",
-        room=section.room,
-        modality=section.modality,
-        days_of_week=section.days_of_week.split(", "),
-        start_time=section.start_time,
-        end_time=section.end_time,
+        room=first.room if first else section.room,
+        modality=first.modality if first else section.modality,
+        days_of_week=list(dict.fromkeys(block.day_of_week for block in blocks)),
+        start_time=first.start_time if first else section.start_time,
+        end_time=first.end_time if first else section.end_time,
+        blocks=blocks,
     )
 
 
@@ -105,6 +111,7 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
     results = []
     for section in (
         db.query(Section)
+        .options(load_schedule())
         .filter(
             Section.subject_id.in_(list(curriculum)),
             Section.status.in_(("published", "active")),
@@ -124,18 +131,9 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
         )
         results.append(
             CourseOffering(
-                section_id=section.section_id,
-                section_code=section.code,
+                **schedule_item(section).model_dump(),
                 subject_id=section.subject_id,
-                subject_code=section.subject.code,
-                subject_name=section.subject.description,
-                teacher_name=f"{section.teacher.first_name} {section.teacher.last_name}",
                 credits=course.credits,
-                days_of_week=section.days_of_week.split(", "),
-                start_time=section.start_time,
-                end_time=section.end_time,
-                room=section.room,
-                modality=section.modality,
                 capacity=section.capacity,
                 available_seats=max(section.capacity - occupied, 0),
                 selection_status=current.get(section.section_id)
@@ -198,7 +196,12 @@ def course_selection_summary(db: Session = Depends(get_db), user: User = Depends
     return CourseSelectionSummary(
         period=period.name,
         period_status=period.status,
-        selected_credits=sum(credits.get(item.section.subject_id, 0) for item in enrollments),
+        selected_credits=sum(
+            item.curriculum_credits
+            if item.curriculum_credits is not None
+            else credits.get(item.section.subject_id, 0)
+            for item in enrollments
+        ),
         maximum_credits=maximum,
         enrolled_sections=sum(item.state == "enrolled" for item in enrollments),
         waitlisted_sections=sum(item.state == "waitlisted" for item in enrollments),
@@ -237,7 +240,11 @@ def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_curre
                 section_code=item.section.code,
                 subject_code=item.section.subject.code,
                 subject_name=item.section.subject.description,
-                credits=credits.get(item.section.subject_id, 0),
+                credits=(
+                    item.curriculum_credits
+                    if item.curriculum_credits is not None
+                    else credits.get(item.section.subject_id, 0)
+                ),
                 available_seats=max(item.section.capacity - occupied, 0),
                 period=period.name,
             )
@@ -249,6 +256,7 @@ def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_curre
 def add_to_selection_cart(
     section_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
+    lock_governance(db)
     if user.student_id is None:
         raise HTTPException(
             status_code=403, detail="Course selection is only available to students"
@@ -265,7 +273,7 @@ def add_to_selection_cart(
         .filter_by(
             career_id=student.career_id,
             subject_id=section.subject_id,
-            curriculum_version=student.career.curriculum_version,
+            curriculum_version=student.curriculum_version,
         )
         .first()
         is None
@@ -301,6 +309,7 @@ def add_to_selection_cart(
 def remove_from_selection_cart(
     section_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
+    lock_governance(db)
     item = (
         db.query(CourseSelectionCart)
         .filter_by(student_id=user.student_id, section_id=section_id)
@@ -325,38 +334,82 @@ def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(g
     items = (
         db.query(CourseSelectionCart)
         .filter_by(student_id=user.student_id, period=period.name)
-        .order_by(CourseSelectionCart.created_at)
+        .order_by(CourseSelectionCart.created_at, CourseSelectionCart.cart_item_id)
         .all()
     )
     confirmed = []
     errors = []
-    for item in items:
-        section_id = item.section_id
+    handled = set()
+    for cart_item_id, section_id in [(item.cart_item_id, item.section_id) for item in items]:
+        if cart_item_id in handled:
+            continue
+        section_ids = [section_id]
         try:
-            enrollment = create_enrollment_service(
-                db,
-                EnrollmentCreate(
-                    student_id=user.student_id, section_id=section_id, period=period.name
-                ),
-            )
-            refreshed = (
-                db.query(CourseSelectionCart)
-                .filter_by(student_id=user.student_id, section_id=section_id, period=period.name)
-                .first()
-            )
-            if refreshed:
-                db.delete(refreshed)
-                db.commit()
-            confirmed.append(
-                {
-                    "section_id": section_id,
-                    "state": enrollment.state,
-                    "waitlist_position": enrollment.waitlist_position,
-                }
-            )
+            lock_governance(db)
+            item = db.get(CourseSelectionCart, cart_item_id)
+            if item is None or item.student_id != user.student_id or item.section_id != section_id:
+                db.rollback()
+                continue
+            active_period = db.query(AcademicPeriod).filter_by(active=True).first()
+            if active_period is None or active_period.name != item.period:
+                raise HTTPException(409, "Cambió el período vigente. Revisa tu selección")
+            student = db.get(Student, user.student_id)
+            requirements = {
+                course.subject_id: course.corequisite_subject_id
+                for course in current_courses(db, student)
+            }
+            subject = item.section.subject_id
+            counterpart = requirements.get(subject)
+            pair = None
+            if counterpart is not None and requirements.get(counterpart) == subject:
+                pair = (
+                    db.query(CourseSelectionCart)
+                    .join(CourseSelectionCart.section)
+                    .filter(
+                        CourseSelectionCart.student_id == student.student_id,
+                        CourseSelectionCart.period == item.period,
+                        Section.subject_id == counterpart,
+                    )
+                    .first()
+                )
+            batch = [item]
+            if pair is not None:
+                batch.append(pair)
+                section_ids.append(pair.section_id)
+                handled.add(pair.cart_item_id)
+            results = []
+            for queued in batch:
+                enrollment = create_enrollment_service(
+                    db,
+                    EnrollmentCreate(
+                        student_id=student.student_id,
+                        section_id=queued.section_id,
+                        period=queued.period,
+                    ),
+                    require_program=True,
+                    paired_corequisite=counterpart if pair is not None and queued is item else None,
+                    commit=False,
+                )
+                if pair is not None and enrollment.state != "enrolled":
+                    raise HTTPException(
+                        409, "Ambos correquisitos necesitan cupo para confirmarse juntos"
+                    )
+                results.append(
+                    {
+                        "section_id": queued.section_id,
+                        "state": enrollment.state,
+                        "waitlist_position": enrollment.waitlist_position,
+                    }
+                )
+                db.delete(queued)
+                db.flush()
+            db.commit()
+            confirmed.extend(results)
         except HTTPException as exc:
             db.rollback()
-            errors.append({"section_id": section_id, "detail": exc.detail})
+            errors.extend(
+                {"section_id": identifier, "detail": exc.detail} for identifier in section_ids
+            )
     return {"confirmed": confirmed, "errors": errors}
 
 
@@ -373,23 +426,6 @@ def select_course(
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     if period is None or period.status not in {"registration", "active"}:
         raise HTTPException(status_code=409, detail="Course selection is currently closed")
-    student = db.get(Student, user.student_id)
-    section = db.get(Section, section_id)
-    if section is None:
-        raise HTTPException(status_code=404, detail="Section not found")
-    offered_in_program = (
-        db.query(CurriculumCourse)
-        .filter(
-            CurriculumCourse.career_id == student.career_id,
-            CurriculumCourse.subject_id == section.subject_id,
-            CurriculumCourse.curriculum_version == student.career.curriculum_version,
-        )
-        .first()
-    )
-    if offered_in_program is None:
-        raise HTTPException(
-            status_code=409, detail="This subject is not part of the student's program"
-        )
     return create_enrollment_service(
         db,
         EnrollmentCreate(
@@ -397,6 +433,7 @@ def select_course(
             section_id=section_id,
             period=period.name,
         ),
+        require_program=True,
     )
 
 
@@ -480,25 +517,61 @@ def student_schedule(
     user: User = Depends(get_current_user),
 ):
     ensure_student_academic_access(db, user, student_id)
-    query = db.query(Section).join(Section.enrollments).filter(Enrollment.student_id == student_id)
+    period = period or None
+    active = db.query(AcademicPeriod).filter_by(active=True).first()
+    if period is None and active is None:
+        return []
+    current = period is None or (active and period == active.name)
+    query = (
+        db.query(Section)
+        .options(load_schedule())
+        .join(Section.enrollments)
+        .filter(Enrollment.student_id == student_id, Enrollment.period == (period or active.name))
+    )
     if not is_admin(user) and user.teacher_id is not None:
         query = query.filter(Section.teacher_id == user.teacher_id)
-    if period:
-        query = query.filter(Enrollment.period == period)
-    return [schedule_item(section) for section in query.distinct().all()]
+    if current:
+        query = query.filter(
+            Enrollment.state == "enrolled", Section.status.in_(("published", "active"))
+        )
+    else:
+        query = query.filter(
+            Enrollment.state.in_(("enrolled", "completed", "failed")),
+            Section.status.not_in(("draft", "cancelled")),
+        )
+    return [schedule_item(section) for section in query.order_by(Section.code).distinct().all()]
 
 
 @router.get("/teachers/{teacher_id}/schedule", response_model=list[ScheduleItem])
 def teacher_schedule(
     teacher_id: int,
+    period: str | None = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     ensure_teacher_access(user, teacher_id)
-    return [
-        schedule_item(section)
-        for section in db.query(Section).filter(Section.teacher_id == teacher_id).all()
-    ]
+    period = period or None
+    active = db.query(AcademicPeriod).filter_by(active=True).first()
+    if period is None and active is None:
+        return []
+    current = period is None or (active and period == active.name)
+    name = period or active.name
+    legacy = Section.enrollments.any(Enrollment.period == name)
+    if current:
+        legacy = legacy | ~Section.enrollments.any()
+    query = (
+        db.query(Section)
+        .options(load_schedule())
+        .filter(
+            Section.teacher_id == teacher_id,
+            (Section.period_name == name) | ((Section.period_name == "") & legacy),
+        )
+    )
+    if current:
+        query = query.filter(Section.status.in_(("published", "active")))
+    else:
+        query = query.filter(Section.status.not_in(("draft", "cancelled")))
+    return [schedule_item(section) for section in query.order_by(Section.code).all()]
 
 
 @router.get("/sections/{section_id}/students", response_model=list[SectionStudentItem])
@@ -673,7 +746,7 @@ def student_academic_profile(
 @router.get("/sections/{section_id}/workspace", response_model=SectionWorkspace)
 def section_workspace(
     section_id: int,
-    attendance_date: date = Query(default_factory=date.today),
+    attendance_date: date = Query(default_factory=business_date),
     period: str | None = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
@@ -748,6 +821,7 @@ def section_workspace(
                 ],
             )
         )
+    schedule = schedule_item(section)
     return SectionWorkspace(
         subject_id=section.subject_id,
         period_name=section.period_name,
@@ -757,9 +831,10 @@ def section_workspace(
         subject_code=section.subject.code,
         subject_name=section.subject.description,
         teacher_name=f"{section.teacher.first_name} {section.teacher.last_name}",
-        days_of_week=section.days_of_week.split(", "),
-        start_time=section.start_time,
-        end_time=section.end_time,
+        days_of_week=schedule.days_of_week,
+        start_time=schedule.start_time,
+        end_time=schedule.end_time,
+        blocks=schedule.blocks,
         attendance_date=attendance_date,
         roster=roster,
     )

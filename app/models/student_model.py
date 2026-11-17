@@ -28,6 +28,7 @@ class Student(Base):
     academic_hold: Mapped[bool] = mapped_column(default=False)
     financial_hold: Mapped[bool] = mapped_column(default=False)
     career_id: Mapped[int] = mapped_column(ForeignKey("careers.career_id"))
+    assigned_curriculum_version: Mapped[str | None] = mapped_column(String(30))
 
     career: Mapped["Career"] = relationship("Career", back_populates="students")
     enrollments: Mapped[list["Enrollment"]] = relationship("Enrollment", back_populates="student")
@@ -39,3 +40,7 @@ class Student(Base):
     @property
     def career_name(self) -> str:
         return self.career.name
+
+    @property
+    def curriculum_version(self) -> str:
+        return self.assigned_curriculum_version or self.career.curriculum_version

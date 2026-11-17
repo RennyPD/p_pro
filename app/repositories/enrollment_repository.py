@@ -1,7 +1,10 @@
 from sqlalchemy.orm import Session
 
 from app.models.configuration_model import InstitutionSettings
+from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import Enrollment
+from app.models.section_model import Section
+from app.models.student_model import Student
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate
 from app.services.enrollment_policy import selection_period
 from app.services.governance_workflow import lock_governance
@@ -13,8 +16,22 @@ def create_enrollment(
     lock_governance(db)
     selection_period(db, enrollment_data.section_id, enrollment_data.period, registration=True)
     settings = db.get(InstitutionSettings, 1)
+    student = db.get(Student, enrollment_data.student_id)
+    section = db.get(Section, enrollment_data.section_id)
+    course = (
+        db.query(CurriculumCourse)
+        .filter_by(
+            career_id=student.career_id,
+            subject_id=section.subject_id,
+            curriculum_version=student.curriculum_version,
+        )
+        .first()
+    )
     new_enrollment = Enrollment(
-        **enrollment_data.model_dump(), passing_grade=settings.passing_grade if settings else 70
+        **enrollment_data.model_dump(),
+        passing_grade=settings.passing_grade if settings else 70,
+        curriculum_version=student.curriculum_version,
+        curriculum_credits=course.credits if course else None,
     )
 
     db.add(new_enrollment)

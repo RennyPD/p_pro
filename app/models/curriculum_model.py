@@ -7,7 +7,7 @@ from app.db.database import Base
 class CurriculumCourse(Base):
     __tablename__ = "curriculum_courses"
     __table_args__ = (
-        UniqueConstraint("career_id", "subject_id", name="uq_curriculum_career_subject"),
+        UniqueConstraint("career_id", "subject_id", "curriculum_version", name="uq_curriculum_version_subject"),
     )
 
     curriculum_course_id: Mapped[int] = mapped_column(primary_key=True)

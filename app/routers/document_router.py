@@ -1,3 +1,6 @@
+import re
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -19,10 +22,15 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 
 def pdf_response(filename: str, title: str, lines: list[str]) -> Response:
+    fallback = re.sub(r"[^A-Za-z0-9_.-]", "_", filename)
     return Response(
         simple_pdf(title, lines),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(filename, safe='')}",
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 
@@ -40,11 +48,13 @@ def transcript_pdf(
         f"Matricula: {record.enrollment_number}",
         f"Carrera: {record.career_name}",
         f"Promedio acumulado: {record.cumulative_average}",
-        f"Creditos aprobados: {record.earned_credits}",
+        f"Creditos aprobados con respaldo: {record.earned_credits}",
         f"Creditos por equivalencia (sin nota): {record.recognized_credits}",
+        f"Inscripciones con creditos por verificar: {record.unverified_credit_courses}",
         "",
         *[
-            f"{item.period} | {item.subject_code} | {item.average if item.average is not None else '-'} | "
+            f"{item.period} | {item.subject_code} | {item.credits if item.credits is not None else 'Por verificar'} créditos"
+            f" | {item.average if item.average is not None else '-'} | "
             + (
                 f"Equivalencia desde {item.origin_subject_code}; sin nota"
                 if item.recognition_type == "equivalence"
