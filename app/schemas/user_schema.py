@@ -51,6 +51,7 @@ class UserOut(BaseModel):
     role_label: str | None = None
     linked_person: str | None = None
     mfa_enabled: bool = False
+    active: bool = True
     model_config = ConfigDict(from_attributes=True)
 
 

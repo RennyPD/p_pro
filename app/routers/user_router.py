@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from app.auth import require_permissions
+from app.auth import account_is_active, ensure_role_within_actor, require_permissions
 from app.db.Session import get_db
 from app.models.role_model import Role
 from app.models.user_model import User
 from app.pagination import page_query
 from app.schemas.user_schema import UserCreate, UserOut, UserPasswordReset, UserUpdate
+from app.services.account_sessions import lock_account, revoke_account_sessions
 from app.services.governance_workflow import lock_governance, record
 from app.services.user_services import (
     create_user_service,
@@ -20,9 +22,12 @@ router = APIRouter(prefix="/users", tags=["users"])
 access_manager = require_permissions("access.manage", fallback_roles=("admin",))
 
 
-@router.post("/", response_model=UserOut, dependencies=[Depends(access_manager)])
-def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=UserOut)
+def create_user(
+    user_data: UserCreate, db: Session = Depends(get_db), actor: User = Depends(access_manager)
+):
     lock_governance(db)
+    ensure_role_within_actor(db, actor, user_data.role_id)
     return create_user_service(db, user_data)
 
 
@@ -63,9 +68,12 @@ def update_user(
     actor: User = Depends(access_manager),
 ):
     lock_governance(db)
+    target = managed_target(db, actor, user_id)
     if "role_id" in user_data.model_fields_set:
         if user_data.role_id is None:
             raise HTTPException(422, "El rol no puede ser nulo")
+        if user_data.role_id != target.role_id:
+            ensure_role_within_actor(db, actor, user_data.role_id)
         if user_id == actor.user_id and user_data.role_id != actor.role_id:
             raise HTTPException(409, "No cambies tu propio rol desde esta sesión")
         ensure_other_manager(db, user_id, user_data.role_id)
@@ -85,6 +93,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db), actor: User = Depen
     lock_governance(db)
     if user_id == actor.user_id:
         raise HTTPException(409, "No puedes eliminar tu propia cuenta administrativa")
+    managed_target(db, actor, user_id)
     ensure_other_manager(db, user_id)
     record(
         db,
@@ -93,7 +102,54 @@ def delete_user(user_id: int, db: Session = Depends(get_db), actor: User = Depen
         f"user:{user_id}",
         "Eliminación administrativa; se verificó continuidad de acceso",
     )
-    return delete_user_service(db, user_id)
+    try:
+        return delete_user_service(db, user_id)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            409,
+            "La cuenta tiene historial (notas, pagos, registros u otras acciones) y no se puede "
+            "eliminar. Desactívala para quitarle el acceso y conservar el historial",
+        ) from None
+
+
+@router.post("/{user_id}/deactivate", response_model=UserOut)
+def deactivate_user(
+    user_id: int, db: Session = Depends(get_db), actor: User = Depends(access_manager)
+):
+    lock_governance(db)
+    if user_id == actor.user_id:
+        raise HTTPException(409, "No puedes desactivar tu propia cuenta")
+    target = managed_target(db, actor, user_id)
+    if target.active:
+        ensure_other_manager(db, user_id)
+        target = lock_account(db, target)
+        target.active = False
+        revoke_account_sessions(db, target)
+        record(
+            db,
+            actor,
+            "user.deactivated",
+            f"user:{user_id}",
+            "Cuenta desactivada; se revocaron sus sesiones",
+        )
+        db.commit()
+        db.refresh(target)
+    return target
+
+
+@router.post("/{user_id}/activate", response_model=UserOut)
+def activate_user(
+    user_id: int, db: Session = Depends(get_db), actor: User = Depends(access_manager)
+):
+    lock_governance(db)
+    target = managed_target(db, actor, user_id)
+    if not target.active:
+        target.active = True
+        record(db, actor, "user.activated", f"user:{user_id}", "Cuenta reactivada")
+        db.commit()
+        db.refresh(target)
+    return target
 
 
 @router.post("/{user_id}/password", status_code=204)
@@ -104,12 +160,23 @@ def reset_user_password(
     actor: User = Depends(access_manager),
 ):
     lock_governance(db)
+    managed_target(db, actor, user_id)
     record(db, actor, "user.password.reset", f"user:{user_id}", "Restablecimiento administrativo")
     update_user_service(db, user_id, UserUpdate(password=data.password))
 
 
+def managed_target(db: Session, actor: User, user_id: int) -> User:
+    target = db.get(User, user_id)
+    if target is None:
+        raise HTTPException(404, "Usuario no encontrado")
+    ensure_role_within_actor(db, actor, target.role_id)
+    return target
+
+
 def ensure_other_manager(db, user_id, new_role=None):
     def capable(user):
+        if not account_is_active(user):
+            return False
         try:
             access_manager(current_user=user, db=db)
             return True
@@ -124,7 +191,7 @@ def ensure_other_manager(db, user_id, new_role=None):
         and (
             db.query(User.user_id)
             .join(User.role)
-            .filter(User.user_id != user_id, Role.name.ilike("admin"))
+            .filter(User.user_id != user_id, User.active.is_(True), Role.name.ilike("admin"))
             .first()
             is None
         )

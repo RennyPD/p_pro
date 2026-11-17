@@ -25,13 +25,13 @@ Sistema de gestión académica de una sola institución, muy orientado a univers
 Informe completo: `docs/auditoria/auditoria-2026-11-17.pdf` (versión web: https://claude.ai/artifact/HEqmZ157CfCEaCHRHBmb1g)
 
 ### Altos
-- **A1.** Desactivar a un estudiante o docente (`active = False`) no le quita el acceso: `get_current_user`, `login` y `refresh` no lo comprueban.
-- **A2.** `User` no tiene campo `active`; borrar un usuario con historial falla (27 claves foráneas apuntan a `users`) y la API responde un 409 genérico.
+- ✅ **A1** (cerrado 17/11/2026). Desactivar a un estudiante o docente (`active = False`) no le quita el acceso: `get_current_user`, `login` y `refresh` no lo comprueban.
+- ✅ **A2** (cerrado 17/11/2026: `User.active`, `POST /users/{id}/deactivate` y `/activate`, 409 explicativo al borrar con historial). `User` no tenía campo `active`; borrar un usuario con historial falla (27 claves foráneas apuntan a `users`) y la API responde un 409 genérico.
 
 ### Medios
 - **M1.** Las comprobaciones de ámbito usan `is_admin()` por nombre de rol: los roles personalizados con permiso (p. ej. `finance.manage`) reciben 403 al leer.
-- **M2.** `student_scope_ids` (alertas) devuelve `None` (= todo) para usuarios no admin sin vínculo.
-- **M3.** `access.manage` permite restablecer la contraseña de un admin o crear admins.
+- ✅ **M2** (verificado con prueba de regresión 17/11/2026). `student_scope_ids` (alertas) devuelve `None` (= todo) para usuarios no admin sin vínculo.
+- ✅ **M3** (cerrado 17/11/2026: nadie gestiona cuentas ni concede permisos por encima de los suyos). `access.manage` permitía restablecer la contraseña de un admin o crear admins.
 - **M4.** Límite de login por usuario, en memoria: permite bloquear al admin y no funciona con varios workers.
 - **M5.** Los tutores no pueden descargar documentos de sus hijos.
 - **M6.** 97 mensajes de error del API en inglés que llegan a la interfaz.
@@ -48,7 +48,7 @@ Contraste insuficiente (`--muted` #718096 → usar #5b6678), código compactado 
 Cada fase se cierra con pruebas de regresión y sin romper lo anterior.
 
 ### Fase 0: dejar perfecto lo actual
-1. Acceso: A1, A2, M2, M3.
+1. ✅ Acceso: A1, A2, M2, M3.
 2. Permisos y portal: M1, M5.
 3. Calidad y UX: Prettier/Ruff, mensajes en español, contraste, tokens de diseño, modales, tipos generados.
 4. Producción: M4 (Redis), M7, M8, bajos y una prueba completa sobre PostgreSQL.

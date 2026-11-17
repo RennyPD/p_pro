@@ -6,7 +6,7 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user
+from app.auth import account_is_active, ensure_account_active, get_current_user
 from app.db.database import settings
 from app.db.Session import get_db
 from app.models.access_model import Permission, RolePermission
@@ -136,6 +136,11 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
             status_code=401,
         )
     attempts.clear()
+    if not account_is_active(user):
+        # Only reported after valid credentials, so it does not reveal accounts.
+        audit(db, "login.inactive", "authentication", user.user_id)
+        db.commit()
+        ensure_account_active(user, status_code=403)
     return issue_session(db, response, user)
 
 
@@ -161,6 +166,9 @@ def refresh_session(
     if session.revoked_at is not None or session.expires_at <= now:
         raise HTTPException(status_code=401, detail="Refresh session expired")
     session.revoked_at = now
+    if not account_is_active(user):
+        db.commit()
+        ensure_account_active(user)
     return issue_session(db, response, user)
 
 

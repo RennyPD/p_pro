@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { LookupSelect } from "../../components/LookupSelect";
-import { Button, Modal } from "../../components/ui";
+import { Badge, Button, Modal } from "../../components/ui";
 import { resources } from "../../config/resources";
 import { api, apiMessage } from "../../lib/api";
 import { isCustomRole, type ModuleView } from "../../lib/moduleViews";
@@ -33,6 +33,15 @@ const config: ResourceConfig = {
     { key: "email", label: "Correo" },
     { key: "role_label", label: "Rol", render: (label, row) => label || roleNames[String(row.role_name)] || row.role_name },
     { key: "linked_person", label: "Persona vinculada", render: value => value || "Sin vínculo" },
+    {
+      key: "active",
+      label: "Estado",
+      render: value => (
+        value === false
+          ? <Badge tone="danger">Desactivada</Badge>
+          : <Badge tone="success">Activa</Badge>
+      ),
+    },
   ],
 };
 
@@ -45,10 +54,46 @@ export function UsersPage() {
         rowActions={row => <>
           <button type="button" onClick={() => setReset(row)} aria-label={`Restablecer contraseña de ${row.username}`}>Contraseña</button>
           {isCustomRole(String(row.role_name ?? "")) && <button type="button" onClick={() => setAccount(row)}>Módulos</button>}
+          <AccountStatusButton account={row} />
         </>} />
       {reset && <UserEditor record={reset} passwordReset onClose={() => setReset(null)} />}
       {account && <ModuleEditor account={account} onClose={() => setAccount(null)} />}
     </>
+  );
+}
+
+function AccountStatusButton({ account }: { account: EntityRecord }) {
+  const client = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const active = account.active !== false;
+  const username = String(account.username);
+
+  async function toggle() {
+    const question = active
+      ? `¿Desactivar la cuenta de ${username}? Se cerrarán sus sesiones y no podrá entrar.`
+      : `¿Reactivar la cuenta de ${username}?`;
+    if (busy || !window.confirm(question)) return;
+    setBusy(true);
+    try {
+      await api.post(`/users/${account.user_id}/${active ? "deactivate" : "activate"}`);
+      toast.success(active ? "Cuenta desactivada y sesiones cerradas" : "Cuenta reactivada");
+      await client.invalidateQueries({ queryKey: [config.key] });
+    } catch (error) {
+      toast.error(apiMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={() => void toggle()}
+      aria-label={`${active ? "Desactivar" : "Reactivar"} la cuenta de ${username}`}
+    >
+      {active ? "Desactivar" : "Reactivar"}
+    </button>
   );
 }
 

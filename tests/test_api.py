@@ -4303,13 +4303,22 @@ class ApiIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(denied_event.status_code, 403, denied_event.text)
         admin_role_id = self.request("GET", "/roles/", token=token).json()[0]["role_id"]
-        granted = self.request(
+        # access.manage alone cannot grant itself permissions it lacks (audit M3).
+        escalated = self.request(
             "PUT",
             f"/access/roles/{admin_role_id}/permissions",
             token=token,
             json={"permissions": ["access.manage", "academic.manage", "operations.manage"]},
         )
-        self.assertEqual(granted.status_code, 200, granted.text)
+        self.assertEqual(escalated.status_code, 403, escalated.text)
+        with self.Session() as db:
+            db.add_all(
+                RolePermission(role_id=admin_role_id, permission_id=item.permission_id)  # noqa: F405
+                for item in db.query(Permission).filter(  # noqa: F405
+                    Permission.slug.in_(["academic.manage", "operations.manage"])  # noqa: F405
+                )
+            )
+            db.commit()
         allowed = self.request(
             "POST",
             "/subjects/",

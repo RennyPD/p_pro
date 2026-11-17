@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -27,6 +27,7 @@ class User(Base):
     mfa_attempt_window: Mapped[datetime | None] = mapped_column(DateTime)
     session_version: Mapped[int] = mapped_column(default=0, server_default="0")
     module_views: Mapped[list[str] | None] = mapped_column(JSON)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
 
     role: Mapped["Role"] = relationship("Role", back_populates="users")
     student: Mapped["Student | None"] = relationship("Student")

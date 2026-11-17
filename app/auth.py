@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.Session import get_db
 from app.models.access_model import Permission, RolePermission
 from app.models.enrollment_model import Enrollment
+from app.models.role_model import Role
 from app.models.section_model import Section
 from app.models.user_model import User
 from app.security import decode_access_token
@@ -19,16 +20,73 @@ def get_current_user(
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
+            detail="Debes iniciar sesión",
             headers={"WWW-Authenticate": "Bearer"},
         )
     user_id, version = decode_access_token(credentials.credentials)
     user = db.get(User, user_id)
     if user is None:
-        raise HTTPException(status_code=401, detail="User no longer exists")
+        raise HTTPException(status_code=401, detail="La cuenta ya no existe")
     if user.session_version != version:
         raise HTTPException(status_code=401, detail="La sesión se revocó. Inicia sesión de nuevo")
+    ensure_account_active(user)
     return user
+
+
+INACTIVE_ACCOUNT_MESSAGE = "Tu cuenta está desactivada. Contacta a la administración"
+
+
+def account_is_active(user: User) -> bool:
+    """An account works only while it and its linked person profile are active."""
+    if not user.active:
+        return False
+    if user.student is not None and not user.student.active:
+        return False
+    if user.teacher is not None and not user.teacher.active:
+        return False
+    return True
+
+
+def ensure_account_active(user: User, status_code: int = 401) -> None:
+    if not account_is_active(user):
+        raise HTTPException(status_code=status_code, detail=INACTIVE_ACCOUNT_MESSAGE)
+
+
+def role_permission_slugs(db: Session, role_id: int) -> set[str]:
+    return {
+        row[0]
+        for row in db.query(Permission.slug)
+        .join(RolePermission, RolePermission.permission_id == Permission.permission_id)
+        .filter(RolePermission.role_id == role_id)
+        .all()
+    }
+
+
+def ensure_role_within_actor(db: Session, actor: User, role_id: int | None) -> None:
+    """Block privilege escalation: nobody manages a role with grants they do not hold.
+
+    Applies to assigning the role to an account and to managing accounts that
+    already carry it (password reset, deactivation, deletion).
+    """
+    if role_id is None or role_id == actor.role_id:
+        return
+    role = db.get(Role, role_id)
+    if role is None:
+        return
+    target_slugs = role_permission_slugs(db, role_id)
+    missing = target_slugs - role_permission_slugs(db, actor.role_id)
+    # Without configured grants the system administrator role is still the top
+    # role, so only another holder of that role may manage it.
+    unconfigured_admin = (
+        not target_slugs
+        and role.name.casefold() == "admin"
+        and actor.role.name.casefold() != "admin"
+    )
+    if missing or unconfigured_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="No puedes gestionar cuentas ni roles con permisos que tu cuenta no tiene",
+        )
 
 
 def require_roles(*allowed_roles: str):
@@ -68,13 +126,7 @@ def require_permissions(
                 status_code=403,
                 detail="Academic administration requires an institutional staff profile",
             )
-        assigned = {
-            row[0]
-            for row in db.query(Permission.slug)
-            .join(RolePermission, RolePermission.permission_id == Permission.permission_id)
-            .filter(RolePermission.role_id == current_user.role_id)
-            .all()
-        }
+        assigned = role_permission_slugs(db, current_user.role_id)
         if required.issubset(assigned):
             return current_user
         if (

@@ -2,7 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_permissions
+from app.auth import (
+    ensure_role_within_actor,
+    get_current_user,
+    require_permissions,
+    role_permission_slugs,
+)
 from app.db.Session import get_db
 from app.models.access_model import Permission, RolePermission
 from app.models.role_model import Role
@@ -29,10 +34,17 @@ def permissions(db: Session = Depends(get_db)):
     return db.query(Permission).order_by(Permission.slug).all()
 
 
-@router.post("/permissions", dependencies=[Depends(access_manager)])
-def create_permission(data: PermissionCreate, db: Session = Depends(get_db)):
+@router.post("/permissions")
+def create_permission(
+    data: PermissionCreate, db: Session = Depends(get_db), user: User = Depends(access_manager)
+):
+    lock_governance(db)
     item = Permission(**data.model_dump())
     db.add(item)
+    db.flush()
+    # The creator holds the new grant, so it can delegate it without escalating.
+    db.add(RolePermission(role_id=user.role_id, permission_id=item.permission_id))
+    record(db, user, "permission.created", f"permission:{item.slug}", data.description[:250])
     db.commit()
     db.refresh(item)
     return item
@@ -62,6 +74,9 @@ def set_role_permissions(
         raise HTTPException(409, "Los permisos cambiaron; recarga antes de guardar")
     if len(data.reason.strip()) < 3:
         raise HTTPException(422, "Indica un motivo para cambiar permisos")
+    ensure_role_within_actor(db, user, role_id)
+    if set(data.permissions) - set(before) - role_permission_slugs(db, user.role_id):
+        raise HTTPException(403, "Solo puedes conceder permisos que tu cuenta tiene")
     if (role_id == user.role_id or role.name.casefold() == "admin") and (
         {"access.manage", "academic.manage", "reports.view"} & set(before)
     ) - set(data.permissions):
@@ -73,7 +88,11 @@ def set_role_permissions(
             db.query(User)
             .join(RolePermission, User.role_id == RolePermission.role_id)
             .join(Permission, RolePermission.permission_id == Permission.permission_id)
-            .filter(Permission.slug == "access.manage", User.role_id != role_id)
+            .filter(
+                Permission.slug == "access.manage",
+                User.role_id != role_id,
+                User.active.is_(True),
+            )
             .count()
         )
         if not alternatives:
