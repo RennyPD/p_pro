@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DateInput } from "../../components/DateInput";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { DocumentDownload } from "../../components/DocumentDownload";
@@ -198,7 +199,7 @@ export function StudentDocuments({ studentId, canUpload = false }: { studentId: 
     {upload && <Modal title="Agregar documento al expediente" onClose={close}>
       <form className="resource-form" onSubmit={submit} onChange={() => setDirty(true)}>
         <label className="form-field"><span>Tipo de documento</span><input name="document_type" required maxLength={50} placeholder="Ej. Certificado de bachillerato" /></label>
-        <label className="form-field"><span>Vencimiento, si aplica</span><input name="expires_on" type="date" /></label>
+        <label className="form-field"><span>Vencimiento, si aplica</span><DateInput name="expires_on" /></label>
         <label className="form-field"><span>Archivo PDF, PNG o JPEG de hasta 5 MB</span><input type="file" required accept="application/pdf,image/png,image/jpeg" onChange={event => setFile(event.target.files?.[0] ?? null)} /></label>
         {error && <p role="alert" className="form-error">{error}</p>}
         <div className="form-actions">

@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DateInput } from "../../components/DateInput";
 import { useState, type FormEvent } from "react";
 import { Button, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
@@ -76,7 +77,7 @@ export function LessonPlansDialog({ sectionId, onClose }: { sectionId: string; o
     </>}
     {editing && <form className="resource-form" onSubmit={submit} onChange={() => setDirty(true)}>
       <label className="form-field"><span>Título</span><input name="title" defaultValue={plan?.title} required minLength={2} maxLength={150} /></label>
-      <label className="form-field"><span>Fecha de clase</span><input name="scheduled_date" type="date" defaultValue={plan?.scheduled_date} required /></label>
+      <label className="form-field"><span>Fecha de clase</span><DateInput name="scheduled_date" defaultValue={plan?.scheduled_date} required /></label>
       <label className="form-field"><span>Contenido de la clase</span><textarea name="content" rows={4} defaultValue={plan?.content} required minLength={2} /></label>
       <label className="form-field"><span>Competencias</span><textarea name="competencies" rows={2} defaultValue={plan?.competencies} /></label>
       <div className="form-actions">

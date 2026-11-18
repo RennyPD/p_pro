@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { formatDate } from "../../lib/format";
 import { ArrowLeft, ArrowUpRight, BookOpen, Building2, CalendarDays, Clock3, Edit3, GraduationCap, Mail, MapPin, Phone, Users } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -19,7 +20,7 @@ const tabs = [{key:"overview",label:"Resumen"},{key:"professional",label:"Perfil
 type Tab = typeof tabs[number]["key"];
 const sectionLabels: Record<string,string> = { draft:"Borrador", published:"Publicada", active:"Docencia activa", open:"Abierta", closed:"Cerrada", cancelled:"Cancelada" };
 const modalityLabels: Record<string,string> = { in_person:"Presencial", virtual:"Virtual", hybrid:"Híbrida" };
-const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat("es",{dateStyle:"medium"}).format(new Date(`${value}T12:00:00`)) : "Sin registrar";
+const dateLabel = (value: string | null) => formatDate(value, "Sin registrar");
 
 export function TeacherDossierPage() {
   const {teacherId} = useParams();

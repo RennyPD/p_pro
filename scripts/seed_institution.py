@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
 from random import Random
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
@@ -723,7 +724,10 @@ def seed_institution(db: Session) -> dict[str, int]:
             section_id=section.section_id,
             title=f"Actividad práctica {index + 1}",
             instructions="Desarrolla el caso y presenta conclusiones justificadas.",
-            due_at=datetime(2026, 10, 5 + index, 23, 59),
+            # Deadlines are stored in UTC: 11:59 p. m. in the institution's time zone.
+            due_at=datetime(2026, 10, 5 + index, 23, 59, tzinfo=ZoneInfo("America/Santo_Domingo"))
+            .astimezone(UTC)
+            .replace(tzinfo=None),
             max_score=100,
             assessment_id=assessments_by_section[section.section_id][0].assessment_id,
             created_by=admin_user.user_id,

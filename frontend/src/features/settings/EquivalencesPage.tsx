@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDateTime } from "../../lib/format";
 import { ArrowRightLeft } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -121,7 +122,7 @@ export function EquivalencesPage() {
       </form>
     </Modal>}
     {historyId && <Modal title="Historial de la regla" description="Solo muestra cambios registrados desde la incorporación de la auditoría." onClose={() => setHistoryId(undefined)}>
-      {history.isLoading ? <Spinner /> : history.error ? <p className="form-error">{apiMessage(history.error)}</p> : history.data?.length ? <div className="equivalence-history">{history.data.map(h => <article key={h.audit_log_id}><strong>{{ "equivalence.created": "Registro", "equivalence.updated": "Actualización", "equivalence.activated": "Activación", "equivalence.deactivated": "Desactivación" }[h.action] || h.action} · {h.actor}</strong><time>{new Date(h.created_at + (h.created_at.endsWith("Z") ? "" : "Z")).toLocaleString()}</time><p>{h.detail}</p></article>)}</div> : <p>No hay cambios auditados para esta regla histórica.</p>}
+      {history.isLoading ? <Spinner /> : history.error ? <p className="form-error">{apiMessage(history.error)}</p> : history.data?.length ? <div className="equivalence-history">{history.data.map(h => <article key={h.audit_log_id}><strong>{{ "equivalence.created": "Registro", "equivalence.updated": "Actualización", "equivalence.activated": "Activación", "equivalence.deactivated": "Desactivación" }[h.action] || h.action} · {h.actor}</strong><time>{formatDateTime(h.created_at)}</time><p>{h.detail}</p></article>)}</div> : <p>No hay cambios auditados para esta regla histórica.</p>}
     </Modal>}
   </div>;
 }

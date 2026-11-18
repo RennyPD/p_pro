@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDateTime } from "../../lib/format";
 import { Building2, Hash, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -44,6 +45,6 @@ export function InstitutionSettingsPage() {
       {preview && <section className="settings-wide settings-impact" aria-label="Impacto de la configuración"><h2>Revisión antes de guardar</h2>{preview.changes.map(c => <p key={c.field}><strong>{names[c.field] || c.field}:</strong> {c.before} → {c.after}</p>)}<p>{preview.existing_selections_preserved} selecciones conservarán su criterio aprobatorio.</p><p>{preview.policy}</p></section>}
       <div className="form-actions"><Button type="button" variant="secondary" disabled={busy || !isDirty} onClick={() => { if (window.confirm("¿Descartar los cambios sin guardar?")) { reset(fields(query.data!)); setBaseline(query.data); setReason(""); setPreview(undefined); } }}>Descartar</Button><Button disabled={busy || !isDirty}><Save size={17} />{busy ? "Procesando…" : preview ? "Confirmar configuración" : "Revisar impacto"}</Button></div>
     </form></section>
-    <section className="panel settings-editor settings-history"><h2>Historial de configuración</h2>{history.isLoading ? <Spinner /> : history.error ? <p className="form-error">{apiMessage(history.error)}</p> : history.data?.length ? history.data.map(h => <article key={h.id}><strong>{h.actor} · {new Date(h.created_at + "Z").toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" })}</strong><p>{h.detail}</p></article>) : <p className="muted">Sin cambios auditados desde esta mejora.</p>}</section>
+    <section className="panel settings-editor settings-history"><h2>Historial de configuración</h2>{history.isLoading ? <Spinner /> : history.error ? <p className="form-error">{apiMessage(history.error)}</p> : history.data?.length ? history.data.map(h => <article key={h.id}><strong>{h.actor} · {formatDateTime(h.created_at)}</strong><p>{h.detail}</p></article>) : <p className="muted">Sin cambios auditados desde esta mejora.</p>}</section>
   </div>;
 }

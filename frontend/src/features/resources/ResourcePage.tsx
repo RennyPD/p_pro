@@ -1,4 +1,5 @@
 import { isAxiosError } from "axios";
+import { DateInput } from "../../components/DateInput";
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronLeft, ChevronRight, Edit3, Eye, Plus, Search, Trash2 } from "lucide-react";
@@ -81,6 +82,7 @@ function FormField({field,control,register}:{field:FieldConfig;control:Control<F
   if(field.type==="checkbox")return <label className="check-field"><input type="checkbox" {...register(field.name)}/><span>{field.label}</span></label>;
   if(field.type==="lookup"&&field.lookup)return <div className="form-field"><span id={hintId}><FieldLabel field={field}/></span><Controller name={field.name} control={control} rules={{required:field.required}} render={({field:input})=><LookupSelect labelId={hintId} required={field.required} config={field.lookup!} value={input.value as number|string|null|undefined} onChange={input.onChange}/>} /></div>;
   if(field.type==="days")return <fieldset className="form-field day-field"><legend><FieldLabel field={field}/></legend><Controller name={field.name} control={control} rules={{required:field.required}} render={({field:input})=><DayPicker value={normalizeDays(input.value)} onChange={input.onChange}/>} /></fieldset>;
+  if(field.type==="date")return <div className="form-field"><span id={hintId}><FieldLabel field={field}/></span><Controller name={field.name} control={control} rules={{required:field.required}} render={({field:input})=><DateInput aria-labelledby={hintId} required={field.required} value={input.value==null?"":String(input.value)} onValueChange={input.onChange} onBlur={input.onBlur}/>}/></div>;
   if(field.type==="select")return <label className="form-field"><FieldLabel field={field}/><select {...register(field.name,{required:field.required})}><option value="">Selecciona una opción</option>{field.options?.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
   return <label className="form-field"><FieldLabel field={field}/><input type={field.type??"text"} aria-describedby={hint?hintId:undefined} placeholder={hint?undefined:field.placeholder} step={field.name==="grade_value"?"0.01":field.name==="credits"?"any":undefined} {...register(field.name,{required:field.required})}/>{hint&&<span id={hintId} className="field-hint">{hint}</span>}</label>;
 }

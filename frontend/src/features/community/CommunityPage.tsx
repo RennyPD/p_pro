@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDateTime } from "../../lib/format";
 import { Bell, Check, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -11,7 +12,7 @@ type Notification = { notification_id: number; title: string; body: string; crea
 type Sent = { announcement_id: number; title: string; body: string; audience: string; section_name: string | null; author_name: string; published_at: string; delivery_count: number | null; read_count: number | null };
 type Preview = { count: number; fingerprint: string; roles: Record<string, number> };
 const audiences: Record<string, string> = { all: "Toda la institución", student: "Estudiantes", teacher: "Docentes", admin: "Administración", guardian: "Tutores", section: "Estudiantes de una sección", section_guardians: "Tutores de una sección" };
-const dateLabel = (value: string) => new Date(value.endsWith("Z") ? value : value + "Z").toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" });
+const dateLabel = (value: string) => formatDateTime(value);
 const operationKey = () => globalThis.crypto?.randomUUID?.() || `notice-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export function CommunityPage() {

@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDate } from "../../lib/format";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -10,7 +11,7 @@ import { useAuthStore } from "../../store/auth";
 type Approval = { approval_request_id: number; resource_type: string; resource_id: number; reason: string; status: string; resolution_notes: string; requested_by: number; created_at?: string; resource_label?: string; requested_by_name?: string };
 const statuses: Record<string, string> = { pending: "Pendiente", approved: "Aprobada", rejected: "Rechazada" };
 const statusTone: Record<string, "warning" | "success" | "danger"> = { pending: "warning", approved: "success", rejected: "danger" };
-const requestDate = (value?: string) => value ? new Intl.DateTimeFormat("es-DO", { dateStyle: "medium" }).format(new Date(value)) : "";
+const requestDate = (value?: string) => formatDate(value, "");
 
 export function RequestApproval({ resource, id, label }: { resource: "student" | "section" | "submission"; id: number; label: string }) {
   const [open, setOpen] = useState(false);

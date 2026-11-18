@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { DateInput } from "../../components/DateInput";
+import { formatDateTime } from "../../lib/format";
 import { useState, type FormEvent } from "react";
 import { LookupSelect } from "../../components/LookupSelect";
 import { Button, EmptyState, Spinner } from "../../components/ui";
@@ -16,7 +18,6 @@ type Event = {
   created_at: string;
 };
 const size = 25;
-const date = new Intl.DateTimeFormat("es-DO", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Santo_Domingo" });
 const userLookup = { endpoint: "/users/", valueKey: "user_id", labelKeys: ["username"], secondaryKey: "email", placeholder: "Todas las cuentas" };
 const actionOptions = Object.entries(auditActions).sort(([, a], [, b]) => a.localeCompare(b, "es"));
 
@@ -46,8 +47,8 @@ export function AuditPage() {
     <form className="panel audit-filters" onSubmit={filter}>
       <label className="form-field"><span>Acción</span><select name="action" aria-label="Acción" defaultValue=""><option value="">Todas las acciones</option>{actionOptions.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
       <div className="form-field"><span id="audit-actor">Cuenta</span><LookupSelect config={userLookup} value={actor} onChange={setActor} labelId="audit-actor" /></div>
-      <label className="form-field"><span>Desde</span><input name="start" type="date" /></label>
-      <label className="form-field"><span>Hasta</span><input name="end" type="date" /></label>
+      <label className="form-field"><span>Desde</span><DateInput name="start" /></label>
+      <label className="form-field"><span>Hasta</span><DateInput name="end" /></label>
       <Button>Filtrar</Button>
     </form>
     {events.isLoading ? <Spinner label="Cargando eventos" /> : events.error ? (
@@ -56,7 +57,7 @@ export function AuditPage() {
       <div className="panel table-scroll"><table>
         <thead><tr><th>Fecha</th><th>Cuenta</th><th>Acción</th><th>Recurso</th><th>Detalle</th></tr></thead>
         <tbody>{events.data.rows.map(event => <tr key={event.audit_log_id}>
-          <td>{date.format(new Date(event.created_at))}</td><td>{event.actor ?? "Sin cuenta registrada"}</td>
+          <td>{formatDateTime(event.created_at)}</td><td>{event.actor ?? "Sin cuenta registrada"}</td>
           <td title={event.action}>{auditActionLabel(event.action)}</td><td title={event.resource}>{auditResourceLabel(event.resource)}</td><td>{event.detail || "—"}</td>
         </tr>)}</tbody>
       </table></div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatDateTime } from "../../lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -50,6 +51,6 @@ export function AccessSettingsPage() {
         <label className="form-field"><span>Motivo del cambio de permisos</span><input required minLength={3} maxLength={250} disabled={save.isPending} value={reason} onChange={e => setReason(e.target.value)} /></label>
         <div className="form-actions"><Button type="button" variant="secondary" disabled={save.isPending || !dirty} onClick={() => { setDraft(undefined); setReason(""); }}>Descartar cambios</Button><Button disabled={!dirty || save.isPending || !id}>Guardar permisos</Button></div>
       </form>}
-    </section><section className="panel"><h2>Historial de este rol</h2>{history.isLoading ? <Spinner /> : history.error ? <p className="form-error">{apiMessage(history.error)}</p> : history.data?.length ? history.data.map(h => <article className="intervention-history" key={h.id}><strong>{h.actor} · {new Date(h.created_at + "Z").toLocaleString("es-DO", { timeZone: "America/Santo_Domingo" })}</strong><p>{h.detail}</p></article>) : <p className="muted">Sin cambios auditados desde la incorporación de este control.</p>}</section>
+    </section><section className="panel"><h2>Historial de este rol</h2>{history.isLoading ? <Spinner /> : history.error ? <p className="form-error">{apiMessage(history.error)}</p> : history.data?.length ? history.data.map(h => <article className="intervention-history" key={h.id}><strong>{h.actor} · {formatDateTime(h.created_at)}</strong><p>{h.detail}</p></article>) : <p className="muted">Sin cambios auditados desde la incorporación de este control.</p>}</section>
   </div>;
 }

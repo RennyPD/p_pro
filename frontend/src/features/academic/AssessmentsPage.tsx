@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { DateInput } from "../../components/DateInput";
+import { formatDateTime } from "../../lib/format";
 import { provisionalReason } from "../../lib/academicResult";
 import { BookCheck, History, Lock, Plus, Save, Send } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -192,7 +194,7 @@ function SectionBook({ section }: { section: Section }) {
       <div className="assessment-plan-grid"><form className="panel resource-form" onSubmit={event => { event.preventDefault(); create.mutate(); }}><h2><Plus size={18} /> Nueva evaluación</h2>
         <label className="form-field"><span>Nombre</span><input required minLength={2} maxLength={100} value={name} onChange={event => setName(event.target.value)} /></label>
         <label className="form-field"><span>Peso porcentual</span><input required type="number" min=".01" max="100" step=".01" value={weight} onChange={event => setWeight(event.target.value)} /></label>
-        <label className="form-field"><span>Fecha límite</span><input type="date" value={date} onChange={event => setDate(event.target.value)} /></label>
+        <label className="form-field"><span>Fecha límite</span><DateInput value={date} onValueChange={event => setDate(event)} /></label>
         <div className="form-actions"><Button disabled={create.isPending || configured >= 100}>Crear componente</Button><Button type="button" variant="secondary" disabled={!name || !weight || saveComponent.isPending} onClick={() => saveComponent.mutate()}>Guardar componente como plantilla</Button></div>
       </form>
       <section className="panel assessment-plan"><h2>Esquemas de esta asignatura</h2><p>Una copia por sección: editarla no cambia otras secciones. Los esquemas creados por administración se comparten con docentes.</p>
@@ -204,7 +206,7 @@ function SectionBook({ section }: { section: Section }) {
       </section></div>
       <section className="assessment-actions">{items.map(item => <AssessmentEditor key={item.assessment_id + ":" + item.name + ":" + item.weight} item={item} refresh={refresh} />)}</section>
     </>}
-    {tab === "audit" && <section className="panel assessment-plan"><h2>Historial de distribución y cierres</h2>{audit.isLoading ? <Spinner /> : audit.error ? <p role="alert">{apiMessage(audit.error)}</p> : audit.data?.length ? audit.data.map((item, index) => <article className="assessment-template" key={index}><strong>{{ "assessment.created": "Evaluación creada", "assessment.section.reopened": "Sección habilitada para corrección", "assessment.updated": "Datos de evaluación actualizados", "assessment.closed": "Evaluación cerrada", "assessment.reopened": "Evaluación reabierta", "assessment.distribution": "Distribución actualizada", "assessment.plan.applied": "Esquema aplicado" }[item.action] ?? item.action}</strong><small>{new Date(item.created_at + "Z").toLocaleString()} · {item.actor}</small><p>{item.detail}</p></article>) : <p className="muted">Sin cambios registrados todavía.</p>}</section>}
+    {tab === "audit" && <section className="panel assessment-plan"><h2>Historial de distribución y cierres</h2>{audit.isLoading ? <Spinner /> : audit.error ? <p role="alert">{apiMessage(audit.error)}</p> : audit.data?.length ? audit.data.map((item, index) => <article className="assessment-template" key={index}><strong>{{ "assessment.created": "Evaluación creada", "assessment.section.reopened": "Sección habilitada para corrección", "assessment.updated": "Datos de evaluación actualizados", "assessment.closed": "Evaluación cerrada", "assessment.reopened": "Evaluación reabierta", "assessment.distribution": "Distribución actualizada", "assessment.plan.applied": "Esquema aplicado" }[item.action] ?? item.action}</strong><small>{formatDateTime(item.created_at)} · {item.actor}</small><p>{item.detail}</p></article>) : <p className="muted">Sin cambios registrados todavía.</p>}</section>}
     {history && <GradeHistory grade={history.grade} student={history.student} closed={history.closed} reason={reason} onClose={() => setHistory(null)} refresh={refresh} />}
   </div>;
 }
@@ -215,7 +217,7 @@ function AssessmentEditor({ item, refresh }: { item: Assessment; refresh: () => 
   const update = useMutation({ mutationFn: () => api.patch("/assessments/" + item.assessment_id, { name, due_date: date || null }), onSuccess: () => { refresh(); toast.success("Datos actualizados"); }, onError: error => toast.error(apiMessage(error)) });
   return <form className="panel assessment-plan" onSubmit={event => { event.preventDefault(); update.mutate(); }}><h3>Datos de {item.name}</h3>
     <label className="form-field"><span>Nombre</span><input required minLength={2} maxLength={100} disabled={item.closed} value={name} onChange={event => setName(event.target.value)} /></label>
-    <label className="form-field"><span>Fecha límite</span><input type="date" disabled={item.closed} value={date} onChange={event => setDate(event.target.value)} /></label>
+    <label className="form-field"><span>Fecha límite</span><DateInput disabled={item.closed} value={date} onValueChange={event => setDate(event)} /></label>
     <Button disabled={item.closed || update.isPending}>Guardar datos</Button>
   </form>;
 }
@@ -225,7 +227,7 @@ function GradeHistory({ grade, student, closed, reason, onClose, refresh }: { gr
   const history = useQuery<Change[]>({ queryKey: ["grade-history", grade.grade_id, user?.user_id], queryFn: () => api.get("/grades/" + grade.grade_id + "/history").then(r => r.data) });
   const annul = useMutation({ mutationFn: () => api.delete("/grades/" + grade.grade_id, { data: { reason } }), onSuccess: () => { refresh(); onClose(); toast.success("Nota anulada, historial conservado"); }, onError: error => toast.error(apiMessage(error)) });
   return <Modal title={"Historial de " + student} onClose={onClose}><p>Nota actual: {grade.grade_value} · {labels[grade.status]}</p>
-    {history.isLoading ? <Spinner /> : history.error ? <p role="alert">{apiMessage(history.error)}</p> : history.data?.map(change => <article className="assessment-template" key={change.grade_change_id}><strong>{labels[change.action] ?? change.action} · {change.previous_value ?? "—"} → {change.new_value}</strong><small>{change.changed_by_name} · {new Date(change.changed_at + "Z").toLocaleString()}</small><p>{change.reason}</p><small>{labels[change.previous_status ?? ""] ?? "Sin nota"} → {labels[change.new_status ?? ""] ?? ""}</small></article>)}
+    {history.isLoading ? <Spinner /> : history.error ? <p role="alert">{apiMessage(history.error)}</p> : history.data?.map(change => <article className="assessment-template" key={change.grade_change_id}><strong>{labels[change.action] ?? change.action} · {change.previous_value ?? "—"} → {change.new_value}</strong><small>{change.changed_by_name} · {formatDateTime(change.changed_at)}</small><p>{change.reason}</p><small>{labels[change.previous_status ?? ""] ?? "Sin nota"} → {labels[change.new_status ?? ""] ?? ""}</small></article>)}
     <p className="muted">Para anular, escribe el motivo en el libro de notas. La nota no se borra físicamente.</p>
     <Button variant="danger" disabled={closed || grade.status === "voided" || reason.trim().length < 2 || annul.isPending} onClick={() => confirm("¿Anular esta nota y conservar su historial?") && annul.mutate()}>Anular nota</Button>
   </Modal>;

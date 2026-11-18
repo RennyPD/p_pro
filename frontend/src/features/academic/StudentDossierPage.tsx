@@ -1,4 +1,5 @@
 import { CurriculumAssignmentPanel } from "./CurriculumAssignmentPanel";
+import { formatDate } from "../../lib/format";
 import { describeAverage } from "../../lib/academicResult";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowUpRight, BookOpen, Edit3, GraduationCap, Mail, MapPin, Phone, ShieldCheck, Users, Wallet } from "lucide-react";
@@ -23,7 +24,7 @@ type Transcript = { cumulative_average: number; earned_credits: number; attempte
 const states: Record<string, string> = { enrolled: "Inscrito", completed: "Completado", withdrawn: "Retirado", waitlisted: "En espera", cancelled: "Cancelado" };
 const tabs = [{ key: "overview", label: "Resumen" }, { key: "personal", label: "Datos personales" }, { key: "academic", label: "Trayectoria académica" }, { key: "support", label: "Familia y contactos" }, { key: "documents", label: "Documentos" }] as const;
 type Tab = typeof tabs[number]["key"];
-const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat("es", { dateStyle: "medium" }).format(new Date(`${value}T12:00:00`)) : "Sin registrar";
+const dateLabel = (value: string | null) => formatDate(value, "Sin registrar");
 
 export function StudentDossierPage() {
   const { studentId } = useParams();
