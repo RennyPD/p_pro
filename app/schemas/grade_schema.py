@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
@@ -11,7 +11,7 @@ class GradeBase(BaseModel):
     assessment_id: int | None = None
     grade_value: float = Field(ge=0, le=100)
     grade_type: str
-    date_recorded: str
+    date_recorded: date
 
 
 class GradeCreate(GradeBase):
@@ -25,7 +25,7 @@ class GradeUpdate(BaseModel):
     assessment_id: Optional[int] = None
     grade_value: Optional[float] = Field(default=None, ge=0, le=100)
     grade_type: Optional[str] = None
-    date_recorded: Optional[str] = None
+    date_recorded: Optional[date] = None
     status: str | None = Field(default=None, pattern=r"^(draft|published)$")
     reason: ReasonText
 
@@ -45,7 +45,7 @@ class GradeBulkCreate(BaseModel):
     section_id: int
     assessment_id: int | None = None
     grade_type: str
-    date_recorded: str
+    date_recorded: date
     records: list[GradeBulkItem]
     status: str = Field(default="draft", pattern=r"^(draft|published)$")
     reason: ReasonText = "Carga desde libro de notas"

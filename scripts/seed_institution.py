@@ -558,7 +558,7 @@ def seed_institution(db: Session) -> dict[str, int]:
                         grade_value=score,
                         assessment_id=assessment.assessment_id,
                         grade_type=assessment.name,
-                        date_recorded=f"2026-09-{10 + course_index:02d}",
+                        date_recorded=date(2026, 9, 10 + course_index),
                     )
                 )
                 grade_count += 1

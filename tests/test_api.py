@@ -1,5 +1,5 @@
 import unittest
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 from db_support import make_engine
 from fastapi.testclient import TestClient
@@ -72,9 +72,11 @@ class ApiIntegrationTests(unittest.TestCase):
         login_data = {"username": "admin", "password": password}
         token, _ = self.bootstrap()
 
+        steps = __import__("itertools").count(1)
+        # Each accepted code gets a fresh time step, so replay protection does not trip.
         with patch(
-            "app.routers.auth_router.verify_totp",
-            side_effect=lambda _secret, code: code == "432109",
+            "app.routers.auth_router.totp_step",
+            side_effect=lambda _secret, code: next(steps) if code == "432109" else None,
         ):
             self.assertEqual(self.request("POST", "/auth/mfa/setup", token).status_code, 200)
             enabled = self.request(
@@ -2242,7 +2244,7 @@ class ApiIntegrationTests(unittest.TestCase):
                 assessment_id=assessment.assessment_id,
                 grade_type=assessment.name,
                 grade_value=80,
-                date_recorded="2026-10-12",
+                date_recorded=date(2026, 10, 12),
                 status="published",
             )
             draft = Grade(
@@ -2250,7 +2252,7 @@ class ApiIntegrationTests(unittest.TestCase):
                 assessment_id=other.assessment_id,
                 grade_type=other.name,
                 grade_value=90,
-                date_recorded="2026-10-12",
+                date_recorded=date(2026, 10, 12),
                 status="draft",
             )
             db.add_all([published, draft])
@@ -2750,7 +2752,7 @@ class ApiIntegrationTests(unittest.TestCase):
                     enrollment_id=target_enrollment.enrollment_id,
                     grade_type="Final",
                     grade_value=80,
-                    date_recorded="2026-09-20",
+                    date_recorded=date(2026, 9, 20),
                     status="published",
                 )
             )
@@ -3368,7 +3370,7 @@ class ApiIntegrationTests(unittest.TestCase):
                     enrollment_id=future.enrollment_id,
                     grade_type="Final",
                     grade_value=92,
-                    date_recorded="2030-01-01",
+                    date_recorded=date(2030, 1, 1),
                 )
             )
             db.commit()
@@ -3489,7 +3491,7 @@ class ApiIntegrationTests(unittest.TestCase):
                         assessment_id=assessment.assessment_id,
                         grade_type="Final controlada",
                         grade_value=80,
-                        date_recorded="2026-10-01",
+                        date_recorded=date(2026, 10, 1),
                         status="draft",
                     )
                 )

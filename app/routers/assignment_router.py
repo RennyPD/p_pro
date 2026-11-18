@@ -593,7 +593,7 @@ def transfer(
             assessment,
             round(item.score * 100 / task.max_score, 2),
             assessment.name,
-            business_date().isoformat(),
+            business_date(),
             "draft",
             user.user_id,
             f"[Tarea {assignment_id}] {data.reason.strip()}"[:250],

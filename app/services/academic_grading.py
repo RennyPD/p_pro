@@ -1,7 +1,7 @@
 """One published result for records, curriculum, eligibility and dashboards."""
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -134,7 +134,7 @@ def write_grade(
     assessment: Assessment | None,
     value: float,
     grade_type: str,
-    recorded: str,
+    recorded: date,
     state: str,
     user_id: int,
     reason: str,

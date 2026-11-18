@@ -39,7 +39,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-17.pdf` (versión web: https
 - ✅ **M8** (cerrado 18/11/2026: cuentas con `selectinload`, cierre de caja por rango indexado, alertas con join; `tests/test_query_counts.py`). Consultas N+1 o de tabla completa en cuentas financieras, cierre de caja y alertas.
 
 ### Bajos
-~~Montos en `Float`~~ (✅ 18/11: `Numeric(12,2)` y `Decimal`, migración 0042), TOTP reutilizable dentro de su ventana, ~~enumeración de usuarios por tiempo~~ (✅ 18/11: hash de relleno), sin detección de reutilización del refresh token, `/auth/bootstrap` abierto en una instalación vacía, ~~sin logs~~ (✅ 18/11: logs JSON con `X-Request-ID`), nginx sin cabeceras de seguridad, ~~`school.db` y `__pycache__` versionados~~ (✅ 18/11), `date_recorded` como texto, períodos enlazados por nombre. ~~PostgreSQL sin probar de punta a punta~~ (✅ 18/11: migraciones corregidas, `alembic check` limpio y suite completa en PostgreSQL en CI; se corrigieron 2 migraciones y 2 consultas que fallaban en PostgreSQL).
+~~Montos en `Float`~~ (✅ 18/11: `Numeric(12,2)` y `Decimal`, migración 0042), ~~TOTP reutilizable dentro de su ventana~~ (✅ 18/11), ~~enumeración de usuarios por tiempo~~ (✅ 18/11: hash de relleno), ~~sin detección de reutilización del refresh token~~ (✅ 18/11), ~~`/auth/bootstrap` abierto en una instalación vacía~~ (✅ 18/11: `BOOTSTRAP_TOKEN` en producción), ~~sin logs~~ (✅ 18/11: logs JSON con `X-Request-ID`), ~~nginx sin cabeceras de seguridad~~ (✅ 18/11), ~~`school.db` y `__pycache__` versionados~~ (✅ 18/11), ~~`date_recorded` como texto~~ (✅ 18/11, migración 0044), períodos enlazados por nombre (**pendiente**: pasar `period_name` a `period_id`; toca secciones, inscripciones y reportes, conviene hacerlo al empezar la Fase 1). ~~PostgreSQL sin probar de punta a punta~~ (✅ 18/11: migraciones corregidas, `alembic check` limpio y suite completa en PostgreSQL en CI; se corrigieron 2 migraciones y 2 consultas que fallaban en PostgreSQL).
 
 ### Frontend y UI
 ✅ Cerrado el 18/11/2026 (Fase 0, paso 3):
@@ -56,7 +56,7 @@ Cada fase se cierra con pruebas de regresión y sin romper lo anterior.
 1. ✅ Acceso: A1, A2, M2, M3.
 2. ✅ Permisos y portal: M1, M5.
 3. ✅ Calidad y UX: Prettier/Ruff, mensajes en español, contraste, tokens de diseño, modales, tipos generados (queda la migración progresiva de tipos por módulo).
-4. Producción: M4 (Redis), M7, M8, bajos y una prueba completa sobre PostgreSQL.
+4. ✅ Producción: M4 (en base de datos, sin Redis), M7 (parcial), M8, bajos (salvo períodos por nombre) y prueba completa sobre PostgreSQL en CI.
 
 ### Fase 1: modelo escolar (K-12)
 - Tipo de institución configurable: `university` | `school` (o ambos).

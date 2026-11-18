@@ -14,7 +14,7 @@ class GradeHistoryItem(BaseModel):
     period: str
     grade_value: float
     grade_type: str
-    date_recorded: str
+    date_recorded: date
     assessment_weight: float | None = None
     contribution: float | None = None
 
@@ -119,7 +119,7 @@ class RosterGradeItem(BaseModel):
     assessment_id: int | None
     grade_type: str
     grade_value: float
-    date_recorded: str
+    date_recorded: date
     status: str = "published"
     assessment_weight: float | None = None
     contribution: float | None = None

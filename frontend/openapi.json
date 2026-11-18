@@ -4553,6 +4553,7 @@
             "title": "Assessment Id"
           },
           "date_recorded": {
+            "format": "date",
             "title": "Date Recorded",
             "type": "string"
           },
@@ -4713,6 +4714,7 @@
             "title": "Assessment Id"
           },
           "date_recorded": {
+            "format": "date",
             "title": "Date Recorded",
             "type": "string"
           },
@@ -4778,6 +4780,7 @@
             "title": "Contribution"
           },
           "date_recorded": {
+            "format": "date",
             "title": "Date Recorded",
             "type": "string"
           },
@@ -4837,6 +4840,7 @@
             "title": "Assessment Id"
           },
           "date_recorded": {
+            "format": "date",
             "title": "Date Recorded",
             "type": "string"
           },
@@ -4891,6 +4895,7 @@
           "date_recorded": {
             "anyOf": [
               {
+                "format": "date",
                 "type": "string"
               },
               {
@@ -6181,6 +6186,7 @@
             "title": "Contribution"
           },
           "date_recorded": {
+            "format": "date",
             "title": "Date Recorded",
             "type": "string"
           },
@@ -12480,6 +12486,24 @@
     "/auth/bootstrap": {
       "post": {
         "operationId": "bootstrap_admin_auth_bootstrap_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Bootstrap-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Bootstrap-Token"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

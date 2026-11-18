@@ -1,6 +1,6 @@
 """Carga datos de demostración reproducibles sin duplicar registros."""
 
-from datetime import datetime, time
+from datetime import date, datetime, time
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -176,8 +176,13 @@ def seed_demo(db: Session) -> dict[str, int]:
             _one_or_create(
                 db,
                 Enrollment,
-                {"state": "enrolled", "curriculum_version": "current",
-                 "curriculum_credits": 4 if section.subject_id == subjects["PROG-101"].subject_id else 3},
+                {
+                    "state": "enrolled",
+                    "curriculum_version": "current",
+                    "curriculum_credits": 4
+                    if section.subject_id == subjects["PROG-101"].subject_id
+                    else 3,
+                },
                 student_id=student.student_id,
                 section_id=section.section_id,
                 period="2026-2027",
@@ -187,7 +192,7 @@ def seed_demo(db: Session) -> dict[str, int]:
         _one_or_create(
             db,
             Grade,
-            {"grade_value": 92.0, "date_recorded": "2026-09-15"},
+            {"grade_value": 92.0, "date_recorded": date(2026, 9, 15)},
             enrollment_id=enrollments[0].enrollment_id,
             grade_type="Práctica inicial",
         )

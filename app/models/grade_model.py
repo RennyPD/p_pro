@@ -1,6 +1,6 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, Index, String, text
+from sqlalchemy import CheckConstraint, Date, DateTime, Float, ForeignKey, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -27,7 +27,7 @@ class Grade(Base):
     )
     grade_value: Mapped[float] = mapped_column(Float)
     grade_type: Mapped[str] = mapped_column(String(50))
-    date_recorded: Mapped[str] = mapped_column(String(50))
+    date_recorded: Mapped[date] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String(20), default="published")
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
     updated_at: Mapped[datetime | None] = mapped_column(

@@ -4832,7 +4832,10 @@ export interface components {
     GradeBulkCreate: {
       /** Assessment Id */
       assessment_id?: number | null;
-      /** Date Recorded */
+      /**
+       * Date Recorded
+       * Format: date
+       */
       date_recorded: string;
       /** Grade Type */
       grade_type: string;
@@ -4893,7 +4896,10 @@ export interface components {
     GradeCreate: {
       /** Assessment Id */
       assessment_id?: number | null;
-      /** Date Recorded */
+      /**
+       * Date Recorded
+       * Format: date
+       */
       date_recorded: string;
       /** Enrollment Id */
       enrollment_id: number;
@@ -4918,7 +4924,10 @@ export interface components {
       assessment_weight?: number | null;
       /** Contribution */
       contribution?: number | null;
-      /** Date Recorded */
+      /**
+       * Date Recorded
+       * Format: date
+       */
       date_recorded: string;
       /** Enrollment Id */
       enrollment_id: number;
@@ -4939,7 +4948,10 @@ export interface components {
     GradeOut: {
       /** Assessment Id */
       assessment_id?: number | null;
-      /** Date Recorded */
+      /**
+       * Date Recorded
+       * Format: date
+       */
       date_recorded: string;
       /** Enrollment Id */
       enrollment_id: number;
@@ -5470,7 +5482,10 @@ export interface components {
       assessment_weight?: number | null;
       /** Contribution */
       contribution?: number | null;
-      /** Date Recorded */
+      /**
+       * Date Recorded
+       * Format: date
+       */
       date_recorded: string;
       /** Grade Id */
       grade_id: number;
@@ -8157,7 +8172,9 @@ export interface operations {
   bootstrap_admin_auth_bootstrap_post: {
     parameters: {
       query?: never;
-      header?: never;
+      header?: {
+        "X-Bootstrap-Token"?: string | null;
+      };
       path?: never;
       cookie?: never;
     };

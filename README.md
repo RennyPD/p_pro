@@ -196,7 +196,17 @@ Set-Location frontend
 npm run e2e
 ```
 
-La misma verificación está configurada en `.github/workflows/backend-quality.yml`.
+Para ejecutar las mismas suites contra PostgreSQL (el esquema `public` de esa base se
+borra y se recrea en cada prueba, usa una base descartable):
+
+```powershell
+$env:NEXO_TEST_DATABASE_URL = "postgresql+psycopg://usuario@localhost:5432/nexo_pruebas"
+python -B -m pytest tests -q -p no:cacheprovider
+```
+
+La misma verificación está configurada en `.github/workflows/backend-quality.yml`,
+que además aplica las migraciones, ejecuta `alembic check` y corre la suite completa
+sobre PostgreSQL 16.
 La automatización de CI también ejecuta navegador con API simulada y con un
 backend real. En local, `npm run e2e` usa la interfaz en `127.0.0.1:5177` y
 responde con datos simulados. `npm run e2e:acceptance` usa la interfaz en
@@ -277,12 +287,18 @@ Configura `APP_ENVIRONMENT=production`, un `SECRET_KEY` aleatorio de al menos
 32 caracteres y `CORS_ORIGINS` con los orígenes HTTPS permitidos, separados por
 comas. En este modo la cookie de renovación lleva el atributo `Secure`.
 
+Otras variables de producción:
+
+| Variable | Uso |
+|---|---|
+| `BOOTSTRAP_TOKEN` | Obligatoria para crear el primer administrador con `POST /auth/bootstrap` en producción; se envía en la cabecera `X-Bootstrap-Token`. Sin ella, la ruta está deshabilitada en producción. |
+| `FORWARDED_ALLOW_IPS` | IP del proxy inverso de confianza. uvicorn corre con `--proxy-headers`, así el límite de intentos de login usa la IP real del cliente. |
+| `LOG_LEVEL` | Nivel de los logs JSON en stdout (`INFO` por defecto). Cada respuesta lleva `X-Request-ID`. |
+
 La cadena completa de migraciones requiere una conexión a la base. Las revisiones
 históricas inspeccionan el esquema y los datos durante el upgrade, por lo que
 `alembic upgrade head --sql` falla. Para validar PostgreSQL ejecuta el upgrade
 online en una base descartable y confirma la revisión con `alembic current`.
 
-Para retirar `school.db` del índice en un cambio autorizado, respalda el archivo,
-ejecuta `git rm --cached -- school.db` y verifica que el archivo local siga presente
-y conserve su hash. La retirada del índice requiere un commit posterior y mantiene
-las versiones ya publicadas en el historial de Git.
+`school.db` ya no se versiona (18/11/2026); las copias anteriores siguen en el
+historial de Git.
