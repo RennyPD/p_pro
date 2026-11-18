@@ -228,7 +228,7 @@ def update_curriculum_course(
     lock_governance(db)
     course = db.get(CurriculumCourse, course_id)
     if course is None:
-        raise HTTPException(status_code=404, detail="Curriculum course not found")
+        raise HTTPException(status_code=404, detail="Asignatura del plan de estudios no encontrada")
     changes = data.model_dump(exclude_unset=True)
     values = {key: getattr(course, key) for key in CurriculumCourseCreate.model_fields}
     values.update(changes)
@@ -324,11 +324,11 @@ def delete_curriculum_course(course_id: int, db: Session = Depends(get_db)):
     lock_governance(db)
     course = db.get(CurriculumCourse, course_id)
     if course is None:
-        raise HTTPException(status_code=404, detail="Curriculum course not found")
+        raise HTTPException(status_code=404, detail="Asignatura del plan de estudios no encontrada")
     ensure_assigned_version_remains(db, course)
     db.delete(course)
     db.commit()
-    return {"message": "Curriculum course deleted successfully"}
+    return {"message": "Asignatura retirada del plan de estudios"}
 
 
 @router.get("/students/{student_id}/progress", response_model=CurriculumProgress)
@@ -340,7 +340,7 @@ def student_curriculum_progress(
     ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     courses = current_courses(db, student)
     recognition = recognize(db, student)
     results = []

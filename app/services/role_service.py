@@ -24,7 +24,7 @@ def create_role_service(db: Session, role_data: RoleCreate):
     for rol in roles:
         if rol.name.casefold() == code:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Role name already exists"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe un rol con ese nombre"
             )
     return create_role(db, role_data.model_copy(update={"name": code}))
 
@@ -37,7 +37,7 @@ def get_role_by_id_service(db: Session, role_id: int):
     role = get_role_by_id(db, role_id)
 
     if not role:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rol no encontrado")
 
     return role
 
@@ -52,7 +52,7 @@ def update_role_service(db: Session, role_id: int, role_data: RoleUpdate):
     role = update_role(db, role_id, role_data)
 
     if not role:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rol no encontrado")
 
     return role
 
@@ -67,6 +67,6 @@ def delete_role_service(db: Session, role_id: int):
     role = delete_role(db, role_id)
 
     if not role:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rol no encontrado")
 
-    return {"message": "Role deleted successfully"}
+    return {"message": "Rol eliminado"}

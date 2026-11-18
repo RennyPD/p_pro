@@ -34,7 +34,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-17.pdf` (versión web: https
 - ✅ **M3** (cerrado 17/11/2026: nadie gestiona cuentas ni concede permisos por encima de los suyos). `access.manage` permitía restablecer la contraseña de un admin o crear admins.
 - **M4.** Límite de login por usuario, en memoria: permite bloquear al admin y no funciona con varios workers.
 - ✅ **M5** (cerrado 18/11/2026: `ensure_student_document_access` y sección de documentos en el portal familiar). Los tutores no podían descargar documentos de sus hijos.
-- **M6.** 97 mensajes de error del API en inglés que llegan a la interfaz.
+- ✅ **M6** (cerrado 18/11/2026: mensajes del API, validadores y errores 422 en español; `tests/test_spanish_messages.py` impide que vuelvan). 97 mensajes de error del API en inglés que llegan a la interfaz.
 - **M7.** Un único bloqueo global para todas las escrituras.
 - **M8.** Consultas N+1 o de tabla completa en cuentas financieras, cierre de caja y alertas.
 

@@ -67,9 +67,9 @@ def change_student_career(
     student = db.get(Student, student_id)
     target = db.get(Career, data.new_career_id)
     if student is None or target is None:
-        raise HTTPException(status_code=404, detail="Student or career not found")
+        raise HTTPException(status_code=404, detail="Estudiante o carrera no encontrados")
     if student.career_id == target.career_id:
-        raise HTTPException(status_code=409, detail="Student already belongs to this career")
+        raise HTTPException(status_code=409, detail="El estudiante ya pertenece a esta carrera")
     if data.expected_career_id is not None and student.career_id != data.expected_career_id:
         raise HTTPException(409, "La carrera actual cambió. Vuelve a consultar el expediente")
     impact = career_change_impact(db, student, target)
@@ -130,7 +130,7 @@ def graduation_audit(
     ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     recognition = recognize(db, student)
     passed_subjects = recognition.completed
     courses = current_courses(db, student)

@@ -35,9 +35,9 @@ class CalendarEventCreate(BaseModel):
             else self.ends_at
         )
         if self.ends_at <= self.starts_at:
-            raise ValueError("ends_at must be after starts_at")
+            raise ValueError("El fin debe ser posterior al inicio")
         if self.audience == "section" and self.section_id is None:
-            raise ValueError("section_id is required for a section event")
+            raise ValueError("Selecciona la sección del evento")
         return self
 
 

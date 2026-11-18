@@ -67,7 +67,7 @@ def apply_assessment_template(
     lock_governance(db)
     template = db.get(AssessmentTemplate, template_id)
     if template is None or template.owner_id != user.user_id:
-        raise HTTPException(status_code=404, detail="Assessment template not found")
+        raise HTTPException(status_code=404, detail="Plantilla de evaluación no encontrada")
     section = ensure_section_access(db, user, data.section_id)
     ensure_grading_open(db, section)
     validate_total_weight(db, data.section_id, template.weight)
@@ -95,7 +95,10 @@ def validate_total_weight(
         query = query.filter(Assessment.assessment_id != exclude_id)
     total = sum(item.weight for item in query.all()) + weight
     if total > 100.001:
-        raise HTTPException(status_code=422, detail="Assessment weights cannot exceed 100%")
+        raise HTTPException(
+            status_code=422,
+            detail="La suma de los porcentajes de evaluación no puede superar el 100 %",
+        )
 
 
 @router.get("/sections/{section_id}", response_model=list[AssessmentOut])
@@ -148,11 +151,11 @@ def update_assessment(
     lock_governance(db)
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
-        raise HTTPException(status_code=404, detail="Assessment not found")
+        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
     ensure_assessment_writer(db, user, assessment)
     ensure_grading_open(db, assessment.section)
     if assessment.closed:
-        raise HTTPException(status_code=409, detail="Closed assessments cannot be modified")
+        raise HTTPException(status_code=409, detail="Una evaluación cerrada no se puede modificar")
     values = data.model_dump(exclude_unset=True)
     if any(values.get(field, "present") is None for field in ("name", "weight")):
         raise HTTPException(status_code=422, detail="Nombre y porcentaje no pueden ser nulos")
@@ -175,7 +178,7 @@ def close_assessment(
     lock_governance(db)
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
-        raise HTTPException(status_code=404, detail="Assessment not found")
+        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
     ensure_assessment_writer(db, user, assessment)
     ensure_grading_open(db, assessment.section)
     enrollment_ids = {
@@ -219,7 +222,7 @@ def reopen_assessment(
     lock_governance(db)
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
-        raise HTTPException(status_code=404, detail="Assessment not found")
+        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
     if not has_scope(user, "academic.manage"):
         raise HTTPException(403, "Solo la administración académica puede reabrir una evaluación")
     ensure_grading_open(db, assessment.section, allow_closed_section=True)

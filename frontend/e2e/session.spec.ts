@@ -41,7 +41,7 @@ async function setup(page: Page, mode: "concurrent" | "proactive" | "revoked") {
     }
     if (mode !== "proactive" && request.headers().authorization === `Bearer ${oldToken}`) {
       oldFailures++;
-      return fulfill({ detail: "Invalid or expired access token" }, 401);
+      return fulfill({ detail: "La sesión no es válida o expiró. Inicia sesión de nuevo" }, 401);
     }
     if (path === "/auth/me") return fulfill(user);
     if (path === "/access/me") return fulfill({ permissions: ["academic.manage", "reports.view"] });

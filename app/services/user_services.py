@@ -45,7 +45,7 @@ def create_user_service(db: Session, user_data: UserCreate):
     for user in users:
         if user.username == user_data.username:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe ese nombre de usuario"
             )
 
     return create_user(db, user_data)
@@ -59,7 +59,7 @@ def get_user_by_id_service(db: Session, user_id: int):
     user = get_user_by_id(db, user_id)
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
 
     return user
 
@@ -75,7 +75,7 @@ def update_user_service(db: Session, user_id: int, user_data: UserUpdate):
     user = update_user(db, user_id, user_data)
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
 
     return user
 
@@ -84,6 +84,6 @@ def delete_user_service(db: Session, user_id: int):
     user = delete_user(db, user_id)
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
 
-    return {"message": "User deleted successfully"}
+    return {"message": "Usuario eliminado"}

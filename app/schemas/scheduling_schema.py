@@ -39,9 +39,9 @@ class MeetingCreate(BaseModel):
         if self.start_time.tzinfo is not None or self.end_time.tzinfo is not None:
             raise ValueError("Usa horas de clase locales sin desfase horario")
         if self.start_time >= self.end_time:
-            raise ValueError("end_time must be later than start_time")
+            raise ValueError("La hora de fin debe ser posterior a la de inicio")
         if self.modality == "virtual" and not self.virtual_url:
-            raise ValueError("virtual_url is required for virtual meetings")
+            raise ValueError("Indica el enlace de la reunión virtual")
         if self.virtual_url:
             url = urlsplit(self.virtual_url)
             if url.scheme not in {"http", "https"} or not url.hostname or url.username:

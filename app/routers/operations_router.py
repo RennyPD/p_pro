@@ -321,7 +321,7 @@ def assign_alert(
     lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
     ensure_student_academic_access(db, user, item.student_id)
     if item.status != "open":
         raise HTTPException(409, "Solo se asignan casos abiertos")
@@ -356,7 +356,7 @@ def alert_interventions(
 ):
     item = db.get(EarlyAlert, alert_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
     ensure_student_academic_access(db, user, item.student_id)
     items = (
         db.query(AlertIntervention)
@@ -383,7 +383,7 @@ def add_alert_intervention(
     lock_governance(db)
     alert = db.get(EarlyAlert, alert_id)
     if alert is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
     ensure_student_academic_access(db, user, alert.student_id)
     if alert.status != "open" or len(data.notes.strip()) < 2:
         raise HTTPException(409, "Reabre el caso e indica una actuación completa")
@@ -474,7 +474,7 @@ def resolve_alert(
     lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
     ensure_student_academic_access(db, user, item.student_id)
     if item.status != "open" or data is None or len(data.resolution_notes.strip()) < 3:
         raise HTTPException(409, "El caso debe estar abierto e incluir un motivo de resolución")
@@ -504,7 +504,7 @@ def reopen_alert(
     lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
     ensure_student_academic_access(db, user, item.student_id)
     if item.status != "resolved":
         raise HTTPException(409, "El caso ya está abierto")
@@ -653,7 +653,7 @@ def update_admission(
     lock_governance(db)
     item = db.get(AdmissionApplication, application_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=404, detail="Solicitud de admisión no encontrada")
     allowed = {
         "submitted": {"review", "rejected"},
         "review": {"accepted", "rejected"},
@@ -696,7 +696,7 @@ def enroll_admission(
     lock_governance(db)
     item = db.get(AdmissionApplication, application_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=404, detail="Solicitud de admisión no encontrada")
     if item.status == "enrolled":
         if item.student_id:
             student = db.get(Student, item.student_id)
@@ -811,7 +811,7 @@ def resolve_approval(
     lock_governance(db)
     item = db.get(ApprovalRequest, request_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Approval not found")
+        raise HTTPException(status_code=404, detail="Solicitud de aprobación no encontrada")
     if item.status != "pending":
         raise HTTPException(409, "La solicitud ya fue resuelta. Consulta la decisión registrada")
     if len(data.resolution_notes.strip()) < 2:
@@ -900,7 +900,7 @@ def download_document(
 ):
     item = db.get(StudentDocument, document_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
     ensure_student_academic_access(db, user, item.student_id)
     return Response(
         item.content,

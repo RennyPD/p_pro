@@ -28,7 +28,7 @@ def get_careers_service(db: Session):
 def get_career_service(db: Session, career_id: int):
     career = get_career_by_id(db, career_id)
     if career is None:
-        raise HTTPException(status_code=404, detail="Career not found")
+        raise HTTPException(status_code=404, detail="Carrera no encontrada")
     return career
 
 
@@ -36,11 +36,11 @@ def update_career_service(db: Session, career_id: int, data: CareerUpdate):
     lock_governance(db)
     career = update_career(db, career_id, data)
     if career is None:
-        raise HTTPException(status_code=404, detail="Career not found")
+        raise HTTPException(status_code=404, detail="Carrera no encontrada")
     return career
 
 
 def delete_career_service(db: Session, career_id: int):
     if not delete_career(db, career_id):
-        raise HTTPException(status_code=404, detail="Career not found")
-    return {"message": "Career deleted successfully"}
+        raise HTTPException(status_code=404, detail="Carrera no encontrada")
+    return {"message": "Carrera eliminada"}

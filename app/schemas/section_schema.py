@@ -26,7 +26,7 @@ class SectionBase(BaseModel):
         if self.start_time.tzinfo is not None or self.end_time.tzinfo is not None:
             raise ValueError("Usa horas de clase locales sin desfase horario")
         if self.start_time >= self.end_time:
-            raise ValueError("end_time must be later than start_time")
+            raise ValueError("La hora de fin debe ser posterior a la de inicio")
         return self
 
 
@@ -67,7 +67,7 @@ class SectionUpdate(BaseModel):
             and self.end_time is not None
             and self.start_time >= self.end_time
         ):
-            raise ValueError("end_time must be later than start_time")
+            raise ValueError("La hora de fin debe ser posterior a la de inicio")
         return self
 
 

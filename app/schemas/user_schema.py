@@ -18,7 +18,7 @@ class UserCreate(UserBase):
     def validate_profile_link(self):
         links = [self.student_id, self.teacher_id, self.guardian_id]
         if sum(item is not None for item in links) > 1:
-            raise ValueError("A user can only link to one person profile")
+            raise ValueError("Una cuenta solo puede vincularse a una persona")
         return self
 
 

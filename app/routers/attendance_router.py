@@ -281,4 +281,4 @@ def delete(
     change(db, record, user, reason, snapshot(record), "deleted")
     db.delete(record)
     db.commit()
-    return {"message": "Attendance deleted successfully"}
+    return {"message": "Registro de asistencia eliminado"}

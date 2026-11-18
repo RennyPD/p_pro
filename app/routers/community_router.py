@@ -348,7 +348,7 @@ def read_notification(
 ):
     item = db.get(Notification, notification_id)
     if item is None or item.user_id != user.user_id:
-        raise HTTPException(status_code=404, detail="Notification not found")
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
     if item.read_at is None:
         item.read_at = datetime.now(UTC).replace(tzinfo=None)
     db.commit()

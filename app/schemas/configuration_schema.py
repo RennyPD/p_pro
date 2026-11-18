@@ -25,7 +25,7 @@ class AcademicPeriodBase(BaseModel):
         if not self.name:
             raise ValueError("El período necesita un nombre")
         if self.start_date >= self.end_date:
-            raise ValueError("end_date must be later than start_date")
+            raise ValueError("La fecha de fin debe ser posterior a la de inicio")
         if (
             self.registration_start
             and self.registration_end

@@ -69,7 +69,8 @@ def schedule_item(section: Section) -> ScheduleItem:
 def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if user.student_id is None:
         raise HTTPException(
-            status_code=403, detail="Course selection is only available to students"
+            status_code=403,
+            detail="La selección de asignaturas solo está disponible para estudiantes",
         )
     student = db.get(Student, user.student_id)
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
@@ -162,7 +163,8 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
 def course_selection_summary(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if user.student_id is None:
         raise HTTPException(
-            status_code=403, detail="Course selection is only available to students"
+            status_code=403,
+            detail="La selección de asignaturas solo está disponible para estudiantes",
         )
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     settings = db.get(InstitutionSettings, 1)
@@ -215,7 +217,8 @@ def course_selection_summary(db: Session = Depends(get_db), user: User = Depends
 def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if user.student_id is None:
         raise HTTPException(
-            status_code=403, detail="Course selection is only available to students"
+            status_code=403,
+            detail="La selección de asignaturas solo está disponible para estudiantes",
         )
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     if period is None:
@@ -260,15 +263,18 @@ def add_to_selection_cart(
     lock_governance(db)
     if user.student_id is None:
         raise HTTPException(
-            status_code=403, detail="Course selection is only available to students"
+            status_code=403,
+            detail="La selección de asignaturas solo está disponible para estudiantes",
         )
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     if period is None or period.status not in {"registration", "active"}:
-        raise HTTPException(status_code=409, detail="Course selection is currently closed")
+        raise HTTPException(
+            status_code=409, detail="La selección de asignaturas está cerrada en este momento"
+        )
     section = db.get(Section, section_id)
     student = db.get(Student, user.student_id)
     if section is None:
-        raise HTTPException(status_code=404, detail="Section not found")
+        raise HTTPException(status_code=404, detail="Sección no encontrada")
     if (
         db.query(CurriculumCourse)
         .filter_by(
@@ -280,7 +286,8 @@ def add_to_selection_cart(
         is None
     ):
         raise HTTPException(
-            status_code=409, detail="This subject is not part of the student's program"
+            status_code=409,
+            detail="Esta asignatura no forma parte del plan de estudios del estudiante",
         )
     if section.subject_id in recognize(db, student).completed:
         raise HTTPException(
@@ -297,7 +304,7 @@ def add_to_selection_cart(
         .first()
     )
     if existing:
-        raise HTTPException(status_code=409, detail="This subject is already in the cart")
+        raise HTTPException(status_code=409, detail="Esta asignatura ya está en la selección")
     item = CourseSelectionCart(
         student_id=user.student_id, section_id=section_id, period=period.name
     )
@@ -317,7 +324,7 @@ def remove_from_selection_cart(
         .first()
     )
     if item is None:
-        raise HTTPException(status_code=404, detail="Cart item not found")
+        raise HTTPException(status_code=404, detail="Elemento de la selección no encontrado")
     db.delete(item)
     db.commit()
     return {"message": "Cart item removed"}
@@ -327,11 +334,12 @@ def remove_from_selection_cart(
 def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if user.student_id is None:
         raise HTTPException(
-            status_code=403, detail="Course selection is only available to students"
+            status_code=403,
+            detail="La selección de asignaturas solo está disponible para estudiantes",
         )
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     if period is None:
-        raise HTTPException(status_code=409, detail="No active academic period")
+        raise HTTPException(status_code=409, detail="No hay un período académico activo")
     items = (
         db.query(CourseSelectionCart)
         .filter_by(student_id=user.student_id, period=period.name)
@@ -422,11 +430,14 @@ def select_course(
 ):
     if user.student_id is None:
         raise HTTPException(
-            status_code=403, detail="Course selection is only available to students"
+            status_code=403,
+            detail="La selección de asignaturas solo está disponible para estudiantes",
         )
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     if period is None or period.status not in {"registration", "active"}:
-        raise HTTPException(status_code=409, detail="Course selection is currently closed")
+        raise HTTPException(
+            status_code=409, detail="La selección de asignaturas está cerrada en este momento"
+        )
     return create_enrollment_service(
         db,
         EnrollmentCreate(
@@ -446,7 +457,8 @@ def withdraw_course_selection(
 ):
     if user.student_id is None:
         raise HTTPException(
-            status_code=403, detail="Course selection is only available to students"
+            status_code=403,
+            detail="La selección de asignaturas solo está disponible para estudiantes",
         )
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
     enrollment = (
@@ -460,7 +472,7 @@ def withdraw_course_selection(
         .first()
     )
     if enrollment is None:
-        raise HTTPException(status_code=404, detail="Active course selection not found")
+        raise HTTPException(status_code=404, detail="No se encontró una selección activa")
     from app.schemas.enrollment_schema import EnrollmentUpdate
     from app.services.enrollment_service import update_enrollment_service
 
@@ -681,7 +693,7 @@ def student_academic_profile(
     ensure_student_academic_access(db, user, student_id)
     student = db.get(Student, student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     summaries = []
     all_grades = []
     total_attendances = 0

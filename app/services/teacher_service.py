@@ -18,7 +18,7 @@ def create_teacher_service(db: Session, teacher_data: TeacherCreate):
     for teacher in teachers:
         if teacher.email == teacher_data.email:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe ese correo electrónico"
             )
 
     return create_teacher(db, teacher_data)
@@ -33,7 +33,7 @@ def get_teacher_by_id_service(db: Session, teacher_id: int):
     teacher = get_teacher_by_id(db, teacher_id)
 
     if not teacher:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Docente no encontrado")
 
     return teacher
 
@@ -43,7 +43,7 @@ def update_teacher_service(db: Session, teacher_id: int, teacher_data: TeacherUp
     teacher = update_teacher(db, teacher_id, teacher_data)
 
     if not teacher:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Docente no encontrado")
 
     return teacher
 
@@ -53,6 +53,6 @@ def delete_teacher_service(db: Session, teacher_id: int):
     teacher = delete_teacher(db, teacher_id)
 
     if not teacher:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Docente no encontrado")
 
-    return {"message": "Teacher deleted succesfully"}
+    return {"message": "Docente eliminado"}

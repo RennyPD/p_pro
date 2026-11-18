@@ -26,25 +26,28 @@ type CatalogSection = {
 };
 
 function selectionIssue(detail: string, maximum?: number, credits?: number): string {
-  const prerequisite = /^Prerequisite (.+) is not completed$/.exec(detail)?.[1];
+  const prerequisite = /^Falta aprobar el prerrequisito (.+)$/.exec(detail)?.[1];
   if (prerequisite)
     return `Prerrequisito pendiente: debes haber aprobado definitivamente ${prerequisite} antes de seleccionar esta asignatura. Una nota provisional no cuenta.`;
-  const corequisite = /^Corequisite (.+) must be selected first$/.exec(detail)?.[1];
+  const corequisite = /^Primero debes seleccionar el correquisito (.+)$/.exec(detail)?.[1];
   if (corequisite)
     return `Correquisito pendiente: selecciona y confirma ${corequisite} primero, o verifica que ya esté aprobada. Luego vuelve a intentar.`;
-  const conflict = /^Schedule conflict with section (.+)$/.exec(detail)?.[1];
+  const conflict = /^Choque de horario con la sección (.+)$/.exec(detail)?.[1];
   if (conflict)
     return `Choque de horario: esta sección se superpone con ${conflict}. Elige una sección en otro horario.`;
-  if (detail === "Maximum credit load exceeded")
+  if (detail === "Se supera el máximo de créditos permitido")
     return `Límite de créditos excedido.${credits != null ? ` Esta asignatura vale ${credits} créditos.` : ""}${maximum != null ? ` El máximo del período es ${maximum} créditos.` : ""} Revisa tu carga confirmada y en espera, o elige una asignatura de menor carga.`;
-  if (detail === "Registration is closed" || detail === "Course selection is currently closed")
+  if (
+    detail === "La inscripción está cerrada" ||
+    detail === "La selección de asignaturas está cerrada en este momento"
+  )
     return "La selección está cerrada para este período. Consulta las fechas de selección con coordinación académica.";
-  if (detail === "Registration has not started")
+  if (detail === "La inscripción aún no ha comenzado")
     return "La selección aún no ha comenzado. Consulta la fecha de apertura del período.";
-  if (detail === "No active academic period")
+  if (detail === "No hay un período académico activo")
     return "No hay un período académico vigente. Consulta a coordinación académica.";
-  if (/^Student has an active .+ hold$/.test(detail))
-    return `Tienes un bloqueo ${detail.includes("academic") ? "académico" : "financiero"}${detail.includes("academic") && detail.includes("financial") ? " y financiero" : ""}. Contacta a la institución para revisarlo antes de seleccionar asignaturas.`;
+  if (/^El estudiante tiene un bloqueo .+ activo$/.test(detail))
+    return `Tienes un bloqueo ${detail.includes("académico") ? "académico" : "financiero"}${detail.includes("académico") && detail.includes("financiero") ? " y financiero" : ""}. Contacta a la institución para revisarlo antes de seleccionar asignaturas.`;
   return detail;
 }
 

@@ -28,7 +28,7 @@ class SubjectUpdate(BaseModel):
     @classmethod
     def validate_text(cls, value):
         if value is None:
-            raise ValueError("Subject fields cannot be null")
+            raise ValueError("Los campos de la asignatura no pueden quedar vacíos")
         return value.strip() if isinstance(value, str) else value
 
 

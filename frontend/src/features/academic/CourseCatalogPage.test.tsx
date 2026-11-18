@@ -61,7 +61,7 @@ it("does not label a student's reserved place as waitlisted when the section is 
 });
 it("uses an accessible confirmation and retains per-section errors", async () => {
   vi.spyOn(api, "post").mockResolvedValue({
-    data: { confirmed: [], errors: [{ section_id: 3, detail: "Registration is closed" }] },
+    data: { confirmed: [], errors: [{ section_id: 3, detail: "La inscripción está cerrada" }] },
   });
   const native = vi.spyOn(window, "confirm");
   prepare(true);
@@ -84,10 +84,10 @@ it("uses an accessible confirmation and retains per-section errors", async () =>
 });
 
 it.each([
-  ["Maximum credit load exceeded", "El máximo del período es 24 créditos"],
-  ["Prerequisite QA-FUND is not completed", "debes haber aprobado definitivamente QA-FUND"],
-  ["Corequisite QA-LAB1 must be selected first", "selecciona y confirma QA-LAB1 primero"],
-  ["Schedule conflict with section QA-FUND-A", "se superpone con QA-FUND-A"],
+  ["Se supera el máximo de créditos permitido", "El máximo del período es 24 créditos"],
+  ["Falta aprobar el prerrequisito QA-FUND", "debes haber aprobado definitivamente QA-FUND"],
+  ["Primero debes seleccionar el correquisito QA-LAB1", "selecciona y confirma QA-LAB1 primero"],
+  ["Choque de horario con la sección QA-FUND-A", "se superpone con QA-FUND-A"],
 ])("explains %s in the result modal", async (detail, expected) => {
   vi.spyOn(api, "post").mockResolvedValue({
     data: { confirmed: [{ state: "waitlisted" }], errors: [{ section_id: 3, detail }] },

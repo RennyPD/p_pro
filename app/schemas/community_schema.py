@@ -55,7 +55,7 @@ class AnnouncementBase(BaseModel):
         if len(self.title) < 2 or len(self.body) < 2:
             raise ValueError("Escribe un título y mensaje completos")
         if self.audience in {"section", "section_guardians"} and self.section_id is None:
-            raise ValueError("section_id is required for section announcements")
+            raise ValueError("Selecciona la sección del aviso")
         if self.audience not in {"section", "section_guardians"} and self.section_id is not None:
             raise ValueError("Solo los avisos de sección admiten section_id")
         return self

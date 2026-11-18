@@ -10,22 +10,22 @@ from app.services.business_time import business_date
 def selection_period(db, section_id: int, name: str, *, registration: bool = False):
     section = db.get(Section, section_id)
     if section is None:
-        raise HTTPException(404, "Section not found")
+        raise HTTPException(404, "Sección no encontrada")
     period = db.query(AcademicPeriod).filter_by(name=name).first()
     if period is None:
-        raise HTTPException(409, "The academic period does not exist")
+        raise HTTPException(409, "El período académico no existe")
     # Empty period_name is retained for legacy sections. Existing historical
     # records are not renamed or migrated implicitly.
     if section.period_name and section.period_name != name:
-        raise HTTPException(409, "The selection period does not match the section")
+        raise HTTPException(409, "El período de la selección no coincide con el de la sección")
     if period.status == "closed":
-        raise HTTPException(409, "The academic period is closed")
+        raise HTTPException(409, "El período académico está cerrado")
     if registration:
         if period.status not in {"registration", "active"}:
-            raise HTTPException(409, "Course selection is currently closed")
+            raise HTTPException(409, "La selección de asignaturas está cerrada en este momento")
         today = business_date()
         if period.registration_start and today < period.registration_start:
-            raise HTTPException(409, "Registration has not started")
+            raise HTTPException(409, "La inscripción aún no ha comenzado")
         if period.registration_end and today > period.registration_end:
-            raise HTTPException(409, "Registration is closed")
+            raise HTTPException(409, "La inscripción está cerrada")
     return period

@@ -97,7 +97,7 @@ def require_roles(*allowed_roles: str):
         if current_user.role.name.casefold() not in allowed:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail="No tienes permiso para esta acción",
             )
         return current_user
 
@@ -121,7 +121,7 @@ def require_permissions(
         ):
             raise HTTPException(
                 status_code=403,
-                detail="Academic administration requires an institutional staff profile",
+                detail="La administración académica requiere un perfil de personal institucional",
             )
         assigned = role_permission_slugs(db, current_user.role_id)
         if required.issubset(assigned):
@@ -134,7 +134,7 @@ def require_permissions(
             return current_user
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Missing permission: {', '.join(sorted(required - assigned))}",
+            detail=f"Te falta el permiso: {', '.join(sorted(required - assigned))}",
         )
 
     return dependency

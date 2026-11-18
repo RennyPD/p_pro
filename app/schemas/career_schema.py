@@ -63,7 +63,7 @@ class CareerUpdate(CareerInstitutionalFields):
     def reject_null_catalog_state(cls, values):
         for field in ("status", "modality"):
             if field in values and values[field] is None:
-                raise ValueError(f"{field} cannot be null")
+                raise ValueError(f"El campo {field} no puede quedar vacío")
         return values
 
 
