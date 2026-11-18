@@ -1,9 +1,23 @@
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, LargeBinary, String, Text
+from sqlalchemy import (
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    LargeBinary,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+
+# Money: exact decimal with cents, in the database and in Python (CLAUDE.md, rule 7).
+MONEY = Numeric(12, 2)
 
 
 class StudentAccount(Base):
@@ -34,7 +48,7 @@ class Charge(Base):
         ForeignKey("student_accounts.student_account_id")
     )
     description: Mapped[str] = mapped_column(String(200))
-    amount: Mapped[float] = mapped_column(Float)
+    amount: Mapped[Decimal] = mapped_column(MONEY)
     due_date: Mapped[date] = mapped_column(Date)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="posted", server_default="posted")
@@ -52,7 +66,7 @@ class Payment(Base):
     student_account_id: Mapped[int] = mapped_column(
         ForeignKey("student_accounts.student_account_id")
     )
-    amount: Mapped[float] = mapped_column(Float)
+    amount: Mapped[Decimal] = mapped_column(MONEY)
     reference: Mapped[str] = mapped_column(String(100))
     receipt_number: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     note: Mapped[str] = mapped_column(String(250), default="")
@@ -77,7 +91,7 @@ class FinancialAdjustment(Base):
     )
     kind: Mapped[str] = mapped_column(String(20))
     description: Mapped[str] = mapped_column(String(200))
-    amount: Mapped[float] = mapped_column(Float)
+    amount: Mapped[Decimal] = mapped_column(MONEY)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="posted", server_default="posted")
@@ -96,8 +110,8 @@ class PaymentPlan(Base):
     )
     name: Mapped[str] = mapped_column(String(100))
     active: Mapped[bool] = mapped_column(default=True)
-    credit_baseline: Mapped[float] = mapped_column(Float, default=0, server_default="0")
-    credit_snapshot: Mapped[float | None] = mapped_column(Float, nullable=True)
+    credit_baseline: Mapped[Decimal] = mapped_column(MONEY, default=0, server_default="0")
+    credit_snapshot: Mapped[Decimal | None] = mapped_column(MONEY, nullable=True)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     installments: Mapped[list["Installment"]] = relationship(
@@ -111,7 +125,7 @@ class Installment(Base):
     installment_id: Mapped[int] = mapped_column(primary_key=True)
     payment_plan_id: Mapped[int] = mapped_column(ForeignKey("payment_plans.payment_plan_id"))
     due_date: Mapped[date] = mapped_column(Date)
-    amount: Mapped[float] = mapped_column(Float)
+    amount: Mapped[Decimal] = mapped_column(MONEY)
     paid: Mapped[bool] = mapped_column(default=False)
 
 
@@ -120,7 +134,7 @@ class BillingConcept(Base):
     billing_concept_id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120), unique=True)
     description: Mapped[str] = mapped_column(String(250), default="")
-    amount: Mapped[float] = mapped_column(Float)
+    amount: Mapped[Decimal] = mapped_column(MONEY)
     frequency: Mapped[str] = mapped_column(String(20), default="once")
     active: Mapped[bool] = mapped_column(default=True)
 
@@ -129,10 +143,10 @@ class CashClosing(Base):
     __tablename__ = "cash_closings"
     cash_closing_id: Mapped[int] = mapped_column(primary_key=True)
     closing_date: Mapped[date] = mapped_column(Date, unique=True)
-    total_payments: Mapped[float] = mapped_column(Float)
+    total_payments: Mapped[Decimal] = mapped_column(MONEY)
     payment_count: Mapped[int] = mapped_column(Integer)
-    cash_total: Mapped[float] = mapped_column(Float, default=0, server_default="0")
-    transfer_total: Mapped[float] = mapped_column(Float, default=0, server_default="0")
+    cash_total: Mapped[Decimal] = mapped_column(MONEY, default=0, server_default="0")
+    transfer_total: Mapped[Decimal] = mapped_column(MONEY, default=0, server_default="0")
     closed_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
@@ -172,9 +186,3 @@ class FinanceEvent(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
-
-
-class FinanceControl(Base):
-    __tablename__ = "finance_control"
-    finance_control_id: Mapped[int] = mapped_column(primary_key=True)
-    version: Mapped[int] = mapped_column(Integer, default=0)
