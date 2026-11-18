@@ -4,10 +4,10 @@
   gap: 1rem;
   margin: 1.5rem 2rem 0;
   padding: 1rem 1.25rem;
-  border: 1px solid #dce8ef;
+  border: 1px solid var(--line-strong);
   border-radius: 14px;
-  background: linear-gradient(110deg, #eef7f6, #f5f8ff);
-  color: #24465d;
+  background: linear-gradient(110deg, var(--bg), var(--surface-muted));
+  color: var(--ink-soft);
 }
 .student-directory-banner > svg {
   flex-shrink: 0;
@@ -18,7 +18,7 @@
 }
 .student-directory-banner span {
   font-size: 0.85rem;
-  color: #607387;
+  color: var(--muted);
 }
 .students-workspace .resource-toolbar {
   flex-wrap: wrap;
@@ -37,15 +37,15 @@
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: #fff;
-  color: #344258;
+  background: var(--surface);
+  color: var(--ink-soft);
   font: inherit;
   font-size: 0.8rem;
 }
 .student-reset {
   border: 0;
   background: transparent;
-  color: #315fcb;
+  color: var(--blue);
   font-weight: 600;
   cursor: pointer;
 }
@@ -72,8 +72,8 @@
   width: 38px;
   height: 38px;
   flex-shrink: 0;
-  background: #edf3fa;
-  color: #365e95;
+  background: var(--surface-sunken);
+  color: var(--blue-strong);
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 800;
@@ -88,7 +88,7 @@
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  color: #38725e;
+  color: var(--success);
   font-size: 0.8rem;
 }
 .student-open {
@@ -97,10 +97,10 @@
   justify-content: center;
   min-width: 32px;
   min-height: 32px;
-  border: 1px solid #dbe4ef;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
-  color: #315fcb;
-  background: #f4f7fc;
+  color: var(--blue);
+  background: var(--bg);
 }
 .students-workspace .resource-table .table-actions {
   min-width: 90px;
@@ -115,7 +115,7 @@
   padding-bottom: 0.6rem;
   border-bottom: 1px solid var(--line);
   font-size: 0.95rem;
-  color: #36516f;
+  color: var(--ink-soft);
 }
 .resource-form:has(.form-section-heading) {
   max-height: 65vh;
@@ -128,8 +128,8 @@
   justify-content: space-between;
   gap: 1.5rem;
   padding: 1.6rem;
-  border: 1px solid #dae4ee;
-  background: linear-gradient(120deg, #fff, #f3f8fc);
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(120deg, var(--surface), var(--bg));
   border-radius: 18px;
   margin-bottom: 1.1rem;
 }
@@ -163,7 +163,7 @@
   gap: 0.8rem;
   padding: 1.1rem;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--surface);
   border-radius: 14px;
 }
 .dossier-metrics article > div {
@@ -174,11 +174,11 @@
 }
 .dossier-metrics svg {
   width: 17px;
-  color: #5274a3;
+  color: var(--muted);
 }
 .dossier-metrics strong {
   font-size: 1.7rem;
-  color: #233d5d;
+  color: var(--navy-soft);
 }
 .dossier-tabs {
   display: flex;
@@ -194,15 +194,15 @@
   background: transparent;
   border: 0;
   border-bottom: 3px solid transparent;
-  color: #6a788d;
+  color: var(--muted);
   font: inherit;
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
 }
 .dossier-tabs button.is-selected {
-  color: #315fcb;
-  border-bottom-color: #315fcb;
+  color: var(--blue);
+  border-bottom-color: var(--blue);
 }
 .dossier-grid {
   display: grid;
@@ -232,7 +232,7 @@
   grid-template-columns: 1fr 1.3fr;
   gap: 1rem;
   padding: 0.85rem 0;
-  border-bottom: 1px solid #eef1f5;
+  border-bottom: 1px solid var(--surface-sunken);
 }
 .dossier-details dt {
   font-size: 0.83rem;
@@ -247,7 +247,7 @@
 .dossier-completion {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: #f5f8fc;
+  background: var(--bg);
   border-radius: 12px;
 }
 .dossier-completion > div {
@@ -269,7 +269,7 @@
   width: 100%;
   height: 7px;
   margin: 0.8rem 0;
-  accent-color: #3d9a83;
+  accent-color: var(--success);
 }
 .dossier-control {
   display: flex;
@@ -279,7 +279,7 @@
 }
 .dossier-control > svg {
   flex-shrink: 0;
-  color: #4b8a75;
+  color: var(--success);
 }
 .dossier-control strong {
   font-size: 0.9rem;
@@ -301,9 +301,9 @@
   padding: 0.8rem 0;
   width: 100%;
   border: 0;
-  border-bottom: 1px solid #eef1f5;
+  border-bottom: 1px solid var(--surface-sunken);
   background: transparent;
-  color: #365578;
+  color: var(--ink-soft);
   text-align: left;
   cursor: pointer;
   font: inherit;
@@ -332,13 +332,13 @@
   display: flex;
   gap: 0.7rem;
   align-items: center;
-  color: #52647b;
+  color: var(--muted);
   overflow-wrap: anywhere;
 }
 .dossier-contact svg {
   width: 18px;
   flex-shrink: 0;
-  color: #5274a3;
+  color: var(--muted);
 }
 .dossier-section-heading {
   display: flex;
@@ -356,7 +356,7 @@
   gap: 2rem;
   flex-wrap: wrap;
   padding: 1rem;
-  background: #f5f8fc;
+  background: var(--bg);
   border-radius: 12px;
   margin: 1rem 0;
 }
@@ -368,7 +368,7 @@
 }
 .dossier-credit-strip strong {
   font-size: 1.2rem;
-  color: #365578;
+  color: var(--ink-soft);
 }
 .dossier-academic-table {
   width: 100%;
@@ -380,12 +380,12 @@
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 600;
-  background: #f8fafc;
+  background: var(--surface-muted);
 }
 .dossier-academic-table td,
 .dossier-academic-table th {
   padding: 0.9rem 0.7rem;
-  border-bottom: 1px solid #edf0f4;
+  border-bottom: 1px solid var(--surface-sunken);
 }
 .dossier-academic-table td:first-child {
   min-width: 200px;
@@ -419,8 +419,8 @@
 }
 .dossier-error {
   padding: 1rem;
-  background: #fff2ef;
-  color: #97362c;
+  background: var(--danger-soft);
+  color: var(--danger-strong);
   border-radius: 10px;
 }
 @media (max-width: 1100px) {
@@ -478,30 +478,30 @@
   align-items: center;
   padding: 0.3rem 0.55rem;
   border-radius: 7px;
-  background: #f0f3f7;
-  color: #596b80;
+  background: var(--surface-sunken);
+  color: var(--muted);
   font-size: 0.73rem;
   font-weight: 700;
   line-height: 1.35;
 }
 .students-workspace .badge--success,
 .student-dossier .badge--success {
-  background: #e7f6ed;
-  color: #327451;
+  background: var(--success-soft);
+  color: var(--success);
 }
 .students-workspace .badge--warning,
 .student-dossier .badge--warning {
-  background: #fff5df;
-  color: #916921;
+  background: var(--warning-soft);
+  color: var(--warning-strong);
 }
 .students-workspace .badge--danger,
 .student-dossier .badge--danger {
-  background: #ffefec;
-  color: #a34737;
+  background: var(--danger-soft);
+  color: var(--danger-strong);
 }
 .student-dossier .badge--info {
-  background: #edf3ff;
-  color: #3861a4;
+  background: var(--blue-soft);
+  color: var(--blue-strong);
 }
 .students-workspace .student-cell {
   min-width: 180px;

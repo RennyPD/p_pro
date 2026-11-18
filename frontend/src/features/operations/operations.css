@@ -25,8 +25,8 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0.7rem;
-  background: #fff;
-  color: #182338;
+  background: var(--surface);
+  color: var(--ink);
   font: inherit;
   max-width: 100%;
 }
@@ -57,7 +57,7 @@
 .operations-page input:focus-visible,
 .operations-page select:focus-visible,
 .operations-page textarea:focus-visible {
-  outline: 2px solid #4265d5;
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 .task-grid {
@@ -107,7 +107,7 @@
   min-width: 0;
 }
 .agenda-day--today {
-  background: #eef3ff;
+  background: var(--blue-soft);
 }
 .agenda-day > time {
   display: block;
@@ -121,13 +121,13 @@
   gap: 0.15rem;
   width: 100%;
   border: 0;
-  border-left: 3px solid #6284d4;
-  background: #f0f4fc;
+  border-left: 3px solid var(--blue-bright);
+  background: var(--blue-soft);
   text-align: left;
   padding: 0.45rem;
   margin: 0.25rem 0;
   border-radius: 5px;
-  color: #20365e;
+  color: var(--navy-soft);
   cursor: pointer;
   overflow-wrap: anywhere;
 }
@@ -139,17 +139,17 @@
   font-size: 0.7rem;
 }
 .agenda-event--task {
-  border-color: #bb8233;
-  background: #fff6e8;
+  border-color: var(--warning);
+  background: var(--warning-soft);
 }
 .agenda-event--assessment,
 .agenda-event--exam {
-  border-color: #9765c6;
-  background: #f5eefb;
+  border-color: var(--violet);
+  background: var(--blue-soft);
 }
 .agenda-event--holiday {
-  border-color: #639873;
-  background: #edf7ef;
+  border-color: var(--success);
+  background: var(--success-soft);
 }
 .agenda-list article {
   display: grid;

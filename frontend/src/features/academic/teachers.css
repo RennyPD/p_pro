@@ -1,12 +1,12 @@
 .teachers-workspace .student-directory-banner {
-  background: linear-gradient(110deg, #f1f0fb, #f4f8fd);
-  border-color: #e2dff3;
-  color: #504b7f;
+  background: linear-gradient(110deg, var(--blue-soft), var(--bg));
+  border-color: var(--on-dark-muted);
+  color: var(--blue-strong);
 }
 .teachers-workspace .student-initials,
 .teacher-dossier .profile-avatar {
-  background: #eeeafb;
-  color: #62519a;
+  background: var(--blue-soft);
+  color: var(--violet);
 }
 .teachers-workspace .student-cell {
   min-width: 150px;
@@ -15,7 +15,7 @@
   min-width: 180px;
 }
 .teacher-dossier .dossier-hero {
-  background: linear-gradient(120deg, #fff, #f6f4fd);
+  background: linear-gradient(120deg, var(--surface), var(--blue-soft));
 }
 .teacher-period-bar {
   display: flex;
@@ -23,7 +23,7 @@
   justify-content: space-between;
   gap: 1rem;
   margin: 1.3rem 0;
-  color: #5a6c83;
+  color: var(--muted);
   font-size: 0.85rem;
 }
 .teacher-period-bar > div {
@@ -36,8 +36,8 @@
   min-height: 42px;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: #fff;
-  color: #344258;
+  background: var(--surface);
+  color: var(--ink-soft);
   max-width: 320px;
 }
 .teacher-degree {
@@ -47,7 +47,7 @@
   align-items: flex-start;
 }
 .teacher-degree > svg {
-  color: #7463a1;
+  color: var(--violet);
   flex-shrink: 0;
 }
 .teacher-degree p {
@@ -71,7 +71,7 @@
   padding: 1.1rem;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface);
   min-width: 0;
 }
 .teacher-section-heading {
@@ -94,7 +94,7 @@
   padding: 0.8rem 0;
   margin-top: 0.6rem;
   font-size: 0.8rem;
-  color: #526683;
+  color: var(--muted);
 }
 .teacher-section-stats > span {
   display: flex;
@@ -106,7 +106,7 @@
   gap: 0.5rem;
   padding: 0.85rem;
   border-radius: 10px;
-  background: #f6f7fb;
+  background: var(--bg);
   margin: 0.35rem 0 0.5rem;
 }
 .teacher-meetings > div {
@@ -115,7 +115,7 @@
   align-items: center;
   gap: 0.25rem 0.5rem;
   font-size: 0.8rem;
-  color: #526683;
+  color: var(--muted);
 }
 .teacher-meetings small {
   grid-column: 2;

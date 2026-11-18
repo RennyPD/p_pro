@@ -6,7 +6,7 @@
   color: var(--muted);
 }
 .assessment-context strong {
-  color: #344258;
+  color: var(--ink-soft);
 }
 .assessments-page .sr-only {
   position: absolute;
@@ -26,15 +26,15 @@
   padding: 0.7rem 1rem;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--surface, #fff);
-  color: #526683;
+  background: var(--surface, var(--surface));
+  color: var(--muted);
   font: inherit;
   cursor: pointer;
 }
 .assessment-tabs button[aria-pressed="true"] {
-  background: #edf3ff;
-  border-color: #9db4e7;
-  color: #244a9e;
+  background: var(--blue-soft);
+  border-color: var(--blue-line);
+  color: var(--blue-strong);
   font-weight: 700;
 }
 .assessment-reason {
@@ -49,7 +49,7 @@
   max-height: 65vh;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface);
 }
 .assessment-book {
   border-collapse: separate;
@@ -74,18 +74,18 @@
 .assessment-book thead th {
   position: sticky;
   top: 0;
-  background: #f5f7fc;
+  background: var(--bg);
   z-index: 2;
 }
 .assessment-book tr > :first-child {
   position: sticky;
   left: 0;
-  background: #fff;
+  background: var(--surface);
   min-width: 210px;
   z-index: 1;
 }
 .assessment-book thead th:first-child {
-  background: #f5f7fc;
+  background: var(--bg);
   z-index: 3;
 }
 .assessment-grade-input {
@@ -102,10 +102,10 @@
   border-radius: 8px;
   font: inherit;
   color: inherit;
-  background: #fff;
+  background: var(--surface);
 }
 .assessment-grade-input input:disabled {
-  background: #f4f6f9;
+  background: var(--bg);
   color: var(--muted);
 }
 .assessment-actions {

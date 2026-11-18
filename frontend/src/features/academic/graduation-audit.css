@@ -8,22 +8,22 @@
   align-items: center;
   gap: 0.8rem;
   padding: 0.85rem;
-  border: 1px solid #edf0f3;
+  border: 1px solid var(--surface-sunken);
   border-radius: 12px;
 }
 .graduation-list article > svg {
-  color: #a3adba;
+  color: var(--line-dark);
 }
 .graduation-list article.completed > svg {
-  color: #2d9273;
+  color: var(--success);
 }
 .graduation-list article > div {
   display: grid;
 }
 .graduation-list small {
-  color: #718096;
+  color: var(--muted);
 }
 .graduation-list b {
   font-size: 0.8rem;
-  color: #53627a;
+  color: var(--muted);
 }

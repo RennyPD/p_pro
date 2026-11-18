@@ -3,7 +3,7 @@
   align-items: center;
   gap: 0.4rem;
   margin-bottom: 1rem;
-  color: #53627a;
+  color: var(--muted);
   font-size: 0.85rem;
   font-weight: 700;
 }
@@ -17,9 +17,9 @@
   gap: 1.2rem;
   margin-bottom: 1rem;
   padding: 1.5rem;
-  border: 1px solid #e5e9ef;
+  border: 1px solid var(--line);
   border-radius: 18px;
-  background: #fff;
+  background: var(--surface);
 }
 .profile-hero h1,
 .workspace-hero h1 {
@@ -28,7 +28,7 @@
 .profile-hero p,
 .workspace-hero p {
   margin: 0;
-  color: #718096;
+  color: var(--muted);
 }
 .profile-avatar {
   display: grid;
@@ -36,22 +36,22 @@
   width: 70px;
   height: 70px;
   border-radius: 18px;
-  color: #173057;
-  background: #76dfc2;
+  color: var(--navy);
+  background: var(--mint);
   font: 800 1.35rem Manrope;
 }
 .profile-state {
   margin-left: auto;
   border-radius: 999px;
   padding: 0.45rem 0.7rem;
-  color: #8d4b45;
-  background: #fff1f0;
+  color: var(--danger-strong);
+  background: var(--danger-soft);
   font-size: 0.76rem;
   font-weight: 800;
 }
 .profile-state.is-active {
-  color: #27785f;
-  background: #e8f8f2;
+  color: var(--success);
+  background: var(--success-soft);
 }
 .profile-metrics {
   display: grid;
@@ -62,12 +62,12 @@
 .profile-metrics article {
   display: grid;
   padding: 1.2rem;
-  border: 1px solid #e5e9ef;
+  border: 1px solid var(--line);
   border-radius: 16px;
-  background: #fff;
+  background: var(--surface);
 }
 .profile-metrics small {
-  color: #718096;
+  color: var(--muted);
 }
 .profile-metrics strong {
   font: 800 1.8rem Manrope;
@@ -85,11 +85,11 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  color: #566276;
+  color: var(--muted);
 }
 .contact-list svg {
   width: 18px;
-  color: #315fcb;
+  color: var(--blue);
 }
 .course-list {
   display: grid;
@@ -101,43 +101,43 @@
   align-items: center;
   gap: 1rem;
   padding: 0.8rem;
-  border: 1px solid #edf0f3;
+  border: 1px solid var(--surface-sunken);
   border-radius: 12px;
 }
 .course-row div {
   display: grid;
 }
 .course-row small {
-  color: #718096;
+  color: var(--muted);
 }
 .course-row > span {
   display: grid;
-  color: #718096;
+  color: var(--muted);
   font-size: 0.7rem;
 }
 .course-row b {
-  color: #172033;
+  color: var(--ink);
   font-size: 0.9rem;
 }
 .attendance-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid #e5e9ef;
+  border: 1px solid var(--line);
   border-radius: 14px;
   padding: 1rem 1.2rem;
-  background: #fff;
+  background: var(--surface);
 }
 .attendance-card > div:first-child {
   display: grid;
 }
 .attendance-card span {
-  color: #315fcb;
+  color: var(--blue);
   font-size: 0.76rem;
   font-weight: 800;
 }
 .attendance-card small {
-  color: #718096;
+  color: var(--muted);
 }
 .progress-ring {
   --progress: 0%;
@@ -146,7 +146,7 @@
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  background: conic-gradient(#45c7a3 var(--progress), #e7ebef 0);
+  background: conic-gradient(var(--mint) var(--progress), var(--line) 0);
   position: relative;
 }
 .progress-ring:before {
@@ -154,11 +154,11 @@
   position: absolute;
   inset: 6px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
 }
 .progress-ring span {
   position: relative;
-  color: #344258;
+  color: var(--ink-soft);
   font-size: 0.72rem;
 }
 .workspace-hero {
@@ -167,7 +167,7 @@
 .workspace-hero small {
   display: block;
   margin-top: 0.55rem;
-  color: #53627a;
+  color: var(--muted);
 }
 .roster-count {
   display: flex;
@@ -175,8 +175,8 @@
   gap: 0.4rem;
   border-radius: 999px;
   padding: 0.6rem 0.8rem;
-  color: #2855b7;
-  background: #edf2ff;
+  color: var(--blue);
+  background: var(--blue-soft);
   font-size: 0.8rem;
   font-weight: 800;
 }
@@ -199,7 +199,7 @@
 }
 .panel-heading input {
   height: 40px;
-  border: 1px solid #dce2e9;
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
   padding: 0 0.7rem;
 }
@@ -215,7 +215,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem;
-  border: 1px solid #edf0f3;
+  border: 1px solid var(--surface-sunken);
   border-radius: 11px;
 }
 .attendance-row > input {
@@ -228,14 +228,14 @@
   width: 31px;
   height: 31px;
   border-radius: 9px;
-  color: #27785f;
-  background: #e8f8f2;
+  color: var(--success);
+  background: var(--success-soft);
 }
 .attendance-check > span {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #dc7c74;
+  background: var(--danger-line);
 }
 .attendance-check svg {
   width: 18px;
@@ -247,10 +247,10 @@
 }
 .attendance-row small,
 .grade-row small {
-  color: #718096;
+  color: var(--muted);
 }
 .attendance-row > b {
-  color: #53627a;
+  color: var(--muted);
   font-size: 0.75rem;
 }
 .grade-meta {
@@ -261,14 +261,14 @@
 .grade-row input {
   width: 90px;
   height: 40px;
-  border: 1px solid #dce2e9;
+  border: 1px solid var(--line-strong);
   border-radius: 9px;
   padding: 0 0.6rem;
 }
 .grade-row input:focus {
   outline: 0;
-  border-color: #4771cf;
-  box-shadow: 0 0 0 3px #4771cf18;
+  border-color: var(--blue-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue-bright) 9%, transparent);
 }
 @media (max-width: 1000px) {
   .workspace-grid,

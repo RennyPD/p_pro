@@ -25,25 +25,25 @@
   min-width: 0;
 }
 .equivalences-page .form-field :is(input, select, textarea) {
-  color: #344258;
+  color: var(--ink-soft);
   font-weight: 400;
 }
 .equivalences-page .form-field :is(input, select, textarea):focus {
-  border-color: #4771cf;
-  box-shadow: 0 0 0 3px #4771cf18;
+  border-color: var(--blue-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue-bright) 9%, transparent);
 }
 .equivalences-page textarea {
   width: 100%;
   min-height: 100px;
   padding: 0.8rem 0.9rem;
-  border: 1px solid #dce2e9;
+  border: 1px solid var(--line-strong);
   border-radius: 11px;
   background: var(--surface);
   font: inherit;
   resize: vertical;
 }
 .equivalences-page :is(input, select, textarea):disabled {
-  background: #f4f6f8;
+  background: var(--bg);
   color: var(--muted);
 }
 .equivalence-create summary {
@@ -63,7 +63,7 @@
   align-items: center;
   gap: 0.6rem;
   margin: 0.25rem 0;
-  color: #344258;
+  color: var(--ink-soft);
   font-size: 0.88rem;
 }
 .equivalence-check input {
@@ -144,13 +144,13 @@
   font-size: 0.9rem;
 }
 .equivalence-route span {
-  color: #344258;
+  color: var(--ink-soft);
   font-size: 0.88rem;
   line-height: 1.5;
 }
 .equivalence-route > svg {
   width: 19px;
-  color: #8b96a6;
+  color: var(--muted);
 }
 .equivalence-route small,
 .equivalence-history time {
@@ -169,7 +169,7 @@
   margin: 0.25rem 0;
   max-height: 360px;
   overflow: auto;
-  background: #f5f7fc;
+  background: var(--bg);
 }
 .equivalence-impact h3 {
   font-size: 1rem;
@@ -183,7 +183,7 @@
   color: var(--muted);
 }
 .equivalence-notice {
-  color: #53627a;
+  color: var(--muted);
   font-size: 0.88rem;
   line-height: 1.65;
 }
@@ -195,7 +195,7 @@
   padding: 1.5rem;
 }
 .equivalence-history strong {
-  color: #344258;
+  color: var(--ink-soft);
   font-size: 0.88rem;
 }
 .equivalence-history article p {

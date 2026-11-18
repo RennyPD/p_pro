@@ -1,5 +1,5 @@
 :focus-visible {
-  outline: 3px solid #5b86e5;
+  outline: 3px solid var(--blue-bright);
   outline-offset: 3px;
 }
 button:focus-visible,
@@ -7,7 +7,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #5b86e5;
+  outline: 3px solid var(--blue-bright);
   outline-offset: 2px;
 }
 .sidebar-nav {
@@ -20,7 +20,7 @@ textarea:focus-visible {
 }
 .sidebar-nav::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: #ffffff26;
+  background: color-mix(in srgb, var(--surface) 15%, transparent);
 }
 .sidebar__profile {
   flex-shrink: 0;
@@ -41,9 +41,9 @@ textarea:focus-visible {
     --muted: #4d5969;
   }
   .button--primary {
-    background: #163f99;
+    background: var(--blue-strong);
   }
   .sidebar-nav a {
-    color: #dce5f2;
+    color: var(--line-strong);
   }
 }

@@ -14,13 +14,13 @@
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 1.15rem;
-  background: #fff;
+  background: var(--surface);
 }
 .schedule-hour {
   display: grid;
   align-content: center;
   border-right: 1px solid var(--line);
-  color: #315fcb;
+  color: var(--blue);
 }
 .schedule-hour strong {
   font: 800 1.3rem Manrope;
@@ -34,7 +34,7 @@
 }
 .schedule-list-view p {
   margin: 0 0 0.3rem;
-  color: #536174;
+  color: var(--muted);
 }
 .week-grid {
   display: grid;
@@ -47,26 +47,26 @@
   border: 1px solid var(--line);
   border-radius: 15px;
   padding: 0.65rem;
-  background: #f8fafc;
+  background: var(--surface-muted);
 }
 .week-day > header {
   padding: 0.45rem;
   font-weight: 800;
-  color: #42516a;
+  color: var(--ink-soft);
 }
 .week-day article {
   display: grid;
   gap: 0.25rem;
   margin-top: 0.55rem;
-  border-left: 4px solid #45c7a3;
+  border-left: 4px solid var(--mint);
   border-radius: 11px;
   padding: 0.8rem;
-  background: #fff;
-  box-shadow: 0 6px 20px #1720330b;
+  background: var(--surface);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--ink) 4%, transparent);
 }
 .week-day time {
   font-size: 0.72rem;
-  color: #315fcb;
+  color: var(--blue);
   font-weight: 800;
 }
 .week-day span,

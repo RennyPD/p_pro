@@ -1,15 +1,15 @@
 .careers-workspace .student-directory-banner {
-  background: #edf5f6;
-  border-color: #c8e1e2;
-  color: #225e63;
+  background: var(--bg);
+  border-color: var(--line-strong);
+  color: var(--teal);
 }
 .careers-workspace .student-initials {
-  background: #e3f1f0;
-  color: #246863;
+  background: var(--success-soft);
+  color: var(--teal);
 }
 .career-hero {
-  background: linear-gradient(115deg, #eef8f6, #f6f8fc);
-  border-color: #d1e6df;
+  background: linear-gradient(115deg, var(--success-soft), var(--surface-muted));
+  border-color: var(--success-soft);
 }
 .career-emblem {
   width: 76px;
@@ -18,8 +18,8 @@
   place-items: center;
   flex-shrink: 0;
   border-radius: 22px;
-  background: #d9ece7;
-  color: #277060;
+  background: var(--success-soft);
+  color: var(--success);
 }
 .career-narrative {
   white-space: pre-wrap;
@@ -29,7 +29,7 @@
 }
 .career-progress {
   height: 8px;
-  background: #e7eceb;
+  background: var(--surface-sunken);
   border-radius: 8px;
   margin: 20px 0 12px;
   overflow: hidden;
@@ -37,7 +37,7 @@
 .career-progress span {
   display: block;
   height: 100%;
-  background: #3a8874;
+  background: var(--success);
   border-radius: 8px;
 }
 .career-section-toolbar {
@@ -71,14 +71,14 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 24px;
-  background: #eef6f3;
+  background: var(--success-soft);
   padding: 18px 22px;
   border-radius: 12px;
   margin-bottom: 22px;
 }
 .career-plan-summary strong {
   font-size: 21px;
-  color: #286454;
+  color: var(--teal);
 }
 .curriculum-terms {
   display: grid;
@@ -96,7 +96,7 @@
   border-top: 1px solid var(--line);
 }
 .program-courses > div > svg {
-  color: #428473;
+  color: var(--success);
   flex-shrink: 0;
   width: 20px;
 }
@@ -142,7 +142,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #267260;
+  color: var(--success);
   font-size: 12px;
   font-weight: 600;
   margin-top: 20px;
@@ -215,8 +215,8 @@
 }
 
 .career-dossier .dossier-tabs button.is-active {
-  color: #277260;
-  border-bottom-color: #277260;
+  color: var(--success);
+  border-bottom-color: var(--success);
 }
 .career-dossier .dossier-metrics article > span,
 .career-dossier .dossier-metrics small {
@@ -225,8 +225,8 @@
 }
 
 .career-dossier .dossier-tabs button.is-active {
-  color: #277260;
-  border-bottom-color: #277260;
+  color: var(--success);
+  border-bottom-color: var(--success);
 }
 .career-dossier .dossier-metrics article > span,
 .career-dossier .dossier-metrics small {
@@ -264,8 +264,8 @@
 }
 
 .career-remove:hover {
-  background: #fff0ef;
-  color: #a6332b;
+  background: var(--danger-soft);
+  color: var(--danger-strong);
 }
 .program-courses .icon-button {
   flex-shrink: 0;

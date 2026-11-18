@@ -9,14 +9,14 @@
   padding: 0.7rem;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: #fff;
-  color: #24354c;
+  background: var(--surface);
+  color: var(--navy-soft);
   font: inherit;
   max-width: 100%;
 }
 .attendance-page input:focus-visible,
 .attendance-page select:focus-visible {
-  outline: 2px solid #4265d5;
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 .attendance-actions,
@@ -30,7 +30,7 @@
 .attendance-counts span {
   font-size: 0.8rem;
   color: var(--muted);
-  background: #f3f6fa;
+  background: var(--bg);
   padding: 0.4rem 0.6rem;
   border-radius: 8px;
 }
@@ -60,7 +60,7 @@
 .attendance-save {
   margin-top: 1rem;
   padding: 1rem;
-  background: #f3f6fa;
+  background: var(--bg);
   border-radius: 12px;
   display: grid;
   gap: 0.7rem;

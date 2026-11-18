@@ -4,7 +4,7 @@
   align-items: flex-start;
 }
 .bulk-card p {
-  color: #718096;
+  color: var(--muted);
   line-height: 1.6;
 }
 .bulk-card > .button {
@@ -16,8 +16,8 @@
   width: 48px;
   height: 48px;
   border-radius: 13px;
-  color: #315fcb;
-  background: #edf2ff;
+  color: var(--blue);
+  background: var(--blue-soft);
 }
 .file-picker {
   display: flex;
@@ -26,10 +26,10 @@
   width: 100%;
   margin: 1rem 0;
   padding: 0.8rem;
-  border: 1px dashed #aab9d7;
+  border: 1px dashed var(--blue-line);
   border-radius: 11px;
-  color: #53627a;
-  background: #f8faff;
+  color: var(--muted);
+  background: var(--surface-muted);
   cursor: pointer;
 }
 .file-picker svg {
@@ -48,10 +48,10 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border: 1px solid #f1d69b;
+  border: 1px solid var(--warning-line);
   border-radius: 11px;
-  color: #845a0a;
-  background: #fff9e9;
+  color: var(--warning-strong);
+  background: var(--warning-soft);
   font-size: 0.84rem;
 }
 .dashboard-alerts svg {

@@ -1,34 +1,34 @@
 .alert-cases > .panel-heading select {
   padding: 0.6rem 0.8rem;
-  border: 1px solid #dce2e9;
+  border: 1px solid var(--line-strong);
   border-radius: 9px;
-  background: #fff;
+  background: var(--surface);
 }
 .resolution-note {
   padding: 0.7rem;
   border-radius: 9px;
-  background: #f0f7f4;
-  color: #285c46;
+  background: var(--bg);
+  color: var(--success);
 }
 .intervention-history {
   display: grid;
   gap: 0.5rem;
   margin-top: 0.8rem;
   padding-top: 0.8rem;
-  border-top: 1px solid #e4e8ed;
+  border-top: 1px solid var(--line);
 }
 .intervention-history > div {
   padding: 0.7rem;
   border-radius: 9px;
-  background: #fff;
-  border: 1px solid #e8ebef;
+  background: var(--surface);
+  border: 1px solid var(--line);
 }
 .intervention-history > div strong {
   text-transform: capitalize;
 }
 .intervention-history > div small {
   float: right;
-  color: #718096;
+  color: var(--muted);
 }
 .intervention-history > div p {
   margin: 0.35rem 0 0;

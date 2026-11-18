@@ -13,10 +13,10 @@
   gap: 0.75rem;
   margin: 1rem 0;
   padding: 1rem;
-  border: 1px solid #dce5ff;
+  border: 1px solid var(--on-dark-muted);
   border-radius: 12px;
-  color: #315fcb;
-  background: #f4f7ff;
+  color: var(--blue);
+  background: var(--bg);
 }
 .enrollment-preview svg {
   width: 24px;
@@ -25,7 +25,7 @@
   display: grid;
 }
 .enrollment-preview small {
-  color: #718096;
+  color: var(--muted);
 }
 .enrollment-preview strong {
   font: 800 1.1rem Manrope;
@@ -34,7 +34,7 @@
   padding: 1rem;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #f5f7fc;
+  background: var(--bg);
   font-size: 0.88rem;
   line-height: 1.6;
 }
@@ -83,8 +83,8 @@
   line-height: 1.6;
 }
 .settings-hub .setting-card:hover {
-  border-color: #9db4e7;
-  background: #fafcff;
+  border-color: var(--blue-line);
+  background: var(--surface-muted);
 }
 .workspace-switch > div {
   min-width: 0;

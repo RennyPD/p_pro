@@ -19,17 +19,17 @@
   z-index: 2;
   width: 118px;
   min-width: 118px;
-  background: #fff;
-  box-shadow: -10px 0 16px -16px #17203399;
+  background: var(--surface);
+  box-shadow: -10px 0 16px -16px color-mix(in srgb, var(--ink) 60%, transparent);
 }
 
 .resource-table th.table-actions {
   z-index: 3;
-  background: #fafbfc;
+  background: var(--surface-muted);
 }
 
 .resource-table tbody tr:hover .table-actions {
-  background: #fafcff;
+  background: var(--surface-muted);
 }
 
 .resource-table .row-actions {
@@ -90,8 +90,8 @@
     padding: 0.75rem;
     border: 1px solid var(--line);
     border-radius: 14px;
-    background: #fff;
-    box-shadow: 0 6px 20px #17203308;
+    background: var(--surface);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--ink) 3%, transparent);
   }
 
   .resource-table td {
@@ -106,7 +106,7 @@
 
   .resource-table td::before {
     content: attr(data-label);
-    color: #7d8897;
+    color: var(--muted);
     font-size: 0.63rem;
     font-weight: 800;
     letter-spacing: 0.045em;
@@ -124,7 +124,7 @@
     min-width: 0;
     margin-top: 0.35rem;
     padding-top: 0.65rem;
-    border-top: 1px solid #edf0f3;
+    border-top: 1px solid var(--surface-sunken);
     background: transparent;
     box-shadow: none;
   }

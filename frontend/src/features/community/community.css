@@ -11,7 +11,7 @@
 .communication-compose textarea {
   min-height: 100px;
   resize: vertical;
-  border: 1px solid #dce2e9;
+  border: 1px solid var(--line-strong);
   border-radius: 11px;
   padding: 0.8rem;
   font: inherit;
@@ -28,11 +28,11 @@
   grid-template-columns: auto 1fr auto;
   gap: 1rem;
   align-items: start;
-  border: 1px solid #dce6f5;
+  border: 1px solid var(--on-dark-muted);
   border-radius: 16px;
   padding: 1.2rem;
-  background: #fff;
-  box-shadow: 0 8px 24px #17203308;
+  background: var(--surface);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 3%, transparent);
 }
 .notification-card.is-read {
   opacity: 0.72;
@@ -44,8 +44,8 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  color: #315fcb;
-  background: #edf2ff;
+  color: var(--blue);
+  background: var(--blue-soft);
 }
 .notification-card small {
   color: var(--muted);
@@ -55,7 +55,7 @@
 }
 .notification-card p {
   margin: 0;
-  color: #536174;
+  color: var(--muted);
   line-height: 1.55;
 }
 @media (max-width: 760px) {
@@ -105,15 +105,15 @@
   padding: 0.7rem 1rem;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fff;
-  color: #526683;
+  background: var(--surface);
+  color: var(--muted);
   font: inherit;
   cursor: pointer;
 }
 .community-tabs button[aria-pressed="true"] {
-  background: #edf3ff;
-  border-color: #9db4e7;
-  color: #244a9e;
+  background: var(--blue-soft);
+  border-color: var(--blue-line);
+  color: var(--blue-strong);
   font-weight: 700;
 }
 .communication-wide {
@@ -123,7 +123,7 @@
   padding: 1rem;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #f5f7fc;
+  background: var(--bg);
 }
 .communication-preview p {
   margin: 0.5rem 0;
