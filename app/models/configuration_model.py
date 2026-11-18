@@ -38,7 +38,13 @@ class InstitutionSettings(Base):
     revision: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 
-class GovernanceControl(Base):
-    __tablename__ = "governance_control"
-    governance_control_id: Mapped[int] = mapped_column(primary_key=True)
-    version: Mapped[int] = mapped_column(Integer, default=0)
+class WriteLock(Base):
+    """One row per serialized write domain (audit M7).
+
+    Keys look like ``global:academic``; the prefix becomes the institution
+    when Nexo turns multi-tenant, so locks never cross institutions.
+    """
+
+    __tablename__ = "write_locks"
+    lock_key: Mapped[str] = mapped_column(String(120), primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

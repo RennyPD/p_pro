@@ -12,8 +12,9 @@ from app.models.subject_model import Subject
 from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.pagination import page_query
-from app.services.governance_workflow import lock_governance, record
+from app.services.governance_workflow import record
 from app.services.role_service import SYSTEM_ROLES
+from app.services.write_locks import lock_access
 
 router = APIRouter(prefix="/module-views", tags=["read-only modules"])
 MODULES = {
@@ -114,7 +115,7 @@ def update_modules(
     db: Session = Depends(get_db),
     actor: User = Depends(require_permissions("access.manage", fallback_roles=("admin",))),
 ):
-    lock_governance(db)
+    lock_access(db)
     account_modules(user_id, db, actor)
     selected = set(data.modules)
     if selected.difference(MODULES):

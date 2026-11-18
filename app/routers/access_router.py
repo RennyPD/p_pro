@@ -12,7 +12,8 @@ from app.db.Session import get_db
 from app.models.access_model import Permission, RolePermission
 from app.models.role_model import Role
 from app.models.user_model import User
-from app.services.governance_workflow import history, lock_governance, record
+from app.services.governance_workflow import history, record
+from app.services.write_locks import lock_access
 
 router = APIRouter(prefix="/access", tags=["access control"])
 access_manager = require_permissions("access.manage", fallback_roles=("admin",))
@@ -38,7 +39,7 @@ def permissions(db: Session = Depends(get_db)):
 def create_permission(
     data: PermissionCreate, db: Session = Depends(get_db), user: User = Depends(access_manager)
 ):
-    lock_governance(db)
+    lock_access(db)
     item = Permission(**data.model_dump())
     db.add(item)
     db.flush()
@@ -57,7 +58,7 @@ def set_role_permissions(
     db: Session = Depends(get_db),
     user: User = Depends(access_manager),
 ):
-    lock_governance(db)
+    lock_access(db)
     role = db.get(Role, role_id)
     if role is None:
         raise HTTPException(status_code=404, detail="Rol no encontrado")

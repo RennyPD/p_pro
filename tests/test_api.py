@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from app.db.database import Base
 from app.db.Session import get_db
 from app.models import *  # noqa: F403 - registers all tables
+from app.models.configuration_model import WriteLock
 from main import app
 from scripts.seed_demo import seed_demo
 from scripts.seed_guardian_portal import seed_guardians
@@ -3150,7 +3151,8 @@ class ApiIntegrationTests(unittest.TestCase):
         )
         with self.Session() as db:
             self.assertEqual(db.query(StudentAccount).count(), 0)
-            self.assertEqual(db.query(FinanceControl).count(), 0)
+            # Reads take no write lock.
+            self.assertEqual(db.query(WriteLock).count(), 0)
 
     def test_communications_scoped_preview_delivery_retry_and_read_provenance(self):
         tokens, section = self.task_fixture()

@@ -1,34 +1,14 @@
 """Serialized administrative actions and audit without invented legacy history."""
 
-from sqlalchemy import update
-
-from app.models.configuration_model import GovernanceControl
 from app.models.security_model import AuditLog
 from app.models.user_model import User
 from app.services.academic_grading import audit_event
+from app.services.write_locks import lock_scope
 
 
 def lock_governance(db):
-    dialect = db.get_bind().dialect.name
-    if dialect in {"sqlite", "postgresql"}:
-        if dialect == "sqlite":
-            from sqlalchemy.dialects.sqlite import insert
-        else:
-            from sqlalchemy.dialects.postgresql import insert
-        db.execute(
-            insert(GovernanceControl)
-            .values(governance_control_id=1, version=0)
-            .on_conflict_do_nothing()
-        )
-    elif db.get(GovernanceControl, 1) is None:
-        db.add(GovernanceControl(governance_control_id=1, version=0))
-        db.flush()
-    db.execute(
-        update(GovernanceControl)
-        .where(GovernanceControl.governance_control_id == 1)
-        .values(version=GovernanceControl.version + 1)
-    )
-    db.expire_all()
+    """Academic write domain (see app/services/write_locks.py)."""
+    lock_scope(db, "academic")
 
 
 def record(db, user, action, resource, detail):

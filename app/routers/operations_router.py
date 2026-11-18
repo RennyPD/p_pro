@@ -256,10 +256,11 @@ def alerts(db: Session = Depends(get_db), user: User = Depends(get_current_user)
     ids = student_scope_ids(db, user)
     if ids is not None:
         query = query.filter(EarlyAlert.student_id.in_(ids))
+    # One joined query instead of one student lookup per alert (audit M8).
     result = []
-    for item in query.order_by(EarlyAlert.created_at.desc()):
+    rows = query.join(Student, Student.student_id == EarlyAlert.student_id).add_entity(Student)
+    for item, student in rows.order_by(EarlyAlert.created_at.desc()):
         value = AlertOut.model_validate(item)
-        student = db.get(Student, item.student_id)
         value.student_name, value.enrollment_number = student.full_name, student.enrollment_number
         result.append(value)
     return result

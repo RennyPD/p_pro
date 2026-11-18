@@ -6,12 +6,12 @@ from datetime import UTC, date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import HTTPException
-from sqlalchemy import update
 
-from app.models.finance_model import FinanceControl, FinanceEvent, Payment, StudentAccount
+from app.models.finance_model import FinanceEvent, Payment, StudentAccount
 from app.models.student_model import Student
 from app.schemas.finance_schema import FinanceTransaction, StudentFinanceSummary
 from app.services.business_time import business_date as business_date
+from app.services.write_locks import lock_scope
 
 CREDIT_KINDS = {"discount", "scholarship", "credit"}
 
@@ -25,7 +25,8 @@ def cents(value):
 
 
 def money(value):
-    return value / 100
+    """Integer cents to an exact Decimal amount."""
+    return (Decimal(int(value)) / 100).quantize(Decimal("0.01"))
 
 
 def active(item):
@@ -38,15 +39,27 @@ def credits(account):
     )
 
 
+def empty_account(student):
+    """Unsaved account with default terms; reads never persist accounts."""
+    return StudentAccount(
+        student_id=student.student_id,
+        student=student,
+        cutoff_day=15,
+        due_day=30,
+        ledger_version=0,
+        charges=[],
+        payments=[],
+        adjustments=[],
+    )
+
+
 def get_account(db, student_id, write=False):
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(404, "Estudiante no encontrado")
     account = db.query(StudentAccount).filter_by(student_id=student_id).first()
     if account is None:
-        account = StudentAccount(
-            student_id=student_id, student=student, cutoff_day=15, due_day=30, ledger_version=0
-        )
+        account = empty_account(student)
         if write:
             db.add(account)
             db.flush()
@@ -54,17 +67,8 @@ def get_account(db, student_id, write=False):
 
 
 def lock_finance(db):
-    # Serializes posting, approval, reversal and closing in SQLite and row-locking DBs.
-    control = db.get(FinanceControl, 1)
-    if control is None:
-        db.add(FinanceControl(finance_control_id=1, version=0))
-        db.flush()
-    db.execute(
-        update(FinanceControl)
-        .where(FinanceControl.finance_control_id == 1)
-        .values(version=FinanceControl.version + 1)
-    )
-    db.expire_all()
+    # Serializes posting, approval, reversal and closing (see write_locks.py).
+    lock_scope(db, "finance")
 
 
 def writable_account(db, student_id):

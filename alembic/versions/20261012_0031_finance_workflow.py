@@ -55,9 +55,17 @@ def upgrade():
                     batch.create_foreign_key(f"fk_{table}_{field}", "users", [field], ["user_id"])
             if table == "payments":
                 batch.create_unique_constraint("uq_payment_idempotency", ["idempotency_key"])
-    from app.models.finance_model import FinanceControl, FinanceEvent, TransferRequest
+    from app.models.finance_model import FinanceEvent, TransferRequest
 
-    for table in (TransferRequest.__table__, FinanceEvent.__table__, FinanceControl.__table__):
+    # Defined inline: the model was removed when keyed write locks replaced it.
+    finance_control = sa.Table(
+        "finance_control",
+        sa.MetaData(),
+        sa.Column("finance_control_id", sa.Integer(), primary_key=True),
+        sa.Column("version", sa.Integer()),
+    )
+
+    for table in (TransferRequest.__table__, FinanceEvent.__table__, finance_control):
         table.create(op.get_bind())
     op.execute(sa.text("INSERT INTO finance_control (finance_control_id, version) VALUES (1,0)"))
     # Legacy plans retain their initial paid flags; only subsequent credits enter new tracking.

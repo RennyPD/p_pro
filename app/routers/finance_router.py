@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.auth import (
     FINANCE_SCOPE,
@@ -44,7 +44,7 @@ from app.schemas.finance_schema import (
     TransferCreate,
     TransferReview,
 )
-from app.services.business_time import INSTITUTION_TIME_ZONE
+from app.services.business_time import INSTITUTION_TIME_ZONE, business_day_utc_range
 from app.services.finance_workflow import (
     CREDIT_KINDS,
     add_months,
@@ -52,6 +52,7 @@ from app.services.finance_workflow import (
     cents,
     check_open_day,
     credits,
+    empty_account,
     event,
     get_account,
     lock_finance,
@@ -99,16 +100,29 @@ def options(user: User = Depends(get_current_user)):
     dependencies=[Depends(finance_manager)],
 )
 def list_accounts(db: Session = Depends(get_db)):
-    return [
-        FinanceAccountListItem(
-            student_id=s.student_id,
-            enrollment_number=s.enrollment_number,
-            student_name=s.full_name,
-            balance=(value := summary(get_account(db, s.student_id))).balance,
-            overdue_balance=value.overdue_balance,
+    # Constant number of queries regardless of the number of students (audit M8).
+    accounts = {
+        account.student_id: account
+        for account in db.query(StudentAccount).options(
+            selectinload(StudentAccount.charges),
+            selectinload(StudentAccount.payments),
+            selectinload(StudentAccount.adjustments),
         )
-        for s in db.query(Student).order_by(Student.enrollment_number)
-    ]
+    }
+    items = []
+    for student in db.query(Student).order_by(Student.enrollment_number):
+        account = accounts.get(student.student_id) or empty_account(student)
+        value = summary(account)
+        items.append(
+            FinanceAccountListItem(
+                student_id=student.student_id,
+                enrollment_number=student.enrollment_number,
+                student_name=student.full_name,
+                balance=value.balance,
+                overdue_balance=value.overdue_balance,
+            )
+        )
+    return items
 
 
 @router.get("/students/{student_id}", response_model=StudentFinanceSummary)
@@ -627,11 +641,12 @@ def close_cash_day(
     if closing_date > business_date():
         raise HTTPException(422, "No puedes cerrar una fecha futura")
     check_open_day(db, closing_date)
-    payments = [
-        p
-        for p in db.query(Payment).all()
-        if business_date(p.paid_at) == closing_date and p.status == "posted"
-    ]
+    start, end = business_day_utc_range(closing_date)
+    payments = (
+        db.query(Payment)
+        .filter(Payment.paid_at >= start, Payment.paid_at < end, Payment.status == "posted")
+        .all()
+    )
     item = CashClosing(
         closing_date=closing_date,
         total_payments=money(sum(cents(p.amount) for p in payments)),

@@ -9,13 +9,13 @@ from app.repositories.role_repository import (
     update_role,
 )
 from app.schemas.role_schema import RoleCreate, RoleUpdate
-from app.services.governance_workflow import lock_governance
+from app.services.write_locks import lock_access
 
 SYSTEM_ROLES = {"admin", "teacher", "student", "guardian"}
 
 
 def create_role_service(db: Session, role_data: RoleCreate):
-    lock_governance(db)
+    lock_access(db)
     code = role_data.name.strip().casefold()
     if not code or len(code) > 50:
         raise HTTPException(422, "Escribe un código de rol de 1 a 50 caracteres")
@@ -43,7 +43,7 @@ def get_role_by_id_service(db: Session, role_id: int):
 
 
 def update_role_service(db: Session, role_id: int, role_data: RoleUpdate):
-    lock_governance(db)
+    lock_access(db)
     current = get_role_by_id_service(db, role_id)
     if "name" in role_data.model_fields_set and role_data.name != current.name:
         raise HTTPException(409, "El código del rol es fijo. Cambia su etiqueta visible")
@@ -58,7 +58,7 @@ def update_role_service(db: Session, role_id: int, role_data: RoleUpdate):
 
 
 def delete_role_service(db: Session, role_id: int):
-    lock_governance(db)
+    lock_access(db)
     current = get_role_by_id_service(db, role_id)
     if current.name.casefold() in SYSTEM_ROLES or current.users:
         raise HTTPException(

@@ -10,13 +10,14 @@ from app.models.user_model import User
 from app.pagination import page_query
 from app.schemas.user_schema import UserCreate, UserOut, UserPasswordReset, UserUpdate
 from app.services.account_sessions import lock_account, revoke_account_sessions
-from app.services.governance_workflow import lock_governance, record
+from app.services.governance_workflow import record
 from app.services.user_services import (
     create_user_service,
     delete_user_service,
     get_user_by_id_service,
     update_user_service,
 )
+from app.services.write_locks import lock_access
 
 router = APIRouter(prefix="/users", tags=["users"])
 access_manager = require_permissions("access.manage", fallback_roles=("admin",))
@@ -26,7 +27,7 @@ access_manager = require_permissions("access.manage", fallback_roles=("admin",))
 def create_user(
     user_data: UserCreate, db: Session = Depends(get_db), actor: User = Depends(access_manager)
 ):
-    lock_governance(db)
+    lock_access(db)
     ensure_role_within_actor(db, actor, user_data.role_id)
     return create_user_service(db, user_data)
 
@@ -67,7 +68,7 @@ def update_user(
     db: Session = Depends(get_db),
     actor: User = Depends(access_manager),
 ):
-    lock_governance(db)
+    lock_access(db)
     target = managed_target(db, actor, user_id)
     if "role_id" in user_data.model_fields_set:
         if user_data.role_id is None:
@@ -90,7 +91,7 @@ def update_user(
 
 @router.delete("/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db), actor: User = Depends(access_manager)):
-    lock_governance(db)
+    lock_access(db)
     if user_id == actor.user_id:
         raise HTTPException(409, "No puedes eliminar tu propia cuenta administrativa")
     managed_target(db, actor, user_id)
@@ -117,7 +118,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db), actor: User = Depen
 def deactivate_user(
     user_id: int, db: Session = Depends(get_db), actor: User = Depends(access_manager)
 ):
-    lock_governance(db)
+    lock_access(db)
     if user_id == actor.user_id:
         raise HTTPException(409, "No puedes desactivar tu propia cuenta")
     target = managed_target(db, actor, user_id)
@@ -142,7 +143,7 @@ def deactivate_user(
 def activate_user(
     user_id: int, db: Session = Depends(get_db), actor: User = Depends(access_manager)
 ):
-    lock_governance(db)
+    lock_access(db)
     target = managed_target(db, actor, user_id)
     if not target.active:
         target.active = True
@@ -159,7 +160,7 @@ def reset_user_password(
     db: Session = Depends(get_db),
     actor: User = Depends(access_manager),
 ):
-    lock_governance(db)
+    lock_access(db)
     managed_target(db, actor, user_id)
     record(db, actor, "user.password.reset", f"user:{user_id}", "Restablecimiento administrativo")
     update_user_service(db, user_id, UserUpdate(password=data.password))
