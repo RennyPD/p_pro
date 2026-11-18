@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, is_admin
+from app.auth import ACADEMIC_SCOPE, get_current_user, has_scope
 from app.db.Session import get_db
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.enrollment_model import Enrollment
@@ -23,7 +23,7 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
     alerts = []
     if active_period is None:
         alerts.append("No hay un período académico activo")
-    if is_admin(user):
+    if has_scope(user, *ACADEMIC_SCOPE):
         metrics = [
             DashboardMetric(
                 key="students",

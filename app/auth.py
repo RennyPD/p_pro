@@ -1,9 +1,10 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from app.db.Session import get_db
 from app.models.access_model import Permission, RolePermission
+from app.models.community_model import StudentGuardian
 from app.models.enrollment_model import Enrollment
 from app.models.role_model import Role
 from app.models.section_model import Section
@@ -115,12 +116,8 @@ def require_permissions(
     ) -> User:
         # Institutional administration is not a teaching capability, even when
         # an older role still carries the broad academic.manage grant.
-        if (institutional or "academic.manage" in required) and (
-            current_user.role.name.casefold() in {"teacher", "student", "guardian"}
-            or (
-                not is_admin(current_user)
-                and (current_user.teacher_id is not None or current_user.student_id is not None)
-            )
+        if (institutional or "academic.manage" in required) and not institutional_profile(
+            current_user
         ):
             raise HTTPException(
                 status_code=403,
@@ -143,17 +140,95 @@ def require_permissions(
     return dependency
 
 
+# Grants that open institution-wide reads. Accounts without them only see what
+# their link (own student record, assigned sections, guardian children) allows.
+ACADEMIC_SCOPE = ("academic.manage", "reports.view")
+FINANCE_SCOPE = ("finance.manage", "reports.view")
+DIRECTORY_SCOPE = ("academic.manage", "reports.view", "finance.manage")
+_PERMISSION_CACHE = "_nexo_permission_slugs"
+
+
 def is_admin(user: User) -> bool:
+    """Name of the built-in system administrator role.
+
+    Do not use it to decide data access (CLAUDE.md, rule 3): use has_scope or
+    require_permissions. It only identifies the protected built-in role.
+    """
     return user.role.name.casefold() == "admin"
 
 
-def ensure_student_access(user: User, student_id: int) -> None:
-    if not is_admin(user) and user.student_id != student_id:
-        raise HTTPException(status_code=403, detail="You can only access your own student record")
+def institutional_profile(user: User) -> bool:
+    """Accounts tied to a teacher, student or guardian are scoped to that person."""
+    if user.role.name.casefold() in {"teacher", "student", "guardian"}:
+        return False
+    if user.student_id is not None or user.guardian_id is not None:
+        return False
+    return user.teacher_id is None or is_admin(user)
+
+
+def user_permission_slugs(user: User) -> frozenset[str]:
+    cached = user.__dict__.get(_PERMISSION_CACHE)
+    if cached is None:
+        db = object_session(user)
+        cached = frozenset(role_permission_slugs(db, user.role_id)) if db else frozenset()
+        user.__dict__[_PERMISSION_CACHE] = cached
+    return cached
+
+
+def _legacy_admin(user: User) -> bool:
+    # Same fallback as require_permissions: installations that never configured
+    # permissions keep the built-in administrator operable.
+    db = object_session(user)
+    return (
+        db is not None
+        and is_admin(user)
+        and not user_permission_slugs(user)
+        and db.query(Permission.permission_id).first() is None
+    )
+
+
+def has_scope(user: User, *grants: str) -> bool:
+    """True when the account holds institution-wide reach through one of `grants`."""
+    if not institutional_profile(user):
+        return False
+    slugs = user_permission_slugs(user)
+    if slugs & set(grants):
+        return True
+    return not slugs and _legacy_admin(user)
+
+
+def guardian_student_ids(db: Session, user: User) -> list[int]:
+    if user.guardian_id is None:
+        return []
+    return [
+        row[0]
+        for row in db.query(StudentGuardian.student_id).filter(
+            StudentGuardian.guardian_id == user.guardian_id
+        )
+    ]
+
+
+def ensure_student_access(
+    user: User, student_id: int, grants: tuple[str, ...] = ACADEMIC_SCOPE
+) -> None:
+    if user.student_id == student_id or has_scope(user, *grants):
+        return
+    raise HTTPException(status_code=403, detail="Solo puedes consultar tu propio expediente")
+
+
+def ensure_student_document_access(
+    db: Session, user: User, student_id: int, grants: tuple[str, ...] = ACADEMIC_SCOPE
+) -> None:
+    """Own record, linked guardian, or institutional scope for the document's area."""
+    if user.student_id == student_id or has_scope(user, *grants):
+        return
+    if student_id in guardian_student_ids(db, user):
+        return
+    raise HTTPException(status_code=403, detail="Este documento está fuera del ámbito de tu cuenta")
 
 
 def ensure_student_academic_access(db: Session, user: User, student_id: int) -> None:
-    if is_admin(user) or user.student_id == student_id:
+    if user.student_id == student_id or has_scope(user, *ACADEMIC_SCOPE):
         return
     if user.teacher_id is not None:
         match = (
@@ -167,12 +242,13 @@ def ensure_student_academic_access(db: Session, user: User, student_id: int) -> 
         )
         if match:
             return
-    raise HTTPException(status_code=403, detail="Student access is outside your academic scope")
+    raise HTTPException(status_code=403, detail="El estudiante está fuera de tu ámbito académico")
 
 
 def ensure_teacher_access(user: User, teacher_id: int) -> None:
-    if not is_admin(user) and user.teacher_id != teacher_id:
-        raise HTTPException(status_code=403, detail="You can only access your own teacher record")
+    if user.teacher_id == teacher_id or has_scope(user, *ACADEMIC_SCOPE):
+        return
+    raise HTTPException(status_code=403, detail="Solo puedes consultar tu propio perfil docente")
 
 
 def ensure_section_access(
@@ -180,8 +256,10 @@ def ensure_section_access(
 ) -> Section:
     section = db.get(Section, section_id)
     if section is None:
-        raise HTTPException(status_code=404, detail="Section not found")
-    if is_admin(user) or user.teacher_id == section.teacher_id:
+        raise HTTPException(status_code=404, detail="Sección no encontrada")
+    if user.teacher_id == section.teacher_id and user.teacher_id is not None:
+        return section
+    if has_scope(user, *ACADEMIC_SCOPE):
         return section
     if allow_student and user.student_id is not None:
         enrolled = (
@@ -194,17 +272,17 @@ def ensure_section_access(
         )
         if enrolled:
             return section
-    raise HTTPException(status_code=403, detail="Section access is outside your academic scope")
+    raise HTTPException(status_code=403, detail="La sección está fuera de tu ámbito académico")
 
 
 def ensure_enrollment_access(db: Session, user: User, enrollment_id: int) -> Enrollment:
     enrollment = db.get(Enrollment, enrollment_id)
     if enrollment is None:
-        raise HTTPException(status_code=404, detail="Enrollment not found")
+        raise HTTPException(status_code=404, detail="Inscripción no encontrada")
     if (
-        is_admin(user)
-        or user.student_id == enrollment.student_id
-        or user.teacher_id == enrollment.section.teacher_id
+        user.student_id == enrollment.student_id
+        or (user.teacher_id is not None and user.teacher_id == enrollment.section.teacher_id)
+        or has_scope(user, *ACADEMIC_SCOPE)
     ):
         return enrollment
-    raise HTTPException(status_code=403, detail="Enrollment access is outside your academic scope")
+    raise HTTPException(status_code=403, detail="La inscripción está fuera de tu ámbito académico")

@@ -10,9 +10,7 @@ from app.services.academic_grading import academic_result
 def current_courses(db, student):
     return (
         db.query(CurriculumCourse)
-        .filter_by(
-            career_id=student.career_id, curriculum_version=student.curriculum_version
-        )
+        .filter_by(career_id=student.career_id, curriculum_version=student.curriculum_version)
         .order_by(CurriculumCourse.term_number, CurriculumCourse.curriculum_course_id)
         .all()
     )

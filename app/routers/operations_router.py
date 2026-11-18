@@ -7,10 +7,11 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.auth import (
+    ACADEMIC_SCOPE,
     ensure_section_access,
     ensure_student_academic_access,
     get_current_user,
-    is_admin,
+    has_scope,
     require_permissions,
     require_roles,
 )
@@ -79,7 +80,7 @@ operations_admin = require_permissions(
 
 
 def student_scope_ids(db: Session, user: User) -> list[int] | None:
-    if is_admin(user):
+    if has_scope(user, *ACADEMIC_SCOPE):
         return None
     if user.student_id:
         return [user.student_id]
@@ -105,7 +106,7 @@ def student_scope_ids(db: Session, user: User) -> list[int] | None:
 def calendar(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     query = db.query(CalendarEvent)
     role = user.role.name.casefold()
-    if not is_admin(user):
+    if not has_scope(user, *ACADEMIC_SCOPE):
         query = query.filter(
             ((CalendarEvent.audience.in_(["all", role])) & CalendarEvent.section_id.is_(None))
             | (
@@ -122,9 +123,9 @@ def create_event(
     db: Session = Depends(get_db),
     user: User = Depends(operations_manager),
 ):
-    if not is_admin(user):
+    if not has_scope(user, "academic.manage", "operations.manage"):
         if data.audience != "section":
-            raise HTTPException(status_code=403, detail="Teachers can only create section events")
+            raise HTTPException(403, "Solo puedes crear eventos para tus secciones")
         ensure_section_access(db, user, data.section_id or 0)
     if data.section_id:
         ensure_section_access(db, user, data.section_id)
@@ -149,7 +150,7 @@ def edit_event(
     item = db.get(CalendarEvent, event_id)
     if not item:
         raise HTTPException(404, "Evento no disponible")
-    if not is_admin(user):
+    if not has_scope(user, "academic.manage", "operations.manage"):
         if item.audience != "section" or data.audience != "section":
             raise HTTPException(403, "Solo puedes editar eventos de tus secciones")
         ensure_section_access(db, user, item.section_id)
@@ -172,7 +173,7 @@ def lesson_plans(
     user: User = Depends(operations_manager),
 ):
     query = db.query(LessonPlan)
-    if not is_admin(user):
+    if not has_scope(user, *ACADEMIC_SCOPE):
         query = query.filter(LessonPlan.teacher_id == user.teacher_id)
     if section_id:
         query = query.filter(LessonPlan.section_id == section_id)
@@ -209,7 +210,7 @@ def writable_lesson_plan(db, user, plan_id):
     if item is None:
         raise HTTPException(404, "No se encontró el plan de clase")
     section = ensure_section_access(db, user, item.section_id)
-    if not is_admin(user) and item.teacher_id != user.teacher_id:
+    if not has_scope(user, "academic.manage") and item.teacher_id != user.teacher_id:
         raise HTTPException(403, "El plan pertenece a otro docente")
     if section.status in {"closed", "cancelled"} or item.status != "planned":
         raise HTTPException(409, "Solo se puede cambiar un plan programado en una sección abierta")
@@ -270,10 +271,8 @@ def alert_assignees(
 ):
     ensure_student_academic_access(db, user, student_id)
     result = []
-    for candidate in (
-        db.query(User)
-        .join(User.role)
-        .filter(User.role.has(name="admin") | User.role.has(name="teacher"))
+    for candidate in db.query(User).filter(
+        User.active.is_(True), User.student_id.is_(None), User.guardian_id.is_(None)
     ):
         try:
             ensure_student_academic_access(db, candidate, student_id)
@@ -769,7 +768,7 @@ def ensure_approval_resource(db, user, data):
         task = db.get(Assignment, resource.assignment_id) if resource else None
         if task is None:
             allowed = False
-        elif is_admin(user):
+        elif has_scope(user, *ACADEMIC_SCOPE):
             allowed = True
         elif user.teacher_id:
             allowed = db.get(Section, task.section_id).teacher_id == user.teacher_id

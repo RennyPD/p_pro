@@ -5,7 +5,7 @@ from app.auth import (
     ensure_enrollment_access,
     ensure_section_access,
     get_current_user,
-    is_admin,
+    has_scope,
     require_permissions,
 )
 from app.db.Session import get_db
@@ -220,8 +220,8 @@ def reopen_assessment(
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
-    if not is_admin(user):
-        raise HTTPException(status_code=403, detail="Only an admin can reopen an assessment")
+    if not has_scope(user, "academic.manage"):
+        raise HTTPException(403, "Solo la administración académica puede reabrir una evaluación")
     ensure_grading_open(db, assessment.section, allow_closed_section=True)
     if assessment.section.status == "closed":
         assessment.section.status = "active"
@@ -323,7 +323,9 @@ def update_distribution(
 
 def can_use_plan(db: Session, user: User, template: AssessmentTemplate):
     owner = db.get(User, template.owner_id)
-    return template.owner_id == user.user_id or (owner is not None and is_admin(owner))
+    return template.owner_id == user.user_id or (
+        owner is not None and has_scope(owner, "academic.manage")
+    )
 
 
 @router.get("/plans/templates", response_model=list[PlanTemplateOut])

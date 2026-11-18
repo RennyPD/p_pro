@@ -1,7 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_student_academic_access, get_current_user, is_admin, require_permissions
+from app.auth import (
+    DIRECTORY_SCOPE,
+    ensure_student_academic_access,
+    get_current_user,
+    has_scope,
+    require_permissions,
+)
 from app.db.Session import get_db
 from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
@@ -47,7 +53,7 @@ def get_students(
         query = query.filter(Student.financial_hold.is_(True))
     elif hold == "clear":
         query = query.filter(Student.academic_hold.is_(False), Student.financial_hold.is_(False))
-    if is_admin(user):
+    if has_scope(user, *DIRECTORY_SCOPE):
         return paginate_and_filter(
             query.order_by(Student.last_name, Student.first_name).all(),
             skip,

@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.auth import (
+    ACADEMIC_SCOPE,
     ensure_enrollment_access,
     ensure_section_access,
     get_current_user,
-    is_admin,
+    has_scope,
     require_permissions,
 )
 from app.db.Session import get_db
@@ -29,9 +30,8 @@ attendance_manager = require_permissions("grades.manage", fallback_roles=("admin
 
 def require_attendance_writer(db, user, enrollment_id):
     enrollment = ensure_enrollment_access(db, user, enrollment_id)
-    if not is_admin(user) and (
-        user.role.name.casefold() != "teacher" or user.teacher_id != enrollment.section.teacher_id
-    ):
+    assigned = user.teacher_id is not None and user.teacher_id == enrollment.section.teacher_id
+    if not assigned and not has_scope(user, "academic.manage", "grades.manage"):
         raise HTTPException(403, "Solo el docente asignado o administración registra asistencia")
     return enrollment
 
@@ -163,7 +163,7 @@ def list_attendances(
     if enrollment_id is not None:
         ensure_enrollment_access(db, user, enrollment_id)
         query = query.filter(Attendance.enrollment_id == enrollment_id)
-    elif not is_admin(user):
+    elif not has_scope(user, *ACADEMIC_SCOPE):
         if user.student_id is not None:
             query = query.join(Attendance.enrollment).filter_by(student_id=user.student_id)
         elif user.teacher_id is not None:

@@ -9,7 +9,7 @@ from app.auth import (
     ensure_section_access,
     ensure_student_academic_access,
     get_current_user,
-    is_admin,
+    has_scope,
     require_permissions,
     require_roles,
 )
@@ -168,7 +168,7 @@ def target_users(db, data, user):
             StudentGuardian.student_id.in_(students)
         )
         return db.query(User).filter(User.guardian_id.in_(guardians)).distinct().all()
-    if not is_admin(user):
+    if not has_scope(user, "communications.manage"):
         raise HTTPException(403, "El docente solo puede comunicar a sus secciones o sus tutores")
     query = db.query(User).join(User.role)
     if data.audience != "all":
@@ -227,7 +227,7 @@ def communication_sections(
     db: Session = Depends(get_db), user: User = Depends(communications_manager)
 ):
     query = db.query(Section).filter(Section.status.in_(("published", "active")))
-    if not is_admin(user):
+    if not has_scope(user, "communications.manage"):
         query = (
             query.filter(Section.teacher_id == user.teacher_id)
             if user.teacher_id
@@ -308,7 +308,7 @@ def create_announcement(
 @router.get("/announcements", response_model=list[AnnouncementOut])
 def announcements(db: Session = Depends(get_db), user: User = Depends(communications_manager)):
     query = db.query(Announcement)
-    if not is_admin(user):
+    if not has_scope(user, "communications.manage"):
         query = query.filter(Announcement.created_by == user.user_id)
     return [
         announcement_out(db, a)

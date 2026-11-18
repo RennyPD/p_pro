@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.auth import (
+    ACADEMIC_SCOPE,
     ensure_section_access,
     ensure_student_academic_access,
     ensure_teacher_access,
     get_current_user,
-    is_admin,
+    has_scope,
 )
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
@@ -485,7 +486,7 @@ def student_grade_history(
     )
     if user.student_id is not None:
         query = query.filter(Grade.status == "published")
-    if not is_admin(user) and user.teacher_id is not None:
+    if not has_scope(user, *ACADEMIC_SCOPE) and user.teacher_id is not None:
         query = query.join(Enrollment.section).filter(Section.teacher_id == user.teacher_id)
     if period:
         query = query.filter(Enrollment.period == period)
@@ -528,7 +529,7 @@ def student_schedule(
         .join(Section.enrollments)
         .filter(Enrollment.student_id == student_id, Enrollment.period == (period or active.name))
     )
-    if not is_admin(user) and user.teacher_id is not None:
+    if not has_scope(user, *ACADEMIC_SCOPE) and user.teacher_id is not None:
         query = query.filter(Section.teacher_id == user.teacher_id)
     if current:
         query = query.filter(
@@ -619,10 +620,10 @@ def section_academic_summaries(
     if start and end and start > end:
         raise HTTPException(422, "El inicio debe ser anterior al fin")
     query = db.query(Section)
-    if user.role.name.casefold() == "teacher":
+    if not has_scope(user, *ACADEMIC_SCOPE):
+        if user.teacher_id is None:
+            raise HTTPException(403, "Los resúmenes académicos son solo para el personal")
         query = query.filter(Section.teacher_id == user.teacher_id)
-    elif user.role.name.casefold() != "admin":
-        raise HTTPException(status_code=403, detail="Academic summaries are for staff only")
     summaries = []
     for section in query.order_by(Section.code).all():
         active_enrollments = [
@@ -687,7 +688,7 @@ def student_academic_profile(
     total_present = 0
     for enrollment in student.enrollments:
         if (
-            not is_admin(user)
+            not has_scope(user, *ACADEMIC_SCOPE)
             and user.teacher_id is not None
             and enrollment.section.teacher_id != user.teacher_id
         ):
@@ -855,7 +856,7 @@ def student_attendance_summary(
         raise HTTPException(422, "El inicio debe ser anterior al fin")
     ensure_student_academic_access(db, user, student_id)
     query = db.query(Enrollment).filter(Enrollment.student_id == student_id)
-    if not is_admin(user) and user.teacher_id is not None:
+    if not has_scope(user, *ACADEMIC_SCOPE) and user.teacher_id is not None:
         query = query.join(Enrollment.section).filter(Section.teacher_id == user.teacher_id)
     if period:
         query = query.filter(Enrollment.period == period)

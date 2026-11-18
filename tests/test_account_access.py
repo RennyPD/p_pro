@@ -11,6 +11,7 @@ from app.auth import role_permission_slugs
 from app.db.database import Base
 from app.db.Session import get_db
 from app.models import Permission, Role, RolePermission, Student, Teacher, User
+from app.models.community_model import Guardian, StudentGuardian
 from app.models.operations_model import CalendarEvent
 from app.models.security_model import AuditLog
 from app.routers.operations_router import student_scope_ids
@@ -23,7 +24,15 @@ PASSWORDS = {
     "demo.docente": "NexoDocente2026!",
     "demo.estudiante": "NexoEstudiante2026!",
 }
-SLUGS = ("access.manage", "academic.manage", "finance.manage", "reports.view")
+SLUGS = (
+    "access.manage",
+    "academic.manage",
+    "finance.manage",
+    "reports.view",
+    "records.own",
+)
+# Custom staff roles (M1): username -> granted permission.
+STAFF = {"finanzas": "finance.manage", "registro": "reports.view"}
 
 
 @pytest.fixture
@@ -63,6 +72,49 @@ def context(tmp_path):
                 email="secretaria@example.com",
                 password=hash_password("Secretaria2026!"),
                 role_id=clerk.role_id,
+            )
+        )
+        for username, slug in STAFF.items():
+            role = Role(name=username, label=username.title(), description=slug)
+            db.add(role)
+            db.flush()
+            db.add(
+                RolePermission(role_id=role.role_id, permission_id=permissions[slug].permission_id)
+            )
+            db.add(
+                User(
+                    username=username,
+                    email=f"{username}@example.com",
+                    password=hash_password("Personal2026!"),
+                    role_id=role.role_id,
+                )
+            )
+        # A guardian linked only to the demo student (M5).
+        guardian_role = Role(name="guardian", label="Tutoría", description="Tutor")
+        guardian = Guardian(
+            first_name="Rosa", last_name="Tutora", email="rosa@example.com", telephone="8095550101"
+        )
+        db.add_all([guardian_role, guardian])
+        db.flush()
+        db.add(
+            RolePermission(
+                role_id=guardian_role.role_id,
+                permission_id=permissions["records.own"].permission_id,
+            )
+        )
+        child = db.query(User).filter_by(username="demo.estudiante").one().student_id
+        db.add(
+            StudentGuardian(
+                student_id=child, guardian_id=guardian.guardian_id, relationship="Madre"
+            )
+        )
+        db.add(
+            User(
+                username="tutora",
+                email="rosa@example.com",
+                password=hash_password("Tutora2026!!"),
+                role_id=guardian_role.role_id,
+                guardian_id=guardian.guardian_id,
             )
         )
         db.commit()
@@ -265,3 +317,94 @@ def test_access_manager_can_still_manage_equal_or_lower_accounts(context):
         f"/users/{target}/password", headers=clerk, json={"password": "Restablecida2026!"}
     )
     assert reset.status_code == 204, reset.text
+
+
+def other_student(sessions, excluded):
+    with sessions() as db:
+        source = db.get(Student, excluded)
+        stranger = Student(
+            first_name="Ajeno",
+            last_name="Prueba",
+            email="ajeno@example.com",
+            enrollment_number="AJENO-1",
+            telephone="8095550102",
+            address="Ficticia",
+            career_id=source.career_id,
+        )
+        db.add(stranger)
+        db.commit()
+        return stranger.student_id
+
+
+def demo_student(sessions):
+    with sessions() as db:
+        return db.query(User).filter_by(username="demo.estudiante").one().student_id
+
+
+# M1: los roles personalizados leen según sus permisos, no según el nombre del rol.
+def test_finance_role_reads_student_finances_but_not_grades(context):
+    client, sessions = context
+    finance = headers(client, "finanzas", "Personal2026!")
+    student = demo_student(sessions)
+    assert client.get(f"/finance/students/{student}", headers=finance).status_code == 200
+    assert client.get("/students/", headers=finance).json()
+    response = client.get(f"/documents/students/{student}/statement.pdf", headers=finance)
+    assert response.status_code == 200
+    assert (
+        client.get(f"/documents/students/{student}/transcript.pdf", headers=finance).status_code
+        == 403
+    )
+    assert client.get("/enrollments/", headers=finance).json() == []
+
+
+def test_reports_role_reads_institutional_academic_data(context):
+    client, sessions = context
+    registry = headers(client, "registro", "Personal2026!")
+    student = demo_student(sessions)
+    assert client.get("/sections/", headers=registry).json()
+    assert client.get("/enrollments/", headers=registry).json()
+    response = client.get(f"/documents/students/{student}/transcript.pdf", headers=registry)
+    assert response.status_code == 200
+
+
+def test_role_without_scope_grants_sees_nothing(context):
+    client, sessions = context
+    clerk = headers(client, "secretaria", "Secretaria2026!")
+    student = demo_student(sessions)
+    assert client.get("/students/", headers=clerk).json() == []
+    assert client.get("/sections/", headers=clerk).json() == []
+    assert client.get("/enrollments/", headers=clerk).json() == []
+    assert client.get(f"/finance/students/{student}", headers=clerk).status_code == 403
+
+
+def test_admin_role_name_alone_does_not_grant_scope(context):
+    client, sessions = context
+    with sessions() as db:
+        admin = db.query(Role).filter_by(name="admin").one()
+        db.query(RolePermission).filter(
+            RolePermission.role_id == admin.role_id,
+            RolePermission.permission_id.in_(
+                db.query(Permission.permission_id).filter(
+                    Permission.slug.in_(["academic.manage", "reports.view", "finance.manage"])
+                )
+            ),
+        ).delete(synchronize_session=False)
+        db.commit()
+    admin_token = headers(client, "demo.admin")
+    assert client.get("/sections/", headers=admin_token).json() == []
+
+
+# M5: los tutores descargan los documentos de sus hijos, y solo de ellos.
+@pytest.mark.parametrize(
+    "document", ["report-card", "enrollment-certificate", "transcript", "statement"]
+)
+def test_guardian_downloads_linked_child_documents(context, document):
+    client, sessions = context
+    guardian = headers(client, "tutora", "Tutora2026!!")
+    child = demo_student(sessions)
+    response = client.get(f"/documents/students/{child}/{document}.pdf", headers=guardian)
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"] == "application/pdf"
+    stranger = other_student(sessions, child)
+    denied = client.get(f"/documents/students/{stranger}/{document}.pdf", headers=guardian)
+    assert denied.status_code == 403

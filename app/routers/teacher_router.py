@@ -1,7 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session, selectinload
 
-from app.auth import ensure_teacher_access, get_current_user, is_admin, require_permissions
+from app.auth import (
+    ACADEMIC_SCOPE,
+    ensure_teacher_access,
+    get_current_user,
+    has_scope,
+    require_permissions,
+)
 from app.db.Session import get_db
 from app.models.configuration_model import AcademicPeriod
 from app.models.section_model import Section
@@ -51,7 +57,7 @@ def get_teachers(
         query = query.filter(Teacher.active == active)
     if employment_type:
         query = query.filter(Teacher.employment_type == employment_type)
-    if not is_admin(user):
+    if not has_scope(user, *ACADEMIC_SCOPE):
         if user.teacher_id is None:
             return []
         query = query.filter(Teacher.teacher_id == user.teacher_id)
@@ -69,7 +75,7 @@ def teacher_departments(db: Session = Depends(get_db), user: User = Depends(get_
     query = db.query(Teacher.department).filter(
         Teacher.department.isnot(None), Teacher.department != ""
     )
-    if not is_admin(user):
+    if not has_scope(user, *ACADEMIC_SCOPE):
         if user.teacher_id is None:
             return []
         query = query.filter(Teacher.teacher_id == user.teacher_id)

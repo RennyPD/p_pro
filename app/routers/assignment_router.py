@@ -10,15 +10,16 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.auth import (
+    ACADEMIC_SCOPE,
     ensure_section_access,
     get_current_user,
-    is_admin,
+    guardian_student_ids,
+    has_scope,
     require_permissions,
     require_roles,
 )
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
-from app.models.community_model import StudentGuardian
 from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade, GradeChange
 from app.models.operations_model import (
@@ -66,20 +67,12 @@ def utc(value):
 
 
 def scope(db, user):
-    if is_admin(user):
+    if has_scope(user, *ACADEMIC_SCOPE):
         return db.query(Section.section_id)
-    if user.role.name == "teacher" and user.teacher_id:
+    if user.teacher_id:
         return db.query(Section.section_id).filter(Section.teacher_id == user.teacher_id)
-    ids = (
-        [user.student_id]
-        if user.role.name == "student"
-        else [
-            row[0]
-            for row in db.query(StudentGuardian.student_id).filter_by(guardian_id=user.guardian_id)
-        ]
-        if user.role.name == "guardian"
-        else []
-    )
+    # Without a linked person the scope is empty, never "everything".
+    ids = [user.student_id] if user.student_id else guardian_student_ids(db, user)
     return db.query(Enrollment.section_id).filter(
         Enrollment.student_id.in_(ids), Enrollment.state.in_(["enrolled", "completed", "failed"])
     )
@@ -121,7 +114,7 @@ def task_view(db, item, user):
         db.query(Submission)
         .filter_by(assignment_id=item.assignment_id, student_id=user.student_id)
         .first()
-        if user.role.name == "student"
+        if user.student_id
         else None
     )
     return {
@@ -160,7 +153,7 @@ def agenda(db: Session = Depends(get_db), user: User = Depends(get_current_user)
         s.section_id: s for s in db.query(Section).filter(Section.section_id.in_(scope(db, user)))
     }
     events = db.query(CalendarEvent)
-    if not is_admin(user):
+    if not has_scope(user, *ACADEMIC_SCOPE):
         events = events.filter(
             (
                 (CalendarEvent.audience.in_(["all", user.role.name]))

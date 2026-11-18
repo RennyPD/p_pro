@@ -2,7 +2,13 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import false, or_
 from sqlalchemy.orm import Session, joinedload
 
-from app.auth import ensure_enrollment_access, get_current_user, is_admin, require_permissions
+from app.auth import (
+    ACADEMIC_SCOPE,
+    ensure_enrollment_access,
+    get_current_user,
+    has_scope,
+    require_permissions,
+)
 from app.db.Session import get_db
 from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
@@ -45,7 +51,7 @@ def get_enrollments(
             joinedload(Enrollment.section).joinedload(Section.subject),
         )
     )
-    if not is_admin(user):
+    if not has_scope(user, *ACADEMIC_SCOPE):
         if user.student_id is not None:
             query = query.filter(Enrollment.student_id == user.student_id)
         elif user.teacher_id is not None:

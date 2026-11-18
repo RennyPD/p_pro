@@ -6,8 +6,9 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.auth import (
+    FINANCE_SCOPE,
     ensure_section_access,
-    ensure_student_access,
+    ensure_student_document_access,
     get_current_user,
 )
 from app.db.Session import get_db
@@ -38,10 +39,10 @@ def pdf_response(filename: str, title: str, lines: list[str]) -> Response:
 def transcript_pdf(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    ensure_student_access(user, student_id)
+    ensure_student_document_access(db, user, student_id)
     student = db.get(Student, student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     record = build_transcript(db, student)
     lines = [
         f"Estudiante: {record.student_name}",
@@ -70,7 +71,7 @@ def transcript_pdf(
 def statement_pdf(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    ensure_student_access(user, student_id)
+    ensure_student_document_access(db, user, student_id, FINANCE_SCOPE)
     summary = build_summary(get_or_create_account(db, student_id))
     lines = [
         f"Estudiante: {summary.student_name}",
@@ -109,10 +110,10 @@ def roster_pdf(
 def enrollment_certificate(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    ensure_student_access(user, student_id)
+    ensure_student_document_access(db, user, student_id)
     student = db.get(Student, student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     active = [item for item in student.enrollments if item.state in {"enrolled", "completed"}]
     lines = [
         f"Se certifica que {student.first_name} {student.last_name}",
@@ -129,10 +130,10 @@ def enrollment_certificate(
 def report_card(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    ensure_student_access(user, student_id)
+    ensure_student_document_access(db, user, student_id)
     student = db.get(Student, student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     record = build_transcript(db, student)
     lines = [
         f"Estudiante: {record.student_name}",

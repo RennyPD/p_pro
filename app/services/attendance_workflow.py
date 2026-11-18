@@ -3,7 +3,7 @@ from datetime import datetime, time
 from fastapi import HTTPException
 from sqlalchemy import func
 
-from app.auth import is_admin
+from app.auth import has_scope
 from app.enums.dayEnum import DAY_ORDER
 from app.models.attendance_model import Attendance, AttendanceChange
 from app.models.configuration_model import AcademicPeriod
@@ -60,7 +60,7 @@ def validate_day(db, user, enrollment, day, existing=None, exception_reason=None
     if not any(
         DAY_ORDER[block.day_of_week] == day.weekday() for block in effective_blocks(section)
     ):
-        if not (is_admin(user) and exception_reason):
+        if not (has_scope(user, "academic.manage") and exception_reason):
             raise HTTPException(
                 422,
                 "No es un día de clase de la sección. Una sesión extraordinaria exige excepción administrativa con motivo",

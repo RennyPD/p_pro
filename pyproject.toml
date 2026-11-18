@@ -5,10 +5,12 @@ exclude = [".venv", "alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
-ignore = ["E501", "F403", "F405", "F821"]
+ignore = ["E501", "F403", "F405"]
 
 [tool.ruff.lint.per-file-ignores]
 "app/models/__init__.py" = ["F401"]
+# Relationship annotations name models defined in other modules.
+"app/models/*.py" = ["F821"]
 
 [tool.ruff.format]
 quote-style = "double"

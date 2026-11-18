@@ -29,11 +29,11 @@ Informe completo: `docs/auditoria/auditoria-2026-11-17.pdf` (versión web: https
 - ✅ **A2** (cerrado 17/11/2026: `User.active`, `POST /users/{id}/deactivate` y `/activate`, 409 explicativo al borrar con historial). `User` no tenía campo `active`; borrar un usuario con historial falla (27 claves foráneas apuntan a `users`) y la API responde un 409 genérico.
 
 ### Medios
-- **M1.** Las comprobaciones de ámbito usan `is_admin()` por nombre de rol: los roles personalizados con permiso (p. ej. `finance.manage`) reciben 403 al leer.
+- ✅ **M1** (cerrado 18/11/2026: `has_scope` en `app/auth.py` decide el ámbito institucional por permisos; `academic.manage`/`reports.view` para lo académico, `finance.manage`/`reports.view` para finanzas; migración 0039 da al rol `admin` todos los permisos). Las comprobaciones de ámbito usan `is_admin()` por nombre de rol: los roles personalizados con permiso (p. ej. `finance.manage`) reciben 403 al leer.
 - ✅ **M2** (verificado con prueba de regresión 17/11/2026). `student_scope_ids` (alertas) devuelve `None` (= todo) para usuarios no admin sin vínculo.
 - ✅ **M3** (cerrado 17/11/2026: nadie gestiona cuentas ni concede permisos por encima de los suyos). `access.manage` permitía restablecer la contraseña de un admin o crear admins.
 - **M4.** Límite de login por usuario, en memoria: permite bloquear al admin y no funciona con varios workers.
-- **M5.** Los tutores no pueden descargar documentos de sus hijos.
+- ✅ **M5** (cerrado 18/11/2026: `ensure_student_document_access` y sección de documentos en el portal familiar). Los tutores no podían descargar documentos de sus hijos.
 - **M6.** 97 mensajes de error del API en inglés que llegan a la interfaz.
 - **M7.** Un único bloqueo global para todas las escrituras.
 - **M8.** Consultas N+1 o de tabla completa en cuentas financieras, cierre de caja y alertas.
@@ -49,7 +49,7 @@ Cada fase se cierra con pruebas de regresión y sin romper lo anterior.
 
 ### Fase 0: dejar perfecto lo actual
 1. ✅ Acceso: A1, A2, M2, M3.
-2. Permisos y portal: M1, M5.
+2. ✅ Permisos y portal: M1, M5.
 3. Calidad y UX: Prettier/Ruff, mensajes en español, contraste, tokens de diseño, modales, tipos generados.
 4. Producción: M4 (Redis), M7, M8, bajos y una prueba completa sobre PostgreSQL.
 

@@ -1,7 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_section_access, get_current_user, is_admin, require_permissions
+from app.auth import (
+    ACADEMIC_SCOPE,
+    ensure_section_access,
+    get_current_user,
+    has_scope,
+    require_permissions,
+)
 from app.db.Session import get_db
 from app.models.user_model import User
 from app.pagination import paginate_and_filter
@@ -32,7 +38,7 @@ def get_sections(
     user: User = Depends(get_current_user),
 ):
     sections = get_sections_service(db)
-    if not is_admin(user):
+    if not has_scope(user, *ACADEMIC_SCOPE):
         if user.teacher_id is None:
             sections = []
         else:

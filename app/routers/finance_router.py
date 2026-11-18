@@ -7,7 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_student_access, get_current_user, require_permissions
+from app.auth import (
+    FINANCE_SCOPE,
+    ensure_student_access,
+    get_current_user,
+    has_scope,
+    require_permissions,
+)
 from app.db.database import settings
 from app.db.Session import get_db
 from app.models.finance_model import (
@@ -67,9 +73,7 @@ build_summary = summary
 
 
 def accessible(user, student_id):
-    if user.role.name.casefold() == "admin":
-        return
-    ensure_student_access(user, student_id)
+    ensure_student_access(user, student_id, FINANCE_SCOPE)
 
 
 def result(db, account):
@@ -85,7 +89,7 @@ def options(user: User = Depends(get_current_user)):
         "gateway_enabled": False,
         "transfer_instructions": settings.finance_transfer_instructions,
         "simulator_enabled": settings.finance_simulator_enabled
-        and user.role.name.casefold() == "admin",
+        and has_scope(user, "finance.manage"),
     }
 
 

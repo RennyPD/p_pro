@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../lib/api";
 import { GuardianPortalPage } from "./GuardianPortalPage";
@@ -22,5 +22,13 @@ describe("GuardianPortalPage", () => {
     expect(screen.getByText("Prioridad Alta")).toBeInTheDocument();
     expect(screen.queryByText("academic")).not.toBeInTheDocument();
     expect(screen.queryByText("high")).not.toBeInTheDocument();
+  });
+  it("lets the guardian download the linked student's documents", async () => {
+    const get = vi.spyOn(api, "get").mockResolvedValue({ data: [{ student_id: 7, student_name: "Sofía", enrollment_number: "ITH-007", career_name: "Software", active: true, average_grade: 90, attendance_percentage: 100, balance: 0, schedule: [], alerts: [] }] } as never);
+    render(<QueryClientProvider client={new QueryClient()}><GuardianPortalPage /></QueryClientProvider>);
+    expect(await screen.findByRole("region", { name: "Documentos de Sofía" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Estado de cuenta PDF/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Boletín PDF/ }));
+    await waitFor(() => expect(get).toHaveBeenCalledWith("/documents/students/7/report-card.pdf", { responseType: "blob" }));
   });
 });
