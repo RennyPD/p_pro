@@ -75,7 +75,7 @@ export function EquivalencesPage() {
   const loadError = careers.error || subjects.error || rules.error;
   return <div className="page equivalences-page">
     <header className="page-header"><div><span className="kicker">Gobierno curricular</span><h1>Reglas de equivalencia</h1><p>Una asignatura aprobada reconoce otra dentro del pensum destino, sin inventar notas.</p></div></header>
-    <aside className="panel equivalence-notice">Son reglas generales para todos los estudiantes de la carrera y versión activa. No son solicitudes individuales ni convalidaciones de estudios externos.</aside>
+    <details className="context-help"><summary>¿Qué es una regla de equivalencia?</summary><p>Es una regla general para todos los estudiantes de la carrera y versión del pensum. No es una solicitud individual ni una convalidación de estudios externos.</p></details>
     {loadError && <p className="form-error" role="alert">{apiMessage(loadError)}</p>}
     <details className="panel equivalence-create" open>
       <summary>Registrar una regla</summary>

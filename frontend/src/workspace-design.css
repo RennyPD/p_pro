@@ -153,3 +153,24 @@ input[type=checkbox],input[type=radio]{accent-color:#2855b7;width:17px;height:17
 .date-input{position:relative;display:flex;align-items:center;width:100%;min-width:150px}.date-input>input[type=text]{width:100%;padding-right:2.6rem!important;font-variant-numeric:tabular-nums}.date-input__picker{position:absolute;right:.35rem;display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:8px;color:#5b6b82;background:transparent;cursor:pointer}.date-input__picker:hover:not(:disabled){color:#2855b7;background:#edf2ff}.date-input__native{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}.date-input--invalid>input[type=text]{border-color:#c2410c!important;box-shadow:0 0 0 3px #c2410c1a}
 .pager{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1rem;color:var(--muted);font-size:.85rem}.pager>div{display:flex;align-items:center;gap:.6rem}.pager__page{white-space:nowrap}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.attention-list{display:grid;gap:.5rem;margin-top:.5rem}
+.attention-item{display:flex;align-items:center;gap:.75rem;padding:.8rem .9rem;border:1px solid var(--line);border-left-width:4px;border-radius:12px;color:var(--ink);font-size:.88rem}
+.attention-item:hover{background:#f8faff}
+.attention-item>svg:first-child{flex-shrink:0;width:18px;color:#4a67a8}
+.attention-item>span{flex:1;display:grid;gap:.15rem}
+.attention-item small{color:var(--muted);font-size:.76rem}
+.attention-item--warning{border-left-color:#d4a017}
+.attention-item--info{border-left-color:#4b74d0}
+.attention-item--neutral{border-left-color:#cbd3de}
+.all-clear{display:flex;align-items:center;gap:.5rem;color:#27785f;font-weight:600}
+.all-clear svg{width:18px}
+.career-bars{display:grid;gap:1.1rem;margin-top:.5rem}
+.career-bar{display:grid;gap:.35rem}
+.career-bar__head{display:flex;justify-content:space-between;gap:1rem;font-size:.86rem}
+.career-bar__head span{color:var(--muted)}
+.career-bar__track{height:8px;border-radius:4px;background:#eef2f7;overflow:hidden}
+.career-bar__track span{display:block;height:100%;border-radius:4px;background:#315fcb}
+.career-bar small{color:var(--muted);font-size:.76rem}
+.timeline-item{grid-template-columns:110px 1fr auto;align-items:center}
+.day-panel>.text-link,.panel>.text-link{margin-top:1rem}
+.sidebar-nav{gap:.1rem}.sidebar-nav a{padding:.52rem .8rem;font-size:.86rem}.nav-caption{padding:.85rem .8rem .3rem}.workspace-switch{margin:1.2rem 0 .4rem}

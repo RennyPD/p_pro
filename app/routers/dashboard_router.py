@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, is_admin
 from app.db.Session import get_db
+from app.models.community_model import Guardian
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade
@@ -15,6 +16,22 @@ from app.schemas.dashboard_schema import DashboardMetric, DashboardSummary
 from app.services.academic_metrics import summarize_results
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+def display_name(db: Session, user: User) -> str:
+    """First name of the linked person, so greetings never show a login handle."""
+    person = (
+        db.get(Student, user.student_id)
+        if user.student_id
+        else db.get(Teacher, user.teacher_id)
+        if user.teacher_id
+        else db.get(Guardian, user.guardian_id)
+        if getattr(user, "guardian_id", None)
+        else None
+    )
+    if person is None and is_admin(user):
+        return "equipo de administración"
+    return getattr(person, "first_name", None) or user.username
 
 
 @router.get("/summary", response_model=DashboardSummary)
@@ -56,6 +73,7 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
         if settings is None:
             alerts.append("Completa la configuración institucional")
         return DashboardSummary(
+            display_name=display_name(db, user),
             role="admin",
             metrics=metrics,
             active_period=active_period.name if active_period else None,
@@ -94,6 +112,7 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
             ),
         ]
         return DashboardSummary(
+            display_name=display_name(db, user),
             role="teacher",
             metrics=metrics,
             active_period=active_period.name if active_period else None,
@@ -134,6 +153,7 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
         ),
     ]
     return DashboardSummary(
+        display_name=display_name(db, user),
         role="student",
         metrics=metrics,
         active_period=active_period.name if active_period else None,
