@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../lib/api";
@@ -47,7 +47,7 @@ describe("Assessment workflow", () => {
     expect(publish[1]).toBeEnabled();
     fireEvent.change(zero, { target: { value: "10" } });
     expect(publish[1]).toBeDisabled();
-    expect(screen.getByText("Sin guardar")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).getByText("Sin guardar")).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText("Ej. Revisión del examen y corrección del puntaje"), { target: { value: "Revisión del examen" } });
     fireEvent.click(screen.getAllByRole("button", { name: "Guardar borrador" })[0]);
     await waitFor(() => expect(post).toHaveBeenCalledWith("/grades/bulk", expect.objectContaining({
