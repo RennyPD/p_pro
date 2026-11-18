@@ -110,6 +110,10 @@ class StudentAcademicProfile(StudentDossierFields):
     career_id: int
     career_name: str
     overall_average: float | None
+    final_average: float | None = None
+    final_result_count: int = 0
+    provisional_average: float | None = None
+    provisional_result_count: int = 0
     overall_attendance: float | None
     enrollments: list[StudentEnrollmentSummary]
 
@@ -160,6 +164,9 @@ class SectionAcademicSummary(BaseModel):
     graded_student_count: int = 0
     final_student_count: int = 0
     pending_student_count: int = 0
+    provisional_student_count: int = 0
+    ungraded_student_count: int = 0
+    grade_average_final: bool = False
     draft_grade_count: int = 0
     published_grade_count: int = 0
     closed_assessment_count: int = 0

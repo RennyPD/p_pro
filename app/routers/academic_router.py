@@ -657,6 +657,11 @@ def section_academic_summaries(
                 graded_student_count=len(grades),
                 final_student_count=sum(result.final for result in results),
                 pending_student_count=sum(not result.final for result in results),
+                provisional_student_count=sum(
+                    result.value is not None and not result.final for result in results
+                ),
+                ungraded_student_count=sum(result.value is None for result in results),
+                grade_average_final=bool(results) and all(result.final for result in results),
                 draft_grade_count=sum(grade.status == "draft" for grade in notes),
                 published_grade_count=sum(grade.status == "published" for grade in notes),
                 closed_assessment_count=sum(item.closed for item in assessments),
@@ -683,6 +688,8 @@ def student_academic_profile(
         raise HTTPException(status_code=404, detail="Student not found")
     summaries = []
     all_grades = []
+    final_grades = []
+    provisional_grades = []
     total_attendances = 0
     total_present = 0
     for enrollment in student.enrollments:
@@ -697,6 +704,8 @@ def student_academic_profile(
         attendances = enrollment.attendances
         present = sum(item.present for item in attendances)
         all_grades.extend(grades)
+        if result.value is not None:
+            (final_grades if result.final else provisional_grades).append(result.value)
         total_attendances += len(attendances)
         total_present += present
         summaries.append(
@@ -738,6 +747,12 @@ def student_academic_profile(
         career_id=student.career_id,
         career_name=student.career.name,
         overall_average=round(sum(all_grades) / len(all_grades), 1) if all_grades else None,
+        final_average=round(sum(final_grades) / len(final_grades), 1) if final_grades else None,
+        final_result_count=len(final_grades),
+        provisional_average=round(sum(provisional_grades) / len(provisional_grades), 1)
+        if provisional_grades
+        else None,
+        provisional_result_count=len(provisional_grades),
         overall_attendance=_percentage(total_present, total_attendances),
         enrollments=summaries,
     )

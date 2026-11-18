@@ -11,6 +11,7 @@ import { useAuthStore } from "../../store/auth";
 import "./institutional-control.css";
 import { AdmissionCreateModal } from "./AdmissionCreateModal";
 import "./alert-history.css";
+import { describeAverage } from "../../lib/academicResult";
 
 const alertLabels: Record<string, string> = { academic: "Académica", attendance: "Asistencia", financial: "Financiera", behavior: "Convivencia", other: "Otra" };
 const severityNames: Record<string, string> = { low: "Baja", medium: "Media", high: "Alta", critical: "Crítica" };
@@ -19,6 +20,11 @@ const transitions: Record<string, string[]> = { submitted: ["review","rejected"]
 const interventionTypes = { note: "Nota", contact: "Contacto", meeting: "Reunión", referral: "Derivación", agreement: "Acuerdo" };
 type AlertDraft = { assigned_to: string; follow_up_date: string; notes: string; action_type?: string };
 const studentLookup = { endpoint: "/students/", valueKey: "student_id", labelKeys: ["enrollment_number", "first_name", "last_name"], placeholder: "Buscar estudiante" };
+type GradeMetric = { average_grade: number | null; grade_count: number; provisional_average_grade?: number | null; provisional_grade_count?: number };
+function AverageMetric({ r }: { r: GradeMetric }) {
+  const average = describeAverage({ finalAverage: r.average_grade, finalCount: r.grade_count, provisionalAverage: r.provisional_average_grade, provisionalCount: r.provisional_grade_count });
+  return <div><dt>{average.kind === "provisional" ? "Promedio provisional" : "Promedio final"}</dt><dd>{average.value}</dd><small>{average.note}</small></div>;
+}
 const metric = (value: number | null | undefined, suffix = "") => value == null ? "Sin datos" : `${value}${suffix}`;
 const money = (n: number) => new Intl.NumberFormat("es-DO", { style: "currency", currency: "DOP" }).format(n || 0);
 
@@ -66,11 +72,11 @@ export function InstitutionalControlPage() {
       <details className="context-help"><summary>Alcance de los indicadores</summary><p>La proporción de activos no es una medida de permanencia entre períodos. Los promedios y la aprobación usan resultados finales publicados; la asistencia usa únicamente clases registradas. Sin datos no equivale a cero.</p></details>
       <section className="panel"><div className="panel-heading"><h2>Resultados por carrera</h2><span className="muted">{academic.data?.career_metrics.length ?? 0} carreras</span></div><div className="control-result-grid">{academic.data?.career_metrics.map((r: any) => <article className="career-metric-card" key={r.career_id}>
         <div className="section-card-title"><span>{r.career_code}</span><Badge tone={r.open_alerts ? "warning" : "neutral"}>{r.open_alerts} casos abiertos</Badge></div><h3>{r.career_name}</h3>
-        <dl className="metric-pairs"><div><dt>Promedio final</dt><dd>{metric(r.average_grade)}</dd><small>{r.grade_count} resultados</small></div><div><dt>Asistencia</dt><dd>{metric(r.attendance_percentage,"%")}</dd><small>{r.attendance_count} registros</small></div></dl>
+        <dl className="metric-pairs"><AverageMetric r={r} /><div><dt>Asistencia</dt><dd>{metric(r.attendance_percentage,"%")}</dd><small>{r.attendance_count} registros</small></div></dl>
         <div className="metric-caption"><span>Estudiantes activos</span><strong>{r.active_count} / {r.student_count}</strong></div><progress className="institution-progress" max="100" value={r.retention_percentage ?? 0} aria-label={`Proporción de activos en ${r.career_name}`}/><small className="muted">{metric(r.retention_percentage,"%")} del total</small>
       </article>)}</div>{academic.data?.career_metrics.length === 0 && <p className="muted">Sin carreras para este período.</p>}</section>
       <section className="panel"><div className="panel-heading"><h2>Resultados por asignatura</h2><span className="muted">{academic.data?.subject_metrics.length ?? 0} asignaturas</span></div><div className="subject-metric-list">{academic.data?.subject_metrics.map((r: any) => <article className="subject-metric-row" key={r.subject_id}>
-        <div><span className="kicker">{r.subject_code}</span><h3>{r.subject_name}</h3><small>{r.enrollments} selecciones</small></div><dl className="metric-pairs"><div><dt>Promedio final</dt><dd>{metric(r.average_grade)}</dd><small>{r.grade_count} resultados</small></div><div><dt>Aprobación</dt><dd>{metric(r.pass_rate,"%")}</dd></div><div><dt>Asistencia</dt><dd>{metric(r.attendance_percentage,"%")}</dd><small>{r.attendance_count} registros</small></div></dl>
+        <div><span className="kicker">{r.subject_code}</span><h3>{r.subject_name}</h3><small>{r.enrollments} selecciones</small></div><dl className="metric-pairs"><AverageMetric r={r} /><div><dt>Aprobación</dt><dd>{metric(r.pass_rate,"%")}</dd>{r.pass_rate == null && <small>Requiere resultados definitivos</small>}</div><div><dt>Asistencia</dt><dd>{metric(r.attendance_percentage,"%")}</dd><small>{r.attendance_count} registros</small></div></dl>
       </article>)}</div>{academic.data?.subject_metrics.length === 0 && <p className="muted">Sin asignaturas para este período.</p>}</section>
     </>}</>}
     {tab === "alerts" && <section className="panel alert-cases"><div className="panel-heading"><h2>Casos y seguimientos</h2><Button onClick={() => setCreatingAlert(true)}>Nuevo caso</Button><Button variant="secondary" disabled={generate.isPending} onClick={() => generate.mutate()}>Revisar alertas automáticas</Button></div><div className="control-filters"><label className="form-field"><span>Buscar casos</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Estudiante, matrícula o motivo" /></label><label className="form-field"><span>Estado de casos</span><select value={alertStatus} onChange={e => setAlertStatus(e.target.value)}><option value="open">Abiertos</option><option value="resolved">Resueltos</option></select></label><label className="form-field"><span>Categoría</span><select value={category} onChange={e => setCategory(e.target.value)}><option value="">Todas</option>{Object.entries(alertLabels).map(([k,v]) => <option key={k} value={k}>{v}</option>)}</select></label><label className="form-field"><span>Prioridad</span><select value={severity} onChange={e => setSeverity(e.target.value)}><option value="">Todas</option>{Object.entries(severityNames).map(([k,v]) => <option key={k} value={k}>{v}</option>)}</select></label></div>

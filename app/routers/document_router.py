@@ -15,7 +15,7 @@ from app.models.section_model import Section
 from app.models.student_model import Student
 from app.models.user_model import User
 from app.routers.finance_router import build_summary, get_or_create_account
-from app.routers.record_router import build_transcript
+from app.routers.record_router import RESULT_LABELS, STANDING_LABELS, build_transcript
 from app.services.pdf_service import simple_pdf
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -47,7 +47,8 @@ def transcript_pdf(
         f"Estudiante: {record.student_name}",
         f"Matricula: {record.enrollment_number}",
         f"Carrera: {record.career_name}",
-        f"Promedio acumulado: {record.cumulative_average}",
+        f"Promedio acumulado: {cumulative_text(record)}",
+        f"Condicion academica: {STANDING_LABELS.get(record.academic_standing, record.academic_standing)}",
         f"Creditos aprobados con respaldo: {record.earned_credits}",
         f"Creditos por equivalencia (sin nota): {record.recognized_credits}",
         f"Inscripciones con creditos por verificar: {record.unverified_credit_courses}",
@@ -58,7 +59,7 @@ def transcript_pdf(
             + (
                 f"Equivalencia desde {item.origin_subject_code}; sin nota"
                 if item.recognition_type == "equivalence"
-                else item.result
+                else RESULT_LABELS.get(item.result, item.result)
             )
             for item in record.courses
         ],
@@ -125,6 +126,14 @@ def enrollment_certificate(
     )
 
 
+def cumulative_text(record) -> str:
+    if record.cumulative_average is not None:
+        return str(record.cumulative_average)
+    if record.provisional_average is not None:
+        return f"sin resultados definitivos (provisional {record.provisional_average})"
+    return "sin resultados definitivos"
+
+
 @router.get("/students/{student_id}/report-card.pdf")
 def report_card(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
@@ -144,6 +153,7 @@ def report_card(
                 f"Equivalencia desde {item.origin_subject_code}; sin nota"
                 if item.recognition_type == "equivalence"
                 else f"Nota: {item.average if item.average is not None else '-'}"
+                f" ({RESULT_LABELS.get(item.result, item.result)})"
             )
             for item in record.courses
         ],

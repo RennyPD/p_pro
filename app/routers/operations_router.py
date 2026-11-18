@@ -967,6 +967,7 @@ def academic_analytics(period: str | None = None, db: Session = Depends(get_db))
     def metrics(enrollments):
         calculations = [academic_result(db, e) for e in enrollments]
         finals = [r for r in calculations if r.final and r.value is not None]
+        provisionals = [r for r in calculations if not r.final and r.value is not None]
         ids = [e.enrollment_id for e in enrollments]
         attendance = (
             db.query(Attendance).filter(Attendance.enrollment_id.in_(ids)).all() if ids else []
@@ -976,6 +977,12 @@ def academic_analytics(period: str | None = None, db: Session = Depends(get_db))
             if finals
             else None,
             "grade_count": len(finals),
+            "provisional_average_grade": round(
+                sum(r.value for r in provisionals) / len(provisionals), 2
+            )
+            if provisionals
+            else None,
+            "provisional_grade_count": len(provisionals),
             "attendance_count": len(attendance),
             "attendance_percentage": percentage(sum(a.present for a in attendance), len(attendance))
             if attendance

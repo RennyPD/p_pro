@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { provisionalReason } from "../../lib/academicResult";
 import { BookCheck, History, Lock, Plus, Save, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -156,7 +157,7 @@ function SectionBook({ section }: { section: Section }) {
     {tab === "book" && <>
       <p className="muted">Vacío significa pendiente; 0 es una nota válida. Los borradores no afectan resultados oficiales. Guarda cada componente antes de publicarlo.</p>
       {!items.length ? <EmptyState icon={<BookCheck />} title="Prepara el plan de evaluación" description="Crea componentes o aplica un esquema de la asignatura en Distribución y plantillas." action={<Button onClick={() => setTab("plan")}>Configurar plan</Button>} /> : <>
-        <div className="assessment-book-scroll"><table className="assessment-book"><thead><tr><th>Estudiante</th>{items.map(item => <th key={item.assessment_id}>{item.name}<small>{item.weight}% · {item.closed ? "Cerrada" : "Abierta"}</small></th>)}<th>Resultado publicado<small>Ponderado sobre 100</small></th></tr></thead>
+        <div className="assessment-book-scroll"><table className="assessment-book"><thead><tr><th>Estudiante</th>{items.map(item => <th key={item.assessment_id}>{item.name}<small>{item.weight}% · {item.closed ? "Cerrada" : "Abierta"}</small></th>)}<th>Resultado<small>Ponderado sobre 100</small></th></tr></thead>
           <tbody>{roster.map(student => { const result = finals.data?.find(item => item.enrollment_id === student.enrollment_id); return <tr key={student.enrollment_id}>
             <th scope="row">{student.first_name} {student.last_name}<small>{student.enrollment_number}</small></th>
             {items.map(item => { const grade = getGrade(student, item); const key = cellKey(student.enrollment_id, item.assessment_id); const state = key in values ? "dirty" : grade?.status ?? "pending"; return <td key={item.assessment_id}>
@@ -167,7 +168,7 @@ function SectionBook({ section }: { section: Section }) {
               <Badge tone={state === "published" ? "success" : state === "dirty" || state === "draft" ? "warning" : "neutral"}>{state === "dirty" ? "Sin guardar" : labels[state] ?? "Pendiente"}</Badge>
               {grade?.status === "published" && <small>Aporta {(grade.grade_value * item.weight / 100).toFixed(2)} puntos</small>}
             </td>; })}
-            <td><strong>{result?.completed_weight ? result.weighted_grade.toFixed(2) : "—"}</strong><small>{result?.final ? labels[result.status] : "Provisional"} · {result?.completed_weight ?? 0}% calificado</small></td>
+            <td><strong>{result?.completed_weight ? result.weighted_grade.toFixed(2) : "—"}</strong><small>{result?.final ? `Definitivo · ${labels[result.status]}` : `Provisional · ${provisionalReason(result?.completed_weight ?? 0)}`}</small></td>
           </tr>; })}</tbody></table></div>
         {!roster.length && <p className="muted">No hay estudiantes inscritos activos en esta sección.</p>}
         <div className="assessment-actions">{items.map(item => {

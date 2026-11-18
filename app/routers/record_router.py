@@ -18,6 +18,19 @@ from app.services.csv_export import spreadsheet_safe_row
 
 router = APIRouter(prefix="/records", tags=["academic records"])
 
+STANDING_LABELS = {
+    "honors": "Cuadro de honor",
+    "good": "Condición regular",
+    "probation": "Observación académica",
+    "no_final_results": "Sin resultados definitivos",
+}
+RESULT_LABELS = {
+    "passed": "Aprobada",
+    "failed": "Reprobada",
+    "in_progress": "Provisional",
+    "recognized": "Reconocida por equivalencia",
+}
+
 
 def build_transcript(db: Session, student: Student) -> AcademicTranscript:
     settings = db.get(InstitutionSettings, 1)
@@ -27,6 +40,7 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
     period_values: dict[str, dict[str, float]] = {}
     courses = []
     all_grades = []
+    provisional_grades = []
     attempted = 0.0
     earned = 0.0
     credited_subjects = set()
@@ -41,6 +55,8 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
         attempted += credits or 0
         if result.final and average is not None:
             all_grades.append(average)
+        elif average is not None:
+            provisional_grades.append(average)
         passed = result.status == "passed"
         new_credit = passed and credits is not None and subject.subject_id not in credited_subjects
         if new_credit:
@@ -90,14 +106,26 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
             )
         )
     earned += recognized_credits
-    cumulative = round(sum(all_grades) / len(all_grades), 2) if all_grades else 0
-    standing = "honors" if cumulative >= 90 else "good" if cumulative >= passing else "probation"
+    cumulative = round(sum(all_grades) / len(all_grades), 2) if all_grades else None
+    provisional = (
+        round(sum(provisional_grades) / len(provisional_grades), 2) if provisional_grades else None
+    )
+    # Standing is only meaningful once there are closed (final) results.
+    standing = (
+        "no_final_results"
+        if cumulative is None
+        else "honors"
+        if cumulative >= 90
+        else "good"
+        if cumulative >= passing
+        else "probation"
+    )
     periods = [
         PeriodRecord(
             period=name,
             average=round(values["grade_sum"] / values["grade_count"], 2)
             if values["grade_count"]
-            else 0,
+            else None,
             attempted_credits=values["attempted"],
             earned_credits=values["earned"],
             courses=int(values["courses"]),
@@ -110,6 +138,9 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
         student_name=f"{student.first_name} {student.last_name}",
         career_name=student.career.name,
         cumulative_average=cumulative,
+        final_result_count=len(all_grades),
+        provisional_average=provisional,
+        provisional_result_count=len(provisional_grades),
         attempted_credits=attempted,
         earned_credits=earned,
         repeated_courses=sum(count - 1 for count in attempts.values() if count > 1),
@@ -153,9 +184,9 @@ def student_report(db: Session = Depends(get_db)):
                     record.enrollment_number,
                     record.student_name,
                     record.career_name,
-                    record.cumulative_average,
+                    record.cumulative_average if record.cumulative_average is not None else "",
                     record.earned_credits,
-                    record.academic_standing,
+                    STANDING_LABELS.get(record.academic_standing, record.academic_standing),
                 ]
             )
         )
