@@ -35,11 +35,11 @@ Informe completo: `docs/auditoria/auditoria-2026-11-17.pdf` (versión web: https
 - ✅ **M4** (cerrado 18/11/2026: tabla `login_throttles`, claves IP+usuario e IP; uvicorn con `--proxy-headers`, configurar `FORWARDED_ALLOW_IPS` detrás de un proxy). Límite de login por usuario, en memoria: permite bloquear al admin y no funciona con varios workers.
 - ✅ **M5** (cerrado 18/11/2026: `ensure_student_document_access` y sección de documentos en el portal familiar). Los tutores no podían descargar documentos de sus hijos.
 - ✅ **M6** (cerrado 18/11/2026: mensajes del API, validadores y errores 422 en español; `tests/test_spanish_messages.py` impide que vuelvan). 97 mensajes de error del API en inglés que llegan a la interfaz.
-- **M7.** Un único bloqueo global para todas las escrituras.
-- **M8.** Consultas N+1 o de tabla completa en cuentas financieras, cierre de caja y alertas.
+- ✅ **M7** (parcial, 18/11/2026: bloqueos por clave `write_locks` con formato `<institución>:<dominio>`; accesos y finanzas separados de lo académico. **Pendiente:** dividir el dominio académico tras auditar sus invariantes). Un único bloqueo global para todas las escrituras.
+- ✅ **M8** (cerrado 18/11/2026: cuentas con `selectinload`, cierre de caja por rango indexado, alertas con join; `tests/test_query_counts.py`). Consultas N+1 o de tabla completa en cuentas financieras, cierre de caja y alertas.
 
 ### Bajos
-Montos en `Float`, TOTP reutilizable dentro de su ventana, ~~enumeración de usuarios por tiempo~~ (✅ 18/11: hash de relleno), sin detección de reutilización del refresh token, `/auth/bootstrap` abierto en una instalación vacía, ~~sin logs~~ (✅ 18/11: logs JSON con `X-Request-ID`), nginx sin cabeceras de seguridad, `school.db` y `__pycache__` versionados, `date_recorded` como texto, períodos enlazados por nombre. ~~PostgreSQL sin probar de punta a punta~~ (✅ 18/11: migraciones corregidas, `alembic check` limpio y suite completa en PostgreSQL en CI; se corrigieron 2 migraciones y 2 consultas que fallaban en PostgreSQL).
+~~Montos en `Float`~~ (✅ 18/11: `Numeric(12,2)` y `Decimal`, migración 0042), TOTP reutilizable dentro de su ventana, ~~enumeración de usuarios por tiempo~~ (✅ 18/11: hash de relleno), sin detección de reutilización del refresh token, `/auth/bootstrap` abierto en una instalación vacía, ~~sin logs~~ (✅ 18/11: logs JSON con `X-Request-ID`), nginx sin cabeceras de seguridad, ~~`school.db` y `__pycache__` versionados~~ (✅ 18/11), `date_recorded` como texto, períodos enlazados por nombre. ~~PostgreSQL sin probar de punta a punta~~ (✅ 18/11: migraciones corregidas, `alembic check` limpio y suite completa en PostgreSQL en CI; se corrigieron 2 migraciones y 2 consultas que fallaban en PostgreSQL).
 
 ### Frontend y UI
 ✅ Cerrado el 18/11/2026 (Fase 0, paso 3):
