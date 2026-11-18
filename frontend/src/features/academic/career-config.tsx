@@ -20,7 +20,7 @@ export const careerConfig:ResourceConfig = {
   description:"Administra la identidad institucional, el perfil formativo y el plan de estudios de cada programa.",
   searchPlaceholder:"Buscar por código, programa, título o facultad",
   columns:[
-    {key:"name",label:"Programa académico",render:(_,row)=><div className="student-table-identity"><span className="student-initials">{String(row.code).slice(0,2)}</span><div><Link to={`/careers/${row.career_id}`}><strong>{row.name}</strong></Link><small>{row.code} · {row.degree_title || "Título por definir"}</small></div></div>},
+    {key:"name",label:"Programa académico",render:(_,row)=><div className="student-table-identity"><span className="student-initials">{String(row.name).split(/\s+/).filter(word=>word.length>3).slice(0,2).map(word=>word[0]).join("").toUpperCase()}</span><div><Link to={`/careers/${row.career_id}`}><strong>{row.name}</strong></Link><small>{row.code} · {row.degree_title || "Título por definir"}</small></div></div>},
     {key:"faculty",label:"Adscripción",render:(value,row)=><div className="student-cell"><strong>{value || "Sin facultad asignada"}</strong><small>{row.coordinator_name || "Coordinación pendiente"}</small></div>},
     {key:"academic_level",label:"Nivel y modalidad",render:(value,row)=><div className="student-cell"><strong>{levelLabels[String(value)]}</strong><small>{modalityLabels[String(row.modality)]}</small></div>},
     {key:"status",label:"Estado",render:value=><Badge tone={value==="active"?"success":value==="archived"?"neutral":"warning"}>{statusLabels[String(value)]}</Badge>},

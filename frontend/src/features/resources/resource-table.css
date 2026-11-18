@@ -10,7 +10,13 @@
 }
 
 .resource-table td {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+/* Codes, rooms, periods and other short values never split at hyphens. */
+.resource-table td:first-child,
+.resource-table td.table-detail {
+  white-space: nowrap;
 }
 
 .resource-table .table-actions {

@@ -311,6 +311,10 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(
             self.request("POST", f"/academic/catalog/cart/{new_id}", student_token).status_code, 200
         )
+        # Regression: listing a non-empty cart used to fail with a 500.
+        cart = self.request("GET", "/academic/catalog/cart", student_token)
+        self.assertEqual(cart.status_code, 200, cart.text)
+        self.assertEqual(cart.json()[0]["credits"], 3)
         self.assertEqual(
             self.request("DELETE", f"/curriculum/courses/{course_id}", admin).status_code, 200
         )

@@ -23,7 +23,7 @@ for (const viewport of [{ width: 1366, height: 900 }, { width: 390, height: 844 
     await expect(page.getByRole("link", { name: "Control institucional" })).toBeAttached();
     if (viewport.width < 768) await page.getByRole("button", { name: "Abrir menú" }).click();
     await page.getByRole("link", { name: "Secciones", exact: true }).click();
-    await page.getByRole("button", { name: "Nuevo sección" }).click();
+    await page.getByRole("button", { name: "Nueva sección" }).click();
     await page.getByRole("button", { name: /Asignatura.*Buscar asignatura/ }).click();
     await expect(page.getByText(`Mostrando 1–8 de ${count} opciones`)).toBeVisible();
     if (count === 17) {

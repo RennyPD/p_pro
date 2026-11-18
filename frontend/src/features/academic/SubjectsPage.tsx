@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { resources } from "../../config/resources";
 import { api, apiMessage } from "../../lib/api";
 import { ResourcePage } from "../resources/ResourcePage";
@@ -28,6 +27,5 @@ export function SubjectsPage() {
         {careers.data?.map(career => <option key={career.career_id} value={career.career_id}>{career.code} · {career.name}</option>)}
       </select>
       {careers.error && <span role="alert">{apiMessage(careers.error)}</span>}
-      <Link className="back-link" to="/careers">Catálogo de carreras</Link>
     </>} />;
 }

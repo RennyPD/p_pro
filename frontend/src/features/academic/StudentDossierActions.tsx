@@ -193,7 +193,7 @@ export function StudentDocuments({ studentId, canUpload = false }: { studentId: 
       <p role="alert" className="form-error">{apiMessage(documents.error)}</p>
     ) : documents.data?.length ? <ul className="document-list">{documents.data.map(document => <li key={document.student_document_id}>
       <div><strong>{documentTypeLabel(document.document_type)}</strong><small>{document.filename}{document.expires_on ? ` · vence el ${document.expires_on}` : ""}</small></div>
-      <DocumentDownload path={`/operations/documents/${document.student_document_id}/download`} filename={document.filename} label="Descargar" />
+      <DocumentDownload path={`/operations/documents/${document.student_document_id}/download`} filename={document.filename} label="Descargar" accessibleLabel={`Descargar ${document.filename}`} />
     </li>)}</ul> : <p>Aún no hay documentos en este expediente.</p>}
     {upload && <Modal title="Agregar documento al expediente" onClose={close}>
       <form className="resource-form" onSubmit={submit} onChange={() => setDirty(true)}>

@@ -240,11 +240,8 @@ def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_curre
                 section_code=item.section.code,
                 subject_code=item.section.subject.code,
                 subject_name=item.section.subject.description,
-                credits=(
-                    item.curriculum_credits
-                    if item.curriculum_credits is not None
-                    else credits.get(item.section.subject_id, 0)
-                ),
+                # Cart items are not enrollments yet: credits come from the current pensum.
+                credits=credits.get(item.section.subject_id, 0),
                 available_seats=max(item.section.capacity - occupied, 0),
                 period=period.name,
             )

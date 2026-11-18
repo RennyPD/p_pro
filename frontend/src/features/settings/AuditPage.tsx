@@ -44,7 +44,7 @@ export function AuditPage() {
   return <div className="page">
     <header className="page-header"><div><span className="kicker">Configuración · Supervisión</span><h1>Auditoría administrativa</h1><p>Quién hizo cada cambio sensible y cuándo.</p></div></header>
     <form className="panel audit-filters" onSubmit={filter}>
-      <label className="form-field"><span>Acción</span><select name="action" defaultValue=""><option value="">Todas las acciones</option>{actionOptions.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+      <label className="form-field"><span>Acción</span><select name="action" aria-label="Acción" defaultValue=""><option value="">Todas las acciones</option>{actionOptions.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
       <div className="form-field"><span id="audit-actor">Cuenta</span><LookupSelect config={userLookup} value={actor} onChange={setActor} labelId="audit-actor" /></div>
       <label className="form-field"><span>Desde</span><input name="start" type="date" /></label>
       <label className="form-field"><span>Hasta</span><input name="end" type="date" /></label>

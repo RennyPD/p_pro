@@ -1,3 +1,4 @@
+import { KeyRound } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -43,7 +44,7 @@ export function UsersPage() {
     <>
       <ResourcePage config={config} renderEditor={(record, onClose) => <UserEditor record={record} onClose={onClose} />}
         rowActions={row => <>
-          <button type="button" onClick={() => setReset(row)} aria-label={`Restablecer contraseña de ${row.username}`}>Contraseña</button>
+          <button type="button" onClick={() => setReset(row)} aria-label={`Restablecer contraseña de ${row.username}`} title="Restablecer contraseña"><KeyRound /></button>
           {isCustomRole(String(row.role_name ?? "")) && <button type="button" onClick={() => setAccount(row)}>Módulos</button>}
         </>} />
       {reset && <UserEditor record={reset} passwordReset onClose={() => setReset(null)} />}

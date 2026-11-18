@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, DoorOpen } from "lucide-react";
+import { CalendarDays, DoorOpen, Send } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { DocumentDownload } from "../../components/DocumentDownload";
@@ -64,11 +64,11 @@ export function SectionsPage() {
     <ResourcePage config={sectionConfig}
       toolbarContent={admin && <Button variant="secondary" onClick={() => setRooms(true)}><DoorOpen size={16} /> Aulas</Button>}
       rowActions={row => <>
-        <button type="button" aria-label={`Ver bloques de ${row.code}`} onClick={() => setMeetings(row)}><CalendarDays size={17} /></button>
+        <button type="button" aria-label={`Ver bloques de ${row.code}`} title="Bloques de horario" onClick={() => setMeetings(row)}><CalendarDays size={17} /></button>
         {admin && row.status === "draft" && <button type="button" aria-label={`Publicar ${row.code}`} onClick={() => {
           setPublishError("");
           setPublication(row);
-        }}>Publicar</button>}
+        }} title="Publicar sección"><Send size={16} /></button>}
       </>} />
     {meetings && <MeetingDialog section={meetings} onClose={() => setMeetings(null)} />}
     {rooms && <RoomDialog onClose={() => setRooms(false)} />}

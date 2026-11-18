@@ -107,7 +107,7 @@ export function EquivalencesPage() {
         <header><span>{r.career_code} · {r.career_name} · Plan {r.curriculum_version}</span><Badge tone={r.active ? "success" : "neutral"}>{r.active ? "Activa" : "Inactiva"}</Badge></header>
         <div className="equivalence-route"><div><small>Al aprobar</small><strong>{r.source_code}</strong><span>{r.source_name}</span></div><ArrowRightLeft aria-hidden="true" /><div><small>Se reconoce</small><strong>{r.target_code}</strong><span>{r.target_name}</span></div></div>
         <p>{r.notes || "Sin observaciones registradas."}</p>
-        <footer><Button variant="secondary" onClick={() => { setEditing(r); setEditNotes(r.notes); setEditReason(""); setEditActive(r.active); setEditImpact(undefined); }}>Gestionar regla</Button><Button variant="ghost" onClick={() => setHistoryId(r.course_equivalence_id)}>Historial</Button></footer>
+        <footer><Button variant="secondary" onClick={() => { setEditing(r); setEditNotes(r.notes); setEditReason(""); setEditActive(r.active); setEditImpact(undefined); }}>Gestionar regla</Button><Button variant="secondary" onClick={() => setHistoryId(r.course_equivalence_id)}>Ver historial</Button></footer>
       </article>)}</div>
       {!visible.length && <EmptyState icon={<ArrowRightLeft />} title="Sin reglas para estos filtros" description="Ajusta los filtros o registra una nueva regla." />}
     </section>

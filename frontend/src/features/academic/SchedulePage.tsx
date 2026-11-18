@@ -46,6 +46,8 @@ export function SchedulePage() {
     scheduleBlocks(section).map((block, index) => ({ ...section, ...block, key: `${section.section_id}-${index}` }))
   ).sort((a, b) => weekDays.indexOf(a.day_of_week) - weekDays.indexOf(b.day_of_week) || a.start_time.localeCompare(b.start_time));
   const active = periods.data?.find(candidate => candidate.active);
+  // Weekends only appear when there are classes, so the grid fits without horizontal scroll.
+  const visibleDays = weekDays.filter((day, index) => index < 5 || items.some(item => item.day_of_week === day));
   return (
     <div className="page">
       <header className="page-header">
@@ -77,7 +79,7 @@ export function SchedulePage() {
           </article>
         ))}</section>
       ) : (
-        <section className="week-grid">{weekDays.map(day => (
+        <section className="week-grid" style={{ "--week-days": visibleDays.length } as React.CSSProperties}>{visibleDays.map(day => (
           <div className="week-day" key={day}>
             <header>{day}</header>
             {items.filter(item => item.day_of_week === day).map(item => (

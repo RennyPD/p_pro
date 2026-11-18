@@ -28,13 +28,21 @@ class SubjectUpdate(BaseModel):
     @classmethod
     def validate_text(cls, value):
         if value is None:
-            raise ValueError("Subject fields cannot be null")
+            raise ValueError("Los campos de la asignatura no pueden quedar vacíos")
         return value.strip() if isinstance(value, str) else value
 
 
 class SubjectOut(SubjectBase):
     subject_id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class SubjectListItem(SubjectOut):
+    """Directory row: where the subject is used, so the table is not just code + name."""
+
+    career_codes: list[str] = []
+    credits: float | None = None
+    section_count: int = 0
 
 
 class SubjectProgramOut(CurriculumCourseOut):

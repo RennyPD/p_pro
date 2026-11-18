@@ -3,6 +3,7 @@ import { Download, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
+import "./bulk-tools.css";
 
 type ImportRow = { line: number; status: "valid" | "created" | "unchanged" | "rejected"; detail?: string };
 type ImportResult = { rows: ImportRow[]; created: number };
@@ -60,11 +61,11 @@ export function BulkToolsPage() {
   const rows = result?.rows ?? preview?.rows;
   return (
     <div className="page">
-      <header className="page-header"><h1>Importación y exportación</h1></header>
+      <header className="page-header"><div><span className="kicker">Configuración · Datos</span><h1>Importación y exportación</h1><p>Carga estudiantes desde una hoja de cálculo o descarga el listado actual.</p></div></header>
       <section className="settings-grid">
         <article className="panel bulk-card">
           <h2>Importar estudiantes</h2>
-          <p>Usa el código de la carrera en <code>career_code</code>. Deja la matrícula vacía para que se genere automáticamente.</p>
+          <p>Descarga la plantilla, complétala y valídala antes de importar. En la columna de carrera usa su código (por ejemplo, ITH-01); deja la matrícula vacía para generarla automáticamente.</p>
           <Button variant="secondary" onClick={() => void download("template")}><Download /> Descargar plantilla</Button>
           <label className="file-picker">
             <FileSpreadsheet /><span>{file?.name ?? "Seleccionar archivo CSV"}</span>

@@ -9,3 +9,4 @@
 
 .students-workspace .student-email{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:210px}.students-workspace .student-table-identity{min-width:180px}.students-workspace .student-flags{min-width:120px}
 .dossier-metrics .metric-note{margin-top:-.5rem;color:var(--muted);font-size:12px}
+.dossier-actions{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-end}@media(max-width:760px){.dossier-actions{justify-content:flex-start}}

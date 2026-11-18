@@ -168,16 +168,15 @@ export function AccountPage() {
               </form>
             )}
             {securityError && <p role="alert" className="form-error">{securityError}</p>}
-            <hr />
-            <h2>Sesiones</h2>
+            <h2 className="account-subheading">Sesiones activas</h2>
             {sessions.isPending ? <p>Cargando sesiones…</p> : sessions.isError ? (
               <p role="alert">No se pudieron consultar tus sesiones. <button type="button" onClick={() => void sessions.refetch()}>Reintentar</button></p>
             ) : activeSessions.length ? (
-              <ul>{activeSessions.map(session => (
-                <li key={session.session_id}>Iniciada el {localDate.format(new Date(session.created_at))}</li>
+              <ul className="session-list">{activeSessions.map((session, index) => (
+                <li key={session.session_id}><span>{index === 0 ? "Sesión más reciente" : `Sesión ${index + 1}`}</span><small>Iniciada el {localDate.format(new Date(session.created_at))}</small></li>
               ))}</ul>
             ) : <p>No hay sesiones renovables.</p>}
-            <p>Esta acción también cierra la sesión que estás usando.</p>
+            <p className="muted">Cerrar todas también cierra la sesión que estás usando.</p>
             <Button variant="secondary" disabled={busy} onClick={() => void runSecurity(async () => {
               await api.post("/auth/sessions/revoke-all");
               endSession("Sesiones cerradas.");
