@@ -1,8 +1,9 @@
+import hmac
 import secrets
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response, status
 from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 
@@ -29,8 +30,8 @@ from app.security import (
     create_totp_secret,
     hash_password,
     hash_token,
+    totp_step,
     verify_password,
-    verify_totp,
 )
 from app.services.account_sessions import lock_account, revoke_account_sessions
 from app.services.login_throttle import ensure_not_blocked, record_failure, record_success
@@ -75,8 +76,28 @@ def issue_session(db: Session, response: Response, user: User) -> TokenOut:
     return TokenOut(access_token=access_token, user=user)
 
 
+def ensure_bootstrap_allowed(provided: str | None) -> None:
+    """In production the first administrator needs BOOTSTRAP_TOKEN (audit, low finding)."""
+    expected = settings.bootstrap_token
+    if expected:
+        if not provided or not hmac.compare_digest(provided, expected):
+            raise HTTPException(403, "El código de configuración inicial no es válido")
+        return
+    if settings.app_environment == "production":
+        raise HTTPException(
+            403,
+            "La configuración inicial está deshabilitada. Define BOOTSTRAP_TOKEN en el servidor",
+        )
+
+
 @router.post("/bootstrap", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
-def bootstrap_admin(data: BootstrapRequest, response: Response, db: Session = Depends(get_db)):
+def bootstrap_admin(
+    data: BootstrapRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+    bootstrap_token: str | None = Header(default=None, alias="X-Bootstrap-Token"),
+):
+    ensure_bootstrap_allowed(bootstrap_token)
     # Serialize the initial account check even when the users table is empty.
     if db.get_bind().dialect.name == "sqlite":
         db.execute(text("BEGIN IMMEDIATE"))
@@ -101,6 +122,9 @@ def bootstrap_admin(data: BootstrapRequest, response: Response, db: Session = De
     user = create_user(db, user_data, commit=False)
     return issue_session(db, response, user)
 
+
+# Parallel tabs may refresh with the same cookie within this window.
+REUSE_GRACE = timedelta(seconds=30)
 
 # Compared against when the account does not exist, so the response time does
 # not reveal which usernames are registered.
@@ -137,7 +161,7 @@ def login(data: LoginRequest, request: Request, response: Response, db: Session 
         check_mfa_attempt(
             db,
             user,
-            user.mfa_secret and data.otp and verify_totp(user.mfa_secret, data.otp),
+            bool(user.mfa_secret and data.otp and consume_totp(user, data.otp)),
             status_code=401,
         )
     record_success(db, ip, data.username)
@@ -170,9 +194,18 @@ def refresh_session(
     user = lock_account(db, user)
     db.refresh(session)
     now = datetime.now(UTC).replace(tzinfo=None)
+    if session.rotated_at is not None and session.rotated_at < now - REUSE_GRACE:
+        # A rotated token came back: someone else may hold a copy. Close everything.
+        revoke_account_sessions(db, user)
+        audit(db, "session.reuse_detected", "authentication", user.user_id)
+        db.commit()
+        raise HTTPException(
+            status_code=401,
+            detail="Detectamos un uso repetido de la sesión. Inicia sesión de nuevo",
+        )
     if session.revoked_at is not None or session.expires_at <= now:
         raise HTTPException(status_code=401, detail="La sesión expiró. Inicia sesión de nuevo")
-    session.revoked_at = now
+    session.revoked_at = session.rotated_at = now
     if not account_is_active(user):
         db.commit()
         ensure_account_active(user)
@@ -248,6 +281,15 @@ def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+def consume_totp(user: User, code: str) -> bool:
+    """Accept a code for the account's secret once; replays of a used step fail."""
+    step = totp_step(user.mfa_secret, code)
+    if step is None or (user.mfa_last_step is not None and step <= user.mfa_last_step):
+        return False
+    user.mfa_last_step = step
+    return True
+
+
 def check_mfa_attempt(db: Session, user: User, valid: bool, *, status_code: int = 400):
     now = datetime.now(UTC).replace(tzinfo=None)
     if user.mfa_attempt_window is None or user.mfa_attempt_window <= now:
@@ -311,11 +353,13 @@ def enable_mfa(
         or bool(
             data.current_code
             and current_user.mfa_secret
-            and verify_totp(current_user.mfa_secret, data.current_code)
+            and consume_totp(current_user, data.current_code)
         )
     )
-    check_mfa_attempt(db, current_user, verified and verify_totp(secret, data.code))
+    new_step = totp_step(secret, data.code)
+    check_mfa_attempt(db, current_user, bool(verified and new_step is not None))
     current_user.mfa_secret = secret
+    current_user.mfa_last_step = new_step
     current_user.mfa_enabled = True
     revoke_account_sessions(db, current_user)
     audit(
@@ -333,8 +377,8 @@ def disable_mfa(
     current_user = lock_account(db, current_user)
     if not current_user.mfa_enabled or not current_user.mfa_secret:
         raise HTTPException(409, "La verificación en dos pasos ya está desactivada")
-    verified = verify_password(data.current_password, current_user.password) and verify_totp(
-        current_user.mfa_secret, data.code
+    verified = verify_password(data.current_password, current_user.password) and bool(
+        current_user.mfa_secret and consume_totp(current_user, data.code)
     )
     check_mfa_attempt(db, current_user, verified)
     current_user.mfa_enabled = False

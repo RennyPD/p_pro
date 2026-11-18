@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     cors_origin_regex: str | None = None
     finance_transfer_instructions: str = ""
     finance_simulator_enabled: bool = True
+    # Required in production to create the first administrator via /auth/bootstrap.
+    bootstrap_token: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
 

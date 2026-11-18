@@ -105,16 +105,22 @@ def create_totp_secret() -> str:
     return base64.b32encode(secrets.token_bytes(20)).decode().rstrip("=")
 
 
-def verify_totp(secret: str, code: str, timestamp: int | None = None) -> bool:
+def totp_step(secret: str, code: str, timestamp: int | None = None) -> int | None:
+    """Time step (30 s) the code belongs to, within one step of drift, or None."""
     if not code.isdigit() or len(code) != 6:
-        return False
+        return None
     current = int(time.time() if timestamp is None else timestamp) // 30
     padded = secret + "=" * (-len(secret) % 8)
     key = base64.b32decode(padded, casefold=True)
     for offset in (-1, 0, 1):
-        digest = hmac.new(key, (current + offset).to_bytes(8, "big"), hashlib.sha1).digest()
+        step = current + offset
+        digest = hmac.new(key, step.to_bytes(8, "big"), hashlib.sha1).digest()
         index = digest[-1] & 15
         value = (int.from_bytes(digest[index : index + 4], "big") & 0x7FFFFFFF) % 1_000_000
         if hmac.compare_digest(f"{value:06d}", code):
-            return True
-    return False
+            return step
+    return None
+
+
+def verify_totp(secret: str, code: str, timestamp: int | None = None) -> bool:
+    return totp_step(secret, code, timestamp) is not None

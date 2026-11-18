@@ -25,6 +25,8 @@ class User(Base):
     mfa_pending_until: Mapped[datetime | None] = mapped_column(DateTime)
     mfa_attempts: Mapped[int] = mapped_column(default=0, server_default="0")
     mfa_attempt_window: Mapped[datetime | None] = mapped_column(DateTime)
+    # Last accepted TOTP time step: a code is accepted only once.
+    mfa_last_step: Mapped[int | None] = mapped_column(nullable=True)
     session_version: Mapped[int] = mapped_column(default=0, server_default="0")
     module_views: Mapped[list[str] | None] = mapped_column(JSON)
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
