@@ -9,6 +9,24 @@ import "./styles.css";
 import "./accessibility.css";
 import "./workspace-design.css";
 
-const queryClient=new QueryClient({defaultOptions:{queries:{staleTime:30_000,retry:1,refetchOnWindowFocus:false}}});
-const router = createBrowserRouter([{ path: "*", element: <DraftGuard><App /></DraftGuard> }]);
-createRoot(document.getElementById("root")!).render(<StrictMode><QueryClientProvider client={queryClient}><RouterProvider router={router} /><Toaster richColors position="top-right"/></QueryClientProvider></StrictMode>);
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },
+});
+const router = createBrowserRouter([
+  {
+    path: "*",
+    element: (
+      <DraftGuard>
+        <App />
+      </DraftGuard>
+    ),
+  },
+]);
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+      <Toaster richColors position="top-right" />
+    </QueryClientProvider>
+  </StrictMode>,
+);

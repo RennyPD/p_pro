@@ -1,16 +1,215 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, BookOpen, CalendarDays, ClipboardCheck, Clock3, GraduationCap, TrendingUp, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  BookOpen,
+  CalendarDays,
+  ClipboardCheck,
+  Clock3,
+  GraduationCap,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { Spinner } from "../../components/ui";
 import { scheduleBlocks } from "../../lib/schedule";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 
-const today=new Intl.DateTimeFormat("es-DO",{weekday:"long",day:"numeric",month:"long"}).format(new Date());
-const icons:Record<string,React.ReactNode>={students:<GraduationCap/>,teachers:<Users/>,sections:<CalendarDays/>,enrollments:<ClipboardCheck/>,courses:<BookOpen/>,average:<TrendingUp/>,attendance:<ClipboardCheck/>,grades:<BookOpen/>};
-const tones=["blue","violet","amber","green"];
-export function DashboardPage(){const{user}=useAuthStore();const summary=useQuery({queryKey:["dashboard-summary",user?.user_id,user?.role_name],queryFn:()=>api.get("/dashboard/summary").then(response=>response.data),enabled:Boolean(user)});if(summary.isLoading)return <div className="page"><Spinner label="Preparando tu espacio"/></div>;const data=summary.data;return <div className="page"><header className="page-header hero-header"><div><span className="kicker">{today}</span><h1>Hola, {user?.username}</h1><p>{data?.active_period?`Período activo: ${data.active_period}`:"Todo listo para continuar tu jornada académica."}</p></div><div className="status-pill"><span/> Sistema al día</div></header>{data?.alerts?.length>0&&<section className="dashboard-alerts">{data.alerts.map((alert:string)=><div key={alert}><AlertTriangle/>{alert}</div>)}</section>}<section className="metric-grid">{data?.metrics.map((metric:any,index:number)=><Metric key={metric.key} icon={icons[metric.key]??<TrendingUp/>} label={metric.label} value={metric.value} note={metric.note} tone={tones[index%tones.length]}/>)}</section>{user?.role_name==="admin"?<AdminActions/>:<PersonalSchedule/>}</div>}
-function AdminActions(){return <section className="dashboard-grid"><article className="panel quick-start"><div className="panel-heading"><div><span className="kicker">Operación académica</span><h2>Gestiona el período activo</h2></div><TrendingUp/></div><p>Organiza la oferta académica; los estudiantes seleccionan sus asignaturas desde el catálogo.</p><div className="quick-links"><Quick to="/periods" icon={<CalendarDays/>} title="Períodos académicos"/><Quick to="/curriculum" icon={<BookOpen/>} title="Pensum y prerrequisitos"/><Quick to="/sections" icon={<ClipboardCheck/>} title="Oferta de secciones"/></div></article><article className="panel activity-panel"><div className="panel-heading"><div><span className="kicker">Herramientas</span><h2>Acciones frecuentes</h2></div></div><div className="quick-links"><Quick to="/students" icon={<GraduationCap/>} title="Gestionar estudiantes"/><Quick to="/sections" icon={<CalendarDays/>} title="Abrir secciones"/><Quick to="/settings/bulk" icon={<Users/>} title="Importar o exportar"/></div></article></section>}
-function PersonalSchedule(){const{user}=useAuthStore();const isStudent=user?.role_name==="student";const id=isStudent?user?.student_id:user?.teacher_id;const url=isStudent?`/academic/students/${id}/schedule`:`/academic/teachers/${id}/schedule`;const{data=[],isLoading}=useQuery({queryKey:["my-schedule",user?.user_id,user?.role_name,id],queryFn:()=>api.get(url).then(r=>r.data),enabled:Boolean(user&&id)});return <section className="dashboard-grid dashboard-grid--personal"><article className="panel day-panel"><span className="kicker">Tu jornada</span><h2>{isStudent?"Clases programadas":"Secciones asignadas"}</h2>{isLoading?<Spinner/>:data.length?<div className="timeline">{data.flatMap((item:any)=>scheduleBlocks(item).map((block,index)=><div className="timeline-item" key={`${item.section_id}-${index}`}><span><Clock3 size={17}/>{block.start_time.slice(0,5)}</span><div><strong>{item.subject_code}</strong><small>{item.section_code} · {block.day_of_week}</small></div></div>)).slice(0,4)}</div>:<p className="muted">No hay actividades programadas todavía.</p>}</article><article className="panel focus-panel"><BookOpen/><span className="kicker">Enfoque del día</span><h2>{isStudent?"Avanza una materia a la vez.":"Tu aula, siempre en contexto."}</h2><p>{isStudent?"Consulta tus notas, progreso y horario desde tu espacio personal.":"Abre una sección para registrar asistencia y calificaciones en grupo."}</p></article></section>}
-function Metric({icon,label,value,note,tone}:{icon:React.ReactNode;label:string;value:number|null;note:string;tone:string}){return <article className="metric-card"><span className={`metric-icon metric-icon--${tone}`}>{icon}</span><div><small>{label}</small><strong>{value === null ? "Sin datos" : value}</strong><span>{note}</span></div></article>}
-function Quick({to,icon,title}:{to:string;icon:React.ReactNode;title:string}){return <Link to={to}>{icon}<strong>{title}</strong><ArrowRight size={16}/></Link>}
+const today = new Intl.DateTimeFormat("es-DO", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+}).format(new Date());
+const icons: Record<string, React.ReactNode> = {
+  students: <GraduationCap />,
+  teachers: <Users />,
+  sections: <CalendarDays />,
+  enrollments: <ClipboardCheck />,
+  courses: <BookOpen />,
+  average: <TrendingUp />,
+  attendance: <ClipboardCheck />,
+  grades: <BookOpen />,
+};
+const tones = ["blue", "violet", "amber", "green"];
+export function DashboardPage() {
+  const { user } = useAuthStore();
+  const summary = useQuery({
+    queryKey: ["dashboard-summary", user?.user_id, user?.role_name],
+    queryFn: () => api.get("/dashboard/summary").then(response => response.data),
+    enabled: Boolean(user),
+  });
+  if (summary.isLoading)
+    return (
+      <div className="page">
+        <Spinner label="Preparando tu espacio" />
+      </div>
+    );
+  const data = summary.data;
+  return (
+    <div className="page">
+      <header className="page-header hero-header">
+        <div>
+          <span className="kicker">{today}</span>
+          <h1>Hola, {user?.username}</h1>
+          <p>
+            {data?.active_period
+              ? `Período activo: ${data.active_period}`
+              : "Todo listo para continuar tu jornada académica."}
+          </p>
+        </div>
+        <div className="status-pill">
+          <span /> Sistema al día
+        </div>
+      </header>
+      {data?.alerts?.length > 0 && (
+        <section className="dashboard-alerts">
+          {data.alerts.map((alert: string) => (
+            <div key={alert}>
+              <AlertTriangle />
+              {alert}
+            </div>
+          ))}
+        </section>
+      )}
+      <section className="metric-grid">
+        {data?.metrics.map((metric: any, index: number) => (
+          <Metric
+            key={metric.key}
+            icon={icons[metric.key] ?? <TrendingUp />}
+            label={metric.label}
+            value={metric.value}
+            note={metric.note}
+            tone={tones[index % tones.length]}
+          />
+        ))}
+      </section>
+      {user?.role_name === "admin" ? <AdminActions /> : <PersonalSchedule />}
+    </div>
+  );
+}
+function AdminActions() {
+  return (
+    <section className="dashboard-grid">
+      <article className="panel quick-start">
+        <div className="panel-heading">
+          <div>
+            <span className="kicker">Operación académica</span>
+            <h2>Gestiona el período activo</h2>
+          </div>
+          <TrendingUp />
+        </div>
+        <p>
+          Organiza la oferta académica; los estudiantes seleccionan sus asignaturas desde el
+          catálogo.
+        </p>
+        <div className="quick-links">
+          <Quick to="/periods" icon={<CalendarDays />} title="Períodos académicos" />
+          <Quick to="/curriculum" icon={<BookOpen />} title="Pensum y prerrequisitos" />
+          <Quick to="/sections" icon={<ClipboardCheck />} title="Oferta de secciones" />
+        </div>
+      </article>
+      <article className="panel activity-panel">
+        <div className="panel-heading">
+          <div>
+            <span className="kicker">Herramientas</span>
+            <h2>Acciones frecuentes</h2>
+          </div>
+        </div>
+        <div className="quick-links">
+          <Quick to="/students" icon={<GraduationCap />} title="Gestionar estudiantes" />
+          <Quick to="/sections" icon={<CalendarDays />} title="Abrir secciones" />
+          <Quick to="/settings/bulk" icon={<Users />} title="Importar o exportar" />
+        </div>
+      </article>
+    </section>
+  );
+}
+function PersonalSchedule() {
+  const { user } = useAuthStore();
+  const isStudent = user?.role_name === "student";
+  const id = isStudent ? user?.student_id : user?.teacher_id;
+  const url = isStudent ? `/academic/students/${id}/schedule` : `/academic/teachers/${id}/schedule`;
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["my-schedule", user?.user_id, user?.role_name, id],
+    queryFn: () => api.get(url).then(r => r.data),
+    enabled: Boolean(user && id),
+  });
+  return (
+    <section className="dashboard-grid dashboard-grid--personal">
+      <article className="panel day-panel">
+        <span className="kicker">Tu jornada</span>
+        <h2>{isStudent ? "Clases programadas" : "Secciones asignadas"}</h2>
+        {isLoading ? (
+          <Spinner />
+        ) : data.length ? (
+          <div className="timeline">
+            {data
+              .flatMap((item: any) =>
+                scheduleBlocks(item).map((block, index) => (
+                  <div className="timeline-item" key={`${item.section_id}-${index}`}>
+                    <span>
+                      <Clock3 size={17} />
+                      {block.start_time.slice(0, 5)}
+                    </span>
+                    <div>
+                      <strong>{item.subject_code}</strong>
+                      <small>
+                        {item.section_code} · {block.day_of_week}
+                      </small>
+                    </div>
+                  </div>
+                )),
+              )
+              .slice(0, 4)}
+          </div>
+        ) : (
+          <p className="muted">No hay actividades programadas todavía.</p>
+        )}
+      </article>
+      <article className="panel focus-panel">
+        <BookOpen />
+        <span className="kicker">Enfoque del día</span>
+        <h2>{isStudent ? "Avanza una materia a la vez." : "Tu aula, siempre en contexto."}</h2>
+        <p>
+          {isStudent
+            ? "Consulta tus notas, progreso y horario desde tu espacio personal."
+            : "Abre una sección para registrar asistencia y calificaciones en grupo."}
+        </p>
+      </article>
+    </section>
+  );
+}
+function Metric({
+  icon,
+  label,
+  value,
+  note,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number | null;
+  note: string;
+  tone: string;
+}) {
+  return (
+    <article className="metric-card">
+      <span className={`metric-icon metric-icon--${tone}`}>{icon}</span>
+      <div>
+        <small>{label}</small>
+        <strong>{value === null ? "Sin datos" : value}</strong>
+        <span>{note}</span>
+      </div>
+    </article>
+  );
+}
+function Quick({ to, icon, title }: { to: string; icon: React.ReactNode; title: string }) {
+  return (
+    <Link to={to}>
+      {icon}
+      <strong>{title}</strong>
+      <ArrowRight size={16} />
+    </Link>
+  );
+}

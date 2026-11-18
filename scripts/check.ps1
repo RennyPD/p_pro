@@ -19,6 +19,7 @@ Invoke-Check @('python', '-B', '-m', 'alembic', 'heads')
 
 Push-Location frontend
 try {
+    Invoke-Check @('npm', 'run', 'format:check')
     Invoke-Check @('npm', 'run', 'typecheck')
     Invoke-Check @('npm', 'run', 'lint')
     Invoke-Check @('npm', 'run', 'test')

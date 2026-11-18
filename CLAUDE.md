@@ -28,6 +28,8 @@ Frontend, desde `frontend/`:
 ```
 npm install
 npm run dev
+npm run format
+npm run format:check
 npm run lint
 npm run typecheck
 npm run test
@@ -36,7 +38,7 @@ npm run e2e
 ```
 Verificación completa en Windows: `.\scripts\check.ps1`. CI: `.github/workflows/`.
 
-Antes de dar una tarea por terminada, corre como mínimo pytest y ruff (backend), o lint, typecheck y test (frontend), según lo que hayas tocado.
+Antes de dar una tarea por terminada, corre como mínimo pytest y ruff (backend), o format:check, lint, typecheck y test (frontend), según lo que hayas tocado.
 
 ## Reglas
 1. **No romper lo que funciona.** Todo cambio de modelo va con su migración Alembic, y todo arreglo con una prueba de regresión en `tests/` (o `*.test.tsx`).

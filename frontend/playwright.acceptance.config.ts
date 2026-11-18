@@ -8,7 +8,10 @@ export default defineConfig({
   use: { baseURL: "http://127.0.0.3:5176", trace: "retain-on-failure" },
   webServer: [
     {
-      command: process.platform === "win32" ? ".venv\\Scripts\\python.exe -B -m scripts.acceptance_server" : "python -B -m scripts.acceptance_server",
+      command:
+        process.platform === "win32"
+          ? ".venv\\Scripts\\python.exe -B -m scripts.acceptance_server"
+          : "python -B -m scripts.acceptance_server",
       cwd: "..",
       url: "http://127.0.0.3:8012/health",
       timeout: 180_000,

@@ -55,10 +55,13 @@ function renderPage() {
 }
 
 it("shows the account status and deactivates after confirmation", async () => {
-  vi.spyOn(api, "get").mockImplementation(async path => ({
-    data: String(path).startsWith("/users") ? accounts : [],
-    headers: {},
-  }) as never);
+  vi.spyOn(api, "get").mockImplementation(
+    async path =>
+      ({
+        data: String(path).startsWith("/users") ? accounts : [],
+        headers: {},
+      }) as never,
+  );
   const post = vi.spyOn(api, "post").mockResolvedValue({ data: {} } as never);
   const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
   renderPage();
@@ -73,10 +76,13 @@ it("shows the account status and deactivates after confirmation", async () => {
 });
 
 it("does nothing when the deactivation is not confirmed", async () => {
-  vi.spyOn(api, "get").mockImplementation(async path => ({
-    data: String(path).startsWith("/users") ? accounts : [],
-    headers: {},
-  }) as never);
+  vi.spyOn(api, "get").mockImplementation(
+    async path =>
+      ({
+        data: String(path).startsWith("/users") ? accounts : [],
+        headers: {},
+      }) as never,
+  );
   const post = vi.spyOn(api, "post").mockResolvedValue({ data: {} } as never);
   vi.spyOn(window, "confirm").mockReturnValue(false);
   renderPage();

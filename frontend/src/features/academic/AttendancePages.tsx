@@ -11,76 +11,595 @@ import { RequestApproval } from "../operations/ApprovalsPage";
 import { LessonPlansDialog } from "./LessonPlansDialog";
 import "./attendance.css";
 
-const labels: Record<string, string> = { present: "Presente", absent: "Ausente", late: "Tardanza", excused: "Justificada", early_departure: "Salida anticipada" };
+const labels: Record<string, string> = {
+  present: "Presente",
+  absent: "Ausente",
+  late: "Tardanza",
+  excused: "Justificada",
+  early_departure: "Salida anticipada",
+};
 const institutionDate = new Intl.DateTimeFormat("en", {
-  timeZone: "America/Santo_Domingo", year: "numeric", month: "2-digit", day: "2-digit",
+  timeZone: "America/Santo_Domingo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
 });
 const localDay = () => {
-  const parts = Object.fromEntries(institutionDate.formatToParts(new Date()).map(part => [part.type, part.value]));
+  const parts = Object.fromEntries(
+    institutionDate.formatToParts(new Date()).map(part => [part.type, part.value]),
+  );
   return `${parts.year}-${parts.month}-${parts.day}`;
 };
-const rule = "Porcentaje sobre clases registradas: presentes, tardanzas y salidas anticipadas cuentan como presencia; ausencias y justificaciones no. Los días sin registro no cuentan.";
-type Entry = { enrollment_id: number; name: string; enrollment_number: string; attendance_id: number | null; state: string; status: string | null; note: string; excuse_reference: string };
-type Session = { section_id: number; section_code: string; subject_name: string; teacher_name: string; period_name: string; days_of_week: string; roster: Entry[] };
+const rule =
+  "Porcentaje sobre clases registradas: presentes, tardanzas y salidas anticipadas cuentan como presencia; ausencias y justificaciones no. Los días sin registro no cuentan.";
+type Entry = {
+  enrollment_id: number;
+  name: string;
+  enrollment_number: string;
+  attendance_id: number | null;
+  state: string;
+  status: string | null;
+  note: string;
+  excuse_reference: string;
+};
+type Session = {
+  section_id: number;
+  section_code: string;
+  subject_name: string;
+  teacher_name: string;
+  period_name: string;
+  days_of_week: string;
+  roster: Entry[];
+};
 type Draft = { status: string; note: string; excuse_reference: string };
-type Audit = { change_id: number; action: string; reason: string; changed_by_name: string; changed_at: string; previous: Draft | null; current: Draft | null };
-type Course = { enrollment_id: number; section_id: number; section_code: string; subject_code: string; subject_name: string; period: string; state: string; present_count: number; total_count: number; percentage: number | null; counts: Record<string, number>; records: { attendance_id: number; date: string; status: string; note: string; excuse_reference: string }[] };
+type Audit = {
+  change_id: number;
+  action: string;
+  reason: string;
+  changed_by_name: string;
+  changed_at: string;
+  previous: Draft | null;
+  current: Draft | null;
+};
+type Course = {
+  enrollment_id: number;
+  section_id: number;
+  section_code: string;
+  subject_code: string;
+  subject_name: string;
+  period: string;
+  state: string;
+  present_count: number;
+  total_count: number;
+  percentage: number | null;
+  counts: Record<string, number>;
+  records: {
+    attendance_id: number;
+    date: string;
+    status: string;
+    note: string;
+    excuse_reference: string;
+  }[];
+};
 
 export function AttendanceWorkspacePage() {
   const { sectionId } = useParams();
   const user = useAuthStore(s => s.user);
-  const [day, setDay] = useState(localDay()), [dirty, setDirty] = useState(false);
-  return <div className="page attendance-page"><Link className="back-link" to="/attendances">← Seguimiento de asistencia</Link><header className="page-header"><div><span className="kicker">Registro por sección</span><h1>Pase de lista</h1><p>Selecciona cada estado de forma explícita. Sin registrar no significa presente ni ausente.</p></div><label>Fecha de clase<input aria-label="Fecha de clase" type="date" max={localDay()} value={day} onChange={e => { if (dirty && !confirm("Hay cambios sin guardar. ¿Cambiar de fecha?")) return; setDirty(false); setDay(e.target.value); }} /></label></header><AttendanceSession key={`${sectionId}-${day}-${user?.user_id}`} sectionId={sectionId ?? ""} day={day} onDirty={setDirty} /></div>;
+  const [day, setDay] = useState(localDay()),
+    [dirty, setDirty] = useState(false);
+  return (
+    <div className="page attendance-page">
+      <Link className="back-link" to="/attendances">
+        ← Seguimiento de asistencia
+      </Link>
+      <header className="page-header">
+        <div>
+          <span className="kicker">Registro por sección</span>
+          <h1>Pase de lista</h1>
+          <p>
+            Selecciona cada estado de forma explícita. Sin registrar no significa presente ni
+            ausente.
+          </p>
+        </div>
+        <label>
+          Fecha de clase
+          <input
+            aria-label="Fecha de clase"
+            type="date"
+            max={localDay()}
+            value={day}
+            onChange={e => {
+              if (dirty && !confirm("Hay cambios sin guardar. ¿Cambiar de fecha?")) return;
+              setDirty(false);
+              setDay(e.target.value);
+            }}
+          />
+        </label>
+      </header>
+      <AttendanceSession
+        key={`${sectionId}-${day}-${user?.user_id}`}
+        sectionId={sectionId ?? ""}
+        day={day}
+        onDirty={setDirty}
+      />
+    </div>
+  );
 }
 
-function AttendanceSession({ sectionId, day, onDirty }: { sectionId: string; day: string; onDirty: (value: boolean) => void }) {
-  const user = useAuthStore(s => s.user), client = useQueryClient();
-  const [changes, setChanges] = useState<Record<number, Draft>>({}), [reason, setReason] = useState(""), [exception, setException] = useState(""), [search, setSearch] = useState("");
+function AttendanceSession({
+  sectionId,
+  day,
+  onDirty,
+}: {
+  sectionId: string;
+  day: string;
+  onDirty: (value: boolean) => void;
+}) {
+  const user = useAuthStore(s => s.user),
+    client = useQueryClient();
+  const [changes, setChanges] = useState<Record<number, Draft>>({}),
+    [reason, setReason] = useState(""),
+    [exception, setException] = useState(""),
+    [search, setSearch] = useState("");
   const [historyId, setHistoryId] = useState<number | null>(null);
   const [plans, setPlans] = useState(false);
   const [bulkScope, setBulkScope] = useState<"visible" | "all" | null>(null);
-  const query = useQuery<Session>({ queryKey: ["attendance-session", user?.user_id, sectionId, day], queryFn: () => api.get(`/attendances/sections/${sectionId}/session`, { params: { day } }).then(r => r.data) });
-  const history = useQuery<Audit[]>({ queryKey: ["attendance-history", user?.user_id, historyId], queryFn: () => api.get(`/attendances/${historyId}/history`).then(r => r.data), enabled: Boolean(historyId) });
+  const query = useQuery<Session>({
+    queryKey: ["attendance-session", user?.user_id, sectionId, day],
+    queryFn: () =>
+      api.get(`/attendances/sections/${sectionId}/session`, { params: { day } }).then(r => r.data),
+  });
+  const history = useQuery<Audit[]>({
+    queryKey: ["attendance-history", user?.user_id, historyId],
+    queryFn: () => api.get(`/attendances/${historyId}/history`).then(r => r.data),
+    enabled: Boolean(historyId),
+  });
   const dirty = Object.keys(changes).length > 0;
-  useEffect(() => { onDirty(dirty); const guard = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } }; window.addEventListener("beforeunload", guard); return () => window.removeEventListener("beforeunload", guard); }, [dirty, onDirty]);
-  const save = useMutation({ mutationFn: () => api.post("/attendances/bulk", { section_id: Number(sectionId), date: day, reason: reason.trim(), exception_reason: exception.trim() || null, records: Object.entries(changes).map(([id, values]) => ({ enrollment_id: Number(id), ...values })) }), onSuccess: () => { setChanges({}); setReason(""); toast.success("Asistencia guardada; seguimiento actualizado"); for (const name of ["attendance-session", "attendance-history", "section-workspace", "section-results", "section-academic-summary", "my-attendance", "student-profile", "dashboard-summary", "guardian-overview"]) client.invalidateQueries({ queryKey: [name] }); }, onError: e => toast.error(apiMessage(e)) });
+  useEffect(() => {
+    onDirty(dirty);
+    const guard = (e: BeforeUnloadEvent) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", guard);
+    return () => window.removeEventListener("beforeunload", guard);
+  }, [dirty, onDirty]);
+  const save = useMutation({
+    mutationFn: () =>
+      api.post("/attendances/bulk", {
+        section_id: Number(sectionId),
+        date: day,
+        reason: reason.trim(),
+        exception_reason: exception.trim() || null,
+        records: Object.entries(changes).map(([id, values]) => ({
+          enrollment_id: Number(id),
+          ...values,
+        })),
+      }),
+    onSuccess: () => {
+      setChanges({});
+      setReason("");
+      toast.success("Asistencia guardada; seguimiento actualizado");
+      for (const name of [
+        "attendance-session",
+        "attendance-history",
+        "section-workspace",
+        "section-results",
+        "section-academic-summary",
+        "my-attendance",
+        "student-profile",
+        "dashboard-summary",
+        "guardian-overview",
+      ])
+        client.invalidateQueries({ queryKey: [name] });
+    },
+    onError: e => toast.error(apiMessage(e)),
+  });
   useDraftGuard(dirty, save.isPending);
   if (query.isLoading) return <Spinner />;
-  if (query.error || !query.data) return <EmptyState icon={<ClipboardCheck />} title="No pudimos abrir el pase de lista" description={apiMessage(query.error)} />;
+  if (query.error || !query.data)
+    return (
+      <EmptyState
+        icon={<ClipboardCheck />}
+        title="No pudimos abrir el pase de lista"
+        description={apiMessage(query.error)}
+      />
+    );
   const session = query.data;
-  const current = (row: Entry): Draft => changes[row.enrollment_id] ?? { status: row.status ?? "", note: row.note, excuse_reference: row.excuse_reference };
-  const edit = (row: Entry, patch: Partial<Draft>) => setChanges(previous => { const next = { ...current(row), ...patch }; const original = { status: row.status ?? "", note: row.note, excuse_reference: row.excuse_reference }; const copy = { ...previous }; if (JSON.stringify(next) === JSON.stringify(original)) delete copy[row.enrollment_id]; else copy[row.enrollment_id] = next; return copy; });
-  const visible = session.roster.filter(row => `${row.name} ${row.enrollment_number}`.toLowerCase().includes(search.trim().toLowerCase()));
-  const pendingRows = session.roster.filter(row => row.state === "enrolled" && !current(row).status);
+  const current = (row: Entry): Draft =>
+    changes[row.enrollment_id] ?? {
+      status: row.status ?? "",
+      note: row.note,
+      excuse_reference: row.excuse_reference,
+    };
+  const edit = (row: Entry, patch: Partial<Draft>) =>
+    setChanges(previous => {
+      const next = { ...current(row), ...patch };
+      const original = {
+        status: row.status ?? "",
+        note: row.note,
+        excuse_reference: row.excuse_reference,
+      };
+      const copy = { ...previous };
+      if (JSON.stringify(next) === JSON.stringify(original)) delete copy[row.enrollment_id];
+      else copy[row.enrollment_id] = next;
+      return copy;
+    });
+  const visible = session.roster.filter(row =>
+    `${row.name} ${row.enrollment_number}`.toLowerCase().includes(search.trim().toLowerCase()),
+  );
+  const pendingRows = session.roster.filter(
+    row => row.state === "enrolled" && !current(row).status,
+  );
   const pending = pendingRows.length;
   const visiblePending = visible.filter(row => row.state === "enrolled" && !current(row).status);
   const selected = bulkScope === "all" ? pendingRows : visiblePending;
-  const invalid = Object.values(changes).some(r => !r.status || r.status === "excused" && !r.note.trim() && !r.excuse_reference.trim());
-  return <><section className="panel"><h2>{session.subject_name} · {session.section_code}</h2>
-    <div className="form-actions">
-      <Button variant="secondary" onClick={() => setPlans(true)}>Planes de clase</Button>
-      <RequestApproval resource="section" id={Number(sectionId)} label={`${session.subject_name} · ${session.section_code}`} />
-    </div><p>{session.teacher_name} · {session.period_name || "Sin período"} · {session.days_of_week}</p><p>{rule}</p><div className="attendance-counts"><Badge tone={pending ? "warning" : "success"}>{pending} sin registrar</Badge>{Object.entries(labels).map(([status, label]) => <span key={status}>{label}: {session.roster.filter(r => current(r).status === status).length}</span>)}</div><div className="attendance-actions"><label>Buscar estudiante<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nombre o matrícula" /></label><Button variant="secondary" disabled={!pending || save.isPending} onClick={() => setBulkScope("visible")}>Marcar sin registrar como presentes</Button><Link to={`/assessments?section=${sectionId}`}>Libro de notas →</Link></div>
-    <div className="attendance-roster">{visible.map(row => { const value = current(row); return <article key={row.enrollment_id}><div><strong>{row.name}</strong><small>{row.enrollment_number}{row.state !== "enrolled" ? " · Corrección histórica" : ""}</small><Badge>{changes[row.enrollment_id] ? "Sin guardar" : row.status ? "Registrada" : "Sin registrar"}</Badge></div><label>Estado de {row.name} · {row.enrollment_number}<select value={value.status} onChange={e => edit(row, { status: e.target.value })}><option value="">Sin registrar</option>{Object.entries(labels).map(([k, label]) => <option key={k} value={k}>{label}</option>)}</select></label><label>Observación de {row.name} · {row.enrollment_number}<input maxLength={300} value={value.note} onChange={e => edit(row, { note: e.target.value })} placeholder={value.status === "excused" ? "Indica el motivo sin datos médicos" : "Opcional"} /></label>{(value.status === "excused" || value.excuse_reference) && <label>Referencia de {row.name} · {row.enrollment_number}<input maxLength={300} value={value.excuse_reference} onChange={e => edit(row, { excuse_reference: e.target.value })} placeholder="Folio del comprobante, si existe" /></label>}{row.attendance_id && <Button variant="ghost" onClick={() => setHistoryId(row.attendance_id)}><History size={16} /> Historial</Button>}</article>; })}</div>{!session.roster.length && <p>No hay estudiantes activos ni registros históricos que corregir para esta fecha.</p>}
-    <div className="attendance-save"><label>Motivo del registro o corrección<input maxLength={250} value={reason} onChange={e => setReason(e.target.value)} placeholder="Pase de lista o motivo de la corrección" /></label>{user?.role_name === "admin" && <label>Excepción de día de clase (solo sesión extraordinaria)<input maxLength={180} value={exception} onChange={e => setException(e.target.value)} placeholder="Dejar vacío en días normales" /></label>}<p>Se guardan solo {Object.keys(changes).length} estudiantes modificados. Los demás registros no se alteran.</p>{invalid && <p role="alert">Selecciona estado en cada cambio; las justificaciones requieren observación o referencia.</p>}<Button disabled={!dirty || invalid || reason.trim().length < 2 || save.isPending} onClick={() => save.mutate()}>Guardar asistencia</Button><Button variant="ghost" disabled={!dirty || save.isPending} onClick={() => { if (confirm("¿Descartar los cambios de esta fecha?")) setChanges({}); }}>Descartar cambios</Button></div></section>{plans && <LessonPlansDialog sectionId={sectionId} onClose={() => setPlans(false)} />}{bulkScope && <Modal title="Marcar presentes en grupo" onClose={() => setBulkScope(null)}>
-      <p>{session.section_code} · {day}. Se aplicará al borrador de asistencia.</p>
-      <fieldset className="form-field"><legend>Estudiantes sin registrar</legend>
-        <label><input type="radio" name="attendance-scope" checked={bulkScope === "visible"} onChange={() => setBulkScope("visible")} /> Solo visibles ({visiblePending.length})</label>
-        <label><input type="radio" name="attendance-scope" checked={bulkScope === "all"} onChange={() => setBulkScope("all")} /> Todo el grupo ({pending})</label>
-      </fieldset>
-      <div className="form-actions">
-        <Button variant="secondary" onClick={() => setBulkScope(null)}>Cancelar</Button>
-        <Button disabled={!selected.length} onClick={() => {
-          setChanges(previous => ({ ...previous, ...Object.fromEntries(selected.map(row => [row.enrollment_id, { ...current(row), status: "present" }])) }));
-          setBulkScope(null);
-        }}>Marcar {selected.length} como presentes</Button>
-      </div>
-    </Modal>}{historyId && <Modal title="Historial de asistencia" onClose={() => setHistoryId(null)}>{history.isLoading ? <Spinner /> : history.error ? <p role="alert">{apiMessage(history.error)}</p> : history.data?.length ? history.data.map(c => <article className="attendance-audit" key={c.change_id}><strong>{c.action === "created" ? "Registro" : c.action === "deleted" ? "Eliminación" : "Corrección"} · {c.changed_by_name}</strong><small>{new Date(`${c.changed_at}Z`).toLocaleString("es-DO")}</small><p>{c.previous ? labels[c.previous.status] : "Sin registro"} → {c.current ? labels[c.current.status] : "Eliminado"}</p><p>{c.reason}</p>{c.current?.note && <p>Observación: {c.current.note}</p>}{c.current?.excuse_reference && <p>Referencia: {c.current.excuse_reference}</p>}</article>) : <p>Registro anterior al historial de correcciones. Sus cambios futuros quedarán registrados.</p>}</Modal>}</>;
+  const invalid = Object.values(changes).some(
+    r => !r.status || (r.status === "excused" && !r.note.trim() && !r.excuse_reference.trim()),
+  );
+  return (
+    <>
+      <section className="panel">
+        <h2>
+          {session.subject_name} · {session.section_code}
+        </h2>
+        <div className="form-actions">
+          <Button variant="secondary" onClick={() => setPlans(true)}>
+            Planes de clase
+          </Button>
+          <RequestApproval
+            resource="section"
+            id={Number(sectionId)}
+            label={`${session.subject_name} · ${session.section_code}`}
+          />
+        </div>
+        <p>
+          {session.teacher_name} · {session.period_name || "Sin período"} · {session.days_of_week}
+        </p>
+        <p>{rule}</p>
+        <div className="attendance-counts">
+          <Badge tone={pending ? "warning" : "success"}>{pending} sin registrar</Badge>
+          {Object.entries(labels).map(([status, label]) => (
+            <span key={status}>
+              {label}: {session.roster.filter(r => current(r).status === status).length}
+            </span>
+          ))}
+        </div>
+        <div className="attendance-actions">
+          <label>
+            Buscar estudiante
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Nombre o matrícula"
+            />
+          </label>
+          <Button
+            variant="secondary"
+            disabled={!pending || save.isPending}
+            onClick={() => setBulkScope("visible")}
+          >
+            Marcar sin registrar como presentes
+          </Button>
+          <Link to={`/assessments?section=${sectionId}`}>Libro de notas →</Link>
+        </div>
+        <div className="attendance-roster">
+          {visible.map(row => {
+            const value = current(row);
+            return (
+              <article key={row.enrollment_id}>
+                <div>
+                  <strong>{row.name}</strong>
+                  <small>
+                    {row.enrollment_number}
+                    {row.state !== "enrolled" ? " · Corrección histórica" : ""}
+                  </small>
+                  <Badge>
+                    {changes[row.enrollment_id]
+                      ? "Sin guardar"
+                      : row.status
+                        ? "Registrada"
+                        : "Sin registrar"}
+                  </Badge>
+                </div>
+                <label>
+                  Estado de {row.name} · {row.enrollment_number}
+                  <select
+                    value={value.status}
+                    onChange={e => edit(row, { status: e.target.value })}
+                  >
+                    <option value="">Sin registrar</option>
+                    {Object.entries(labels).map(([k, label]) => (
+                      <option key={k} value={k}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Observación de {row.name} · {row.enrollment_number}
+                  <input
+                    maxLength={300}
+                    value={value.note}
+                    onChange={e => edit(row, { note: e.target.value })}
+                    placeholder={
+                      value.status === "excused" ? "Indica el motivo sin datos médicos" : "Opcional"
+                    }
+                  />
+                </label>
+                {(value.status === "excused" || value.excuse_reference) && (
+                  <label>
+                    Referencia de {row.name} · {row.enrollment_number}
+                    <input
+                      maxLength={300}
+                      value={value.excuse_reference}
+                      onChange={e => edit(row, { excuse_reference: e.target.value })}
+                      placeholder="Folio del comprobante, si existe"
+                    />
+                  </label>
+                )}
+                {row.attendance_id && (
+                  <Button variant="ghost" onClick={() => setHistoryId(row.attendance_id)}>
+                    <History size={16} /> Historial
+                  </Button>
+                )}
+              </article>
+            );
+          })}
+        </div>
+        {!session.roster.length && (
+          <p>No hay estudiantes activos ni registros históricos que corregir para esta fecha.</p>
+        )}
+        <div className="attendance-save">
+          <label>
+            Motivo del registro o corrección
+            <input
+              maxLength={250}
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="Pase de lista o motivo de la corrección"
+            />
+          </label>
+          {user?.role_name === "admin" && (
+            <label>
+              Excepción de día de clase (solo sesión extraordinaria)
+              <input
+                maxLength={180}
+                value={exception}
+                onChange={e => setException(e.target.value)}
+                placeholder="Dejar vacío en días normales"
+              />
+            </label>
+          )}
+          <p>
+            Se guardan solo {Object.keys(changes).length} estudiantes modificados. Los demás
+            registros no se alteran.
+          </p>
+          {invalid && (
+            <p role="alert">
+              Selecciona estado en cada cambio; las justificaciones requieren observación o
+              referencia.
+            </p>
+          )}
+          <Button
+            disabled={!dirty || invalid || reason.trim().length < 2 || save.isPending}
+            onClick={() => save.mutate()}
+          >
+            Guardar asistencia
+          </Button>
+          <Button
+            variant="ghost"
+            disabled={!dirty || save.isPending}
+            onClick={() => {
+              if (confirm("¿Descartar los cambios de esta fecha?")) setChanges({});
+            }}
+          >
+            Descartar cambios
+          </Button>
+        </div>
+      </section>
+      {plans && <LessonPlansDialog sectionId={sectionId} onClose={() => setPlans(false)} />}
+      {bulkScope && (
+        <Modal title="Marcar presentes en grupo" onClose={() => setBulkScope(null)}>
+          <p>
+            {session.section_code} · {day}. Se aplicará al borrador de asistencia.
+          </p>
+          <fieldset className="form-field">
+            <legend>Estudiantes sin registrar</legend>
+            <label>
+              <input
+                type="radio"
+                name="attendance-scope"
+                checked={bulkScope === "visible"}
+                onChange={() => setBulkScope("visible")}
+              />{" "}
+              Solo visibles ({visiblePending.length})
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="attendance-scope"
+                checked={bulkScope === "all"}
+                onChange={() => setBulkScope("all")}
+              />{" "}
+              Todo el grupo ({pending})
+            </label>
+          </fieldset>
+          <div className="form-actions">
+            <Button variant="secondary" onClick={() => setBulkScope(null)}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={!selected.length}
+              onClick={() => {
+                setChanges(previous => ({
+                  ...previous,
+                  ...Object.fromEntries(
+                    selected.map(row => [
+                      row.enrollment_id,
+                      { ...current(row), status: "present" },
+                    ]),
+                  ),
+                }));
+                setBulkScope(null);
+              }}
+            >
+              Marcar {selected.length} como presentes
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {historyId && (
+        <Modal title="Historial de asistencia" onClose={() => setHistoryId(null)}>
+          {history.isLoading ? (
+            <Spinner />
+          ) : history.error ? (
+            <p role="alert">{apiMessage(history.error)}</p>
+          ) : history.data?.length ? (
+            history.data.map(c => (
+              <article className="attendance-audit" key={c.change_id}>
+                <strong>
+                  {c.action === "created"
+                    ? "Registro"
+                    : c.action === "deleted"
+                      ? "Eliminación"
+                      : "Corrección"}{" "}
+                  · {c.changed_by_name}
+                </strong>
+                <small>{new Date(`${c.changed_at}Z`).toLocaleString("es-DO")}</small>
+                <p>
+                  {c.previous ? labels[c.previous.status] : "Sin registro"} →{" "}
+                  {c.current ? labels[c.current.status] : "Eliminado"}
+                </p>
+                <p>{c.reason}</p>
+                {c.current?.note && <p>Observación: {c.current.note}</p>}
+                {c.current?.excuse_reference && <p>Referencia: {c.current.excuse_reference}</p>}
+              </article>
+            ))
+          ) : (
+            <p>
+              Registro anterior al historial de correcciones. Sus cambios futuros quedarán
+              registrados.
+            </p>
+          )}
+        </Modal>
+      )}
+    </>
+  );
 }
 
 export function StudentAttendancePage() {
   const user = useAuthStore(s => s.user);
-  const [period, setPeriod] = useState(""), [start, setStart] = useState(""), [end, setEnd] = useState(""), [status, setStatus] = useState("");
-  const query = useQuery<Course[]>({ queryKey: ["my-attendance", user?.user_id, user?.student_id, start, end], enabled: Boolean(user?.student_id), queryFn: () => api.get(`/academic/students/${user?.student_id}/attendance-summary`, { params: { start: start || undefined, end: end || undefined } }).then(r => r.data) });
-  return <div className="page attendance-page"><header className="page-header"><div><span className="kicker">Clases registradas</span><h1>Mi asistencia</h1><p>{rule}</p></div></header><div className="attendance-actions"><label>Período<select value={period} onChange={e => setPeriod(e.target.value)}><option value="">Todos</option>{Array.from(new Set(query.data?.map(c => c.period))).map(p => <option key={p}>{p}</option>)}</select></label><label>Desde<input type="date" value={start} onChange={e => setStart(e.target.value)} /></label><label>Hasta<input type="date" value={end} onChange={e => setEnd(e.target.value)} /></label><label>Detalle de estados<select value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos</option>{Object.entries(labels).map(([k, label]) => <option key={k} value={k}>{label}</option>)}</select></label></div>{query.isLoading ? <Spinner /> : query.error ? <p role="alert">{apiMessage(query.error)}</p> : <div className="student-attendance-courses">{query.data?.filter(c => !period || c.period === period).map(c => <article className="panel" key={c.enrollment_id}><span className="kicker">{c.subject_code} · {c.section_code} · {c.period}</span><h2>{c.subject_name}</h2><strong>{c.percentage === null ? "Sin registros" : `${c.percentage}%`}</strong><p>{c.present_count} presencias computables de {c.total_count} clases registradas en el rango.</p><div className="attendance-counts">{Object.entries(labels).map(([k, label]) => <span key={k}>{label}: {c.counts[k] ?? 0}</span>)}</div><details><summary>Ver fechas y observaciones</summary>{c.records.filter(r => !status || r.status === status).map(r => <article className="attendance-day" key={r.attendance_id}><time>{new Date(`${r.date}T12:00:00`).toLocaleDateString("es-DO")}</time><Badge>{labels[r.status]}</Badge><p>{r.note || "Sin observación"}{r.excuse_reference && ` · Referencia: ${r.excuse_reference}`}</p></article>)}{!c.records.some(r => !status || r.status === status) && <p>No hay registros para este filtro. No significa ausencia.</p>}</details></article>)}</div>}{query.data?.length === 0 && <EmptyState icon={<ClipboardCheck />} title="Sin asignaturas para consultar" description="Tus registros aparecerán cuando el docente pase lista." />}</div>;
+  const [period, setPeriod] = useState(""),
+    [start, setStart] = useState(""),
+    [end, setEnd] = useState(""),
+    [status, setStatus] = useState("");
+  const query = useQuery<Course[]>({
+    queryKey: ["my-attendance", user?.user_id, user?.student_id, start, end],
+    enabled: Boolean(user?.student_id),
+    queryFn: () =>
+      api
+        .get(`/academic/students/${user?.student_id}/attendance-summary`, {
+          params: { start: start || undefined, end: end || undefined },
+        })
+        .then(r => r.data),
+  });
+  return (
+    <div className="page attendance-page">
+      <header className="page-header">
+        <div>
+          <span className="kicker">Clases registradas</span>
+          <h1>Mi asistencia</h1>
+          <p>{rule}</p>
+        </div>
+      </header>
+      <div className="attendance-actions">
+        <label>
+          Período
+          <select value={period} onChange={e => setPeriod(e.target.value)}>
+            <option value="">Todos</option>
+            {Array.from(new Set(query.data?.map(c => c.period))).map(p => (
+              <option key={p}>{p}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Desde
+          <input type="date" value={start} onChange={e => setStart(e.target.value)} />
+        </label>
+        <label>
+          Hasta
+          <input type="date" value={end} onChange={e => setEnd(e.target.value)} />
+        </label>
+        <label>
+          Detalle de estados
+          <select value={status} onChange={e => setStatus(e.target.value)}>
+            <option value="">Todos</option>
+            {Object.entries(labels).map(([k, label]) => (
+              <option key={k} value={k}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {query.isLoading ? (
+        <Spinner />
+      ) : query.error ? (
+        <p role="alert">{apiMessage(query.error)}</p>
+      ) : (
+        <div className="student-attendance-courses">
+          {query.data
+            ?.filter(c => !period || c.period === period)
+            .map(c => (
+              <article className="panel" key={c.enrollment_id}>
+                <span className="kicker">
+                  {c.subject_code} · {c.section_code} · {c.period}
+                </span>
+                <h2>{c.subject_name}</h2>
+                <strong>{c.percentage === null ? "Sin registros" : `${c.percentage}%`}</strong>
+                <p>
+                  {c.present_count} presencias computables de {c.total_count} clases registradas en
+                  el rango.
+                </p>
+                <div className="attendance-counts">
+                  {Object.entries(labels).map(([k, label]) => (
+                    <span key={k}>
+                      {label}: {c.counts[k] ?? 0}
+                    </span>
+                  ))}
+                </div>
+                <details>
+                  <summary>Ver fechas y observaciones</summary>
+                  {c.records
+                    .filter(r => !status || r.status === status)
+                    .map(r => (
+                      <article className="attendance-day" key={r.attendance_id}>
+                        <time>{new Date(`${r.date}T12:00:00`).toLocaleDateString("es-DO")}</time>
+                        <Badge>{labels[r.status]}</Badge>
+                        <p>
+                          {r.note || "Sin observación"}
+                          {r.excuse_reference && ` · Referencia: ${r.excuse_reference}`}
+                        </p>
+                      </article>
+                    ))}
+                  {!c.records.some(r => !status || r.status === status) && (
+                    <p>No hay registros para este filtro. No significa ausencia.</p>
+                  )}
+                </details>
+              </article>
+            ))}
+        </div>
+      )}
+      {query.data?.length === 0 && (
+        <EmptyState
+          icon={<ClipboardCheck />}
+          title="Sin asignaturas para consultar"
+          description="Tus registros aparecerán cuando el docente pase lista."
+        />
+      )}
+    </div>
+  );
 }

@@ -20,14 +20,32 @@ export function SubjectsPage() {
       }
     },
   });
-  return <ResourcePage key={careerId || "all"} config={resources.subjects}
-    queryParams={careerId ? { career_id: Number(careerId) } : {}}
-    toolbarContent={<>
-      <select aria-label="Filtrar asignaturas por carrera" value={careerId} onChange={event => setCareerId(event.target.value)} disabled={careers.isLoading || careers.isError}>
-        <option value="">Todas las carreras y asignaturas libres</option>
-        {careers.data?.map(career => <option key={career.career_id} value={career.career_id}>{career.code} · {career.name}</option>)}
-      </select>
-      {careers.error && <span role="alert">{apiMessage(careers.error)}</span>}
-      <Link className="back-link" to="/careers">Catálogo de carreras</Link>
-    </>} />;
+  return (
+    <ResourcePage
+      key={careerId || "all"}
+      config={resources.subjects}
+      queryParams={careerId ? { career_id: Number(careerId) } : {}}
+      toolbarContent={
+        <>
+          <select
+            aria-label="Filtrar asignaturas por carrera"
+            value={careerId}
+            onChange={event => setCareerId(event.target.value)}
+            disabled={careers.isLoading || careers.isError}
+          >
+            <option value="">Todas las carreras y asignaturas libres</option>
+            {careers.data?.map(career => (
+              <option key={career.career_id} value={career.career_id}>
+                {career.code} · {career.name}
+              </option>
+            ))}
+          </select>
+          {careers.error && <span role="alert">{apiMessage(careers.error)}</span>}
+          <Link className="back-link" to="/careers">
+            Catálogo de carreras
+          </Link>
+        </>
+      }
+    />
+  );
 }

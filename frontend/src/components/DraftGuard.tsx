@@ -9,12 +9,12 @@ export function DraftGuard({ children }: { children: ReactNode }) {
     if (state) drafts.current.set(key, state);
     else drafts.current.delete(key);
   }, []);
-  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
-    drafts.current.size > 0 && (
-      currentLocation.pathname !== nextLocation.pathname ||
-      currentLocation.search !== nextLocation.search ||
-      currentLocation.hash !== nextLocation.hash
-    )
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      drafts.current.size > 0 &&
+      (currentLocation.pathname !== nextLocation.pathname ||
+        currentLocation.search !== nextLocation.search ||
+        currentLocation.hash !== nextLocation.hash),
   );
 
   useEffect(() => {
