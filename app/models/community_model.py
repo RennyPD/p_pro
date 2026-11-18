@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import relationship as orm_relationship
 
@@ -49,9 +49,10 @@ class Announcement(Base):
 
 class Notification(Base):
     __tablename__ = "notifications"
+    __table_args__ = (Index("idx_notifications_user", "user_id"),)
 
     notification_id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
     title: Mapped[str] = mapped_column(String(150))
     body: Mapped[str] = mapped_column(Text)
     category: Mapped[str] = mapped_column(String(30), default="general")

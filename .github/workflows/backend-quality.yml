@@ -34,3 +34,29 @@ jobs:
         working-directory: frontend
       - run: npm run e2e:acceptance
         working-directory: frontend
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nexo
+          POSTGRES_PASSWORD: nexo-ci
+          POSTGRES_DB: nexo
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U nexo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://nexo:nexo-ci@localhost:5432/nexo
+      NEXO_TEST_DATABASE_URL: postgresql+psycopg://nexo:nexo-ci@localhost:5432/nexo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -r requirements.txt
+      - run: alembic upgrade head
+      - run: alembic check
+      - run: python -B -m pytest tests -q -p no:cacheprovider

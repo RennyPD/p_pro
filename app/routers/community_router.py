@@ -167,7 +167,8 @@ def target_users(db, data, user):
         guardians = db.query(StudentGuardian.guardian_id).filter(
             StudentGuardian.student_id.in_(students)
         )
-        return db.query(User).filter(User.guardian_id.in_(guardians)).distinct().all()
+        # IN already yields each account once; DISTINCT fails on JSON columns in PostgreSQL.
+        return db.query(User).filter(User.guardian_id.in_(guardians)).all()
     if not has_scope(user, "communications.manage"):
         raise HTTPException(403, "El docente solo puede comunicar a sus secciones o sus tutores")
     query = db.query(User).join(User.role)

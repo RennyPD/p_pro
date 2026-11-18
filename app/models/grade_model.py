@@ -20,7 +20,7 @@ class Grade(Base):
         ),
     )
 
-    grade_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    grade_id: Mapped[int] = mapped_column(primary_key=True)
     enrollment_id: Mapped[int] = mapped_column(ForeignKey("enrollments.enrollment_id"))
     assessment_id: Mapped[int | None] = mapped_column(
         ForeignKey("assessments.assessment_id"), nullable=True
@@ -30,7 +30,7 @@ class Grade(Base):
     date_recorded: Mapped[str] = mapped_column(String(50))
     status: Mapped[str] = mapped_column(String(20), default="published")
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(
+    updated_at: Mapped[datetime | None] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
 

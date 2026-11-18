@@ -1,7 +1,6 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 from fastapi import HTTPException
-from sqlalchemy import func
 
 from app.auth import has_scope
 from app.enums.dayEnum import DAY_ORDER
@@ -28,7 +27,9 @@ def day_record(db, enrollment_id, day):
     return (
         db.query(Attendance)
         .filter(
-            Attendance.enrollment_id == enrollment_id, func.date(Attendance.date) == day.isoformat()
+            Attendance.enrollment_id == enrollment_id,
+            Attendance.date >= datetime.combine(day, time.min),
+            Attendance.date < datetime.combine(day + timedelta(days=1), time.min),
         )
         .first()
     )

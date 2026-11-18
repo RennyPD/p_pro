@@ -7,7 +7,7 @@ from app.db.database import Base
 class Subject(Base):
     __tablename__ = "subjects"
 
-    subject_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    subject_id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(100), unique=True)
     description: Mapped[str] = mapped_column(String(255))
 

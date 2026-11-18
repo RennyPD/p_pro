@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -27,6 +27,7 @@ class StudentAccount(Base):
 
 class Charge(Base):
     __tablename__ = "charges"
+    __table_args__ = (Index("idx_charges_account_due", "student_account_id", "due_date"),)
 
     charge_id: Mapped[int] = mapped_column(primary_key=True)
     student_account_id: Mapped[int] = mapped_column(
@@ -45,6 +46,7 @@ class Charge(Base):
 
 class Payment(Base):
     __tablename__ = "payments"
+    __table_args__ = (Index("idx_payments_account_date", "student_account_id", "paid_at"),)
 
     payment_id: Mapped[int] = mapped_column(primary_key=True)
     student_account_id: Mapped[int] = mapped_column(

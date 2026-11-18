@@ -7,7 +7,7 @@ from app.db.database import Base
 class Career(Base):
     __tablename__ = "careers"
 
-    career_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    career_id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
     description: Mapped[str] = mapped_column(String(255))
     code: Mapped[str] = mapped_column(String(30), unique=True)

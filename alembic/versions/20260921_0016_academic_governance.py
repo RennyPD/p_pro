@@ -26,7 +26,7 @@ def upgrade() -> None:
     with op.batch_alter_table("careers") as batch:
         batch.add_column(sa.Column("required_credits", sa.Integer(), nullable=False, server_default="120"))
         batch.add_column(sa.Column("curriculum_version", sa.String(30), nullable=False, server_default="current"))
-    op.execute("UPDATE sections SET period_name = (SELECT name FROM academic_periods WHERE active = 1 LIMIT 1) WHERE period_name = ''")
+    op.execute("UPDATE sections SET period_name = (SELECT name FROM academic_periods WHERE active = TRUE LIMIT 1) WHERE period_name = ''")
 
 
 def downgrade() -> None:

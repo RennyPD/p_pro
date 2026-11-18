@@ -6,9 +6,9 @@ from threading import Barrier
 from unittest.mock import patch
 
 import pytest
+from db_support import TEST_DATABASE_URL, make_engine
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from app.db.database import Base
@@ -32,14 +32,7 @@ from scripts.seed_demo import seed_demo
 
 @pytest.fixture
 def institution(tmp_path):
-    engine = create_engine(
-        f"sqlite:///{tmp_path / 'regression.db'}",
-        connect_args={"check_same_thread": False, "timeout": 15},
-    )
-
-    @event.listens_for(engine, "connect")
-    def foreign_keys(connection, _record):
-        connection.execute("PRAGMA foreign_keys=ON")
+    engine = make_engine(f"sqlite:///{tmp_path / 'regression.db'}", connect_args={"timeout": 15})
 
     Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine)
@@ -470,6 +463,7 @@ def test_seed_institution_respects_capacity_and_teacher_grants(institution):
         assert "academic.manage" not in grants
 
 
+@pytest.mark.skipif(TEST_DATABASE_URL is not None, reason="Copia de seguridad del archivo SQLite")
 def test_demo_capacity_repair_is_backed_up_preserves_records_and_is_idempotent(institution):
     from pathlib import Path
 

@@ -9,7 +9,7 @@ from app.db.database import Base
 class Teacher(Base):
     __tablename__ = "teachers"
 
-    teacher_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    teacher_id: Mapped[int] = mapped_column(primary_key=True)
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
     specialty: Mapped[str] = mapped_column(String(255))

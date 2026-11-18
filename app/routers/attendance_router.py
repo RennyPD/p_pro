@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -174,12 +174,11 @@ def list_attendances(
             )
         else:
             return []
-    from sqlalchemy import func
-
+    # Ranges instead of date(column) = 'text': portable and index friendly.
     if start:
-        query = query.filter(func.date(Attendance.date) >= start.isoformat())
+        query = query.filter(Attendance.date >= datetime.combine(start, time.min))
     if end:
-        query = query.filter(func.date(Attendance.date) <= end.isoformat())
+        query = query.filter(Attendance.date < datetime.combine(end + timedelta(days=1), time.min))
     if status:
         query = query.filter(Attendance.status == status)
     return (

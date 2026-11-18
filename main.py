@@ -1,4 +1,8 @@
-from fastapi import FastAPI
+import logging
+import time
+import uuid
+
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -6,6 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.db.database import settings
+from app.logging_config import configure_logging
 from app.models import *
 from app.routers.academic_router import router as academic_router
 from app.routers.access_router import router as access_router
@@ -57,8 +62,41 @@ def health():
     return {"status": "ok", "database": "reachable"}
 
 
+configure_logging()
+logger = logging.getLogger("nexo.api")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+    request.state.request_id = request_id
+    started = time.perf_counter()
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    logger.info(
+        "request",
+        extra={
+            "request_id": request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status": response.status_code,
+            "duration_ms": round((time.perf_counter() - started) * 1000, 1),
+        },
+    )
+    return response
+
+
+def _request_fields(request: Request) -> dict:
+    return {
+        "request_id": getattr(request.state, "request_id", None),
+        "method": request.method,
+        "path": request.url.path,
+    }
+
+
 @app.exception_handler(IntegrityError)
-def handle_integrity_error(_request, _exc):
+def handle_integrity_error(request, exc):
+    logger.warning("integrity_error", extra={**_request_fields(request), "error": str(exc.orig)})
     return JSONResponse(
         status_code=409, content={"detail": "La operación entra en conflicto con datos existentes"}
     )
@@ -75,7 +113,8 @@ def handle_validation_error(_request, exc):
 
 
 @app.exception_handler(SQLAlchemyError)
-def handle_database_error(_request, _exc):
+def handle_database_error(request, exc):
+    logger.error("database_error", extra=_request_fields(request), exc_info=exc)
     return JSONResponse(
         status_code=500, content={"detail": "No se pudo completar la operación en la base de datos"}
     )

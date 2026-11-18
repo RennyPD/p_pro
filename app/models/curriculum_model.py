@@ -1,4 +1,4 @@
-from sqlalchemy import Float, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import Float, ForeignKey, Index, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -10,6 +10,7 @@ class CurriculumCourse(Base):
         UniqueConstraint(
             "career_id", "subject_id", "curriculum_version", name="uq_curriculum_version_subject"
         ),
+        Index("idx_curriculum_career_term", "career_id", "term_number"),
     )
 
     curriculum_course_id: Mapped[int] = mapped_column(primary_key=True)

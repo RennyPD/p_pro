@@ -39,7 +39,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-17.pdf` (versión web: https
 - **M8.** Consultas N+1 o de tabla completa en cuentas financieras, cierre de caja y alertas.
 
 ### Bajos
-Montos en `Float`, TOTP reutilizable dentro de su ventana, ~~enumeración de usuarios por tiempo~~ (✅ 18/11: hash de relleno), sin detección de reutilización del refresh token, `/auth/bootstrap` abierto en una instalación vacía, sin logs, nginx sin cabeceras de seguridad, `school.db` y `__pycache__` versionados, `date_recorded` como texto, períodos enlazados por nombre. PostgreSQL sin probar de punta a punta.
+Montos en `Float`, TOTP reutilizable dentro de su ventana, ~~enumeración de usuarios por tiempo~~ (✅ 18/11: hash de relleno), sin detección de reutilización del refresh token, `/auth/bootstrap` abierto en una instalación vacía, ~~sin logs~~ (✅ 18/11: logs JSON con `X-Request-ID`), nginx sin cabeceras de seguridad, `school.db` y `__pycache__` versionados, `date_recorded` como texto, períodos enlazados por nombre. ~~PostgreSQL sin probar de punta a punta~~ (✅ 18/11: migraciones corregidas, `alembic check` limpio y suite completa en PostgreSQL en CI; se corrigieron 2 migraciones y 2 consultas que fallaban en PostgreSQL).
 
 ### Frontend y UI
 ✅ Cerrado el 18/11/2026 (Fase 0, paso 3):

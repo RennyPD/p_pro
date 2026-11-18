@@ -3,9 +3,9 @@
 from datetime import datetime
 
 import pytest
+from db_support import make_engine
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from app.auth import role_permission_slugs
@@ -39,13 +39,7 @@ STAFF = {"finanzas": "finance.manage", "registro": "reports.view"}
 
 @pytest.fixture
 def context(tmp_path):
-    engine = create_engine(
-        f"sqlite:///{tmp_path / 'access.db'}", connect_args={"check_same_thread": False}
-    )
-
-    @event.listens_for(engine, "connect")
-    def foreign_keys(connection, _record):
-        connection.execute("PRAGMA foreign_keys=ON")
+    engine = make_engine(f"sqlite:///{tmp_path / 'access.db'}")
 
     Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine)

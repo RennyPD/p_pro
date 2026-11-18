@@ -1,10 +1,9 @@
 import unittest
 from datetime import UTC, datetime, time, timedelta
 
+from db_support import make_engine
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from app.db.database import Base
 from app.db.Session import get_db
@@ -17,15 +16,7 @@ from scripts.seed_guardian_portal import seed_guardians
 class ApiIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.engine = create_engine(
-            "sqlite://",
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-        )
-
-        @event.listens_for(cls.engine, "connect")
-        def enable_foreign_keys(connection, _record):
-            connection.execute("PRAGMA foreign_keys=ON")
+        cls.engine = make_engine()
 
         cls.Session = sessionmaker(bind=cls.engine)
 

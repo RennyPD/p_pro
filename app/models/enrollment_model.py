@@ -15,7 +15,7 @@ class Enrollment(Base):
         ),
     )
 
-    enrollment_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    enrollment_id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("students.student_id"))
     section_id: Mapped[int] = mapped_column(ForeignKey("sections.section_id"))
     enrollment_date: Mapped[datetime] = mapped_column(

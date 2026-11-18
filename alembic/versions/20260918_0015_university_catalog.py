@@ -32,7 +32,7 @@ def upgrade() -> None:
         batch.add_column(sa.Column("sequence", sa.Integer(), nullable=False, server_default="1"))
         batch.add_column(sa.Column("academic_year", sa.String(20), nullable=False, server_default=""))
     op.execute("UPDATE academic_periods SET academic_year = name")
-    op.execute("UPDATE academic_periods SET status = 'active' WHERE active = 1 AND status = 'planning'")
+    op.execute("UPDATE academic_periods SET status = 'active' WHERE active = TRUE AND status = 'planning'")
 
 
 def downgrade() -> None:

@@ -8,7 +8,7 @@ class Section(Base):
     __tablename__ = "sections"
     __table_args__ = (CheckConstraint("start_time < end_time", name="ck_sections_time_range"),)
 
-    section_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    section_id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(100), unique=True)
     description: Mapped[str] = mapped_column(String(255))
     teacher_id: Mapped[int] = mapped_column(ForeignKey("teachers.teacher_id"))

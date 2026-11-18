@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import JSON, Boolean, Date, Float, ForeignKey, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, Float, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -8,7 +8,10 @@ from app.db.database import Base
 
 class Assessment(Base):
     __tablename__ = "assessments"
-    __table_args__ = (UniqueConstraint("section_id", "name", name="uq_assessment_section_name"),)
+    __table_args__ = (
+        UniqueConstraint("section_id", "name", name="uq_assessment_section_name"),
+        Index("idx_assessments_section", "section_id"),
+    )
 
     assessment_id: Mapped[int] = mapped_column(primary_key=True)
     section_id: Mapped[int] = mapped_column(ForeignKey("sections.section_id"))
