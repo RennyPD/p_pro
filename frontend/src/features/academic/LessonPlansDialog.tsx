@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Button, Modal, Spinner } from "../../components/ui";
@@ -40,8 +41,8 @@ export function LessonPlansDialog({
   const plan = editing === "new" ? null : editing;
   useDraftGuard(dirty, busy);
 
-  function close() {
-    if (busy || (dirty && !window.confirm("¿Descartar cambios del plan de clase?"))) return;
+  async function close() {
+    if (busy || (dirty && !(await confirmAction("¿Descartar cambios del plan de clase?")))) return;
     if (editing) {
       setEditing(null);
       setError("");
@@ -103,8 +104,8 @@ export function LessonPlansDialog({
                     <Button
                       variant="secondary"
                       disabled={busy}
-                      onClick={() => {
-                        if (window.confirm(`¿Marcar «${item.title}» como impartido?`))
+                      onClick={async () => {
+                        if (await confirmAction(`¿Marcar «${item.title}» como impartido?`))
                           void change(() =>
                             api.patch(`${endpoint}/${item.lesson_plan_id}/status`, {
                               status: "delivered",
@@ -117,8 +118,8 @@ export function LessonPlansDialog({
                     <Button
                       variant="danger"
                       disabled={busy}
-                      onClick={() => {
-                        if (window.confirm(`¿Cancelar «${item.title}»?`))
+                      onClick={async () => {
+                        if (await confirmAction(`¿Cancelar «${item.title}»?`))
                           void change(() =>
                             api.patch(`${endpoint}/${item.lesson_plan_id}/status`, {
                               status: "cancelled",

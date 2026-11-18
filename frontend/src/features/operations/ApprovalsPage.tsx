@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
@@ -43,8 +44,8 @@ export function RequestApproval({
   const client = useQueryClient();
   useDraftGuard(open && Boolean(reason), busy);
 
-  function close() {
-    if (busy || (reason && !window.confirm("¿Descartar la solicitud?"))) return;
+  async function close() {
+    if (busy || (reason && !(await confirmAction("¿Descartar la solicitud?")))) return;
     setOpen(false);
     setReason("");
     setError("");
@@ -125,8 +126,8 @@ export function ApprovalsPage() {
         .then(response => response.data),
   });
   useDraftGuard(Boolean(selected && reason), busy);
-  function close() {
-    if (!busy && (!reason || window.confirm("¿Descartar la decisión?"))) setSelected(null);
+  async function close() {
+    if (!busy && (!reason || (await confirmAction("¿Descartar la decisión?")))) setSelected(null);
   }
   async function resolve(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

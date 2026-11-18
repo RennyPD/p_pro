@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClipboardCheck, History } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -108,8 +109,9 @@ export function AttendanceWorkspacePage() {
             type="date"
             max={localDay()}
             value={day}
-            onChange={e => {
-              if (dirty && !confirm("Hay cambios sin guardar. ¿Cambiar de fecha?")) return;
+            onChange={async e => {
+              if (dirty && !(await confirmAction("Hay cambios sin guardar. ¿Cambiar de fecha?")))
+                return;
               setDirty(false);
               setDay(e.target.value);
             }}
@@ -392,8 +394,8 @@ function AttendanceSession({
           <Button
             variant="ghost"
             disabled={!dirty || save.isPending}
-            onClick={() => {
-              if (confirm("¿Descartar los cambios de esta fecha?")) setChanges({});
+            onClick={async () => {
+              if (await confirmAction("¿Descartar los cambios de esta fecha?")) setChanges({});
             }}
           >
             Descartar cambios

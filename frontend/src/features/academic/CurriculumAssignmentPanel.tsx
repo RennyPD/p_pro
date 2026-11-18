@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -199,8 +200,11 @@ function CurriculumForm({
             type="button"
             variant="secondary"
             disabled={busy}
-            onClick={() => {
-              if (!(reason || credits || version) || window.confirm("¿Descartar la verificación?"))
+            onClick={async () => {
+              if (
+                !(reason || credits || version) ||
+                (await confirmAction("¿Descartar la verificación?"))
+              )
                 onClose();
             }}
           >

@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -62,8 +63,11 @@ export function CareerChangeDialog({
     enabled: Boolean(target && target !== careerId),
   });
   useDraftGuard(Boolean(target || reason), busy);
-  function close() {
-    if (!busy && ((!target && !reason) || window.confirm("¿Descartar la solicitud de traslado?")))
+  async function close() {
+    if (
+      !busy &&
+      ((!target && !reason) || (await confirmAction("¿Descartar la solicitud de traslado?")))
+    )
       onClose();
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -163,8 +167,8 @@ export function GuardianDialog({ studentId, onClose }: { studentId: string; onCl
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useDraftGuard(dirty, busy);
-  function close() {
-    if (!busy && (!dirty || window.confirm("¿Descartar los datos del vínculo?"))) onClose();
+  async function close() {
+    if (!busy && (!dirty || (await confirmAction("¿Descartar los datos del vínculo?")))) onClose();
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -298,8 +302,8 @@ export function StudentDocuments({
     queryFn: () => api.get<StudentDocument[]>(path).then(response => response.data),
   });
   useDraftGuard(dirty, busy);
-  function close() {
-    if (busy || (dirty && !window.confirm("¿Descartar la carga del documento?"))) return;
+  async function close() {
+    if (busy || (dirty && !(await confirmAction("¿Descartar la carga del documento?")))) return;
     setUpload(false);
     setDirty(false);
     setError("");

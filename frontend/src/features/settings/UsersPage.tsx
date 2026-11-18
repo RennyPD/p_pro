@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
@@ -112,7 +113,7 @@ function AccountStatusButton({ account }: { account: EntityRecord }) {
     const question = active
       ? `¿Desactivar la cuenta de ${username}? Se cerrarán sus sesiones y no podrá entrar.`
       : `¿Reactivar la cuenta de ${username}?`;
-    if (busy || !window.confirm(question)) return;
+    if (busy || !(await confirmAction(question))) return;
     setBusy(true);
     try {
       await api.post(`/users/${account.user_id}/${active ? "deactivate" : "activate"}`);
@@ -153,8 +154,8 @@ function ModuleEditor({ account, onClose }: { account: EntityRecord; onClose: ()
   const selected = draft ?? config.data?.selected ?? [];
   useDraftGuard(draft !== null, busy);
 
-  function close() {
-    if (!busy && (!draft || window.confirm("¿Descartar los cambios de módulos?"))) onClose();
+  async function close() {
+    if (!busy && (!draft || (await confirmAction("¿Descartar los cambios de módulos?")))) onClose();
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -251,8 +252,9 @@ function UserEditor({
   const takesPassword = passwordReset || !record;
   useDraftGuard(touched, busy);
 
-  function close() {
-    if (!busy && (!touched || window.confirm("¿Descartar los cambios de esta cuenta?"))) onClose();
+  async function close() {
+    if (!busy && (!touched || (await confirmAction("¿Descartar los cambios de esta cuenta?"))))
+      onClose();
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {

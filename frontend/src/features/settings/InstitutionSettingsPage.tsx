@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Hash, Save } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -232,8 +233,8 @@ export function InstitutionSettingsPage() {
               type="button"
               variant="secondary"
               disabled={busy || !isDirty}
-              onClick={() => {
-                if (window.confirm("¿Descartar los cambios sin guardar?")) {
+              onClick={async () => {
+                if (await confirmAction("¿Descartar los cambios sin guardar?")) {
                   reset(fields(query.data!));
                   setBaseline(query.data);
                   setReason("");

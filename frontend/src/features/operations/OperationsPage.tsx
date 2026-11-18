@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { DocumentDownload } from "../../components/DocumentDownload";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ClipboardList } from "lucide-react";
@@ -827,10 +828,10 @@ function TaskDetail({
             {task.assessment_id && (
               <form
                 className="operations-form"
-                onSubmit={e => {
+                onSubmit={async e => {
                   e.preventDefault();
                   if (
-                    window.confirm(
+                    await confirmAction(
                       "Se crearán notas borrador, sin publicar ni sobrescribir notas existentes. ¿Continuar?",
                     )
                   )

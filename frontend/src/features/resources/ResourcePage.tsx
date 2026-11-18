@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { isAxiosError } from "axios";
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -120,8 +121,9 @@ export function ResourcePage({
                   {canWrite && config.allowDelete !== false && (
                     <button
                       className="danger"
-                      onClick={() =>
-                        confirm(`¿Eliminar este ${config.singular}?`) && remove.mutate(row.original)
+                      onClick={async () =>
+                        (await confirmAction(`¿Eliminar este ${config.singular}?`)) &&
+                        remove.mutate(row.original)
                       }
                       aria-label={`Eliminar ${config.singular} ${identity(row.original, config)}`}
                     >
@@ -356,8 +358,11 @@ export function ResourceForm({
   });
   const pending = isSubmitting || mutation.isPending;
   useDraftGuard(isDirty, pending);
-  const close = () => {
-    if (!pending && (!isDirty || window.confirm("¿Descartar los cambios de este formulario?")))
+  const close = async () => {
+    if (
+      !pending &&
+      (!isDirty || (await confirmAction("¿Descartar los cambios de este formulario?")))
+    )
       onClose();
   };
   return (

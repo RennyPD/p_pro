@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -423,9 +424,9 @@ export function CareerProgramPage() {
                                 className="icon-button career-remove"
                                 aria-label={`Retirar ${item.subject_name} del pensum`}
                                 disabled={removeCourse.isPending}
-                                onClick={() => {
+                                onClick={async () => {
                                   if (
-                                    confirm(
+                                    await confirmAction(
                                       `¿Retirar ${item.subject_name} de este pensum? La asignatura y sus secciones se conservan.`,
                                     )
                                   )

@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useId, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Users, UserCheck, Wallet } from "lucide-react";
@@ -492,12 +493,12 @@ export function InstitutionalControlPage() {
                       action_type: d.action_type ?? "note",
                     })
                   }
-                  resolve={(d: AlertDraft) => {
-                    if (window.confirm("¿Resolver el caso con esta actuación como motivo?"))
+                  resolve={async (d: AlertDraft) => {
+                    if (await confirmAction("¿Resolver el caso con esta actuación como motivo?"))
                       resolve.mutate({ id: a.early_alert_id, notes: d.notes });
                   }}
-                  reopen={() => {
-                    if (window.confirm("¿Reabrir el caso conservando su historial?"))
+                  reopen={async () => {
+                    if (await confirmAction("¿Reabrir el caso conservando su historial?"))
                       reopen.mutate(a.early_alert_id);
                   }}
                 />
@@ -584,9 +585,9 @@ export function InstitutionalControlPage() {
                     {a.status === "accepted" && (
                       <Button
                         disabled={enroll.isPending}
-                        onClick={() => {
+                        onClick={async () => {
                           if (
-                            window.confirm(
+                            await confirmAction(
                               "¿Crear el estudiante a partir de esta solicitud aceptada?",
                             )
                           )
@@ -702,8 +703,8 @@ function CreateAlert({ onClose, onCreated }: { onClose: () => void; onCreated: (
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useDraftGuard(dirty, busy);
-  function close() {
-    if (!busy && (!dirty || window.confirm("¿Descartar los datos del caso?"))) onClose();
+  async function close() {
+    if (!busy && (!dirty || (await confirmAction("¿Descartar los datos del caso?")))) onClose();
   }
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

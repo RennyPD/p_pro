@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { useBlocker } from "react-router-dom";
 import { toast } from "sonner";
 import { DraftContext, type DraftState } from "../lib/useDraftGuard";
+import { confirmAction } from "../lib/confirm";
 
 export function DraftGuard({ children }: { children: ReactNode }) {
   const drafts = useRef(new Map<string, DraftState>());
@@ -17,16 +18,23 @@ export function DraftGuard({ children }: { children: ReactNode }) {
         currentLocation.hash !== nextLocation.hash),
   );
 
+  const asking = useRef(false);
   useEffect(() => {
-    if (blocker.state !== "blocked") return;
+    if (blocker.state !== "blocked" || asking.current) return;
     if ([...drafts.current.values()].includes("saving")) {
       toast.info("Espera a que termine el guardado antes de salir.");
       blocker.reset();
-    } else if (window.confirm("Hay cambios sin guardar. ¿Salir y descartar el borrador?")) {
-      blocker.proceed();
-    } else {
-      blocker.reset();
+      return;
     }
+    asking.current = true;
+    void confirmAction("Hay cambios sin guardar. ¿Salir y descartar el borrador?", {
+      confirmLabel: "Salir sin guardar",
+      tone: "danger",
+    }).then(leave => {
+      asking.current = false;
+      if (leave) blocker.proceed();
+      else blocker.reset();
+    });
   }, [blocker]);
 
   useEffect(() => {

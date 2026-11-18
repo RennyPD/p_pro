@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, ReceiptText, Wallet } from "lucide-react";
 import { useState } from "react";
@@ -435,10 +436,10 @@ function FinanceOffice() {
           </p>
           <form
             className="finance-form"
-            onSubmit={e => {
+            onSubmit={async e => {
               e.preventDefault();
               if (
-                window.confirm(
+                await confirmAction(
                   `¿Cerrar la caja del ${closingDate}? No podrás registrar pagos hoy si cierras el día actual.`,
                 )
               )
@@ -707,10 +708,10 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
             </form>
             <form
               className="finance-form"
-              onSubmit={e => {
+              onSubmit={async e => {
                 e.preventDefault();
                 if (
-                  window.confirm(
+                  await confirmAction(
                     `¿Confirmas que recibiste ${money(Number(payment.amount))} en efectivo?`,
                   )
                 )
@@ -1330,14 +1331,14 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
         >
           <form
             className="finance-form finance-modal-form"
-            onSubmit={e => {
+            onSubmit={async e => {
               e.preventDefault();
               const path = review
                 ? `/finance/transfers/${review.transfer_request_id}/review`
                 : reverse
                   ? `${base}/transactions/${reverse.type}/${reverse.transaction_id}/reverse`
                   : `${base}/payment-plans/${cancelPlan?.payment_plan_id}/cancel`;
-              if (window.confirm("¿Confirmar esta operación financiera?"))
+              if (await confirmAction("¿Confirmar esta operación financiera?"))
                 action.mutate({
                   path,
                   payload: review ? { reason, approve: true } : { reason },

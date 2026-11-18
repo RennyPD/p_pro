@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, DoorOpen } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
@@ -202,8 +203,8 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
     setError("");
   }
 
-  function close() {
-    if (busy || (dirty && !window.confirm("¿Descartar cambios del bloque?"))) return;
+  async function close() {
+    if (busy || (dirty && !(await confirmAction("¿Descartar cambios del bloque?")))) return;
     if (editing) {
       setEditing(null);
       setDirty(false);
@@ -285,9 +286,9 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
                     <Button
                       variant="danger"
                       disabled={busy}
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          window.confirm(
+                          await confirmAction(
                             `¿Eliminar el bloque del ${block.day_of_week} de ${section.code}?`,
                           )
                         )
@@ -399,8 +400,8 @@ function RoomDialog({ onClose }: { onClose: () => void }) {
   });
   const existing = editing === "new" ? null : editing;
 
-  function close() {
-    if (busy || (dirty && !window.confirm("¿Descartar los cambios del aula?"))) return;
+  async function close() {
+    if (busy || (dirty && !(await confirmAction("¿Descartar los cambios del aula?")))) return;
     if (editing) {
       setEditing(null);
       setDirty(false);
@@ -470,8 +471,8 @@ function RoomDialog({ onClose }: { onClose: () => void }) {
                     <Button
                       variant="danger"
                       disabled={busy}
-                      onClick={() => {
-                        if (window.confirm(`¿Retirar el aula ${room.name}?`))
+                      onClick={async () => {
+                        if (await confirmAction(`¿Retirar el aula ${room.name}?`))
                           void change(() => api.delete(`${prefix}/${room.classroom_id}`));
                       }}
                     >

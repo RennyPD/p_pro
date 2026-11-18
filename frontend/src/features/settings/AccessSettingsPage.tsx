@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldCheck } from "lucide-react";
@@ -103,8 +104,8 @@ export function AccessSettingsPage() {
           <select
             disabled={save.isPending}
             value={id}
-            onChange={e => {
-              if (dirty && !window.confirm("¿Descartar los cambios de este rol?")) return;
+            onChange={async e => {
+              if (dirty && !(await confirmAction("¿Descartar los cambios de este rol?"))) return;
               setChosen(Number(e.target.value));
               setDraft(undefined);
               setReason("");
@@ -123,10 +124,12 @@ export function AccessSettingsPage() {
           <p className="form-error">{apiMessage(current.error)}</p>
         ) : (
           <form
-            onSubmit={e => {
+            onSubmit={async e => {
               e.preventDefault();
               if (
-                window.confirm("¿Aplicar los cambios de permisos a todos los usuarios de este rol?")
+                await confirmAction(
+                  "¿Aplicar los cambios de permisos a todos los usuarios de este rol?",
+                )
               )
                 save.mutate();
             }}

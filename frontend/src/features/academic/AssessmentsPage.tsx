@@ -1,3 +1,4 @@
+import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookCheck, History, Lock, Plus, Save, Send } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -124,10 +125,12 @@ export function AssessmentsPage() {
           <span>Sección y asignatura</span>
           <select
             value={section.section_id}
-            onChange={event => {
+            onChange={async event => {
               if (
                 document.querySelector('[data-unsaved-grades="true"]') &&
-                !confirm("Hay cambios sin guardar. ¿Cambiar de sección y descartarlos?")
+                !(await confirmAction(
+                  "Hay cambios sin guardar. ¿Cambiar de sección y descartarlos?",
+                ))
               )
                 return;
               setSelected(Number(event.target.value));
@@ -606,9 +609,10 @@ function SectionBook({ section }: { section: Section }) {
                           disabled={
                             item.closed || dirty || !drafts || publish.isPending || save.isPending
                           }
-                          onClick={() =>
-                            confirm("¿Publicar las notas guardadas de " + item.name + "?") &&
-                            publish.mutate(item)
+                          onClick={async () =>
+                            (await confirmAction(
+                              "¿Publicar las notas guardadas de " + item.name + "?",
+                            )) && publish.mutate(item)
                           }
                         >
                           <Send size={16} /> Publicar
@@ -623,10 +627,10 @@ function SectionBook({ section }: { section: Section }) {
                               published < roster.length ||
                               close.isPending
                             }
-                            onClick={() =>
-                              confirm(
+                            onClick={async () =>
+                              (await confirmAction(
                                 "¿Cerrar " + item.name + "? Sus notas quedarán bloqueadas.",
-                              ) && close.mutate(item)
+                              )) && close.mutate(item)
                             }
                           >
                             <Lock size={16} /> Cerrar
@@ -993,7 +997,9 @@ function GradeHistory({
         disabled={
           closed || grade.status === "voided" || reason.trim().length < 2 || annul.isPending
         }
-        onClick={() => confirm("¿Anular esta nota y conservar su historial?") && annul.mutate()}
+        onClick={async () =>
+          (await confirmAction("¿Anular esta nota y conservar su historial?")) && annul.mutate()
+        }
       >
         Anular nota
       </Button>

@@ -113,11 +113,11 @@ for (const viewport of [
       ).toBeVisible();
       await expect(page.locator(".lookup-popover")).toHaveCount(0);
       if (count === 17 && viewport.width === 1366) {
-        const confirmation = page.waitForEvent("dialog");
         await page.evaluate(() => history.back());
-        const change = await confirmation;
-        expect(change.message()).toContain("Hay cambios sin guardar");
-        await change.dismiss();
+        const change = page.getByRole("alertdialog");
+        await expect(change).toContainText("Hay cambios sin guardar");
+        await change.getByRole("button", { name: "Cancelar" }).click();
+        await expect(change).toHaveCount(0);
         await expect(page).toHaveURL(/\/sections$/);
         await expect(page.getByRole("button", { name: /Asignatura.*MAT-17/ })).toBeVisible();
       }

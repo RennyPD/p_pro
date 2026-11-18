@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Toaster } from "sonner";
 import App from "./App";
+import { ConfirmHost } from "./components/ConfirmDialog";
 import { DraftGuard } from "./components/DraftGuard";
 import "./styles.css";
 import "./accessibility.css";
@@ -26,6 +27,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <ConfirmHost />
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   </StrictMode>,

@@ -6,6 +6,7 @@ import {
   type ButtonHTMLAttributes,
   type PropsWithChildren,
   type ReactNode,
+  type Ref,
 } from "react";
 import clsx from "clsx";
 
@@ -15,6 +16,7 @@ export function Button({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost" | "danger";
+  ref?: Ref<HTMLButtonElement>;
 }) {
   return <button className={clsx("button", `button--${variant}`, className)} {...props} />;
 }
