@@ -18,6 +18,8 @@ jobs:
         working-directory: frontend
       - run: npm run format:check
         working-directory: frontend
+      - run: npm run api:types && git diff --exit-code src/lib/api-schema.d.ts
+        working-directory: frontend
       - run: npm run lint
         working-directory: frontend
       - run: npm run typecheck

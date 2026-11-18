@@ -23,11 +23,13 @@ python -B -m pytest tests -q -p no:cacheprovider
 ruff check app tests main.py
 ruff format app tests main.py
 alembic revision --autogenerate -m "descripcion"
+python -m scripts.export_openapi   # tras cambiar rutas o esquemas
 ```
 Frontend, desde `frontend/`:
 ```
 npm install
 npm run dev
+npm run api:types   # regenera src/lib/api-schema.d.ts desde openapi.json
 npm run format
 npm run format:check
 npm run lint
@@ -49,9 +51,10 @@ Antes de dar una tarea por terminada, corre como mínimo pytest y ruff (backend)
 6. **Interfaz 100 % en español.** Los mensajes de `HTTPException` que llegan al usuario van en español.
 7. **Tipos correctos.** Dinero en `Decimal`/`Numeric`, nunca `Float`. Fechas como `date`/`datetime`, nunca texto libre.
 8. **Concurrencia.** Las escrituras críticas usan `lock_governance` / `lock_finance`. No añadas escrituras de notas, inscripciones o finanzas sin bloqueo.
-9. **Código legible.** El backend se formatea con Ruff. En el frontend, nada de JSX ni CSS compactado en una línea. Usa los tokens CSS (`--ink`, `--muted`, etc.), no colores escritos a mano.
-10. **Auditoría.** Los cambios sensibles (notas, finanzas, usuarios, permisos, períodos) se registran con `record(...)`.
-11. **Sin secretos en el repo.** Nada de `.env`, bases de datos ni `__pycache__` versionados.
+9. **Tipos del API generados.** En el frontend usa `ApiSchema<"Nombre">` (`src/lib/apiTypes.ts`) en vez de escribir a mano los tipos de las respuestas.
+10. **Código legible.** El backend se formatea con Ruff. En el frontend, nada de JSX ni CSS compactado en una línea. Usa los tokens CSS (`--ink`, `--muted`, etc.), no colores escritos a mano.
+11. **Auditoría.** Los cambios sensibles (notas, finanzas, usuarios, permisos, períodos) se registran con `record(...)`.
+12. **Sin secretos en el repo.** Nada de `.env`, bases de datos ni `__pycache__` versionados.
 
 ## Forma de trabajar
 - Para cambios grandes: primero un plan corto (archivos, migraciones, riesgos) y espera aprobación; después implementa un paso a la vez.

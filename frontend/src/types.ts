@@ -1,24 +1,19 @@
 import type { ReactNode } from "react";
+import type { ApiSchema } from "./lib/apiTypes";
 
 export type Role = "admin" | "teacher" | "student" | "guardian";
 
-export interface User {
-  user_id: number;
-  username: string;
-  email: string;
-  role_id: number;
-  role_name: Role;
-  student_id: number | null;
-  teacher_id: number | null;
-  guardian_id?: number | null;
-  mfa_enabled?: boolean;
-  active?: boolean;
-}
-export interface TokenResponse {
-  access_token: string;
-  token_type: string;
-  user: User;
-}
+type UserOut = ApiSchema<"UserOut">;
+type UserIdentity = "user_id" | "username" | "email" | "role_id";
+
+/** Session account, derived from the generated UserOut schema. */
+export type User = Pick<UserOut, UserIdentity> &
+  Partial<Omit<UserOut, UserIdentity | "role_name" | "student_id" | "teacher_id">> & {
+    role_name: Role;
+    student_id: number | null;
+    teacher_id: number | null;
+  };
+export type TokenResponse = Omit<ApiSchema<"TokenOut">, "user"> & { user: User };
 export type RecordValue = string | number | boolean | null | string[];
 export type EntityRecord = Record<string, RecordValue>;
 export interface LookupConfig {

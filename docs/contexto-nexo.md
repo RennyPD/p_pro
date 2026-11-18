@@ -42,7 +42,12 @@ Informe completo: `docs/auditoria/auditoria-2026-11-17.pdf` (versión web: https
 Montos en `Float`, TOTP reutilizable dentro de su ventana, enumeración de usuarios por tiempo, sin detección de reutilización del refresh token, `/auth/bootstrap` abierto en una instalación vacía, sin logs, nginx sin cabeceras de seguridad, `school.db` y `__pycache__` versionados, `date_recorded` como texto, períodos enlazados por nombre. PostgreSQL sin probar de punta a punta.
 
 ### Frontend y UI
-Contraste insuficiente (`--muted` #718096 → usar #5b6678), código compactado sin Prettier, colores escritos a mano en 25 CSS con dos paletas mezcladas, `window.confirm` nativo, fuentes por `@import`, tipos del API escritos a mano (generarlos con `openapi-typescript`). No hace falta un rediseño completo: basta con un sistema de diseño con tokens.
+✅ Cerrado el 18/11/2026 (Fase 0, paso 3):
+- Prettier 3.3.3 en todo el frontend, comprobado en CI (`npm run format:check`).
+- Tokens de diseño en `src/styles.css`; sin colores escritos a mano en los CSS (lo vigila `src/test/design-tokens.test.ts`). `--muted` = #5b6678.
+- Diálogo de confirmación propio (`confirmAction` en `src/lib/confirm.ts`), sin `window.confirm`.
+- Fuentes con `<link>` en `index.html`, no con `@import`.
+- Tipos del API generados con `openapi-typescript` (`npm run api:types` → `src/lib/api-schema.d.ts`, usados con `ApiSchema<"Nombre">`). `User` y `TokenResponse` ya los usan. **Pendiente:** migrar los demás tipos escritos a mano en `src/features/*` módulo por módulo; varias rutas devuelven diccionarios sin `response_model` y necesitan esquema antes de poder tiparse.
 
 ## 3. Hoja de ruta
 Cada fase se cierra con pruebas de regresión y sin romper lo anterior.
@@ -50,7 +55,7 @@ Cada fase se cierra con pruebas de regresión y sin romper lo anterior.
 ### Fase 0: dejar perfecto lo actual
 1. ✅ Acceso: A1, A2, M2, M3.
 2. ✅ Permisos y portal: M1, M5.
-3. Calidad y UX: Prettier/Ruff, mensajes en español, contraste, tokens de diseño, modales, tipos generados.
+3. ✅ Calidad y UX: Prettier/Ruff, mensajes en español, contraste, tokens de diseño, modales, tipos generados (queda la migración progresiva de tipos por módulo).
 4. Producción: M4 (Redis), M7, M8, bajos y una prueba completa sobre PostgreSQL.
 
 ### Fase 1: modelo escolar (K-12)
