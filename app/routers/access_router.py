@@ -48,10 +48,10 @@ def set_role_permissions(
     lock_governance(db)
     role = db.get(Role, role_id)
     if role is None:
-        raise HTTPException(status_code=404, detail="Role not found")
+        raise HTTPException(status_code=404, detail="No se encontró el rol")
     selected = db.query(Permission).filter(Permission.slug.in_(data.permissions)).all()
     if len(selected) != len(set(data.permissions)):
-        raise HTTPException(status_code=422, detail="One or more permissions do not exist")
+        raise HTTPException(status_code=422, detail="Uno o más permisos no existen")
     before = sorted(
         row[0]
         for row in db.query(Permission.slug)
@@ -101,7 +101,7 @@ def permissions_history(role_id: int, db: Session = Depends(get_db)):
 @router.get("/roles/{role_id}/permissions", dependencies=[Depends(access_manager)])
 def role_permissions(role_id: int, db: Session = Depends(get_db)):
     if db.get(Role, role_id) is None:
-        raise HTTPException(status_code=404, detail="Role not found")
+        raise HTTPException(status_code=404, detail="No se encontró el rol")
     values = (
         db.query(Permission.slug)
         .join(RolePermission)

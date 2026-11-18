@@ -14,6 +14,9 @@ const guardianLookup: LookupConfig = {
   labelKeys: ["first_name", "last_name"], secondaryKey: "email", placeholder: "Buscar tutor",
 };
 const limit = 5 * 1024 * 1024;
+const documentTypes: Record<string, string> = { identification: "Documento de identidad", transcript: "Récord de notas", birth_certificate: "Acta de nacimiento", photo: "Fotografía", medical: "Certificado médico", diploma: "Título de bachillerato", certificate: "Certificado" };
+/** Seeded/legacy documents use English codes; manual uploads already carry a readable type. */
+const documentTypeLabel = (type: string) => documentTypes[type] ?? type;
 type StudentDocument = { student_document_id: number; filename: string; document_type: string; expires_on: string | null };
 type CareerImpact = { current_career: string; target_career: string; effective_date: string; active_selections: number; cart_outside_plan: number };
 const careerLookup: LookupConfig = {
@@ -188,9 +191,9 @@ export function StudentDocuments({ studentId, canUpload = false }: { studentId: 
     <div className="panel-heading"><h2>Archivo del expediente</h2>{canUpload && <Button onClick={() => setUpload(true)}>Agregar documento</Button>}</div>
     {documents.isLoading ? <Spinner label="Cargando documentos" /> : documents.error ? (
       <p role="alert" className="form-error">{apiMessage(documents.error)}</p>
-    ) : documents.data?.length ? <ul>{documents.data.map(document => <li key={document.student_document_id}>
-      <strong>{document.filename}</strong> · {document.document_type}{document.expires_on ? ` · vence el ${document.expires_on}` : ""}
-      <DocumentDownload path={`/operations/documents/${document.student_document_id}/download`} filename={document.filename} label={`Descargar ${document.filename}`} />
+    ) : documents.data?.length ? <ul className="document-list">{documents.data.map(document => <li key={document.student_document_id}>
+      <div><strong>{documentTypeLabel(document.document_type)}</strong><small>{document.filename}{document.expires_on ? ` · vence el ${document.expires_on}` : ""}</small></div>
+      <DocumentDownload path={`/operations/documents/${document.student_document_id}/download`} filename={document.filename} label="Descargar" />
     </li>)}</ul> : <p>Aún no hay documentos en este expediente.</p>}
     {upload && <Modal title="Agregar documento al expediente" onClose={close}>
       <form className="resource-form" onSubmit={submit} onChange={() => setDirty(true)}>

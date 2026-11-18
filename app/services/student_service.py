@@ -22,7 +22,7 @@ def create_student_service(db: Session, student_data: StudentCreate, commit: boo
     for student in students:
         if student.email == student_data.email:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Ese correo ya está registrado"
             )
 
     if not student_data.enrollment_number:
@@ -54,7 +54,9 @@ def get_student_by_id_service(db: Session, student_id: int):
     student = get_student_by_id(db, student_id)
 
     if not student:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró el estudiante"
+        )
 
     return student
 
@@ -70,7 +72,9 @@ def update_student_service(db: Session, student_id: int, student_data: StudentUp
     student = update_student(db, student_id, student_data)
 
     if not student:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró el estudiante"
+        )
 
     return student
 
@@ -80,6 +84,8 @@ def delete_student_service(db: Session, student_id: int):
     student = delete_student(db, student_id)
 
     if not student:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró el estudiante"
+        )
 
     return {"message": "Student deleted successfully"}

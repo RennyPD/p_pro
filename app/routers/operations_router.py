@@ -21,6 +21,7 @@ from app.models.community_model import StudentGuardian
 from app.models.configuration_model import AcademicPeriod
 from app.models.enrollment_model import Enrollment
 from app.models.finance_model import StudentAccount
+from app.models.grade_model import Grade
 from app.models.operations_model import (
     AdmissionApplication,
     AlertIntervention,
@@ -124,7 +125,9 @@ def create_event(
 ):
     if not is_admin(user):
         if data.audience != "section":
-            raise HTTPException(status_code=403, detail="Teachers can only create section events")
+            raise HTTPException(
+                status_code=403, detail="Los docentes solo pueden crear eventos de sus secciones"
+            )
         ensure_section_access(db, user, data.section_id or 0)
     if data.section_id:
         ensure_section_access(db, user, data.section_id)
@@ -322,7 +325,7 @@ def assign_alert(
     lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="No se encontró la alerta")
     ensure_student_academic_access(db, user, item.student_id)
     if item.status != "open":
         raise HTTPException(409, "Solo se asignan casos abiertos")
@@ -357,7 +360,7 @@ def alert_interventions(
 ):
     item = db.get(EarlyAlert, alert_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="No se encontró la alerta")
     ensure_student_academic_access(db, user, item.student_id)
     items = (
         db.query(AlertIntervention)
@@ -384,7 +387,7 @@ def add_alert_intervention(
     lock_governance(db)
     alert = db.get(EarlyAlert, alert_id)
     if alert is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="No se encontró la alerta")
     ensure_student_academic_access(db, user, alert.student_id)
     if alert.status != "open" or len(data.notes.strip()) < 2:
         raise HTTPException(409, "Reabre el caso e indica una actuación completa")
@@ -475,7 +478,7 @@ def resolve_alert(
     lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="No se encontró la alerta")
     ensure_student_academic_access(db, user, item.student_id)
     if item.status != "open" or data is None or len(data.resolution_notes.strip()) < 3:
         raise HTTPException(409, "El caso debe estar abierto e incluir un motivo de resolución")
@@ -505,7 +508,7 @@ def reopen_alert(
     lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
+        raise HTTPException(status_code=404, detail="No se encontró la alerta")
     ensure_student_academic_access(db, user, item.student_id)
     if item.status != "resolved":
         raise HTTPException(409, "El caso ya está abierto")
@@ -654,7 +657,7 @@ def update_admission(
     lock_governance(db)
     item = db.get(AdmissionApplication, application_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=404, detail="No se encontró la solicitud de admisión")
     allowed = {
         "submitted": {"review", "rejected"},
         "review": {"accepted", "rejected"},
@@ -697,7 +700,7 @@ def enroll_admission(
     lock_governance(db)
     item = db.get(AdmissionApplication, application_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=404, detail="No se encontró la solicitud de admisión")
     if item.status == "enrolled":
         if item.student_id:
             student = db.get(Student, item.student_id)
@@ -739,17 +742,53 @@ def enroll_admission(
     "/approvals", response_model=list[ApprovalOut], dependencies=[Depends(operations_admin)]
 )
 def approvals(db: Session = Depends(get_db)):
-    return db.query(ApprovalRequest).order_by(ApprovalRequest.created_at.desc()).all()
+    items = db.query(ApprovalRequest).order_by(ApprovalRequest.created_at.desc()).all()
+    return [describe_approval(db, item) for item in items]
+
+
+def _student_label(student) -> str:
+    return f"{student.first_name} {student.last_name} · {student.enrollment_number}"
+
+
+def approval_resource_label(db: Session, item: ApprovalRequest) -> str:
+    """Human description of what a request is about (never a bare id)."""
+    if item.resource_type == "student" and (student := db.get(Student, item.resource_id)):
+        return f"Expediente de {_student_label(student)}"
+    if item.resource_type == "section" and (section := db.get(Section, item.resource_id)):
+        return f"Sección {section.code} · {section.subject.description}"
+    if item.resource_type == "submission" and (submission := db.get(Submission, item.resource_id)):
+        task = db.get(Assignment, submission.assignment_id)
+        student = db.get(Student, submission.student_id)
+        title = task.title if task else "tarea"
+        return f"Entrega de {title}" + (f" · {_student_label(student)}" if student else "")
+    if item.resource_type == "grade" and (grade := db.get(Grade, item.resource_id)):
+        enrollment = grade.enrollment
+        return (
+            f"Nota de {grade.grade_type} · {enrollment.section.code} · "
+            f"{_student_label(enrollment.student)}"
+        )
+    return "Recurso no disponible"
+
+
+def describe_approval(db: Session, item: ApprovalRequest) -> ApprovalOut:
+    requester = db.get(User, item.requested_by)
+    return ApprovalOut.model_validate(item).model_copy(
+        update={
+            "resource_label": approval_resource_label(db, item),
+            "requested_by_name": requester.username if requester else "",
+        }
+    )
 
 
 @router.get("/approvals/mine", response_model=list[ApprovalOut])
 def my_approvals(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return (
+    items = (
         db.query(ApprovalRequest)
         .filter_by(requested_by=user.user_id)
         .order_by(ApprovalRequest.created_at.desc(), ApprovalRequest.approval_request_id.desc())
         .all()
     )
+    return [describe_approval(db, item) for item in items]
 
 
 def ensure_approval_resource(db, user, data):
@@ -799,7 +838,7 @@ def request_approval(
     )
     db.commit()
     db.refresh(item)
-    return item
+    return describe_approval(db, item)
 
 
 @router.patch("/approvals/{request_id}", response_model=ApprovalOut)
@@ -812,7 +851,7 @@ def resolve_approval(
     lock_governance(db)
     item = db.get(ApprovalRequest, request_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Approval not found")
+        raise HTTPException(status_code=404, detail="No se encontró la solicitud")
     if item.status != "pending":
         raise HTTPException(409, "La solicitud ya fue resuelta. Consulta la decisión registrada")
     if len(data.resolution_notes.strip()) < 2:
@@ -824,7 +863,7 @@ def resolve_approval(
     record(db, user, "approval.resolved", f"approval:{request_id}", f"pending → {data.status}")
     db.commit()
     db.refresh(item)
-    return item
+    return describe_approval(db, item)
 
 
 @router.get("/students/{student_id}/documents", response_model=list[StudentDocumentOut])
@@ -901,7 +940,7 @@ def download_document(
 ):
     item = db.get(StudentDocument, document_id)
     if item is None:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise HTTPException(status_code=404, detail="No se encontró el documento")
     ensure_student_academic_access(db, user, item.student_id)
     return Response(
         item.content,

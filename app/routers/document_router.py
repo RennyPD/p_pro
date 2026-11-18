@@ -41,7 +41,7 @@ def transcript_pdf(
     ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="No se encontró el estudiante")
     record = build_transcript(db, student)
     lines = [
         f"Estudiante: {record.student_name}",
@@ -113,7 +113,7 @@ def enrollment_certificate(
     ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="No se encontró el estudiante")
     active = [item for item in student.enrollments if item.state in {"enrolled", "completed"}]
     lines = [
         f"Se certifica que {student.first_name} {student.last_name}",
@@ -141,7 +141,7 @@ def report_card(
     ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="No se encontró el estudiante")
     record = build_transcript(db, student)
     lines = [
         f"Estudiante: {record.student_name}",

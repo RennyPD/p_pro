@@ -36,9 +36,9 @@ def validate_assessment(db: Session, assessment_id: int | None, section_id: int)
         return None
     assessment = db.get(Assessment, assessment_id)
     if assessment is None or assessment.section_id != section_id:
-        raise HTTPException(status_code=422, detail="Assessment must belong to the section")
+        raise HTTPException(status_code=422, detail="La evaluación debe pertenecer a la sección")
     if assessment.closed:
-        raise HTTPException(status_code=409, detail="Closed assessments cannot receive changes")
+        raise HTTPException(status_code=409, detail="Una evaluación cerrada no admite cambios")
     return assessment
 
 
@@ -59,7 +59,7 @@ def save_section_grades(
         .all()
     }
     if len(enrollments) != len(ids):
-        raise HTTPException(status_code=422, detail="Every grade must belong to the section")
+        raise HTTPException(status_code=422, detail="Todas las notas deben pertenecer a la sección")
     assessment = validate_assessment(db, data.assessment_id, section.section_id)
     saved = [
         write_grade(
@@ -139,7 +139,7 @@ def publish_assessment_grades(
     lock_governance(db)
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
-        raise HTTPException(status_code=404, detail="Assessment not found")
+        raise HTTPException(status_code=404, detail="No se encontró la evaluación")
     ensure_section_access(db, user, assessment.section_id)
     ensure_grading_open(db, assessment.section)
     if assessment.closed:
@@ -196,7 +196,7 @@ def get_grade_by_id(
     grade = get_grade_by_id_service(db, grade_id)
     ensure_enrollment_access(db, user, grade.enrollment_id)
     if grade.status == "voided" or (user.student_id is not None and grade.status != "published"):
-        raise HTTPException(status_code=404, detail="Grade not found")
+        raise HTTPException(status_code=404, detail="No se encontró la nota")
     return grade
 
 

@@ -34,23 +34,25 @@ def validate_eligibility(
 ):
     requested_section = db.get(Section, enrollment_data.section_id)
     if requested_section is None:
-        raise HTTPException(status_code=404, detail="Section not found")
+        raise HTTPException(status_code=404, detail="No se encontró la sección")
     if requested_section.status not in {"published", "active"}:
-        raise HTTPException(status_code=409, detail="Section is not open for course selection")
+        raise HTTPException(status_code=409, detail="La sección no está abierta para selección")
     student = db.get(Student, enrollment_data.student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="No se encontró el estudiante")
     if not student.active:
-        raise HTTPException(status_code=409, detail="Inactive students cannot enroll")
+        raise HTTPException(
+            status_code=409, detail="Un estudiante inactivo no puede seleccionar asignaturas"
+        )
     if student.academic_hold or student.financial_hold:
         reasons = []
         if student.academic_hold:
-            reasons.append("academic")
+            reasons.append("académico")
         if student.financial_hold:
-            reasons.append("financial")
+            reasons.append("financiero")
         raise HTTPException(
             status_code=409,
-            detail=f"Student has an active {' and '.join(reasons)} hold",
+            detail=f"El estudiante tiene un bloqueo {' y '.join(reasons)} activo",
         )
     selection_period(db, requested_section.section_id, enrollment_data.period, registration=True)
     recognition = recognize(db, student)
@@ -72,7 +74,7 @@ def validate_eligibility(
         if curriculum_course.prerequisite_subject_id not in recognition.completed:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Prerequisite {curriculum_course.prerequisite.code} is not completed",
+                detail=f"Prerrequisito pendiente: {curriculum_course.prerequisite.code}",
             )
     if curriculum_course and curriculum_course.corequisite_subject_id:
         has_corequisite = any(
@@ -89,11 +91,11 @@ def validate_eligibility(
         ):
             raise HTTPException(
                 status_code=409,
-                detail=f"Corequisite {curriculum_course.corequisite.code} must be selected first",
+                detail=f"Correquisito pendiente: {curriculum_course.corequisite.code}",
             )
     settings = db.get(InstitutionSettings, 1)
     if requested_section.subject_id in recognition.completed:
-        raise HTTPException(status_code=409, detail="The subject is already completed")
+        raise HTTPException(status_code=409, detail="Ya aprobaste esta asignatura")
     current = (
         db.query(Enrollment)
         .filter(
@@ -115,7 +117,7 @@ def validate_eligibility(
     if same_subject_selection:
         raise HTTPException(
             status_code=409,
-            detail=f"The subject is already selected in section {same_subject_selection.section.code}",
+            detail=f"Ya seleccionaste esta asignatura en la sección {same_subject_selection.section.code}",
         )
     max_credits = settings.max_credits_per_period if settings else 24
     current_credits = 0.0
@@ -135,7 +137,7 @@ def validate_eligibility(
         current_credits += course.credits if course else 0
     requested_credits = curriculum_course.credits if curriculum_course else 0
     if current_credits + requested_credits > max_credits:
-        raise HTTPException(status_code=409, detail="Maximum credit load exceeded")
+        raise HTTPException(status_code=409, detail="Límite de créditos excedido")
 
     requested_slots = effective_blocks(requested_section)
     for enrollment in current:
@@ -145,7 +147,7 @@ def validate_eligibility(
         if any(
             overlap(slot, other) for slot in requested_slots for other in effective_blocks(section)
         ):
-            raise HTTPException(409, f"Schedule conflict with section {section.code}")
+            raise HTTPException(409, f"Choque de horario con la sección {section.code}")
     return requested_section
 
 
@@ -168,7 +170,7 @@ def create_enrollment_service(
     # Acquire the database-backed writer lock BEFORE reading eligibility/capacity.
     lock_governance(db)
     if enrollment_data.state != "enrolled" or enrollment_data.waitlist_position is not None:
-        raise HTTPException(422, "Selection state and queue position are assigned by the system")
+        raise HTTPException(422, "El estado y la posición en lista de espera los asigna el sistema")
     if (
         db.query(Enrollment)
         .filter_by(
@@ -178,7 +180,7 @@ def create_enrollment_service(
         )
         .first()
     ):
-        raise HTTPException(409, "A selection already exists for this student, section and period")
+        raise HTTPException(409, "El estudiante ya tiene una selección en esta sección y período")
     requested_section = validate_eligibility(
         db, enrollment_data, require_program=require_program, paired_corequisite=paired_corequisite
     )
@@ -218,7 +220,9 @@ def get_enrollment_by_id_service(db: Session, enrollment_id: int):
     enrollment = get_enrollment_by_id(db, enrollment_id)
 
     if not enrollment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la selección"
+        )
 
     return enrollment
 
@@ -227,7 +231,9 @@ def update_enrollment_service(db: Session, enrollment_id: int, enrollment_data: 
     lock_governance(db)
     current = get_enrollment_by_id(db, enrollment_id)
     if not current:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la selección"
+        )
     changes = enrollment_data.model_dump(exclude_unset=True)
     for field in ("student_id", "section_id", "period"):
         if field in changes and changes[field] != getattr(current, field):
@@ -238,9 +244,9 @@ def update_enrollment_service(db: Session, enrollment_id: int, enrollment_data: 
         changes.get(field, getattr(current, field)) is None
         for field in ("student_id", "section_id", "period", "state")
     ):
-        raise HTTPException(422, "Selection identity and state cannot be null")
+        raise HTTPException(422, "La identidad y el estado de la selección no pueden quedar vacíos")
     if "waitlist_position" in changes:
-        raise HTTPException(422, "Queue position is managed by the system")
+        raise HTTPException(422, "La posición en lista de espera la asigna el sistema")
     period = selection_period(db, current.section_id, current.period)
     previous_state = current.state
     target_state = changes.get("state", previous_state)
@@ -249,7 +255,7 @@ def update_enrollment_service(db: Session, enrollment_id: int, enrollment_data: 
         return current
     if target_state == "withdrawn":
         if period and period.withdrawal_deadline and business_date() > period.withdrawal_deadline:
-            raise HTTPException(status_code=409, detail="The withdrawal deadline has passed")
+            raise HTTPException(status_code=409, detail="Venció el plazo de retiro")
     elif target_state != previous_state:
         raise HTTPException(
             409, "Only withdrawal is supported here; academic completion uses the grading workflow"
@@ -260,7 +266,9 @@ def update_enrollment_service(db: Session, enrollment_id: int, enrollment_data: 
         db.flush()
 
     if not enrollment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la selección"
+        )
 
     if previous_state == "enrolled" and target_state == "withdrawn":
         promote_waitlist(db, enrollment.section_id, enrollment.period)
@@ -334,7 +342,9 @@ def delete_enrollment_service(db: Session, enrollment_id: int):
     enrollment = delete_enrollment(db, enrollment_id, commit=False)
 
     if not enrollment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la selección"
+        )
 
     if previous_state == "enrolled":
         promote_waitlist(db, section_id, period)

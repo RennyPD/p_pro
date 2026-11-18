@@ -38,7 +38,9 @@ def get_subject_by_id_service(db: Session, subject_id: int):
     subject = get_subject_by_id(db, subject_id)
 
     if not subject:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la asignatura"
+        )
 
     return subject
 
@@ -50,7 +52,9 @@ def update_subject_service(db: Session, subject_id: int, subject_data: SubjectUp
     subject = update_subject(db, subject_id, subject_data)
 
     if not subject:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la asignatura"
+        )
 
     return subject
 
@@ -76,7 +80,9 @@ def delete_subject_service(db: Session, subject_id: int):
     subject = delete_subject(db, subject_id)
 
     if not subject:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la asignatura"
+        )
 
     return {"message": "Subject deleted successfully"}
 

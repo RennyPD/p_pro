@@ -11,6 +11,18 @@ type Role = { role_id: number; name: string };
 type Permission = { permission_id: number; slug: string; description: string };
 type Change = { id: number; actor: string; action: string; detail: string; created_at: string };
 const roleNames: Record<string, string> = { admin: "Administración", teacher: "Docente", student: "Estudiante", guardian: "Tutor" };
+/** What each permission unlocks, in the words of the person granting it. */
+const permissionScopes: Record<string, string> = {
+  "academic.manage": "Estudiantes, docentes, carreras, asignaturas y secciones",
+  "access.manage": "Usuarios, roles y esta pantalla de permisos",
+  "communications.manage": "Avisos a secciones o a toda la institución",
+  "finance.manage": "Cargos, pagos, caja y cuentas estudiantiles",
+  "grades.manage": "Libro de notas, asistencia y cierre de evaluaciones",
+  "operations.manage": "Agenda, tareas, solicitudes y casos de seguimiento",
+  "records.own": "Solo su propio expediente o el de estudiantes vinculados",
+  "reports.view": "Control institucional e indicadores",
+};
+
 export function AccessSettingsPage() {
   const uid = useAuthStore(s => s.user?.user_id);
   const client = useQueryClient();
@@ -33,7 +45,7 @@ export function AccessSettingsPage() {
   return <div className="page access-settings"><header className="page-header"><div><span className="kicker">Configuración · Seguridad</span><h1>Permisos por rol</h1><p>Revisa los cambios antes de guardar. No puedes retirar tus propios permisos esenciales ni dejar la institución sin gestión de acceso.</p></div></header>
     <section className="panel"><label className="form-field"><span>Rol que se modificará</span><select disabled={save.isPending} value={id} onChange={e => { if (dirty && !window.confirm("¿Descartar los cambios de este rol?")) return; setChosen(Number(e.target.value)); setDraft(undefined); setReason(""); }}>{roles.data?.map(r => <option key={r.role_id} value={r.role_id}>{roleNames[r.name] || r.name}</option>)}</select></label>
       {current.isFetching ? <Spinner /> : current.error ? <p className="form-error">{apiMessage(current.error)}</p> : <form onSubmit={e => { e.preventDefault(); if (window.confirm("¿Aplicar los cambios de permisos a todos los usuarios de este rol?")) save.mutate(); }}>
-        <div className="permission-list">{permissions.data?.map(p => <label key={p.permission_id}><input disabled={save.isPending} type="checkbox" checked={selected.includes(p.slug)} onChange={e => setDraft({ role: id, before, selected: e.target.checked ? [...selected, p.slug] : selected.filter(s => s !== p.slug) })} /><span><strong>{p.description}</strong><small>{p.slug}</small></span></label>)}</div>
+        <div className="permission-list">{permissions.data?.map(p => <label key={p.permission_id}><input disabled={save.isPending} type="checkbox" checked={selected.includes(p.slug)} onChange={e => setDraft({ role: id, before, selected: e.target.checked ? [...selected, p.slug] : selected.filter(s => s !== p.slug) })} /><span><strong>{p.description}</strong><small title={p.slug}>{permissionScopes[p.slug] ?? p.slug}</small></span></label>)}</div>
         {dirty && <aside className="period-effect"><p>Se conceden: {selected.filter(s => !before.includes(s)).join(", ") || "Ninguno"}</p><p>Se retiran: {before.filter(s => !selected.includes(s)).join(", ") || "Ninguno"}</p></aside>}
         <label className="form-field"><span>Motivo del cambio de permisos</span><input required minLength={3} maxLength={250} disabled={save.isPending} value={reason} onChange={e => setReason(e.target.value)} /></label>
         <div className="form-actions"><Button type="button" variant="secondary" disabled={save.isPending || !dirty} onClick={() => { setDraft(undefined); setReason(""); }}>Descartar cambios</Button><Button disabled={!dirty || save.isPending || !id}>Guardar permisos</Button></div>

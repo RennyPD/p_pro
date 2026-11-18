@@ -2,14 +2,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Button, Modal, Spinner } from "../../components/ui";
+import { Badge, Button, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useDraftGuard } from "../../lib/useDraftGuard";
 import { useAuthStore } from "../../store/auth";
 
-type Approval = { approval_request_id: number; resource_type: string; resource_id: number; reason: string; status: string; resolution_notes: string; requested_by: number };
+type Approval = { approval_request_id: number; resource_type: string; resource_id: number; reason: string; status: string; resolution_notes: string; requested_by: number; created_at?: string; resource_label?: string; requested_by_name?: string };
 const statuses: Record<string, string> = { pending: "Pendiente", approved: "Aprobada", rejected: "Rechazada" };
-const resources: Record<string, string> = { student: "Expediente", section: "Sección", submission: "Entrega" };
+const statusTone: Record<string, "warning" | "success" | "danger"> = { pending: "warning", approved: "success", rejected: "danger" };
+const requestDate = (value?: string) => value ? new Intl.DateTimeFormat("es-DO", { dateStyle: "medium" }).format(new Date(value)) : "";
 
 export function RequestApproval({ resource, id, label }: { resource: "student" | "section" | "submission"; id: number; label: string }) {
   const [open, setOpen] = useState(false);
@@ -86,7 +87,7 @@ export function ApprovalsPage() {
     finally { setBusy(false); }
   }
   return <div className="page">
-    <header className="page-header"><h1>Solicitudes de aprobación</h1></header>
+    <header className="page-header"><div><span className="kicker">Seguimiento</span><h1>Solicitudes de revisión</h1><p>Revisiones de expedientes, notas, secciones o entregas y su decisión.</p></div></header>
     {user?.role_name === "admin" && <div className="form-actions">
       <Button variant={all ? "secondary" : "primary"} onClick={() => setAll(false)}>Mis solicitudes</Button>
       <Button variant={all ? "primary" : "secondary"} onClick={() => setAll(true)}>Bandeja institucional</Button>
@@ -95,8 +96,8 @@ export function ApprovalsPage() {
       <p role="alert" className="form-error">{apiMessage(listing.error)}</p>
     ) : listing.data?.length ? listing.data.map(item => (
       <article className="panel" key={item.approval_request_id}>
-        <h2>Solicitud {item.approval_request_id}</h2>
-        <p>{statuses[item.status] ?? item.status} · {resources[item.resource_type] ?? item.resource_type} {item.resource_id}</p>
+        <div className="approval-head"><h2>{item.resource_label || "Solicitud de revisión"}</h2><Badge tone={statusTone[item.status] ?? "neutral"}>{statuses[item.status] ?? item.status}</Badge></div>
+        <p className="muted">Solicitud n.º {item.approval_request_id}{item.created_at && ` · ${requestDate(item.created_at)}`}{all && item.requested_by_name && ` · solicitada por ${item.requested_by_name}`}</p>
         <p>{item.reason}</p>
         {item.resolution_notes && <p>Decisión registrada · {item.resolution_notes}</p>}
         {all && item.status === "pending" && <Button variant="secondary" onClick={() => {
@@ -104,7 +105,7 @@ export function ApprovalsPage() {
         }}>Revisar solicitud</Button>}
       </article>
     )) : <section className="panel"><p>Aún no hay solicitudes en esta bandeja.</p>{!all && <Link to="/">Volver al inicio</Link>}</section>}
-    {selected && <Modal title={`Revisar solicitud ${selected.approval_request_id}`} onClose={close}>
+    {selected && <Modal title="Revisar solicitud" description={selected.resource_label} onClose={close}>
       <p>La decisión se registra aquí. Los cambios en el expediente, la sección o la entrega se tramitan desde su pantalla.</p>
       <form className="resource-form" onSubmit={resolve}>
         <label className="form-field"><span>Decisión</span><select value={status} onChange={event => setStatus(event.target.value)}>

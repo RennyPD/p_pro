@@ -29,7 +29,8 @@ def create_section_service(db: Session, section_data: SectionCreate):
     for section in sections:
         if section.code == section_data.code:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Code already exist"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ya existe un registro con ese código",
             )
 
     return create_section(db, section_data)
@@ -43,7 +44,9 @@ def get_section_by_id_service(db, section_id):
 
     section = get_section_by_id(db, section_id)
     if not section:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Section not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la sección"
+        )
 
     return section
 
@@ -52,10 +55,10 @@ def update_section_service(db: Session, section_id: int, section_data: SectionUp
     lock_governance(db)
     current = get_section_by_id(db, section_id)
     if current is None:
-        raise HTTPException(404, "Section not found")
+        raise HTTPException(404, "No se encontró la sección")
     changes = section_data.model_dump(exclude_unset=True)
     if any(value is None for value in changes.values()):
-        raise HTTPException(422, "Section fields cannot be null")
+        raise HTTPException(422, "Los campos de la sección no pueden quedar vacíos")
     if changes.get("subject_id", current.subject_id) != current.subject_id and (
         current.enrollments
         or any(
@@ -70,7 +73,7 @@ def update_section_service(db: Session, section_id: int, section_data: SectionUp
     target_period = changes.get("period_name", current.period_name)
     validate_period(db, target_period)
     if target_period != current.period_name and current.enrollments:
-        raise HTTPException(409, "A section with academic history cannot change period")
+        raise HTTPException(409, "Una sección con historial académico no puede cambiar de período")
     capacity = changes.get("capacity", current.capacity)
     if changes.get("minimum_capacity", current.minimum_capacity) > capacity:
         raise HTTPException(422, "El cupo mínimo no puede superar la capacidad de la sección")
@@ -110,7 +113,7 @@ def update_section_service(db: Session, section_id: int, section_data: SectionUp
         if item.state == "enrolled":
             counts[item.period] = counts.get(item.period, 0) + 1
     if any(count > capacity for count in counts.values()):
-        raise HTTPException(409, "Capacity cannot be lower than confirmed selections")
+        raise HTTPException(409, "El cupo no puede ser menor que las selecciones confirmadas")
     if actor is not None and schedule_changed:
         record(
             db,
@@ -122,7 +125,9 @@ def update_section_service(db: Session, section_id: int, section_data: SectionUp
     section = update_section(db, section_id, section_data)
 
     if not section:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Section not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la sección"
+        )
 
     return section
 
@@ -181,7 +186,7 @@ def validate_section_schedule(db, current, changes, capacity):
 
 def validate_period(db, name):
     if name and db.query(AcademicPeriod).filter_by(name=name).first() is None:
-        raise HTTPException(409, "The academic period does not exist")
+        raise HTTPException(409, "El período académico no existe")
 
 
 def delete_section_service(db: Session, section_id: int):
@@ -189,6 +194,8 @@ def delete_section_service(db: Session, section_id: int):
     section = delete_section(db, section_id)
 
     if not section:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Section not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la sección"
+        )
 
     return {"Message": "Section removed"}

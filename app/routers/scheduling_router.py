@@ -216,7 +216,7 @@ def delete_meeting(
     lock_governance(db)
     meeting = db.get(SectionMeeting, meeting_id)
     if meeting is None:
-        raise HTTPException(status_code=404, detail="Meeting not found")
+        raise HTTPException(status_code=404, detail="No se encontró la reunión")
     section = writable_section(db, user, meeting.section_id)
     remaining = [item for item in section.meetings if item is not meeting]
     blocks = [block for item in remaining if (block := meeting_block(item)) is not None]

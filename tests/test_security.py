@@ -13,3 +13,21 @@ class SecurityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_validation_messages_are_spanish():
+    from app.validation_messages import spanish_message
+
+    assert (
+        spanish_message({"type": "missing", "loc": ("body", "email")}) == "Correo: es obligatorio"
+    )
+    assert (
+        spanish_message(
+            {"type": "string_too_short", "loc": ("body", "password"), "ctx": {"min_length": 8}}
+        )
+        == "Contraseña: debe tener al menos 8 caracteres"
+    )
+    assert (
+        spanish_message({"type": "value_error", "msg": "Value error, Escribe un título"})
+        == "Escribe un título"
+    )

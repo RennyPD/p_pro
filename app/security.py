@@ -65,7 +65,7 @@ def create_access_token(user_id: int, session_version: int) -> str:
 def decode_access_token(token: str) -> tuple[int, int]:
     credentials_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid or expired access token",
+        detail="Tu sesión expiró. Inicia sesión de nuevo",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:

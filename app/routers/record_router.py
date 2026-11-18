@@ -162,7 +162,7 @@ def student_transcript(
     ensure_student_access(user, student_id)
     student = db.get(Student, student_id)
     if student is None:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(status_code=404, detail="No se encontró el estudiante")
     return build_transcript(db, student)
 
 

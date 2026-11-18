@@ -23,7 +23,7 @@ def get_grade_by_id_service(db: Session, grade_id: int):
     grade = get_grade_by_id(db, grade_id)
 
     if not grade:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Grade not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la nota")
 
     return grade
 
@@ -32,7 +32,7 @@ def update_grade_service(db: Session, grade_id: int, grade_data: GradeUpdate):
     grade = update_grade(db, grade_id, grade_data)
 
     if not grade:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Grade not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la nota")
 
     return grade
 
@@ -41,6 +41,6 @@ def delete_grade_service(db: Session, grade_id: int):
     grade = delete_grade(db, grade_id)
 
     if not grade:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Grade not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la nota")
 
     return {"message": "Grade deleted successfully"}

@@ -83,7 +83,7 @@ def bootstrap_admin(data: BootstrapRequest, response: Response, db: Session = De
     else:
         db.execute(text("LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE"))
     if db.query(User).first() is not None:
-        raise HTTPException(status_code=409, detail="Bootstrap has already been completed")
+        raise HTTPException(status_code=409, detail="La configuración inicial ya se completó")
     role = db.query(Role).filter(Role.name.ilike("admin")).first()
     if role is None:
         role = Role(name="admin", description="System administrator")
@@ -110,7 +110,7 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
         attempts.popleft()
     if len(attempts) >= 5:
         raise HTTPException(
-            status_code=429, detail="Too many login attempts. Try again in a few minutes"
+            status_code=429, detail="Demasiados intentos. Espera unos minutos e inténtalo de nuevo"
         )
     user = (
         db.query(User)
@@ -125,7 +125,7 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
         db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password",
+            detail="Usuario o contraseña incorrectos",
             headers={"WWW-Authenticate": "Bearer"},
         )
     if user.mfa_enabled:
@@ -146,20 +146,22 @@ def refresh_session(
     db: Session = Depends(get_db),
 ):
     if not refresh_token:
-        raise HTTPException(status_code=401, detail="Refresh session not found")
+        raise HTTPException(
+            status_code=401, detail="No se encontró la sesión. Inicia sesión de nuevo"
+        )
     session = (
         db.query(RefreshToken).filter(RefreshToken.token_hash == hash_token(refresh_token)).first()
     )
     if session is None:
-        raise HTTPException(status_code=401, detail="Refresh session expired")
+        raise HTTPException(status_code=401, detail="Tu sesión expiró. Inicia sesión de nuevo")
     user = db.get(User, session.user_id)
     if user is None:
-        raise HTTPException(status_code=401, detail="User no longer exists")
+        raise HTTPException(status_code=401, detail="La cuenta ya no existe")
     user = lock_account(db, user)
     db.refresh(session)
     now = datetime.now(UTC).replace(tzinfo=None)
     if session.revoked_at is not None or session.expires_at <= now:
-        raise HTTPException(status_code=401, detail="Refresh session expired")
+        raise HTTPException(status_code=401, detail="Tu sesión expiró. Inicia sesión de nuevo")
     session.revoked_at = now
     return issue_session(db, response, user)
 
@@ -221,7 +223,7 @@ def change_password(
 ):
     current_user = lock_account(db, current_user)
     if not verify_password(data.current_password, current_user.password):
-        raise HTTPException(status_code=400, detail="Current password is incorrect")
+        raise HTTPException(status_code=400, detail="La contraseña actual no es correcta")
     current_user.password = hash_password(data.new_password)
     revoke_account_sessions(db, current_user)
     audit(db, "password.changed", "user", current_user.user_id)

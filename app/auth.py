@@ -19,13 +19,13 @@ def get_current_user(
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
+            detail="Inicia sesión para continuar",
             headers={"WWW-Authenticate": "Bearer"},
         )
     user_id, version = decode_access_token(credentials.credentials)
     user = db.get(User, user_id)
     if user is None:
-        raise HTTPException(status_code=401, detail="User no longer exists")
+        raise HTTPException(status_code=401, detail="La cuenta ya no existe")
     if user.session_version != version:
         raise HTTPException(status_code=401, detail="La sesión se revocó. Inicia sesión de nuevo")
     return user
@@ -38,7 +38,7 @@ def require_roles(*allowed_roles: str):
         if current_user.role.name.casefold() not in allowed:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail="No tienes permiso para esta acción",
             )
         return current_user
 
@@ -66,7 +66,7 @@ def require_permissions(
         ):
             raise HTTPException(
                 status_code=403,
-                detail="Academic administration requires an institutional staff profile",
+                detail="La administración académica requiere un perfil del personal institucional",
             )
         assigned = {
             row[0]
@@ -85,7 +85,7 @@ def require_permissions(
             return current_user
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Missing permission: {', '.join(sorted(required - assigned))}",
+            detail=f"Te falta el permiso: {', '.join(sorted(required - assigned))}",
         )
 
     return dependency
@@ -97,7 +97,7 @@ def is_admin(user: User) -> bool:
 
 def ensure_student_access(user: User, student_id: int) -> None:
     if not is_admin(user) and user.student_id != student_id:
-        raise HTTPException(status_code=403, detail="You can only access your own student record")
+        raise HTTPException(status_code=403, detail="Solo puedes consultar tu propio expediente")
 
 
 def ensure_student_academic_access(db: Session, user: User, student_id: int) -> None:
@@ -115,12 +115,14 @@ def ensure_student_academic_access(db: Session, user: User, student_id: int) -> 
         )
         if match:
             return
-    raise HTTPException(status_code=403, detail="Student access is outside your academic scope")
+    raise HTTPException(status_code=403, detail="Este estudiante está fuera de tu ámbito académico")
 
 
 def ensure_teacher_access(user: User, teacher_id: int) -> None:
     if not is_admin(user) and user.teacher_id != teacher_id:
-        raise HTTPException(status_code=403, detail="You can only access your own teacher record")
+        raise HTTPException(
+            status_code=403, detail="Solo puedes consultar tu propio registro docente"
+        )
 
 
 def ensure_section_access(
@@ -128,7 +130,7 @@ def ensure_section_access(
 ) -> Section:
     section = db.get(Section, section_id)
     if section is None:
-        raise HTTPException(status_code=404, detail="Section not found")
+        raise HTTPException(status_code=404, detail="No se encontró la sección")
     if is_admin(user) or user.teacher_id == section.teacher_id:
         return section
     if allow_student and user.student_id is not None:
@@ -142,17 +144,17 @@ def ensure_section_access(
         )
         if enrolled:
             return section
-    raise HTTPException(status_code=403, detail="Section access is outside your academic scope")
+    raise HTTPException(status_code=403, detail="Esta sección está fuera de tu ámbito académico")
 
 
 def ensure_enrollment_access(db: Session, user: User, enrollment_id: int) -> Enrollment:
     enrollment = db.get(Enrollment, enrollment_id)
     if enrollment is None:
-        raise HTTPException(status_code=404, detail="Enrollment not found")
+        raise HTTPException(status_code=404, detail="No se encontró la selección")
     if (
         is_admin(user)
         or user.student_id == enrollment.student_id
         or user.teacher_id == enrollment.section.teacher_id
     ):
         return enrollment
-    raise HTTPException(status_code=403, detail="Enrollment access is outside your academic scope")
+    raise HTTPException(status_code=403, detail="Esta selección está fuera de tu ámbito académico")

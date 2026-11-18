@@ -34,6 +34,7 @@ from app.routers.student_router import router as student_router
 from app.routers.subject_router import router as subject_router
 from app.routers.teacher_router import router as teacher_router
 from app.routers.user_router import router as user_router
+from app.validation_messages import spanish_message
 
 app = FastAPI()
 app.add_middleware(
@@ -65,7 +66,8 @@ def handle_integrity_error(_request, _exc):
 def handle_validation_error(_request, exc):
     # Pydantic's input and context may contain the entire submitted form.
     errors = [
-        {"loc": error["loc"], "type": error["type"], "msg": error["msg"]} for error in exc.errors()
+        {"loc": error["loc"], "type": error["type"], "msg": spanish_message(error)}
+        for error in exc.errors()
     ]
     return JSONResponse(status_code=422, content={"detail": errors})
 

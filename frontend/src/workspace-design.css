@@ -141,3 +141,6 @@ input::placeholder,textarea::placeholder{color:#68778b;opacity:1;font-size:.82re
 .form-field select:focus-visible, .page select:focus-visible { outline: 2px solid #315fcb; outline-offset: 2px; }
 .form-field select:disabled, .page select:disabled { background-color: #f5f7fa; color: #68778b; cursor: not-allowed; }
 .form-field select[multiple], .page select[multiple] { background-image: none; padding-right: .8rem; }
+.approval-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.approval-head h2{margin:0 0 .35rem;font-size:1.05rem}.page>article.panel+article.panel{margin-top:.8rem}
+.document-list{display:grid;gap:.6rem;margin:0;padding:0;list-style:none}.document-list li{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 1rem;border:1px solid var(--line);border-radius:12px}.document-list li>div{display:grid;gap:.2rem;min-width:0}.document-list small{color:var(--muted);overflow-wrap:anywhere}
+.audit-filters{display:grid;grid-template-columns:1.3fr 1.3fr 1fr 1fr auto;gap:1rem;align-items:end;margin-bottom:1rem}.audit-filters .form-field{margin:0}.audit-filters>.button{height:46px}.pagination{align-items:center}.pagination__page{color:var(--muted);font-size:.85rem}@media(max-width:900px){.audit-filters{grid-template-columns:1fr 1fr}.audit-filters>.button{grid-column:1/-1}}

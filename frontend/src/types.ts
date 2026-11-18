@@ -14,4 +14,4 @@ export interface FieldConfig {
   options?:{label:string;value:string|number}[];
   lookup?:LookupConfig;
 }
-export interface ResourceConfig { key:string; title:string; singular:string; description:string; endpoint:string; idField:string; searchPlaceholder:string; columns:{key:string;label:string;render?:(value:RecordValue,row:EntityRecord)=>ReactNode}[]; fields:FieldConfig[]; allowDelete?:boolean; defaultValues?:EntityRecord }
+export interface ResourceConfig { key:string; title:string; singular:string; description:string; endpoint:string; idField:string; searchPlaceholder:string; columns:{key:string;label:string;render?:(value:RecordValue,row:EntityRecord)=>ReactNode}[]; fields:FieldConfig[]; allowDelete?:boolean; defaultValues?:EntityRecord; kicker?:string }
