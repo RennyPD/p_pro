@@ -6,8 +6,20 @@
 const LOCALE = "es-DO";
 const TIME_ZONE = "America/Santo_Domingo";
 
-const dateFormat = new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "short", year: "numeric", timeZone: TIME_ZONE });
-const dateTimeFormat = new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: TIME_ZONE });
+const dateFormat = new Intl.DateTimeFormat(LOCALE, {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: TIME_ZONE,
+});
+const dateTimeFormat = new Intl.DateTimeFormat(LOCALE, {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: TIME_ZONE,
+});
 const moneyFormat = new Intl.NumberFormat(LOCALE, { style: "currency", currency: "DOP" });
 
 /**
@@ -42,7 +54,9 @@ export function formatTime(value: string | null | undefined, clock12 = true) {
   if (!value) return "—";
   const [hour, minute] = value.split(":").map(Number);
   if (Number.isNaN(hour)) return value;
-  return new Intl.DateTimeFormat(LOCALE, { hour: clock12 ? "numeric" : "2-digit", minute: "2-digit", hour12: clock12 }).format(new Date(2000, 0, 1, hour, minute || 0)).replace(/\s/g, "\u00a0");
+  return new Intl.DateTimeFormat(LOCALE, { hour: clock12 ? "numeric" : "2-digit", minute: "2-digit", hour12: clock12 })
+    .format(new Date(2000, 0, 1, hour, minute || 0))
+    .replace(/\s/g, "\u00a0");
 }
 
 /** "RD$2,550.00" */

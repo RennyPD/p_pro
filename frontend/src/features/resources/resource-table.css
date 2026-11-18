@@ -54,7 +54,7 @@
 
   .resource-table th,
   .resource-table td {
-    padding: .8rem .75rem;
+    padding: 0.8rem 0.75rem;
   }
 
   .resource-table .table-actions {
@@ -88,12 +88,12 @@
 
   .resource-table tbody {
     display: grid;
-    gap: .8rem;
+    gap: 0.8rem;
   }
 
   .resource-table tbody tr {
     position: relative;
-    padding: .75rem;
+    padding: 0.75rem;
     border: 1px solid var(--line);
     border-radius: 14px;
     background: #fff;
@@ -102,10 +102,10 @@
 
   .resource-table td {
     display: grid;
-    grid-template-columns: minmax(90px, .4fr) 1fr;
-    gap: .7rem;
+    grid-template-columns: minmax(90px, 0.4fr) 1fr;
+    gap: 0.7rem;
     max-width: none;
-    padding: .42rem .5rem;
+    padding: 0.42rem 0.5rem;
     border: 0;
     white-space: normal;
   }
@@ -113,9 +113,9 @@
   .resource-table td::before {
     content: attr(data-label);
     color: #7d8897;
-    font-size: .63rem;
+    font-size: 0.63rem;
     font-weight: 800;
-    letter-spacing: .045em;
+    letter-spacing: 0.045em;
     text-transform: uppercase;
   }
 
@@ -128,8 +128,8 @@
     display: flex;
     width: 100%;
     min-width: 0;
-    margin-top: .35rem;
-    padding-top: .65rem;
+    margin-top: 0.35rem;
+    padding-top: 0.65rem;
     border-top: 1px solid #edf0f3;
     background: transparent;
     box-shadow: none;

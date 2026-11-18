@@ -25,11 +25,11 @@ export const standingLabels: Record<string, string> = {
 };
 
 export function resultLabel(status: string | null | undefined) {
-  return status ? resultLabels[status] ?? status : "Sin notas";
+  return status ? (resultLabels[status] ?? status) : "Sin notas";
 }
 
 export function standingLabel(standing: string | null | undefined) {
-  return standing ? standingLabels[standing] ?? standing : standingLabels.no_final_results;
+  return standing ? (standingLabels[standing] ?? standing) : standingLabels.no_final_results;
 }
 
 export type AverageSummary = {
@@ -45,13 +45,26 @@ const plural = (count: number, singular: string, pluralForm = `${singular}s`) =>
   `${count} ${count === 1 ? singular : pluralForm}`;
 
 /** Prefers final results; falls back to a clearly labelled provisional average. */
-export function describeAverage({ finalAverage, finalCount = 0, provisionalAverage, provisionalCount = 0 }: AverageSummary): AverageDisplay {
+export function describeAverage({
+  finalAverage,
+  finalCount = 0,
+  provisionalAverage,
+  provisionalCount = 0,
+}: AverageSummary): AverageDisplay {
   if (finalAverage != null) {
     const pending = provisionalCount ? ` · ${plural(provisionalCount, "provisional", "provisionales")} aparte` : "";
-    return { value: String(finalAverage), note: `${plural(finalCount, "resultado definitivo", "resultados definitivos")}${pending}`, kind: "final" };
+    return {
+      value: String(finalAverage),
+      note: `${plural(finalCount, "resultado definitivo", "resultados definitivos")}${pending}`,
+      kind: "final",
+    };
   }
   if (provisionalAverage != null) {
-    return { value: String(provisionalAverage), note: plural(provisionalCount, "resultado sin cierre", "resultados sin cierre"), kind: "provisional" };
+    return {
+      value: String(provisionalAverage),
+      note: plural(provisionalCount, "resultado sin cierre", "resultados sin cierre"),
+      kind: "provisional",
+    };
   }
   return { value: "Sin datos", note: "Sin notas publicadas", kind: "empty" };
 }

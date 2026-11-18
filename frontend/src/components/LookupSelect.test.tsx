@@ -4,17 +4,27 @@ import { afterEach, expect, it, vi } from "vitest";
 import { api } from "../lib/api";
 import { LookupSelect } from "./LookupSelect";
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 const config = { endpoint: "/subjects/", valueKey: "id", labelKeys: ["name"], secondaryKey: "code" };
 function renderSelect(value?: number) {
   const change = vi.fn();
-  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><span id="subject-label">Asignatura</span><LookupSelect config={config} labelId="subject-label" value={value} onChange={change} /></QueryClientProvider>);
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <span id="subject-label">Asignatura</span>
+      <LookupSelect config={config} labelId="subject-label" value={value} onChange={change} />
+    </QueryClientProvider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: /Asignatura/ }));
   return change;
 }
 
 it("shows totals and navigation instead of silently truncating at eight", async () => {
-  vi.spyOn(api, "get").mockResolvedValue({ data: Array.from({ length: 19 }, (_, id) => ({ id, name: `Asignatura ${id}` })) });
+  vi.spyOn(api, "get").mockResolvedValue({
+    data: Array.from({ length: 19 }, (_, id) => ({ id, name: `Asignatura ${id}` })),
+  });
   const change = renderSelect();
   expect(await screen.findByText("Mostrando 1–8 de 19 opciones")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Opciones siguientes" }));
@@ -25,8 +35,15 @@ it("shows totals and navigation instead of silently truncating at eight", async 
 });
 
 it("searches beyond the first hundred with accents and secondary codes", async () => {
-  const records = Array.from({ length: 125 }, (_, id) => ({ id, name: id === 124 ? "Álgebra avanzada" : `Asignatura ${id}`, code: `MAT-${id}` }));
-  vi.spyOn(api, "get").mockImplementation(async (_path, options) => { const { skip } = options?.params as { skip: number }; return { data: records.slice(skip, skip + 100) }; });
+  const records = Array.from({ length: 125 }, (_, id) => ({
+    id,
+    name: id === 124 ? "Álgebra avanzada" : `Asignatura ${id}`,
+    code: `MAT-${id}`,
+  }));
+  vi.spyOn(api, "get").mockImplementation(async (_path, options) => {
+    const { skip } = options?.params as { skip: number };
+    return { data: records.slice(skip, skip + 100) };
+  });
   renderSelect();
   await screen.findByText("Mostrando 1–8 de 125 opciones");
   const search = screen.getByRole("searchbox", { name: "Buscar opciones" });
@@ -40,7 +57,9 @@ it("searches beyond the first hundred with accents and secondary codes", async (
 });
 
 it("opens on the selected page and supports keyboard navigation and Escape", async () => {
-  vi.spyOn(api, "get").mockResolvedValue({ data: Array.from({ length: 19 }, (_, id) => ({ id, name: `Asignatura ${id}` })) });
+  vi.spyOn(api, "get").mockResolvedValue({
+    data: Array.from({ length: 19 }, (_, id) => ({ id, name: `Asignatura ${id}` })),
+  });
   renderSelect(18);
   await screen.findByText("Mostrando 1–8 de 19 opciones");
   fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Escape" });
@@ -62,7 +81,9 @@ it("shows an explicit retry state and can clear an optional selection", async ()
 });
 
 it("keeps the menu and selection when paging to a single final option and back", async () => {
-  vi.spyOn(api, "get").mockResolvedValue({ data: Array.from({ length: 17 }, (_, id) => ({ id, name: `Asignatura ${id}` })) });
+  vi.spyOn(api, "get").mockResolvedValue({
+    data: Array.from({ length: 17 }, (_, id) => ({ id, name: `Asignatura ${id}` })),
+  });
   const change = renderSelect(3);
   await screen.findByText("Mostrando 1–8 de 17 opciones");
   const next = screen.getByRole("button", { name: "Opciones siguientes" });

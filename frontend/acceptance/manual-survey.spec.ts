@@ -22,7 +22,9 @@ for (const [role, username, password] of profiles) {
     test.setTimeout(180_000);
     await enter(page, username, password);
     const nav = page.getByRole("navigation", { name: "Navegación principal", includeHidden: true });
-    const routes = await nav.getByRole("link", { includeHidden: true }).evaluateAll(links => links.map(link => link.getAttribute("href")!).filter(Boolean));
+    const routes = await nav
+      .getByRole("link", { includeHidden: true })
+      .evaluateAll(links => links.map(link => link.getAttribute("href")!).filter(Boolean));
     const evidence: object[] = [];
     for (const width of [1366, 390]) {
       await page.setViewportSize({ width, height: 900 });
@@ -30,7 +32,8 @@ for (const [role, username, password] of profiles) {
         const failures: string[] = [];
         const onError = (error: Error) => failures.push(error.message);
         const onResponse = (response: import("@playwright/test").Response) => {
-          if (response.url().startsWith("http://127.0.0.3:8012") && response.status() >= 400) failures.push(`${response.status()} ${new URL(response.url()).pathname}`);
+          if (response.url().startsWith("http://127.0.0.3:8012") && response.status() >= 400)
+            failures.push(`${response.status()} ${new URL(response.url()).pathname}`);
         };
         page.on("pageerror", onError);
         page.on("response", onResponse);
@@ -43,30 +46,59 @@ for (const [role, username, password] of profiles) {
           return {
             overflow: Math.max(0, document.documentElement.scrollWidth - viewport),
             selects: main.querySelectorAll("select").length,
-            searches: main.querySelectorAll('input[type=search], input[placeholder*="Buscar"], .search-box input').length,
+            searches: main.querySelectorAll('input[type=search], input[placeholder*="Buscar"], .search-box input')
+              .length,
           };
         });
-        evidence.push({ route, width, renderedRoute: new URL(page.url()).pathname, heading: await page.locator("main h1").allTextContents(), ...layout, failures });
+        evidence.push({
+          route,
+          width,
+          renderedRoute: new URL(page.url()).pathname,
+          heading: await page.locator("main h1").allTextContents(),
+          ...layout,
+          failures,
+        });
         page.off("pageerror", onError);
         page.off("response", onResponse);
       }
     }
     await testInfo.attach("survey.json", { body: JSON.stringify(evidence, null, 2), contentType: "application/json" });
     expect(evidence.length).toBeGreaterThan(2);
-    expect(evidence.filter(item => (item as { width: number }).width === 390)).toHaveLength(new Set([...routes, "/account"]).size);
+    expect(evidence.filter(item => (item as { width: number }).width === 390)).toHaveLength(
+      new Set([...routes, "/account"]).size,
+    );
   });
 }
 
 test("manual survey: admin directory searches and section selector", async ({ page }, testInfo) => {
   await enter(page, profiles[0][1], profiles[0][2]);
   const evidence: object[] = [];
-  for (const [route, valid] of [["/students", "ITH-2026-00001"], ["/teachers", "Ana"], ["/subjects", "Programación"], ["/careers", "Software"], ["/sections", "DS-101-A"], ["/periods", "2026-2027"]]) {
+  for (const [route, valid] of [
+    ["/students", "ITH-2026-00001"],
+    ["/teachers", "Ana"],
+    ["/subjects", "Programación"],
+    ["/careers", "Software"],
+    ["/sections", "DS-101-A"],
+    ["/periods", "2026-2027"],
+  ]) {
     await page.goto(route);
     await page.waitForLoadState("networkidle");
     const search = page.locator(".resource-toolbar .search-box input").first();
-    if (!await search.count()) { evidence.push({ route, control: "directory search", status: "not found" }); continue; }
-    for (const [variant, term] of [["match", valid], ["no match", "qa-no-existe-987654"]]) {
-      const loaded = page.waitForResponse(response => response.url().startsWith("http://127.0.0.3:8012/") && new URL(response.url()).searchParams.get("q") === term).catch(() => null);
+    if (!(await search.count())) {
+      evidence.push({ route, control: "directory search", status: "not found" });
+      continue;
+    }
+    for (const [variant, term] of [
+      ["match", valid],
+      ["no match", "qa-no-existe-987654"],
+    ]) {
+      const loaded = page
+        .waitForResponse(
+          response =>
+            response.url().startsWith("http://127.0.0.3:8012/") &&
+            new URL(response.url()).searchParams.get("q") === term,
+        )
+        .catch(() => null);
       await search.fill(term);
       const response = await loaded;
       const data: unknown = response?.ok() ? await response.json() : null;

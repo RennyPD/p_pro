@@ -27,7 +27,7 @@ export const DateInput = forwardRef<HTMLInputElement, Props>(function DateInput(
   ref,
 ) {
   const controlled = value !== undefined;
-  const [iso, setIso] = useState(controlled ? value ?? "" : defaultValue ?? "");
+  const [iso, setIso] = useState(controlled ? (value ?? "") : (defaultValue ?? ""));
   const [text, setText] = useState(isoToDisplay(controlled ? value : defaultValue));
   const [invalid, setInvalid] = useState(false);
   const picker = useRef<HTMLInputElement>(null);
@@ -68,28 +68,55 @@ export const DateInput = forwardRef<HTMLInputElement, Props>(function DateInput(
   function openPicker() {
     const input = picker.current;
     if (!input) return;
-    try { input.showPicker(); } catch { input.focus(); input.click(); }
+    try {
+      input.showPicker();
+    } catch {
+      input.focus();
+      input.click();
+    }
   }
 
-  return <span className={`date-input ${invalid ? "date-input--invalid" : ""} ${className ?? ""}`}>
-    <input
-      {...rest}
-      ref={ref}
-      type="text"
-      inputMode="numeric"
-      autoComplete="off"
-      placeholder="dd/mm/aaaa"
-      maxLength={10}
-      value={text}
-      onChange={typed}
-      onBlur={onBlur}
-      required={required}
-      disabled={disabled}
-      aria-invalid={invalid || undefined}
-      title={invalid ? "Escribe una fecha válida con el formato dd/mm/aaaa" : rest.title}
-    />
-    <button type="button" className="date-input__picker" onClick={openPicker} disabled={disabled} aria-label="Abrir calendario" tabIndex={-1}><CalendarDays size={17} /></button>
-    <input ref={picker} className="date-input__native" type="date" tabIndex={-1} aria-hidden="true" value={iso} min={min} max={max} onChange={picked} disabled={disabled} />
-    {name && <input type="hidden" name={name} value={iso} />}
-  </span>;
+  return (
+    <span className={`date-input ${invalid ? "date-input--invalid" : ""} ${className ?? ""}`}>
+      <input
+        {...rest}
+        ref={ref}
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        placeholder="dd/mm/aaaa"
+        maxLength={10}
+        value={text}
+        onChange={typed}
+        onBlur={onBlur}
+        required={required}
+        disabled={disabled}
+        aria-invalid={invalid || undefined}
+        title={invalid ? "Escribe una fecha válida con el formato dd/mm/aaaa" : rest.title}
+      />
+      <button
+        type="button"
+        className="date-input__picker"
+        onClick={openPicker}
+        disabled={disabled}
+        aria-label="Abrir calendario"
+        tabIndex={-1}
+      >
+        <CalendarDays size={17} />
+      </button>
+      <input
+        ref={picker}
+        className="date-input__native"
+        type="date"
+        tabIndex={-1}
+        aria-hidden="true"
+        value={iso}
+        min={min}
+        max={max}
+        onChange={picked}
+        disabled={disabled}
+      />
+      {name && <input type="hidden" name={name} value={iso} />}
+    </span>
+  );
 });

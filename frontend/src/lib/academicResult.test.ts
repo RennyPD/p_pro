@@ -3,8 +3,16 @@ import { describeAverage, provisionalReason, resultLabel, standingLabel } from "
 
 describe("academic result vocabulary", () => {
   it("prefers final averages and never presents provisional ones as final", () => {
-    expect(describeAverage({ finalAverage: 85, finalCount: 2 })).toMatchObject({ value: "85", kind: "final", note: "2 resultados definitivos" });
-    expect(describeAverage({ finalAverage: null, provisionalAverage: 77.8, provisionalCount: 3 })).toMatchObject({ value: "77.8", kind: "provisional", note: "3 resultados sin cierre" });
+    expect(describeAverage({ finalAverage: 85, finalCount: 2 })).toMatchObject({
+      value: "85",
+      kind: "final",
+      note: "2 resultados definitivos",
+    });
+    expect(describeAverage({ finalAverage: null, provisionalAverage: 77.8, provisionalCount: 3 })).toMatchObject({
+      value: "77.8",
+      kind: "provisional",
+      note: "3 resultados sin cierre",
+    });
     expect(describeAverage({ finalAverage: null })).toMatchObject({ value: "Sin datos", kind: "empty" });
   });
   it("translates technical states and explains provisional results", () => {

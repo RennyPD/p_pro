@@ -74,10 +74,26 @@ export const auditActions: Record<string, string> = {
 };
 
 const resourceTypes: Record<string, string> = {
-  admission: "Admisión", alert: "Caso", announcement: "Aviso", approval: "Solicitud", assessment: "Evaluación",
-  classroom: "Aula", document: "Documento", enrollment: "Selección", equivalence: "Equivalencia", meeting: "Reunión",
-  period: "Período", role: "Rol", section: "Sección", student: "Estudiante", subject: "Asignatura", transfer: "Transferencia",
-  user: "Usuario", authentication: "Acceso", demo_data: "Datos de demostración", configuration: "Configuración",
+  admission: "Admisión",
+  alert: "Caso",
+  announcement: "Aviso",
+  approval: "Solicitud",
+  assessment: "Evaluación",
+  classroom: "Aula",
+  document: "Documento",
+  enrollment: "Selección",
+  equivalence: "Equivalencia",
+  meeting: "Reunión",
+  period: "Período",
+  role: "Rol",
+  section: "Sección",
+  student: "Estudiante",
+  subject: "Asignatura",
+  transfer: "Transferencia",
+  user: "Usuario",
+  authentication: "Acceso",
+  demo_data: "Datos de demostración",
+  configuration: "Configuración",
 };
 
 export const auditActionLabel = (action: string) => auditActions[action] ?? action;

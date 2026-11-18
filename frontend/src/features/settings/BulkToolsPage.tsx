@@ -7,7 +7,12 @@ import "./bulk-tools.css";
 
 type ImportRow = { line: number; status: "valid" | "created" | "unchanged" | "rejected"; detail?: string };
 type ImportResult = { rows: ImportRow[]; created: number };
-const rowLabels = { valid: "Lista para importar", created: "Importada", unchanged: "Ya registrada", rejected: "Requiere revisión" };
+const rowLabels = {
+  valid: "Lista para importar",
+  created: "Importada",
+  unchanged: "Ya registrada",
+  rejected: "Requiere revisión",
+};
 
 export function BulkToolsPage() {
   const client = useQueryClient();
@@ -61,41 +66,92 @@ export function BulkToolsPage() {
   const rows = result?.rows ?? preview?.rows;
   return (
     <div className="page">
-      <header className="page-header"><div><span className="kicker">Configuración · Datos</span><h1>Importación y exportación</h1><p>Carga estudiantes desde una hoja de cálculo o descarga el listado actual.</p></div></header>
+      <header className="page-header">
+        <div>
+          <span className="kicker">Configuración · Datos</span>
+          <h1>Importación y exportación</h1>
+          <p>Carga estudiantes desde una hoja de cálculo o descarga el listado actual.</p>
+        </div>
+      </header>
       <section className="settings-grid">
         <article className="panel bulk-card">
           <h2>Importar estudiantes</h2>
-          <p>Descarga la plantilla, complétala y valídala antes de importar. En la columna de carrera usa su código (por ejemplo, ITH-01); deja la matrícula vacía para generarla automáticamente.</p>
-          <Button variant="secondary" onClick={() => void download("template")}><Download /> Descargar plantilla</Button>
+          <p>
+            Descarga la plantilla, complétala y valídala antes de importar. En la columna de carrera usa su código (por
+            ejemplo, ITH-01); deja la matrícula vacía para generarla automáticamente.
+          </p>
+          <Button variant="secondary" onClick={() => void download("template")}>
+            <Download /> Descargar plantilla
+          </Button>
           <label className="file-picker">
-            <FileSpreadsheet /><span>{file?.name ?? "Seleccionar archivo CSV"}</span>
-            <input type="file" accept=".csv,text/csv" disabled={busy} onChange={event => {
-              setFile(event.target.files?.[0] ?? null);
-              setPreview(null);
-              setResult(null);
-              setError("");
-            }} />
+            <FileSpreadsheet />
+            <span>{file?.name ?? "Seleccionar archivo CSV"}</span>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              disabled={busy}
+              onChange={event => {
+                setFile(event.target.files?.[0] ?? null);
+                setPreview(null);
+                setResult(null);
+                setError("");
+              }}
+            />
           </label>
           <div className="form-actions">
-            <Button variant="secondary" disabled={!file || busy} onClick={() => void send(true)}>{busy ? "Procesando…" : "Validar archivo"}</Button>
-            {preview && <Button disabled={!valid || busy} onClick={() => void send(false)}>Importar {valid} {valid === 1 ? "fila" : "filas"}</Button>}
+            <Button variant="secondary" disabled={!file || busy} onClick={() => void send(true)}>
+              {busy ? "Procesando…" : "Validar archivo"}
+            </Button>
+            {preview && (
+              <Button disabled={!valid || busy} onClick={() => void send(false)}>
+                Importar {valid} {valid === 1 ? "fila" : "filas"}
+              </Button>
+            )}
           </div>
         </article>
         <article className="panel bulk-card">
           <h2>Exportar estudiantes</h2>
           <p>Descarga matrículas, nombres, contactos y carrera en formato CSV.</p>
-          <Button variant="secondary" onClick={() => void download("export")}><Download /> Descargar CSV</Button>
+          <Button variant="secondary" onClick={() => void download("export")}>
+            <Download /> Descargar CSV
+          </Button>
         </article>
       </section>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      {rows && <section className="panel">
-        <h2>{result ? "Resultado de la importación" : "Revisión antes de importar"}</h2>
-        <p role="status">{result ? `Filas importadas: ${result.created}.` : `Filas listas: ${valid}.`}</p>
-        {rows.length ? <div className="table-scroll"><table>
-          <thead><tr><th>Fila</th><th>Estado</th><th>Detalle</th></tr></thead>
-          <tbody>{rows.map(row => <tr key={row.line}><td>{row.line}</td><td>{rowLabels[row.status]}</td><td>{row.detail ?? "—"}</td></tr>)}</tbody>
-        </table></div> : <p>El archivo solo contiene encabezados.</p>}
-      </section>}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      {rows && (
+        <section className="panel">
+          <h2>{result ? "Resultado de la importación" : "Revisión antes de importar"}</h2>
+          <p role="status">{result ? `Filas importadas: ${result.created}.` : `Filas listas: ${valid}.`}</p>
+          {rows.length ? (
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fila</th>
+                    <th>Estado</th>
+                    <th>Detalle</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(row => (
+                    <tr key={row.line}>
+                      <td>{row.line}</td>
+                      <td>{rowLabels[row.status]}</td>
+                      <td>{row.detail ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>El archivo solo contiene encabezados.</p>
+          )}
+        </section>
+      )}
     </div>
   );
 }

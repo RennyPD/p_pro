@@ -1,7 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const user = { user_id: 1, username: "admin.session", email: "session@example.com", role_id: 1, role_name: "admin", student_id: null, teacher_id: null };
-const jwt = (expires: number) => `header.${Buffer.from(JSON.stringify({ sub: "1", exp: expires })).toString("base64url")}.test-signature`;
+const user = {
+  user_id: 1,
+  username: "admin.session",
+  email: "session@example.com",
+  role_id: 1,
+  role_name: "admin",
+  student_id: null,
+  teacher_id: null,
+};
+const jwt = (expires: number) =>
+  `header.${Buffer.from(JSON.stringify({ sub: "1", exp: expires })).toString("base64url")}.test-signature`;
 
 async function setup(page: Page, mode: "concurrent" | "proactive" | "revoked") {
   const now = Date.now();
@@ -13,8 +22,12 @@ async function setup(page: Page, mode: "concurrent" | "proactive" | "revoked") {
   await page.route("http://127.0.0.1:48017/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    const fulfill = (data: unknown, status = 200, headers = {}) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(data), headers });
-    if (path === "/auth/login") return fulfill({ access_token: oldToken, token_type: "bearer", user }, 200, { "Set-Cookie": "refresh_token=test-cookie; HttpOnly; SameSite=Lax; Path=/auth" });
+    const fulfill = (data: unknown, status = 200, headers = {}) =>
+      route.fulfill({ status, contentType: "application/json", body: JSON.stringify(data), headers });
+    if (path === "/auth/login")
+      return fulfill({ access_token: oldToken, token_type: "bearer", user }, 200, {
+        "Set-Cookie": "refresh_token=test-cookie; HttpOnly; SameSite=Lax; Path=/auth",
+      });
     if (path === "/auth/refresh") {
       refreshes++;
       expect(request.headers().cookie).toContain("refresh_token=test-cookie");

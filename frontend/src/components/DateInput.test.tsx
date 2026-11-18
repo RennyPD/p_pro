@@ -26,7 +26,18 @@ describe("DateInput", () => {
   it("submits ISO through FormData and restores the value a parent refuses", () => {
     function Guarded() {
       const [value, setValue] = useState("2026-01-05");
-      return <form aria-label="f"><DateInput aria-label="Fecha" name="day" value={value} onValueChange={next => { if (next !== "2026-02-01") setValue(next); }} /></form>;
+      return (
+        <form aria-label="f">
+          <DateInput
+            aria-label="Fecha"
+            name="day"
+            value={value}
+            onValueChange={next => {
+              if (next !== "2026-02-01") setValue(next);
+            }}
+          />
+        </form>
+      );
     }
     render(<Guarded />);
     const input = screen.getByLabelText("Fecha");

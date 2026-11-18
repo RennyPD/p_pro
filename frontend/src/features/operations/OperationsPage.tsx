@@ -11,95 +11,1044 @@ import { useAuthStore } from "../../store/auth";
 import "./operations.css";
 
 type Section = { section_id: number; code: string; subject_name: string; period_name: string };
-type Submission = { submission_id: number; content: string; submitted_at: string; status: string; score: number | null; feedback: string; attempts: number };
-type Task = { assignment_id: number; section_id: number; title: string; instructions: string; due_at: string; max_score: number; assessment_id: number | null; published: boolean; lifecycle: string; allow_late: boolean; allow_resubmit: boolean; subject_name: string; section_code: string; teacher_name: string; period_name: string; submission: Submission | null; submission_count: number | null };
-type Event = { id: string; event_id?: number; assignment_id?: number; title: string; description?: string; kind: string; starts_at: string; ends_at: string; section_id: number | null; subject_name: string; audience?: string; no_school?: boolean; all_day?: boolean };
+type Submission = {
+  submission_id: number;
+  content: string;
+  submitted_at: string;
+  status: string;
+  score: number | null;
+  feedback: string;
+  attempts: number;
+};
+type Task = {
+  assignment_id: number;
+  section_id: number;
+  title: string;
+  instructions: string;
+  due_at: string;
+  max_score: number;
+  assessment_id: number | null;
+  published: boolean;
+  lifecycle: string;
+  allow_late: boolean;
+  allow_resubmit: boolean;
+  subject_name: string;
+  section_code: string;
+  teacher_name: string;
+  period_name: string;
+  submission: Submission | null;
+  submission_count: number | null;
+};
+type Event = {
+  id: string;
+  event_id?: number;
+  assignment_id?: number;
+  title: string;
+  description?: string;
+  kind: string;
+  starts_at: string;
+  ends_at: string;
+  section_id: number | null;
+  subject_name: string;
+  audience?: string;
+  no_school?: boolean;
+  all_day?: boolean;
+};
 type Row = { student_id: number; student_name: string; enrollment_number: string; submission: Submission | null };
-const labels: Record<string, string> = { activity: "Actividad", exam: "Examen", meeting: "Reunión", deadline: "Fecha límite", holiday: "Día no lectivo", task: "Entrega de tarea", assessment: "Evaluación", submitted: "Entregada", resubmitted: "Reenviada", graded: "Calificada", open: "Abierta", closed: "Cerrada", archived: "Archivada" };
+const labels: Record<string, string> = {
+  activity: "Actividad",
+  exam: "Examen",
+  meeting: "Reunión",
+  deadline: "Fecha límite",
+  holiday: "Día no lectivo",
+  task: "Entrega de tarea",
+  assessment: "Evaluación",
+  submitted: "Entregada",
+  resubmitted: "Reenviada",
+  graded: "Calificada",
+  open: "Abierta",
+  closed: "Cerrada",
+  archived: "Archivada",
+};
 const date = (v: string) => new Date(v.length === 10 ? `${v}T12:00:00` : /(?:Z|[+-]\d\d:\d\d)$/.test(v) ? v : `${v}Z`);
-const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const inputDate = (v: string) => { const d = date(v); return `${key(d)}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
-const state = (t: Task) => !t.published ? "Borrador" : t.lifecycle !== "open" ? labels[t.lifecycle] : t.submission ? labels[t.submission.status] : date(t.due_at) < new Date() ? "Vencida" : "Pendiente";
+const key = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const inputDate = (v: string) => {
+  const d = date(v);
+  return `${key(d)}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+const state = (t: Task) =>
+  !t.published
+    ? "Borrador"
+    : t.lifecycle !== "open"
+      ? labels[t.lifecycle]
+      : t.submission
+        ? labels[t.submission.status]
+        : date(t.due_at) < new Date()
+          ? "Vencida"
+          : "Pendiente";
 
 export function OperationsPage() {
   const user = useAuthStore(s => s.user);
   const manager = user?.role_name === "admin" || user?.role_name === "teacher";
   const client = useQueryClient();
-  const [tab, setTab] = useState("tasks"), [section, setSection] = useState(""), [search, setSearch] = useState(""), [filter, setFilter] = useState("active");
-  const [selected, setSelected] = useState<number | null>(null), [editor, setEditor] = useState<Task | "new" | null>(null), [eventEditor, setEventEditor] = useState<Event | "new" | null>(null);
-  const [view, setView] = useState("month"), [cursor, setCursor] = useState(new Date()), [kind, setKind] = useState(""), [clock, setClock] = useState("24");
+  const [tab, setTab] = useState("tasks"),
+    [section, setSection] = useState(""),
+    [search, setSearch] = useState(""),
+    [filter, setFilter] = useState("active");
+  const [selected, setSelected] = useState<number | null>(null),
+    [editor, setEditor] = useState<Task | "new" | null>(null),
+    [eventEditor, setEventEditor] = useState<Event | "new" | null>(null);
+  const [view, setView] = useState("month"),
+    [cursor, setCursor] = useState(new Date()),
+    [kind, setKind] = useState(""),
+    [clock, setClock] = useState("24");
   const [info, setInfo] = useState<Event | null>(null);
   const [period, setPeriod] = useState("");
-  const tasks = useQuery<Task[]>({ queryKey: ["assignments", user?.user_id], queryFn: () => api.get("/operations/assignments").then(r => r.data) });
-  const agenda = useQuery<Event[]>({ queryKey: ["agenda", user?.user_id], queryFn: () => api.get("/operations/agenda").then(r => r.data) });
-  const sections = useQuery<Section[]>({ queryKey: ["task-sections", user?.user_id], queryFn: () => api.get("/operations/task-sections").then(r => r.data) });
-  const refresh = () => { for (const queryKey of [["assignments"], ["agenda"], ["task-roster"], ["task-attempts"]]) client.invalidateQueries({ queryKey }); };
+  const tasks = useQuery<Task[]>({
+    queryKey: ["assignments", user?.user_id],
+    queryFn: () => api.get("/operations/assignments").then(r => r.data),
+  });
+  const agenda = useQuery<Event[]>({
+    queryKey: ["agenda", user?.user_id],
+    queryFn: () => api.get("/operations/agenda").then(r => r.data),
+  });
+  const sections = useQuery<Section[]>({
+    queryKey: ["task-sections", user?.user_id],
+    queryFn: () => api.get("/operations/task-sections").then(r => r.data),
+  });
+  const refresh = () => {
+    for (const queryKey of [["assignments"], ["agenda"], ["task-roster"], ["task-attempts"]])
+      client.invalidateQueries({ queryKey });
+  };
   const task = tasks.data?.find(t => t.assignment_id === selected);
-  const filtered = (tasks.data ?? []).filter(t => (!section || t.section_id === Number(section)) && (!period || t.period_name === period) && `${t.title} ${t.subject_name} ${t.section_code}`.toLowerCase().includes(search.toLowerCase()) && (filter === "all" || filter === "active" && t.lifecycle === "open" && t.published || filter === "draft" && !t.published || filter === "history" && t.lifecycle !== "open" || filter === "pending" && t.published && t.lifecycle === "open" && !t.submission || filter === "graded" && t.submission?.status === "graded" || filter === "submitted" && Boolean(t.submission) && t.submission?.status !== "graded"));
-  const events = (agenda.data ?? []).filter(e => (!section || e.section_id === Number(section)) && (!kind || e.kind === kind) && `${e.title} ${e.subject_name}`.toLowerCase().includes(search.toLowerCase()));
+  const filtered = (tasks.data ?? []).filter(
+    t =>
+      (!section || t.section_id === Number(section)) &&
+      (!period || t.period_name === period) &&
+      `${t.title} ${t.subject_name} ${t.section_code}`.toLowerCase().includes(search.toLowerCase()) &&
+      (filter === "all" ||
+        (filter === "active" && t.lifecycle === "open" && t.published) ||
+        (filter === "draft" && !t.published) ||
+        (filter === "history" && t.lifecycle !== "open") ||
+        (filter === "pending" && t.published && t.lifecycle === "open" && !t.submission) ||
+        (filter === "graded" && t.submission?.status === "graded") ||
+        (filter === "submitted" && Boolean(t.submission) && t.submission?.status !== "graded")),
+  );
+  const events = (agenda.data ?? []).filter(
+    e =>
+      (!section || e.section_id === Number(section)) &&
+      (!kind || e.kind === kind) &&
+      `${e.title} ${e.subject_name}`.toLowerCase().includes(search.toLowerCase()),
+  );
   const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
-  const start = view === "week" ? new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - (cursor.getDay() + 6) % 7) : new Date(first.getFullYear(), first.getMonth(), 1 - (first.getDay() + 6) % 7);
-  const days = Array.from({ length: view === "week" ? 7 : 42 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
-  const time = (v: string) => date(v).toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit", hour12: clock === "12" });
-  const shift = (n: number) => setCursor(view === "week" ? new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 7 * n) : new Date(cursor.getFullYear(), cursor.getMonth() + n, 1));
-  const eventButton = (e: Event) => <button key={e.id} className={`agenda-event agenda-event--${e.kind}`} onClick={() => { if (e.assignment_id) { setTab("tasks"); setSelected(e.assignment_id); } else if (e.event_id) setEventEditor(e); else setInfo(e); }} title={`${e.title} · ${e.subject_name}`}><small>{labels[e.kind]}{!e.all_day && ` · ${time(e.starts_at)}`}</small><strong>{e.title}</strong><span>{e.subject_name}</span></button>;
-  return <div className="page operations-page"><header className="page-header"><div><span className="kicker">Organización académica</span><h1>Agenda y tareas</h1><p>Agenda: fechas importantes. Tareas: actividades, entregas y devoluciones por sección.</p></div>{manager && <Button onClick={() => tab === "tasks" ? setEditor("new") : setEventEditor("new")}>{tab === "tasks" ? "Crear tarea" : "Crear evento"}</Button>}</header>
-    <div className="operations-tabs" role="tablist" aria-label="Organización académica"><Button role="tab" aria-selected={tab === "tasks"} variant={tab === "tasks" ? "primary" : "secondary"} onClick={() => setTab("tasks")}>Tareas y entregas</Button><Button role="tab" aria-selected={tab === "agenda"} variant={tab === "agenda" ? "primary" : "secondary"} onClick={() => setTab("agenda")}>Agenda académica</Button>{user?.role_name === "admin" && <Link to="/institutional-control">Seguimiento académico →</Link>}</div>
-    <div className="operations-toolbar"><label>Sección<select value={section} onChange={e => setSection(e.target.value)}><option value="">Todas mis secciones</option>{sections.data?.map(s => <option key={s.section_id} value={s.section_id}>{s.subject_name} · {s.code} · {s.period_name}</option>)}</select></label><label>Buscar<input value={search} onChange={e => setSearch(e.target.value)} placeholder="Título o asignatura" /></label>{tab === "tasks" ? <><label>Período<select value={period} onChange={e => setPeriod(e.target.value)}><option value="">Todos los períodos</option>{Array.from(new Set(tasks.data?.map(t => t.period_name))).map(p => <option key={p} value={p}>{p || "Sin período asignado"}</option>)}</select></label><label>Mostrar<select value={filter} onChange={e => setFilter(e.target.value)}><option value="active">Activas</option>{manager && <option value="draft">Borradores</option>}{!manager && <><option value="pending">Sin entregar</option><option value="submitted">Entregadas, por revisar</option><option value="graded">Calificadas</option></>}<option value="history">Cerradas y archivadas</option><option value="all">Todas</option></select></label></> : <><label>Tipo<select value={kind} onChange={e => setKind(e.target.value)}><option value="">Todos</option>{Object.entries(labels).slice(0, 7).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label><label>Hora<select value={clock} onChange={e => setClock(e.target.value)}><option value="24">24 horas</option><option value="12">12 horas</option></select></label></>}</div>
-    {(tasks.error || agenda.error || sections.error) && <p role="alert" className="form-error">{apiMessage(tasks.error || agenda.error || sections.error)}</p>}
-    {tasks.isLoading || agenda.isLoading ? <Spinner /> : tab === "tasks" ? <div className="task-grid">{filtered.length ? filtered.map(t => <article className="panel task-summary" key={t.assignment_id}><div><span className="kicker">{t.subject_name} · {t.section_code}</span><Badge>{state(t)}</Badge></div><h2>{t.title}</h2><p>{t.instructions.length > 170 ? `${t.instructions.slice(0, 170)}…` : t.instructions}</p><small>{t.teacher_name} · {t.period_name}</small><p>Entrega: {formatDateTime(t.due_at)}<br />{t.assessment_id ? "Calificable: vinculada a una evaluación" : "Práctica: no afecta la nota académica"} · {t.max_score} puntos</p>{manager && <small>{t.submission_count} entregas recibidas</small>}<div className="operations-actions"><Button onClick={() => setSelected(t.assignment_id)}>{manager ? "Revisar entregas" : "Ver tarea"}</Button>{manager && <Button variant="secondary" onClick={() => setEditor(t)}>Editar</Button>}</div></article>) : <EmptyState icon={<ClipboardList />} title="Sin tareas en esta vista" description="Cambia los filtros o selecciona otra sección." />}</div> : <section className="panel"><div className="operations-toolbar"><Button variant="secondary" onClick={() => shift(-1)} aria-label="Período anterior">←</Button><h2>{cursor.toLocaleDateString("es-DO", { month: "long", year: "numeric" })}</h2><Button variant="secondary" onClick={() => shift(1)} aria-label="Período siguiente">→</Button><Button variant="ghost" onClick={() => setCursor(new Date())}>Hoy</Button><label>Vista<select value={view} onChange={e => setView(e.target.value)}><option value="month">Mes</option><option value="week">Semana</option><option value="list">Lista del mes</option></select></label></div><p className="muted">El horario recurrente de clases se consulta en Horarios. Aquí aparecen eventos y vencimientos.</p>{view === "list" ? <div className="agenda-list">{events.filter(e => date(e.starts_at) < new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1) && date(e.ends_at) >= first).sort((a, b) => date(a.starts_at).getTime() - date(b.starts_at).getTime()).map(e => <article key={e.id}><time>{formatDate(e.starts_at)}</time>{eventButton(e)}</article>)}</div> : <div className="agenda-calendar">{days.map(d => <div className={`agenda-day ${key(d) === key(new Date()) ? "agenda-day--today" : ""}`} key={key(d)}><time>{d.toLocaleDateString("es-DO", { weekday: "short", day: "numeric" })}</time>{events.filter(e => key(date(e.starts_at)) <= key(d) && key(date(e.ends_at)) >= key(d)).map(eventButton)}</div>)}</div>}{!events.length && <EmptyState icon={<CalendarDays />} title="Sin fechas registradas" description="Los eventos y vencimientos aparecerán aquí." />}</section>}
-    {editor && <TaskEditor task={editor} sections={sections.data ?? []} userId={user?.user_id} onClose={() => setEditor(null)} onSaved={refresh} />}
-    {task && <TaskDetail task={task} manager={manager} student={user?.role_name === "student"} userId={user?.user_id} onClose={() => setSelected(null)} onSaved={refresh} />}
-    {eventEditor && <EventEditor event={eventEditor} sections={sections.data ?? []} manager={manager} admin={user?.role_name === "admin"} onClose={() => setEventEditor(null)} onSaved={refresh} />}
-    {info && <Modal title={info.title} onClose={() => setInfo(null)}><p>{info.subject_name} · {formatDate(info.starts_at)}</p><p>Fecha programada de evaluación. No equivale a una entrega de tarea.</p><Link to={manager ? `/assessments?section=${info.section_id}` : "/my-grades"}>{manager ? "Abrir evaluaciones" : "Consultar mis notas"}</Link></Modal>}
-  </div>;
+  const start =
+    view === "week"
+      ? new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - ((cursor.getDay() + 6) % 7))
+      : new Date(first.getFullYear(), first.getMonth(), 1 - ((first.getDay() + 6) % 7));
+  const days = Array.from(
+    { length: view === "week" ? 7 : 42 },
+    (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i),
+  );
+  const time = (v: string) =>
+    date(v).toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit", hour12: clock === "12" });
+  const shift = (n: number) =>
+    setCursor(
+      view === "week"
+        ? new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 7 * n)
+        : new Date(cursor.getFullYear(), cursor.getMonth() + n, 1),
+    );
+  const eventButton = (e: Event) => (
+    <button
+      key={e.id}
+      className={`agenda-event agenda-event--${e.kind}`}
+      onClick={() => {
+        if (e.assignment_id) {
+          setTab("tasks");
+          setSelected(e.assignment_id);
+        } else if (e.event_id) setEventEditor(e);
+        else setInfo(e);
+      }}
+      title={`${e.title} · ${e.subject_name}`}
+    >
+      <small>
+        {labels[e.kind]}
+        {!e.all_day && ` · ${time(e.starts_at)}`}
+      </small>
+      <strong>{e.title}</strong>
+      <span>{e.subject_name}</span>
+    </button>
+  );
+  return (
+    <div className="page operations-page">
+      <header className="page-header">
+        <div>
+          <span className="kicker">Organización académica</span>
+          <h1>Agenda y tareas</h1>
+          <p>Agenda: fechas importantes. Tareas: actividades, entregas y devoluciones por sección.</p>
+        </div>
+        {manager && (
+          <Button onClick={() => (tab === "tasks" ? setEditor("new") : setEventEditor("new"))}>
+            {tab === "tasks" ? "Crear tarea" : "Crear evento"}
+          </Button>
+        )}
+      </header>
+      <div className="operations-tabs" role="tablist" aria-label="Organización académica">
+        <Button
+          role="tab"
+          aria-selected={tab === "tasks"}
+          variant={tab === "tasks" ? "primary" : "secondary"}
+          onClick={() => setTab("tasks")}
+        >
+          Tareas y entregas
+        </Button>
+        <Button
+          role="tab"
+          aria-selected={tab === "agenda"}
+          variant={tab === "agenda" ? "primary" : "secondary"}
+          onClick={() => setTab("agenda")}
+        >
+          Agenda académica
+        </Button>
+        {user?.role_name === "admin" && <Link to="/institutional-control">Seguimiento académico →</Link>}
+      </div>
+      <div className="operations-toolbar">
+        <label>
+          Sección
+          <select value={section} onChange={e => setSection(e.target.value)}>
+            <option value="">Todas mis secciones</option>
+            {sections.data?.map(s => (
+              <option key={s.section_id} value={s.section_id}>
+                {s.subject_name} · {s.code} · {s.period_name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Buscar
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Título o asignatura" />
+        </label>
+        {tab === "tasks" ? (
+          <>
+            <label>
+              Período
+              <select value={period} onChange={e => setPeriod(e.target.value)}>
+                <option value="">Todos los períodos</option>
+                {Array.from(new Set(tasks.data?.map(t => t.period_name))).map(p => (
+                  <option key={p} value={p}>
+                    {p || "Sin período asignado"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Mostrar
+              <select value={filter} onChange={e => setFilter(e.target.value)}>
+                <option value="active">Activas</option>
+                {manager && <option value="draft">Borradores</option>}
+                {!manager && (
+                  <>
+                    <option value="pending">Sin entregar</option>
+                    <option value="submitted">Entregadas, por revisar</option>
+                    <option value="graded">Calificadas</option>
+                  </>
+                )}
+                <option value="history">Cerradas y archivadas</option>
+                <option value="all">Todas</option>
+              </select>
+            </label>
+          </>
+        ) : (
+          <>
+            <label>
+              Tipo
+              <select value={kind} onChange={e => setKind(e.target.value)}>
+                <option value="">Todos</option>
+                {Object.entries(labels)
+                  .slice(0, 7)
+                  .map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              Hora
+              <select value={clock} onChange={e => setClock(e.target.value)}>
+                <option value="24">24 horas</option>
+                <option value="12">12 horas</option>
+              </select>
+            </label>
+          </>
+        )}
+      </div>
+      {(tasks.error || agenda.error || sections.error) && (
+        <p role="alert" className="form-error">
+          {apiMessage(tasks.error || agenda.error || sections.error)}
+        </p>
+      )}
+      {tasks.isLoading || agenda.isLoading ? (
+        <Spinner />
+      ) : tab === "tasks" ? (
+        <div className="task-grid">
+          {filtered.length ? (
+            filtered.map(t => (
+              <article className="panel task-summary" key={t.assignment_id}>
+                <div>
+                  <span className="kicker">
+                    {t.subject_name} · {t.section_code}
+                  </span>
+                  <Badge>{state(t)}</Badge>
+                </div>
+                <h2>{t.title}</h2>
+                <p>{t.instructions.length > 170 ? `${t.instructions.slice(0, 170)}…` : t.instructions}</p>
+                <small>
+                  {t.teacher_name} · {t.period_name}
+                </small>
+                <p>
+                  Entrega: {formatDateTime(t.due_at)}
+                  <br />
+                  {t.assessment_id
+                    ? "Calificable: vinculada a una evaluación"
+                    : "Práctica: no afecta la nota académica"}{" "}
+                  · {t.max_score} puntos
+                </p>
+                {manager && <small>{t.submission_count} entregas recibidas</small>}
+                <div className="operations-actions">
+                  <Button onClick={() => setSelected(t.assignment_id)}>
+                    {manager ? "Revisar entregas" : "Ver tarea"}
+                  </Button>
+                  {manager && (
+                    <Button variant="secondary" onClick={() => setEditor(t)}>
+                      Editar
+                    </Button>
+                  )}
+                </div>
+              </article>
+            ))
+          ) : (
+            <EmptyState
+              icon={<ClipboardList />}
+              title="Sin tareas en esta vista"
+              description="Cambia los filtros o selecciona otra sección."
+            />
+          )}
+        </div>
+      ) : (
+        <section className="panel">
+          <div className="operations-toolbar">
+            <Button variant="secondary" onClick={() => shift(-1)} aria-label="Período anterior">
+              ←
+            </Button>
+            <h2>{cursor.toLocaleDateString("es-DO", { month: "long", year: "numeric" })}</h2>
+            <Button variant="secondary" onClick={() => shift(1)} aria-label="Período siguiente">
+              →
+            </Button>
+            <Button variant="ghost" onClick={() => setCursor(new Date())}>
+              Hoy
+            </Button>
+            <label>
+              Vista
+              <select value={view} onChange={e => setView(e.target.value)}>
+                <option value="month">Mes</option>
+                <option value="week">Semana</option>
+                <option value="list">Lista del mes</option>
+              </select>
+            </label>
+          </div>
+          <p className="muted">
+            El horario recurrente de clases se consulta en Horarios. Aquí aparecen eventos y vencimientos.
+          </p>
+          {view === "list" ? (
+            <div className="agenda-list">
+              {events
+                .filter(
+                  e =>
+                    date(e.starts_at) < new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1) &&
+                    date(e.ends_at) >= first,
+                )
+                .sort((a, b) => date(a.starts_at).getTime() - date(b.starts_at).getTime())
+                .map(e => (
+                  <article key={e.id}>
+                    <time>{formatDate(e.starts_at)}</time>
+                    {eventButton(e)}
+                  </article>
+                ))}
+            </div>
+          ) : (
+            <div className="agenda-calendar">
+              {days.map(d => (
+                <div className={`agenda-day ${key(d) === key(new Date()) ? "agenda-day--today" : ""}`} key={key(d)}>
+                  <time>{d.toLocaleDateString("es-DO", { weekday: "short", day: "numeric" })}</time>
+                  {events
+                    .filter(e => key(date(e.starts_at)) <= key(d) && key(date(e.ends_at)) >= key(d))
+                    .map(eventButton)}
+                </div>
+              ))}
+            </div>
+          )}
+          {!events.length && (
+            <EmptyState
+              icon={<CalendarDays />}
+              title="Sin fechas registradas"
+              description="Los eventos y vencimientos aparecerán aquí."
+            />
+          )}
+        </section>
+      )}
+      {editor && (
+        <TaskEditor
+          task={editor}
+          sections={sections.data ?? []}
+          userId={user?.user_id}
+          onClose={() => setEditor(null)}
+          onSaved={refresh}
+        />
+      )}
+      {task && (
+        <TaskDetail
+          task={task}
+          manager={manager}
+          student={user?.role_name === "student"}
+          userId={user?.user_id}
+          onClose={() => setSelected(null)}
+          onSaved={refresh}
+        />
+      )}
+      {eventEditor && (
+        <EventEditor
+          event={eventEditor}
+          sections={sections.data ?? []}
+          manager={manager}
+          admin={user?.role_name === "admin"}
+          onClose={() => setEventEditor(null)}
+          onSaved={refresh}
+        />
+      )}
+      {info && (
+        <Modal title={info.title} onClose={() => setInfo(null)}>
+          <p>
+            {info.subject_name} · {formatDate(info.starts_at)}
+          </p>
+          <p>Fecha programada de evaluación. No equivale a una entrega de tarea.</p>
+          <Link to={manager ? `/assessments?section=${info.section_id}` : "/my-grades"}>
+            {manager ? "Abrir evaluaciones" : "Consultar mis notas"}
+          </Link>
+        </Modal>
+      )}
+    </div>
+  );
 }
 
-function TaskEditor({ task, sections, userId, onClose, onSaved }: { task: Task | "new"; sections: Section[]; userId?: number; onClose: () => void; onSaved: () => void }) {
+function TaskEditor({
+  task,
+  sections,
+  userId,
+  onClose,
+  onSaved,
+}: {
+  task: Task | "new";
+  sections: Section[];
+  userId?: number;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const existing = task !== "new" ? task : null;
-  const [form, setForm] = useState({ section_id: String(existing?.section_id ?? ""), title: existing?.title ?? "", instructions: existing?.instructions ?? "", due_at: existing ? inputDate(existing.due_at) : "", max_score: String(existing?.max_score ?? 100), assessment_id: String(existing?.assessment_id ?? ""), published: existing?.published ?? false, lifecycle: existing?.lifecycle ?? "open", allow_late: existing?.allow_late ?? false, allow_resubmit: existing?.allow_resubmit ?? true });
-  const assessments = useQuery<{ assessment_id: number; name: string; closed: boolean }[]>({ queryKey: ["task-assessments", userId, form.section_id], queryFn: () => api.get(`/assessments/sections/${form.section_id}`).then(r => r.data), enabled: Boolean(form.section_id) });
-  const save = useMutation({ mutationFn: () => { const body = { ...form, section_id: Number(form.section_id), max_score: Number(form.max_score), assessment_id: form.assessment_id ? Number(form.assessment_id) : null, due_at: new Date(form.due_at).toISOString() }; return existing ? api.put(`/operations/assignments/${existing.assignment_id}`, body) : api.post("/operations/assignments", body); }, onSuccess: () => { toast.success("Tarea guardada"); onSaved(); onClose(); }, onError: e => toast.error(apiMessage(e)) });
-  return <Modal title={existing ? "Editar tarea" : "Nueva tarea"} onClose={onClose}><form className="operations-form" onSubmit={e => { e.preventDefault(); save.mutate(); }}><label>Asignatura y sección<select required value={form.section_id} disabled={Boolean(existing)} onChange={e => setForm({ ...form, section_id: e.target.value, assessment_id: "" })}><option value="">Selecciona una sección</option>{sections.map(s => <option key={s.section_id} value={s.section_id}>{s.subject_name} · {s.code} · {s.period_name}</option>)}</select></label><label>Título<input required minLength={2} maxLength={150} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></label><label>Instrucciones<textarea required minLength={2} value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} placeholder="Objetivo, qué entregar y cómo se revisará" /></label><label>Fecha y hora límite<input required type="datetime-local" value={form.due_at} onChange={e => setForm({ ...form, due_at: e.target.value })} /></label><label>Puntuación máxima<input required type="number" min="1" max="1000" step="any" value={form.max_score} onChange={e => setForm({ ...form, max_score: e.target.value })} /></label><label>Relación con evaluaciones<select value={form.assessment_id} onChange={e => setForm({ ...form, assessment_id: e.target.value })}><option value="">Práctica, sin impacto en la nota</option>{assessments.data?.map(a => <option disabled={a.closed} key={a.assessment_id} value={a.assessment_id}>{a.name}{a.closed ? " · Cerrada" : ""}</option>)}</select></label>{assessments.error && <p role="alert">{apiMessage(assessments.error)}</p>}<p>Una tarea por evaluación. La puntuación se normaliza a 100 y se transfiere como borrador mediante una acción explícita.</p><label>Estado<select value={form.lifecycle} onChange={e => setForm({ ...form, lifecycle: e.target.value })}><option value="open">Abierta</option><option value="closed">Cerrada: no recibe entregas</option><option value="archived">Archivada: solo consulta</option></select></label>{(["published", "allow_late", "allow_resubmit"] as const).map(k => <label className="operations-check" key={k}><input type="checkbox" checked={form[k]} onChange={e => setForm({ ...form, [k]: e.target.checked })} />{{ published: "Publicada para estudiantes", allow_late: "Aceptar entregas tardías", allow_resubmit: "Permitir reenvíos antes de calificar" }[k]}</label>)}<Button disabled={save.isPending}>Guardar tarea</Button></form></Modal>;
+  const [form, setForm] = useState({
+    section_id: String(existing?.section_id ?? ""),
+    title: existing?.title ?? "",
+    instructions: existing?.instructions ?? "",
+    due_at: existing ? inputDate(existing.due_at) : "",
+    max_score: String(existing?.max_score ?? 100),
+    assessment_id: String(existing?.assessment_id ?? ""),
+    published: existing?.published ?? false,
+    lifecycle: existing?.lifecycle ?? "open",
+    allow_late: existing?.allow_late ?? false,
+    allow_resubmit: existing?.allow_resubmit ?? true,
+  });
+  const assessments = useQuery<{ assessment_id: number; name: string; closed: boolean }[]>({
+    queryKey: ["task-assessments", userId, form.section_id],
+    queryFn: () => api.get(`/assessments/sections/${form.section_id}`).then(r => r.data),
+    enabled: Boolean(form.section_id),
+  });
+  const save = useMutation({
+    mutationFn: () => {
+      const body = {
+        ...form,
+        section_id: Number(form.section_id),
+        max_score: Number(form.max_score),
+        assessment_id: form.assessment_id ? Number(form.assessment_id) : null,
+        due_at: new Date(form.due_at).toISOString(),
+      };
+      return existing
+        ? api.put(`/operations/assignments/${existing.assignment_id}`, body)
+        : api.post("/operations/assignments", body);
+    },
+    onSuccess: () => {
+      toast.success("Tarea guardada");
+      onSaved();
+      onClose();
+    },
+    onError: e => toast.error(apiMessage(e)),
+  });
+  return (
+    <Modal title={existing ? "Editar tarea" : "Nueva tarea"} onClose={onClose}>
+      <form
+        className="operations-form"
+        onSubmit={e => {
+          e.preventDefault();
+          save.mutate();
+        }}
+      >
+        <label>
+          Asignatura y sección
+          <select
+            required
+            value={form.section_id}
+            disabled={Boolean(existing)}
+            onChange={e => setForm({ ...form, section_id: e.target.value, assessment_id: "" })}
+          >
+            <option value="">Selecciona una sección</option>
+            {sections.map(s => (
+              <option key={s.section_id} value={s.section_id}>
+                {s.subject_name} · {s.code} · {s.period_name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Título
+          <input
+            required
+            minLength={2}
+            maxLength={150}
+            value={form.title}
+            onChange={e => setForm({ ...form, title: e.target.value })}
+          />
+        </label>
+        <label>
+          Instrucciones
+          <textarea
+            required
+            minLength={2}
+            value={form.instructions}
+            onChange={e => setForm({ ...form, instructions: e.target.value })}
+            placeholder="Objetivo, qué entregar y cómo se revisará"
+          />
+        </label>
+        <label>
+          Fecha y hora límite
+          <input
+            required
+            type="datetime-local"
+            value={form.due_at}
+            onChange={e => setForm({ ...form, due_at: e.target.value })}
+          />
+        </label>
+        <label>
+          Puntuación máxima
+          <input
+            required
+            type="number"
+            min="1"
+            max="1000"
+            step="any"
+            value={form.max_score}
+            onChange={e => setForm({ ...form, max_score: e.target.value })}
+          />
+        </label>
+        <label>
+          Relación con evaluaciones
+          <select value={form.assessment_id} onChange={e => setForm({ ...form, assessment_id: e.target.value })}>
+            <option value="">Práctica, sin impacto en la nota</option>
+            {assessments.data?.map(a => (
+              <option disabled={a.closed} key={a.assessment_id} value={a.assessment_id}>
+                {a.name}
+                {a.closed ? " · Cerrada" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        {assessments.error && <p role="alert">{apiMessage(assessments.error)}</p>}
+        <p>
+          Una tarea por evaluación. La puntuación se normaliza a 100 y se transfiere como borrador mediante una acción
+          explícita.
+        </p>
+        <label>
+          Estado
+          <select value={form.lifecycle} onChange={e => setForm({ ...form, lifecycle: e.target.value })}>
+            <option value="open">Abierta</option>
+            <option value="closed">Cerrada: no recibe entregas</option>
+            <option value="archived">Archivada: solo consulta</option>
+          </select>
+        </label>
+        {(["published", "allow_late", "allow_resubmit"] as const).map(k => (
+          <label className="operations-check" key={k}>
+            <input type="checkbox" checked={form[k]} onChange={e => setForm({ ...form, [k]: e.target.checked })} />
+            {
+              {
+                published: "Publicada para estudiantes",
+                allow_late: "Aceptar entregas tardías",
+                allow_resubmit: "Permitir reenvíos antes de calificar",
+              }[k]
+            }
+          </label>
+        ))}
+        <Button disabled={save.isPending}>Guardar tarea</Button>
+      </form>
+    </Modal>
+  );
 }
 
-function TaskDetail({ task, manager, student, userId, onClose, onSaved }: { task: Task; manager: boolean; student: boolean; userId?: number; onClose: () => void; onSaved: () => void }) {
-  const [content, setContent] = useState(task.submission?.content ?? ""), [reason, setReason] = useState("");
+function TaskDetail({
+  task,
+  manager,
+  student,
+  userId,
+  onClose,
+  onSaved,
+}: {
+  task: Task;
+  manager: boolean;
+  student: boolean;
+  userId?: number;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [content, setContent] = useState(task.submission?.content ?? ""),
+    [reason, setReason] = useState("");
   const attachmentInput = useRef<HTMLInputElement>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
   const [attemptId, setAttemptId] = useState<number | null>(null);
-  const roster = useQuery<Row[]>({ queryKey: ["task-roster", userId, task.assignment_id], queryFn: () => api.get(`/operations/assignments/${task.assignment_id}/submissions`).then(r => r.data), enabled: manager });
-  const revisions = useQuery<{ revision_id: number; content: string; submitted_at: string; filename?: string | null }[]>({ queryKey: ["task-attempts", userId, attemptId], queryFn: () => api.get(`/operations/submissions/${attemptId}/revisions`).then(r => r.data), enabled: Boolean(attemptId) });
-  const send = useMutation({ mutationFn: async () => {
-    let fileData;
-    if (attachment) {
-      if (attachment.size > 5 * 1024 * 1024) throw new Error("Selecciona un archivo de hasta 5 MB.");
-      const content_base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(",", 2)[1]);
-        reader.onerror = () => reject(new Error("Selecciona de nuevo el archivo."));
-        reader.readAsDataURL(attachment);
-      });
-      fileData = { filename: attachment.name, mime_type: attachment.type, content_base64 };
-    }
-    return api.post(`/operations/assignments/${task.assignment_id}/submit`, fileData ? { content, attachment: fileData } : { content });
-  }, onSuccess: () => { toast.success("Entrega registrada"); setAttachment(null); if (attachmentInput.current) attachmentInput.current.value = ""; onSaved(); }, onError: e => toast.error(e instanceof Error && !("response" in e) && !("isAxiosError" in e) ? e.message : apiMessage(e)) });
-  const transfer = useMutation({ mutationFn: () => api.post(`/operations/assignments/${task.assignment_id}/transfer-grades`, { reason }), onSuccess: () => { toast.success("Notas enviadas como borradores. Revísalas y publícalas en Evaluaciones."); onSaved(); }, onError: e => toast.error(apiMessage(e)) });
-  const canSend = task.published && task.lifecycle === "open" && (!task.submission || task.allow_resubmit && task.submission.score === null) && (date(task.due_at) >= new Date() || task.allow_late);
-  return <Modal title={task.title} description={`${task.subject_name} · ${task.section_code} · ${task.teacher_name}`} onClose={onClose}><div className="operations-detail"><Badge>{state(task)}</Badge><p className="preserve-lines">{task.instructions}</p><p>Vence: {formatDateTime(task.due_at)} · Máximo: {task.max_score} puntos</p><p>{task.allow_late ? "Acepta entregas tardías." : "No admite entregas después del plazo."} {task.allow_resubmit ? "Permite reenvíos antes de calificar." : "Una sola entrega."}</p>{student && <section><h3>Mi entrega</h3>{task.submission && <><p>{labels[task.submission.status]} · {formatDateTime(task.submission.submitted_at)}{date(task.submission.submitted_at) > date(task.due_at) ? " · Tardía" : ""} · {task.submission.attempts} intento(s)</p><p className="preserve-lines">{task.submission.content}</p>{task.submission.score !== null && <p>Resultado de la tarea: <strong>{task.submission.score}/{task.max_score}</strong><br />Devolución: {task.submission.feedback || "Sin comentario"}</p>}<Button variant="ghost" onClick={() => setAttemptId(task.submission!.submission_id)}>Ver intentos</Button></>}{canSend ? <form className="operations-form" onSubmit={e => { e.preventDefault(); send.mutate(); }}><label>{task.submission ? "Actualizar entrega" : "Contenido de la entrega"}<textarea maxLength={20000} value={content} onChange={e => setContent(e.target.value)} /></label><label>Adjunto opcional (PDF, PNG o JPEG, hasta 5 MB)<input ref={attachmentInput} disabled={send.isPending} type="file" accept="application/pdf,image/png,image/jpeg" onChange={event => setAttachment(event.target.files?.[0] ?? null)} /></label><Button disabled={send.isPending || (!content.trim() && !attachment)}>{task.submission ? "Reenviar" : "Entregar tarea"}</Button></form> : <p>No se admiten nuevas entregas en este estado.</p>}{task.assessment_id && <p>El resultado de la tarea no es todavía una nota académica publicada. Consulta tus calificaciones cuando el docente la publique.</p>}</section>}{manager && <section><h3>Estudiantes y entregas</h3>{roster.isLoading && <Spinner />}{roster.error && <p role="alert">{apiMessage(roster.error)}</p>}<div className="submission-roster">{roster.data?.map(row => <SubmissionReview key={`${row.student_id}-${row.submission?.score}-${row.submission?.feedback}`} row={row} task={task} onSaved={onSaved} onAttempts={setAttemptId} />)}</div>{task.assessment_id && <form className="operations-form" onSubmit={e => { e.preventDefault(); if (window.confirm("Se crearán notas borrador, sin publicar ni sobrescribir notas existentes. ¿Continuar?")) transfer.mutate(); }}><h3>Enviar resultados a Evaluaciones</h3><p>Convierte a escala 100. Si existe alguna nota, la transferencia se detiene completa para protegerla.</p><label>Motivo<input required minLength={2} maxLength={250} value={reason} onChange={e => setReason(e.target.value)} /></label><Button disabled={transfer.isPending || task.lifecycle === "archived"}>Crear notas borrador</Button><Link to={`/assessments?section=${task.section_id}`}>Abrir Evaluaciones →</Link></form>}</section>}{attemptId && <section><h3>Historial de entregas</h3>{revisions.isLoading && <Spinner />}{revisions.error && <p role="alert">{apiMessage(revisions.error)}</p>}{revisions.data?.map((r, i) => <article className="attempt-card" key={r.revision_id}><strong>Intento {i + 1} · {formatDateTime(r.submitted_at)}</strong><p className="preserve-lines">{r.content}</p>{r.filename && <DocumentDownload path={`/operations/submissions/${attemptId}/revisions/${r.revision_id}/attachment`} filename={r.filename} label={`Descargar ${r.filename}`} />}</article>)}</section>}</div></Modal>;
+  const roster = useQuery<Row[]>({
+    queryKey: ["task-roster", userId, task.assignment_id],
+    queryFn: () => api.get(`/operations/assignments/${task.assignment_id}/submissions`).then(r => r.data),
+    enabled: manager,
+  });
+  const revisions = useQuery<
+    { revision_id: number; content: string; submitted_at: string; filename?: string | null }[]
+  >({
+    queryKey: ["task-attempts", userId, attemptId],
+    queryFn: () => api.get(`/operations/submissions/${attemptId}/revisions`).then(r => r.data),
+    enabled: Boolean(attemptId),
+  });
+  const send = useMutation({
+    mutationFn: async () => {
+      let fileData;
+      if (attachment) {
+        if (attachment.size > 5 * 1024 * 1024) throw new Error("Selecciona un archivo de hasta 5 MB.");
+        const content_base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result).split(",", 2)[1]);
+          reader.onerror = () => reject(new Error("Selecciona de nuevo el archivo."));
+          reader.readAsDataURL(attachment);
+        });
+        fileData = { filename: attachment.name, mime_type: attachment.type, content_base64 };
+      }
+      return api.post(
+        `/operations/assignments/${task.assignment_id}/submit`,
+        fileData ? { content, attachment: fileData } : { content },
+      );
+    },
+    onSuccess: () => {
+      toast.success("Entrega registrada");
+      setAttachment(null);
+      if (attachmentInput.current) attachmentInput.current.value = "";
+      onSaved();
+    },
+    onError: e =>
+      toast.error(e instanceof Error && !("response" in e) && !("isAxiosError" in e) ? e.message : apiMessage(e)),
+  });
+  const transfer = useMutation({
+    mutationFn: () => api.post(`/operations/assignments/${task.assignment_id}/transfer-grades`, { reason }),
+    onSuccess: () => {
+      toast.success("Notas enviadas como borradores. Revísalas y publícalas en Evaluaciones.");
+      onSaved();
+    },
+    onError: e => toast.error(apiMessage(e)),
+  });
+  const canSend =
+    task.published &&
+    task.lifecycle === "open" &&
+    (!task.submission || (task.allow_resubmit && task.submission.score === null)) &&
+    (date(task.due_at) >= new Date() || task.allow_late);
+  return (
+    <Modal
+      title={task.title}
+      description={`${task.subject_name} · ${task.section_code} · ${task.teacher_name}`}
+      onClose={onClose}
+    >
+      <div className="operations-detail">
+        <Badge>{state(task)}</Badge>
+        <p className="preserve-lines">{task.instructions}</p>
+        <p>
+          Vence: {formatDateTime(task.due_at)} · Máximo: {task.max_score} puntos
+        </p>
+        <p>
+          {task.allow_late ? "Acepta entregas tardías." : "No admite entregas después del plazo."}{" "}
+          {task.allow_resubmit ? "Permite reenvíos antes de calificar." : "Una sola entrega."}
+        </p>
+        {student && (
+          <section>
+            <h3>Mi entrega</h3>
+            {task.submission && (
+              <>
+                <p>
+                  {labels[task.submission.status]} · {formatDateTime(task.submission.submitted_at)}
+                  {date(task.submission.submitted_at) > date(task.due_at) ? " · Tardía" : ""} ·{" "}
+                  {task.submission.attempts} intento(s)
+                </p>
+                <p className="preserve-lines">{task.submission.content}</p>
+                {task.submission.score !== null && (
+                  <p>
+                    Resultado de la tarea:{" "}
+                    <strong>
+                      {task.submission.score}/{task.max_score}
+                    </strong>
+                    <br />
+                    Devolución: {task.submission.feedback || "Sin comentario"}
+                  </p>
+                )}
+                <Button variant="ghost" onClick={() => setAttemptId(task.submission!.submission_id)}>
+                  Ver intentos
+                </Button>
+              </>
+            )}
+            {canSend ? (
+              <form
+                className="operations-form"
+                onSubmit={e => {
+                  e.preventDefault();
+                  send.mutate();
+                }}
+              >
+                <label>
+                  {task.submission ? "Actualizar entrega" : "Contenido de la entrega"}
+                  <textarea maxLength={20000} value={content} onChange={e => setContent(e.target.value)} />
+                </label>
+                <label>
+                  Adjunto opcional (PDF, PNG o JPEG, hasta 5 MB)
+                  <input
+                    ref={attachmentInput}
+                    disabled={send.isPending}
+                    type="file"
+                    accept="application/pdf,image/png,image/jpeg"
+                    onChange={event => setAttachment(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <Button disabled={send.isPending || (!content.trim() && !attachment)}>
+                  {task.submission ? "Reenviar" : "Entregar tarea"}
+                </Button>
+              </form>
+            ) : (
+              <p>No se admiten nuevas entregas en este estado.</p>
+            )}
+            {task.assessment_id && (
+              <p>
+                El resultado de la tarea no es todavía una nota académica publicada. Consulta tus calificaciones cuando
+                el docente la publique.
+              </p>
+            )}
+          </section>
+        )}
+        {manager && (
+          <section>
+            <h3>Estudiantes y entregas</h3>
+            {roster.isLoading && <Spinner />}
+            {roster.error && <p role="alert">{apiMessage(roster.error)}</p>}
+            <div className="submission-roster">
+              {roster.data?.map(row => (
+                <SubmissionReview
+                  key={`${row.student_id}-${row.submission?.score}-${row.submission?.feedback}`}
+                  row={row}
+                  task={task}
+                  onSaved={onSaved}
+                  onAttempts={setAttemptId}
+                />
+              ))}
+            </div>
+            {task.assessment_id && (
+              <form
+                className="operations-form"
+                onSubmit={e => {
+                  e.preventDefault();
+                  if (
+                    window.confirm(
+                      "Se crearán notas borrador, sin publicar ni sobrescribir notas existentes. ¿Continuar?",
+                    )
+                  )
+                    transfer.mutate();
+                }}
+              >
+                <h3>Enviar resultados a Evaluaciones</h3>
+                <p>
+                  Convierte a escala 100. Si existe alguna nota, la transferencia se detiene completa para protegerla.
+                </p>
+                <label>
+                  Motivo
+                  <input
+                    required
+                    minLength={2}
+                    maxLength={250}
+                    value={reason}
+                    onChange={e => setReason(e.target.value)}
+                  />
+                </label>
+                <Button disabled={transfer.isPending || task.lifecycle === "archived"}>Crear notas borrador</Button>
+                <Link to={`/assessments?section=${task.section_id}`}>Abrir Evaluaciones →</Link>
+              </form>
+            )}
+          </section>
+        )}
+        {attemptId && (
+          <section>
+            <h3>Historial de entregas</h3>
+            {revisions.isLoading && <Spinner />}
+            {revisions.error && <p role="alert">{apiMessage(revisions.error)}</p>}
+            {revisions.data?.map((r, i) => (
+              <article className="attempt-card" key={r.revision_id}>
+                <strong>
+                  Intento {i + 1} · {formatDateTime(r.submitted_at)}
+                </strong>
+                <p className="preserve-lines">{r.content}</p>
+                {r.filename && (
+                  <DocumentDownload
+                    path={`/operations/submissions/${attemptId}/revisions/${r.revision_id}/attachment`}
+                    filename={r.filename}
+                    label={`Descargar ${r.filename}`}
+                  />
+                )}
+              </article>
+            ))}
+          </section>
+        )}
+      </div>
+    </Modal>
+  );
 }
 
-function SubmissionReview({ row, task, onSaved, onAttempts }: { row: Row; task: Task; onSaved: () => void; onAttempts: (id: number) => void }) {
+function SubmissionReview({
+  row,
+  task,
+  onSaved,
+  onAttempts,
+}: {
+  row: Row;
+  task: Task;
+  onSaved: () => void;
+  onAttempts: (id: number) => void;
+}) {
   const item = row.submission;
-  const [open, setOpen] = useState(false), [score, setScore] = useState(String(item?.score ?? "")), [feedback, setFeedback] = useState(item?.feedback ?? "");
-  const grade = useMutation({ mutationFn: () => api.patch(`/operations/submissions/${item!.submission_id}/grade`, { score: Number(score), feedback }), onSuccess: () => { toast.success("Devolución guardada"); onSaved(); }, onError: e => toast.error(apiMessage(e)) });
-  return <article className="submission-review"><div className="operations-actions"><div><strong>{row.student_name}</strong><small>{row.enrollment_number}</small></div><Badge>{item ? labels[item.status] : "Sin entrega"}</Badge>{item && <Button variant="secondary" onClick={() => setOpen(!open)}>{open ? "Ocultar" : "Revisar"}</Button>}</div>{open && item && <><p>{formatDateTime(item.submitted_at)}{date(item.submitted_at) > date(task.due_at) ? " · Entrega tardía" : ""}</p><p className="preserve-lines">{item.content}</p><Button variant="ghost" onClick={() => onAttempts(item.submission_id)}>Ver {item.attempts} intento(s)</Button><form className="operations-form" onSubmit={e => { e.preventDefault(); grade.mutate(); }}><label>Puntuación / {task.max_score}<input required type="number" min="0" max={task.max_score} step="any" value={score} onChange={e => setScore(e.target.value)} /></label><label>Devolución al estudiante<textarea value={feedback} onChange={e => setFeedback(e.target.value)} /></label><Button disabled={grade.isPending || task.lifecycle === "archived"}>Guardar devolución</Button></form></>}</article>;
+  const [open, setOpen] = useState(false),
+    [score, setScore] = useState(String(item?.score ?? "")),
+    [feedback, setFeedback] = useState(item?.feedback ?? "");
+  const grade = useMutation({
+    mutationFn: () =>
+      api.patch(`/operations/submissions/${item!.submission_id}/grade`, { score: Number(score), feedback }),
+    onSuccess: () => {
+      toast.success("Devolución guardada");
+      onSaved();
+    },
+    onError: e => toast.error(apiMessage(e)),
+  });
+  return (
+    <article className="submission-review">
+      <div className="operations-actions">
+        <div>
+          <strong>{row.student_name}</strong>
+          <small>{row.enrollment_number}</small>
+        </div>
+        <Badge>{item ? labels[item.status] : "Sin entrega"}</Badge>
+        {item && (
+          <Button variant="secondary" onClick={() => setOpen(!open)}>
+            {open ? "Ocultar" : "Revisar"}
+          </Button>
+        )}
+      </div>
+      {open && item && (
+        <>
+          <p>
+            {formatDateTime(item.submitted_at)}
+            {date(item.submitted_at) > date(task.due_at) ? " · Entrega tardía" : ""}
+          </p>
+          <p className="preserve-lines">{item.content}</p>
+          <Button variant="ghost" onClick={() => onAttempts(item.submission_id)}>
+            Ver {item.attempts} intento(s)
+          </Button>
+          <form
+            className="operations-form"
+            onSubmit={e => {
+              e.preventDefault();
+              grade.mutate();
+            }}
+          >
+            <label>
+              Puntuación / {task.max_score}
+              <input
+                required
+                type="number"
+                min="0"
+                max={task.max_score}
+                step="any"
+                value={score}
+                onChange={e => setScore(e.target.value)}
+              />
+            </label>
+            <label>
+              Devolución al estudiante
+              <textarea value={feedback} onChange={e => setFeedback(e.target.value)} />
+            </label>
+            <Button disabled={grade.isPending || task.lifecycle === "archived"}>Guardar devolución</Button>
+          </form>
+        </>
+      )}
+    </article>
+  );
 }
 
-function EventEditor({ event, sections, manager, admin, onClose, onSaved }: { event: Event | "new"; sections: Section[]; manager: boolean; admin: boolean; onClose: () => void; onSaved: () => void }) {
+function EventEditor({
+  event,
+  sections,
+  manager,
+  admin,
+  onClose,
+  onSaved,
+}: {
+  event: Event | "new";
+  sections: Section[];
+  manager: boolean;
+  admin: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const item = event === "new" ? null : event;
-  const [form, setForm] = useState({ title: item?.title ?? "", description: item?.description ?? "", event_type: item?.kind ?? "activity", audience: item?.audience ?? (admin ? "all" : "section"), section_id: String(item?.section_id ?? ""), starts_at: item ? inputDate(item.starts_at) : "", ends_at: item ? inputDate(item.ends_at) : "", no_school: item?.no_school ?? false });
+  const [form, setForm] = useState({
+    title: item?.title ?? "",
+    description: item?.description ?? "",
+    event_type: item?.kind ?? "activity",
+    audience: item?.audience ?? (admin ? "all" : "section"),
+    section_id: String(item?.section_id ?? ""),
+    starts_at: item ? inputDate(item.starts_at) : "",
+    ends_at: item ? inputDate(item.ends_at) : "",
+    no_school: item?.no_school ?? false,
+  });
   const editable = manager && (admin || item?.audience === "section" || !item);
-  const save = useMutation({ mutationFn: () => { const body = { ...form, section_id: form.audience === "section" ? Number(form.section_id) : null, starts_at: new Date(form.starts_at).toISOString(), ends_at: new Date(form.ends_at).toISOString() }; return item ? api.put(`/operations/calendar/${item.event_id}`, body) : api.post("/operations/calendar", body); }, onSuccess: () => { toast.success("Evento guardado"); onSaved(); onClose(); }, onError: e => toast.error(apiMessage(e)) });
-  return <Modal title={item ? "Evento académico" : "Nuevo evento"} onClose={onClose}><form className="operations-form" onSubmit={e => { e.preventDefault(); save.mutate(); }}><fieldset disabled={!editable}><label>Título<input required minLength={2} maxLength={150} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></label><label>Descripción<textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></label><label>Tipo<select value={form.event_type} onChange={e => setForm({ ...form, event_type: e.target.value })}>{Object.entries(labels).slice(0, 5).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label><label>Destinatarios<select value={form.audience} onChange={e => setForm({ ...form, audience: e.target.value })}>{(admin || !editable ? [["all", "Toda la institución"], ["student", "Estudiantes"], ["teacher", "Docentes"], ["admin", "Administradores"], ["guardian", "Tutores"], ["section", "Una sección"]] : [["section", "Una sección"]]).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>{form.audience === "section" && <label>Sección<select required value={form.section_id} onChange={e => setForm({ ...form, section_id: e.target.value })}><option value="">Selecciona una sección</option>{sections.map(s => <option key={s.section_id} value={s.section_id}>{s.subject_name} · {s.code}</option>)}</select></label>}<label>Inicio<input required type="datetime-local" value={form.starts_at} onChange={e => setForm({ ...form, starts_at: e.target.value })} /></label><label>Fin<input required type="datetime-local" value={form.ends_at} onChange={e => setForm({ ...form, ends_at: e.target.value })} /></label><label className="operations-check"><input type="checkbox" checked={form.no_school} onChange={e => setForm({ ...form, no_school: e.target.checked })} />Día no lectivo (marca informativa)</label></fieldset>{editable && <Button disabled={save.isPending}>Guardar evento</Button>}</form></Modal>;
+  const save = useMutation({
+    mutationFn: () => {
+      const body = {
+        ...form,
+        section_id: form.audience === "section" ? Number(form.section_id) : null,
+        starts_at: new Date(form.starts_at).toISOString(),
+        ends_at: new Date(form.ends_at).toISOString(),
+      };
+      return item ? api.put(`/operations/calendar/${item.event_id}`, body) : api.post("/operations/calendar", body);
+    },
+    onSuccess: () => {
+      toast.success("Evento guardado");
+      onSaved();
+      onClose();
+    },
+    onError: e => toast.error(apiMessage(e)),
+  });
+  return (
+    <Modal title={item ? "Evento académico" : "Nuevo evento"} onClose={onClose}>
+      <form
+        className="operations-form"
+        onSubmit={e => {
+          e.preventDefault();
+          save.mutate();
+        }}
+      >
+        <fieldset disabled={!editable}>
+          <label>
+            Título
+            <input
+              required
+              minLength={2}
+              maxLength={150}
+              value={form.title}
+              onChange={e => setForm({ ...form, title: e.target.value })}
+            />
+          </label>
+          <label>
+            Descripción
+            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+          </label>
+          <label>
+            Tipo
+            <select value={form.event_type} onChange={e => setForm({ ...form, event_type: e.target.value })}>
+              {Object.entries(labels)
+                .slice(0, 5)
+                .map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label>
+            Destinatarios
+            <select value={form.audience} onChange={e => setForm({ ...form, audience: e.target.value })}>
+              {(admin || !editable
+                ? [
+                    ["all", "Toda la institución"],
+                    ["student", "Estudiantes"],
+                    ["teacher", "Docentes"],
+                    ["admin", "Administradores"],
+                    ["guardian", "Tutores"],
+                    ["section", "Una sección"],
+                  ]
+                : [["section", "Una sección"]]
+              ).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+          {form.audience === "section" && (
+            <label>
+              Sección
+              <select required value={form.section_id} onChange={e => setForm({ ...form, section_id: e.target.value })}>
+                <option value="">Selecciona una sección</option>
+                {sections.map(s => (
+                  <option key={s.section_id} value={s.section_id}>
+                    {s.subject_name} · {s.code}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label>
+            Inicio
+            <input
+              required
+              type="datetime-local"
+              value={form.starts_at}
+              onChange={e => setForm({ ...form, starts_at: e.target.value })}
+            />
+          </label>
+          <label>
+            Fin
+            <input
+              required
+              type="datetime-local"
+              value={form.ends_at}
+              onChange={e => setForm({ ...form, ends_at: e.target.value })}
+            />
+          </label>
+          <label className="operations-check">
+            <input
+              type="checkbox"
+              checked={form.no_school}
+              onChange={e => setForm({ ...form, no_school: e.target.checked })}
+            />
+            Día no lectivo (marca informativa)
+          </label>
+        </fieldset>
+        {editable && <Button disabled={save.isPending}>Guardar evento</Button>}
+      </form>
+    </Modal>
+  );
 }
