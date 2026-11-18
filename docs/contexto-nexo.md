@@ -32,14 +32,14 @@ Informe completo: `docs/auditoria/auditoria-2026-11-17.pdf` (versión web: https
 - ✅ **M1** (cerrado 18/11/2026: `has_scope` en `app/auth.py` decide el ámbito institucional por permisos; `academic.manage`/`reports.view` para lo académico, `finance.manage`/`reports.view` para finanzas; migración 0039 da al rol `admin` todos los permisos). Las comprobaciones de ámbito usan `is_admin()` por nombre de rol: los roles personalizados con permiso (p. ej. `finance.manage`) reciben 403 al leer.
 - ✅ **M2** (verificado con prueba de regresión 17/11/2026). `student_scope_ids` (alertas) devuelve `None` (= todo) para usuarios no admin sin vínculo.
 - ✅ **M3** (cerrado 17/11/2026: nadie gestiona cuentas ni concede permisos por encima de los suyos). `access.manage` permitía restablecer la contraseña de un admin o crear admins.
-- **M4.** Límite de login por usuario, en memoria: permite bloquear al admin y no funciona con varios workers.
+- ✅ **M4** (cerrado 18/11/2026: tabla `login_throttles`, claves IP+usuario e IP; uvicorn con `--proxy-headers`, configurar `FORWARDED_ALLOW_IPS` detrás de un proxy). Límite de login por usuario, en memoria: permite bloquear al admin y no funciona con varios workers.
 - ✅ **M5** (cerrado 18/11/2026: `ensure_student_document_access` y sección de documentos en el portal familiar). Los tutores no podían descargar documentos de sus hijos.
 - ✅ **M6** (cerrado 18/11/2026: mensajes del API, validadores y errores 422 en español; `tests/test_spanish_messages.py` impide que vuelvan). 97 mensajes de error del API en inglés que llegan a la interfaz.
 - **M7.** Un único bloqueo global para todas las escrituras.
 - **M8.** Consultas N+1 o de tabla completa en cuentas financieras, cierre de caja y alertas.
 
 ### Bajos
-Montos en `Float`, TOTP reutilizable dentro de su ventana, enumeración de usuarios por tiempo, sin detección de reutilización del refresh token, `/auth/bootstrap` abierto en una instalación vacía, sin logs, nginx sin cabeceras de seguridad, `school.db` y `__pycache__` versionados, `date_recorded` como texto, períodos enlazados por nombre. PostgreSQL sin probar de punta a punta.
+Montos en `Float`, TOTP reutilizable dentro de su ventana, ~~enumeración de usuarios por tiempo~~ (✅ 18/11: hash de relleno), sin detección de reutilización del refresh token, `/auth/bootstrap` abierto en una instalación vacía, sin logs, nginx sin cabeceras de seguridad, `school.db` y `__pycache__` versionados, `date_recorded` como texto, períodos enlazados por nombre. PostgreSQL sin probar de punta a punta.
 
 ### Frontend y UI
 ✅ Cerrado el 18/11/2026 (Fase 0, paso 3):

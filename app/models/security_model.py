@@ -28,3 +28,20 @@ class AuditLog(Base):
     resource: Mapped[str] = mapped_column(String(80))
     detail: Mapped[str] = mapped_column(String(500), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class LoginThrottle(Base):
+    """Failed sign-in counters shared by every worker (audit M4).
+
+    Keys combine the client IP with the account name, or the IP alone, so a
+    third party cannot lock somebody else's account from their own address.
+    A future institution prefix fits in the key without a redesign.
+    """
+
+    __tablename__ = "login_throttles"
+
+    login_throttle_id: Mapped[int] = mapped_column(primary_key=True)
+    throttle_key: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    failures: Mapped[int] = mapped_column(default=0, server_default="0")
+    window_started_at: Mapped[datetime] = mapped_column(DateTime)
+    blocked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

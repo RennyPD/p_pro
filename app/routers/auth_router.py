@@ -1,8 +1,8 @@
-from collections import defaultdict, deque
+import secrets
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 
@@ -33,9 +33,9 @@ from app.security import (
     verify_totp,
 )
 from app.services.account_sessions import lock_account, revoke_account_sessions
+from app.services.login_throttle import ensure_not_blocked, record_failure, record_success
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
-login_attempts: dict[str, deque[datetime]] = defaultdict(deque)
 
 
 def audit(db: Session, action: str, resource: str, user_id: int | None = None, detail: str = ""):
@@ -102,17 +102,20 @@ def bootstrap_admin(data: BootstrapRequest, response: Response, db: Session = De
     return issue_session(db, response, user)
 
 
+# Compared against when the account does not exist, so the response time does
+# not reveal which usernames are registered.
+_DUMMY_PASSWORD_HASH = hash_password(secrets.token_urlsafe(16))
+
+
+def client_ip(request: Request) -> str:
+    # Behind a proxy, run uvicorn with --proxy-headers and FORWARDED_ALLOW_IPS.
+    return request.client.host if request.client else "desconocida"
+
+
 @router.post("/login", response_model=TokenOut)
-def login(data: LoginRequest, response: Response, db: Session = Depends(get_db)):
-    now = datetime.now(UTC).replace(tzinfo=None)
-    attempts = login_attempts[data.username.casefold()]
-    while attempts and attempts[0] < now - timedelta(minutes=5):
-        attempts.popleft()
-    if len(attempts) >= 5:
-        raise HTTPException(
-            status_code=429,
-            detail="Demasiados intentos de inicio de sesión. Inténtalo de nuevo en unos minutos",
-        )
+def login(data: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
+    ip = client_ip(request)
+    ensure_not_blocked(db, ip, data.username)
     user = (
         db.query(User)
         .filter(or_(User.username == data.username, User.email == data.username))
@@ -120,8 +123,9 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
     )
     if user is not None:
         user = lock_account(db, user)
-    if user is None or not verify_password(data.password, user.password):
-        attempts.append(now)
+    valid = verify_password(data.password, user.password if user else _DUMMY_PASSWORD_HASH)
+    if user is None or not valid:
+        record_failure(db, ip, data.username)
         audit(db, "login.failed", "authentication", user.user_id if user else None)
         db.commit()
         raise HTTPException(
@@ -136,7 +140,7 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
             user.mfa_secret and data.otp and verify_totp(user.mfa_secret, data.otp),
             status_code=401,
         )
-    attempts.clear()
+    record_success(db, ip, data.username)
     if not account_is_active(user):
         # Only reported after valid credentials, so it does not reveal accounts.
         audit(db, "login.inactive", "authentication", user.user_id)

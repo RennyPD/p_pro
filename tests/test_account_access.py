@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
@@ -13,9 +14,10 @@ from app.db.Session import get_db
 from app.models import Permission, Role, RolePermission, Student, Teacher, User
 from app.models.community_model import Guardian, StudentGuardian
 from app.models.operations_model import CalendarEvent
-from app.models.security_model import AuditLog
+from app.models.security_model import AuditLog, LoginThrottle
 from app.routers.operations_router import student_scope_ids
 from app.security import hash_password
+from app.services.login_throttle import ensure_not_blocked, record_failure
 from main import app
 from scripts.seed_demo import seed_demo
 
@@ -408,3 +410,60 @@ def test_guardian_downloads_linked_child_documents(context, document):
     stranger = other_student(sessions, child)
     denied = client.get(f"/documents/students/{stranger}/{document}.pdf", headers=guardian)
     assert denied.status_code == 403
+
+
+# M4: el límite de intentos vive en la base y no permite bloquear cuentas ajenas.
+def test_failed_logins_block_only_the_attacking_address(context):
+    client, sessions = context
+    for _ in range(5):
+        assert login(client, "demo.admin", "incorrecta").status_code == 401
+    blocked = login(client, "demo.admin")
+    assert blocked.status_code == 429
+    with sessions() as db:
+        assert (
+            db.query(LoginThrottle)
+            .filter(LoginThrottle.throttle_key == "pair:testclient:demo.admin")
+            .one()
+            .blocked_until
+            is not None
+        )
+        # The account itself is not locked: other addresses are unaffected.
+        ensure_not_blocked(db, "203.0.113.7", "demo.admin")
+
+
+def test_throttle_is_shared_through_the_database(context):
+    _, sessions = context
+    with sessions() as db:
+        for _ in range(5):
+            record_failure(db, "10.0.0.1", "Demo.Admin")
+        db.commit()
+    # A second "worker" with its own session sees the block.
+    with sessions() as db:
+        with pytest.raises(HTTPException) as blocked:
+            ensure_not_blocked(db, "10.0.0.1", "demo.admin")
+        assert blocked.value.status_code == 429
+        ensure_not_blocked(db, "10.0.0.2", "demo.admin")
+
+
+def test_address_limit_covers_many_usernames(context):
+    _, sessions = context
+    with sessions() as db:
+        for index in range(30):
+            record_failure(db, "10.0.0.9", f"usuario{index}")
+        db.commit()
+        with pytest.raises(HTTPException):
+            ensure_not_blocked(db, "10.0.0.9", "otra.cuenta")
+
+
+def test_successful_login_clears_the_pair_counter(context):
+    client, sessions = context
+    for _ in range(3):
+        login(client, "demo.docente", "incorrecta")
+    assert login(client, "demo.docente").status_code == 200
+    with sessions() as db:
+        assert (
+            db.query(LoginThrottle)
+            .filter(LoginThrottle.throttle_key == "pair:testclient:demo.docente")
+            .first()
+            is None
+        )
