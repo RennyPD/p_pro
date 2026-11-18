@@ -9,6 +9,7 @@ import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./operations.css";
+import { TaskCard, type TaskTone } from "./TaskCard";
 
 type Section = { section_id: number; code: string; subject_name: string; period_name: string };
 type Submission = {
@@ -93,6 +94,12 @@ const state = (t: Task) =>
         : date(t.due_at) < new Date()
           ? "Vencida"
           : "Pendiente";
+
+const tone = (t: Task): TaskTone => {
+  if (!t.published || t.lifecycle !== "open") return "neutral";
+  if (t.submission) return t.submission.status === "graded" ? "success" : "info";
+  return date(t.due_at) < new Date() ? "danger" : "warning";
+};
 
 export function OperationsPage() {
   const user = useAuthStore(s => s.user);
@@ -318,42 +325,34 @@ export function OperationsPage() {
         <div className="task-grid">
           {filtered.length ? (
             filtered.map(t => (
-              <article className="panel task-summary" key={t.assignment_id}>
-                <div>
-                  <span className="kicker">
-                    {t.subject_name} · {t.section_code}
-                  </span>
-                  <Badge>{state(t)}</Badge>
-                </div>
-                <h2>{t.title}</h2>
-                <p>
-                  {t.instructions.length > 170
-                    ? `${t.instructions.slice(0, 170)}…`
-                    : t.instructions}
-                </p>
-                <small>
-                  {t.teacher_name} · {t.period_name}
-                </small>
-                <p>
-                  Entrega: {date(t.due_at).toLocaleString("es-DO")}
-                  <br />
-                  {t.assessment_id
-                    ? "Calificable: vinculada a una evaluación"
-                    : "Práctica: no afecta la nota académica"}{" "}
-                  · {t.max_score} puntos
-                </p>
-                {manager && <small>{t.submission_count} entregas recibidas</small>}
-                <div className="operations-actions">
-                  <Button onClick={() => setSelected(t.assignment_id)}>
-                    {manager ? "Revisar entregas" : "Ver tarea"}
-                  </Button>
-                  {manager && (
-                    <Button variant="secondary" onClick={() => setEditor(t)}>
-                      Editar
+              <TaskCard
+                key={t.assignment_id}
+                task={{
+                  title: t.title,
+                  instructions: t.instructions,
+                  subjectName: t.subject_name,
+                  sectionCode: t.section_code,
+                  teacherName: t.teacher_name,
+                  dueAt: date(t.due_at),
+                  maxScore: t.max_score,
+                  graded: t.assessment_id !== null,
+                  status: state(t),
+                  tone: tone(t),
+                  submissionCount: manager ? t.submission_count : null,
+                }}
+                actions={
+                  <>
+                    <Button onClick={() => setSelected(t.assignment_id)}>
+                      {manager ? "Revisar entregas" : "Ver tarea"}
                     </Button>
-                  )}
-                </div>
-              </article>
+                    {manager && (
+                      <Button variant="secondary" onClick={() => setEditor(t)}>
+                        Editar
+                      </Button>
+                    )}
+                  </>
+                }
+              />
             ))
           ) : (
             <EmptyState

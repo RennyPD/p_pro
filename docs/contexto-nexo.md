@@ -58,16 +58,25 @@ Cada fase se cierra con pruebas de regresión y sin romper lo anterior.
 3. ✅ Calidad y UX: Prettier/Ruff, mensajes en español, contraste, tokens de diseño, modales, tipos generados (queda la migración progresiva de tipos por módulo).
 4. ✅ Producción: M4 (en base de datos, sin Redis), M7 (parcial), M8, bajos (salvo períodos por nombre) y prueba completa sobre PostgreSQL en CI.
 
-### Fase 1: modelo escolar (K-12)
-- Tipo de institución configurable: `university` | `school` (o ambos).
-- Grados/cursos y secciones fijas con alumnos asignados (sin selección libre).
-- Inscripción y reinscripción anual; promoción de grado.
-- Escala de calificación configurable (0–100, A–F, conceptual) y períodos por trimestre o bimestre.
-- Boletines en el formato del MINERD (República Dominicana) y reportes por período.
-- Más peso al portal de padres: notas, asistencia, tareas, pagos y comunicaciones.
-- Reutilizar todo lo común (asistencia, finanzas, tareas, comunicaciones, documentos) detrás de la configuración.
+### Fase 1: escuela, familias y pagos (adaptada el 18/11/2026)
+Reutiliza todo lo común (asistencia, finanzas, tareas, comunicaciones, documentos) detrás de la configuración por institución. Orden de trabajo:
+
+**1.1 Sistema visual.** Componentes reutilizables (tarjeta, indicador, chip de dato, estado con color, avatar, pestañas, barra de progreso) y criterio de "menos texto": lo esencial visible, el detalle al abrir. Móvil primero en los portales de estudiante y tutor. Se aplica pantalla por pantalla con capturas antes/después. ✅ Primer caso: tarjeta de tareas (`TaskCard`).
+
+**1.2 Vínculo tutor–estudiante con permisos.** Cada vínculo indica qué puede ver el tutor (notas, asistencia, finanzas) y si es responsable de pago; necesario para padres separados o tutores sin custodia. Por defecto: ve lo académico, no lo financiero salvo que sea responsable de pago.
+
+**1.3 Portal del tutor detallado.** Vista familiar y pestañas por hijo: notas por asignatura y evaluación (solo publicadas), asistencia por día y materia con justificaciones, tareas (pendientes, entregadas, calificadas), horario, alertas, comunicados, documentos y pagos.
+
+**1.4 Módulo de pagos para estudiante y tutor.** Estudiante: balance, próximo vencimiento, cuotas, movimientos, recibos y reporte de transferencia. Tutor (responsable de pago): total de la familia y desglose por hijo y concepto, vencidos, recibos PDF y una transferencia que cubra a varios hijos. Configurable por institución si el estudiante menor ve sus finanzas. El botón "Pagar en línea" llega en la Fase 2.
+
+**1.5 Base escolar.** Tipo de institución (`university` | `school` | ambos), períodos enlazados por id, año lectivo con trimestres o bimestres, grados y secciones fijas, inscripción y reinscripción anual, promoción de grado, escala de calificación configurable (0–100, A–F, conceptual).
+
+**1.6 Finanzas escolares.** Plan de cobros por grado o carrera y año, que genera los cargos (mensualidades, inscripción) de forma idempotente y con bloqueo; cuenta familiar con descuento por hermanos; reglas de mora (recargo) y bloqueo automático por vencidos; permisos separados de cajero y supervisor (reversos aprobados por otra persona); reportes de morosidad por antigüedad e ingresos por concepto.
+
+**1.7 Boletines MINERD** y reportes por período.
 
 ### Fase 2: SaaS
+- Finanzas: pagos en línea (tarjeta y pasarela local), comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
 - Multi-tenant: `institution_id` en todos los modelos y consultas (o una base por cliente), unicidad por institución, bloqueos por institución.
 - Alta de instituciones (onboarding), subdominio por cliente.
 - Email transaccional: invitaciones, recuperación de contraseña, notificaciones.

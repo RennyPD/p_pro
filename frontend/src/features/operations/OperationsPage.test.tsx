@@ -96,7 +96,7 @@ it("shows readable subject context and records a student delivery", async () => 
   const post = vi.spyOn(api, "post").mockResolvedValue({ data: {} } as never);
   expect(await screen.findByText("Proyecto de algoritmos")).toBeInTheDocument();
   expect(screen.queryByText("Crear tarea")).not.toBeInTheDocument();
-  expect(screen.getByText(/Práctica: no afecta/)).toBeInTheDocument();
+  expect(screen.getByText("No afecta la nota")).toBeInTheDocument();
   fireEvent.click(screen.getByText("Ver tarea"));
   fireEvent.change(screen.getByLabelText("Contenido de la entrega"), {
     target: { value: "Mi solución" },
