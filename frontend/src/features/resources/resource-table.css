@@ -23,8 +23,9 @@
   position: sticky;
   right: 0;
   z-index: 2;
-  width: 118px;
+  width: 1%;
   min-width: 118px;
+  white-space: nowrap;
   background: var(--surface);
   box-shadow: -10px 0 16px -16px color-mix(in srgb, var(--ink) 60%, transparent);
 }
@@ -58,7 +59,6 @@
   }
 
   .resource-table .table-actions {
-    width: 110px;
     min-width: 110px;
   }
 }
@@ -146,5 +146,17 @@
 
   .resource-table tbody tr:hover .table-actions {
     background: transparent;
+  }
+
+  /* Cards are narrow: long values (emails, codes) may wrap anywhere. */
+  .resource-table td,
+  .resource-table td:first-child,
+  .resource-table td.table-detail {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .resource-table .table-actions {
+    white-space: nowrap;
   }
 }

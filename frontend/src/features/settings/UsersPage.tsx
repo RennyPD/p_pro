@@ -1,4 +1,4 @@
-import { KeyRound } from "lucide-react";
+import { KeyRound, LayoutGrid, UserCheck, UserX } from "lucide-react";
 import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
@@ -91,8 +91,13 @@ export function UsersPage() {
               <KeyRound />
             </button>
             {isCustomRole(String(row.role_name ?? "")) && (
-              <button type="button" onClick={() => setAccount(row)}>
-                Módulos
+              <button
+                type="button"
+                onClick={() => setAccount(row)}
+                aria-label={`Módulos de consulta de ${row.username}`}
+                title="Módulos de consulta"
+              >
+                <LayoutGrid />
               </button>
             )}
             <AccountStatusButton account={row} />
@@ -134,8 +139,10 @@ function AccountStatusButton({ account }: { account: EntityRecord }) {
       disabled={busy}
       onClick={() => void toggle()}
       aria-label={`${active ? "Desactivar" : "Reactivar"} la cuenta de ${username}`}
+      title={active ? "Desactivar cuenta" : "Reactivar cuenta"}
+      className={active ? "danger" : undefined}
     >
-      {active ? "Desactivar" : "Reactivar"}
+      {active ? <UserX /> : <UserCheck />}
     </button>
   );
 }

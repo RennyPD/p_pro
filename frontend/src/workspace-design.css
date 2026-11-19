@@ -202,8 +202,10 @@ textarea::placeholder {
 .lookup-popover {
   max-width: 100%;
 }
+/* Above the sticky modal actions (z-index 4) so an open list is never covered. */
 .lookup-field:has(.lookup-popover) {
-  z-index: 3;
+  position: relative;
+  z-index: 6;
 }
 .resource-toolbar {
   flex-wrap: wrap;

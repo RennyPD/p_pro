@@ -243,7 +243,8 @@
 .lookup-options strong {
   font-size: 0.84rem;
 }
-.lookup-options small {
+/* Not an error message: beats `.form-field small` (red) when the list sits inside a field. */
+.lookup-popover .lookup-options small {
   color: var(--muted);
   font-size: 0.73rem;
 }

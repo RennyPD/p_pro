@@ -748,6 +748,7 @@ tbody tr:hover {
   place-items: center;
   width: 34px;
   height: 34px;
+  flex-shrink: 0;
   border: 0;
   border-radius: 9px;
   color: var(--muted);
@@ -764,6 +765,13 @@ tbody tr:hover {
 }
 .row-actions svg {
   width: 16px;
+}
+/* A text action (e.g. "Publicar") grows instead of overlapping its neighbours. */
+.row-actions button:not(:has(> svg:only-child)) {
+  width: auto;
+  min-width: 34px;
+  padding: 0 0.6rem;
+  white-space: nowrap;
 }
 .status-dot {
   display: inline-flex;
