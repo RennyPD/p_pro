@@ -5,7 +5,8 @@ import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-tabl
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronLeft, ChevronRight, Edit3, Eye, Plus, Search, Trash2 } from "lucide-react";
 import { Fragment, useId, useMemo, useState, type ReactNode } from "react";
-import { Controller, useForm, type Control } from "react-hook-form";
+import { Controller, useForm, type Control, type FieldValues } from "react-hook-form";
+import { ClassroomPicker } from "../../components/ClassroomPicker";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button, EmptyState, Modal, Spinner } from "../../components/ui";
@@ -392,7 +393,7 @@ export function ResourceForm({
               <h3 className="form-section-heading">{field.section}</h3>
             )}
             <FormField field={field} control={control} register={register} />
-            {errors[field.name]?.message && (
+            {field.type !== "classroom" && errors[field.name]?.message && (
               <small className="form-error">{errors[field.name]?.message}</small>
             )}
           </Fragment>
@@ -444,6 +445,14 @@ function FormField({
         <input type="checkbox" {...register(field.name)} />
         <span>{field.label}</span>
       </label>
+    );
+  if (field.type === "classroom")
+    return (
+      <ClassroomPicker
+        name={field.name}
+        label={field.label}
+        control={control as unknown as Control<FieldValues>}
+      />
     );
   if (field.type === "lookup" && field.lookup)
     return (

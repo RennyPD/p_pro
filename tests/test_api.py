@@ -972,6 +972,8 @@ class ApiIntegrationTests(unittest.TestCase):
                 "days_of_week": ["Lunes", "Miércoles"],
                 "start_time": "08:00:00",
                 "end_time": "10:00:00",
+                # Published sections need a registered room unless they are virtual.
+                "modality": "virtual",
             },
         )
         self.assertEqual(section.status_code, 200, section.text)
@@ -1410,6 +1412,21 @@ class ApiIntegrationTests(unittest.TestCase):
             },
         )
         self.assertEqual(prerequisite_denied.status_code, 409, prerequisite_denied.text)
+        # Another teacher: the same teacher at the same time is itself rejected on creation.
+        second_teacher = self.request(
+            "POST",
+            "/teachers/",
+            token=token,
+            json={
+                "first_name": "Segunda",
+                "last_name": "Docente",
+                "specialty": "Programación",
+                "email": "second-teacher@example.com",
+                "telephone": "555-0300",
+                "address": "Dirección ficticia",
+            },
+        )
+        self.assertEqual(second_teacher.status_code, 200, second_teacher.text)
         overlapping = self.request(
             "POST",
             "/sections/",
@@ -1417,13 +1434,16 @@ class ApiIntegrationTests(unittest.TestCase):
             json={
                 "code": "CONFLICT-DEMO",
                 "description": "Horario superpuesto",
-                "teacher_id": primary["teacher_id"],
+                "teacher_id": second_teacher.json()["teacher_id"],
                 "subject_id": primary["subject_id"],
                 "days_of_week": ["Lunes"],
                 "start_time": "08:30:00",
                 "end_time": "10:00:00",
+                "modality": "virtual",
             },
-        ).json()
+        )
+        self.assertEqual(overlapping.status_code, 200, overlapping.text)
+        overlapping = overlapping.json()
         first = self.request(
             "POST",
             "/enrollments/",

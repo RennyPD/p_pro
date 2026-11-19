@@ -2836,6 +2836,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/scheduling/classrooms/availability": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Classroom Availability
+     * @description Every classroom with whether it can host a section at this time (drafts reserve too).
+     */
+    get: operations["classroom_availability_scheduling_classrooms_availability_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/scheduling/classrooms/{classroom_id}": {
     parameters: {
       query?: never;
@@ -4335,6 +4355,38 @@ export interface components {
       description: string;
       /** Due Date */
       due_date?: string | null;
+    };
+    /**
+     * ClassroomAvailability
+     * @description A classroom and whether it can host a section at a given time.
+     */
+    ClassroomAvailability: {
+      /**
+       * Active
+       * @default true
+       */
+      active: boolean;
+      /**
+       * Capacity
+       * @default 30
+       */
+      capacity: number;
+      /** Classroom Id */
+      classroom_id: number;
+      /**
+       * Detail
+       * @default
+       */
+      detail: string;
+      /**
+       * Location
+       * @default
+       */
+      location: string;
+      /** Name */
+      name: string;
+      /** Status */
+      status: string;
     };
     /** ClassroomCreate */
     ClassroomCreate: {
@@ -13163,6 +13215,43 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ClassroomOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  classroom_availability_scheduling_classrooms_availability_get: {
+    parameters: {
+      query: {
+        /** @description Días separados por coma, p. ej. Lunes,Miércoles */
+        days: string;
+        start_time: string;
+        end_time: string;
+        capacity?: number;
+        period_name?: string;
+        section_id?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClassroomAvailability"][];
         };
       };
       /** @description Validation Error */

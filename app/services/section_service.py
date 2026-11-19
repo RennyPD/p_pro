@@ -1,11 +1,13 @@
 from types import SimpleNamespace
 
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.assessment_model import Assessment
 from app.models.configuration_model import AcademicPeriod
 from app.models.operations_model import Assignment, LessonPlan
+from app.models.scheduling_model import Classroom
 from app.models.subject_model import Subject
 from app.models.teacher_model import Teacher
 from app.repositories.section_repository import (
@@ -16,7 +18,13 @@ from app.repositories.section_repository import (
     update_section,
 )
 from app.schemas.section_schema import SectionCreate, SectionUpdate
-from app.services.effective_schedule import effective_blocks, legacy_blocks, validate_schedule
+from app.services.effective_schedule import (
+    ROOM_UNASSIGNED,
+    effective_blocks,
+    legacy_blocks,
+    room_conflict,
+    validate_schedule,
+)
 from app.services.governance_workflow import lock_governance, record
 
 
@@ -31,6 +39,14 @@ def create_section_service(db: Session, section_data: SectionCreate):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe ese código"
             )
+    proposed = SimpleNamespace(
+        **section_data.model_dump(), section_id=None, enrollments=[], meetings=[]
+    )
+    proposed.days_of_week = ", ".join(day.value for day in section_data.days_of_week)
+    validate_room(db, proposed, section_data.capacity)
+    if proposed.status in {"published", "active"}:
+        # A section created as published must not double-book teachers either.
+        validate_schedule(db, proposed, legacy_blocks(proposed))
 
     return create_section(db, section_data)
 
@@ -104,6 +120,7 @@ def update_section_service(db: Session, section_id: int, section_data: SectionUp
     if publishing and not target_period:
         raise HTTPException(422, "Selecciona un período académico antes de publicar")
     if schedule_changed:
+        validate_room(db, proposed_section(current, changes), capacity, current)
         validate_section_schedule(db, current, changes, capacity)
     counts = {}
     for item in current.enrollments:
@@ -177,6 +194,81 @@ def validate_section_schedule(db, current, changes, capacity):
     if not blocks:
         raise HTTPException(422, "Programa al menos un bloque válido antes de publicar la sección")
     validate_schedule(db, proposed, blocks)
+
+
+def proposed_section(current, changes):
+    proposed = SimpleNamespace(
+        section_id=current.section_id,
+        enrollments=current.enrollments,
+        meetings=current.meetings,
+        **{
+            field: changes.get(field, getattr(current, field))
+            for field in (
+                "code",
+                "teacher_id",
+                "status",
+                "period_name",
+                "start_time",
+                "end_time",
+                "days_of_week",
+                "room",
+                "modality",
+            )
+        },
+    )
+    if isinstance(proposed.days_of_week, list):
+        proposed.days_of_week = ", ".join(day.value for day in proposed.days_of_week)
+    return proposed
+
+
+def validate_room(db, proposed, capacity, current=None):
+    """The section's room must be a registered, active classroom that fits the
+    section and is free at its time. Drafts may leave it unassigned."""
+    if proposed.modality == "virtual":
+        return
+    # The room is required when a section becomes visible (created published or
+    # moved out of draft); already published legacy data stays editable.
+    publishing = proposed.status in {"published", "active"} and (
+        current is None or current.status not in {"published", "active"}
+    )
+    name = (proposed.room or "").strip()
+    meetings = getattr(proposed, "meetings", None) or []
+    if name.casefold() in ROOM_UNASSIGNED:
+        if publishing and not (meetings and all(item.classroom_id for item in meetings)):
+            raise HTTPException(409, "Asigna un aula disponible antes de publicar la sección")
+        return
+    room = db.query(Classroom).filter(func.lower(Classroom.name) == name.casefold()).first()
+    if room is None:
+        # Keep legacy free-text rooms editable in drafts; they must be fixed to publish.
+        if current is not None and name == (current.room or "").strip() and not publishing:
+            return
+        raise HTTPException(
+            422,
+            f"El aula {name} no está registrada. Elígela de la lista o regístrala en Aulas",
+        )
+    if not room.active:
+        raise HTTPException(409, f"El aula {room.name} está retirada. Elige otra aula")
+    if room.capacity < capacity:
+        raise HTTPException(
+            409,
+            f"El aula {room.name} tiene {room.capacity} plazas y la sección necesita {capacity}",
+        )
+    # Blocks with their own classroom are validated when the block is saved.
+    blocks = (
+        [block for block in effective_blocks(current) if not block.classroom_id]
+        if current is not None and current.meetings
+        else legacy_blocks(proposed)
+    )
+    blocks = [block.model_copy(update={"room": room.name}) for block in blocks]
+    conflict = room_conflict(db, proposed, blocks)
+    if conflict:
+        other, block, existing = conflict
+        raise HTTPException(
+            409,
+            f"El aula {room.name} está ocupada el {block.day_of_week} de "
+            f"{existing.start_time:%H:%M} a {existing.end_time:%H:%M} por la sección "
+            f"{other.code}. Elige otra aula u horario",
+        )
 
 
 def validate_period(db, name):

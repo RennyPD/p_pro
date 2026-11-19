@@ -1489,3 +1489,31 @@ textarea {
   color: var(--muted);
   line-height: 1.6;
 }
+
+/* Classroom availability hint under the section room field. */
+.room-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.form-field small.room-hint {
+  color: var(--muted);
+}
+
+.form-field small.room-hint--warning {
+  color: var(--danger);
+}
+
+.form-field small.room-hint--ok {
+  color: var(--success);
+}
+
+/* The room field carries availability messages: give it the full row. */
+.resource-form .form-field:has(.room-hint) {
+  grid-column: 1 / -1;
+}

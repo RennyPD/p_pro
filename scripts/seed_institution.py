@@ -464,7 +464,8 @@ def seed_institution(db: Session) -> dict[str, int]:
                 end_time=time(start.hour + 1, 30),
                 capacity=40,
                 minimum_capacity=8,
-                room=classrooms[subject_index % len(classrooms)].name,
+                # Same classroom as its meetings below (global index), so no double booking.
+                room=classrooms[len(all_sections) % len(classrooms)].name,
                 modality=("hybrid" if subject_index == 3 else "in_person"),
                 status="active",
                 period_name="2026-2027",

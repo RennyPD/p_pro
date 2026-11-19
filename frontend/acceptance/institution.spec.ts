@@ -216,6 +216,8 @@ test("admin publishes a draft and can filter the resulting audit event", async (
       days_of_week: ["Domingo"],
       start_time: "23:15",
       end_time: "23:45",
+      // Publishing requires a registered classroom that is free at this time.
+      room: "Aula LAB-1",
     },
   });
   expect(draft.status()).toBe(200);
@@ -370,6 +372,7 @@ test("student confirms a real cart without native dialogs and keeps their seat",
       description: "Aceptación",
       teacher_id: 1,
       subject_id: subject.subject_id,
+      room: "Aula LAB-1",
       days_of_week: ["Domingo"],
       start_time: "20:00",
       end_time: "21:00",

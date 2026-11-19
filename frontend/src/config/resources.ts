@@ -270,7 +270,6 @@ export const resources: Record<string, ResourceConfig> = {
         ),
       },
       { name: "capacity", label: "Capacidad", type: "number", required: true },
-      { name: "room", label: "Aula", required: true },
       {
         name: "modality",
         label: "Modalidad",
@@ -285,6 +284,7 @@ export const resources: Record<string, ResourceConfig> = {
       { name: "days_of_week", label: "Días de clase", type: "days", required: true },
       { name: "start_time", label: "Inicio", type: "time", required: true },
       { name: "end_time", label: "Fin", type: "time", required: true },
+      { name: "room", label: "Aula", type: "classroom" },
     ],
   },
   enrollments: {

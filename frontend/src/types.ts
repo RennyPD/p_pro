@@ -40,7 +40,8 @@ export interface FieldConfig {
     | "select"
     | "multiselect"
     | "lookup"
-    | "days";
+    | "days"
+    | "classroom";
   required?: boolean;
   placeholder?: string;
   options?: { label: string; value: string | number }[];

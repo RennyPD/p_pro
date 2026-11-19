@@ -3152,6 +3152,55 @@
         "title": "ChargeCreate",
         "type": "object"
       },
+      "ClassroomAvailability": {
+        "description": "A classroom and whether it can host a section at a given time.",
+        "properties": {
+          "active": {
+            "default": true,
+            "title": "Active",
+            "type": "boolean"
+          },
+          "capacity": {
+            "default": 30,
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "classroom_id": {
+            "title": "Classroom Id",
+            "type": "integer"
+          },
+          "detail": {
+            "default": "",
+            "title": "Detail",
+            "type": "string"
+          },
+          "location": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Location",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "classroom_id",
+          "status"
+        ],
+        "title": "ClassroomAvailability",
+        "type": "object"
+      },
       "ClassroomCreate": {
         "properties": {
           "active": {
@@ -20425,6 +20474,118 @@
           }
         ],
         "summary": "Create Classroom",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
+    "/scheduling/classrooms/availability": {
+      "get": {
+        "description": "Every classroom with whether it can host a section at this time (drafts reserve too).",
+        "operationId": "classroom_availability_scheduling_classrooms_availability_get",
+        "parameters": [
+          {
+            "description": "Días separados por coma, p. ej. Lunes,Miércoles",
+            "in": "query",
+            "name": "days",
+            "required": true,
+            "schema": {
+              "description": "Días separados por coma, p. ej. Lunes,Miércoles",
+              "title": "Days",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_time",
+            "required": true,
+            "schema": {
+              "format": "time",
+              "title": "Start Time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_time",
+            "required": true,
+            "schema": {
+              "format": "time",
+              "title": "End Time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capacity",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Capacity",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period_name",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Period Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "section_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Section Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClassroomAvailability"
+                  },
+                  "title": "Response Classroom Availability Scheduling Classrooms Availability Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Classroom Availability",
         "tags": [
           "scheduling"
         ]
