@@ -8,10 +8,12 @@ export function DocumentDownload({
   path,
   filename,
   label,
+  accessibleLabel,
 }: {
   path: string;
   filename: string;
   label: string;
+  accessibleLabel?: string;
 }) {
   const [busy, setBusy] = useState(false);
   async function download() {
@@ -32,7 +34,13 @@ export function DocumentDownload({
   }
 
   return (
-    <Button type="button" variant="secondary" disabled={busy} onClick={() => void download()}>
+    <Button
+      type="button"
+      variant="secondary"
+      disabled={busy}
+      aria-label={accessibleLabel}
+      onClick={() => void download()}
+    >
       <Download size={16} /> {busy ? "Descargando…" : label}
     </Button>
   );

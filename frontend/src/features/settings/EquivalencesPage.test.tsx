@@ -156,7 +156,7 @@ it("keeps state changes gated by impact and displays actor history", async () =>
     }),
   );
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-  fireEvent.click(screen.getByRole("button", { name: "Historial" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ver historial" }));
   expect(await screen.findByText("Registro · admin")).toBeInTheDocument();
   expect(screen.getByText("Creada por comité")).toBeInTheDocument();
 });

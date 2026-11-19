@@ -62,4 +62,6 @@ export interface ResourceConfig {
   fields: FieldConfig[];
   allowDelete?: boolean;
   defaultValues?: EntityRecord;
+  kicker?: string;
+  canDelete?: (row: EntityRecord) => boolean;
 }

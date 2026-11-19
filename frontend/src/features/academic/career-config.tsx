@@ -85,7 +85,15 @@ export const careerConfig: ResourceConfig = {
       label: "Programa académico",
       render: (_, row) => (
         <div className="student-table-identity">
-          <span className="student-initials">{String(row.code).slice(0, 2)}</span>
+          <span className="student-initials">
+            {String(row.name)
+              .split(/\s+/)
+              .filter(word => word.length > 3)
+              .slice(0, 2)
+              .map(word => word[0])
+              .join("")
+              .toUpperCase()}
+          </span>
           <div>
             <Link to={`/careers/${row.career_id}`}>
               <strong>{row.name}</strong>

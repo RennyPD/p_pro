@@ -1,9 +1,10 @@
 import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDate } from "../../lib/format";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Button, Modal, Spinner } from "../../components/ui";
+import { Badge, Button, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useDraftGuard } from "../../lib/useDraftGuard";
 import { useAuthStore } from "../../store/auth";
@@ -16,17 +17,21 @@ type Approval = {
   status: string;
   resolution_notes: string;
   requested_by: number;
+  created_at?: string;
+  resource_label?: string;
+  requested_by_name?: string;
 };
 const statuses: Record<string, string> = {
   pending: "Pendiente",
   approved: "Aprobada",
   rejected: "Rechazada",
 };
-const resources: Record<string, string> = {
-  student: "Expediente",
-  section: "Sección",
-  submission: "Entrega",
+const statusTone: Record<string, "warning" | "success" | "danger"> = {
+  pending: "warning",
+  approved: "success",
+  rejected: "danger",
 };
+const requestDate = (value?: string) => formatDate(value, "");
 
 export function RequestApproval({
   resource,
@@ -151,7 +156,11 @@ export function ApprovalsPage() {
   return (
     <div className="page">
       <header className="page-header">
-        <h1>Solicitudes de aprobación</h1>
+        <div>
+          <span className="kicker">Seguimiento</span>
+          <h1>Solicitudes de revisión</h1>
+          <p>Revisiones de expedientes, notas, secciones o entregas y su decisión.</p>
+        </div>
       </header>
       {user?.role_name === "admin" && (
         <div className="form-actions">
@@ -172,10 +181,16 @@ export function ApprovalsPage() {
       ) : listing.data?.length ? (
         listing.data.map(item => (
           <article className="panel" key={item.approval_request_id}>
-            <h2>Solicitud {item.approval_request_id}</h2>
-            <p>
-              {statuses[item.status] ?? item.status} ·{" "}
-              {resources[item.resource_type] ?? item.resource_type} {item.resource_id}
+            <div className="approval-head">
+              <h2>{item.resource_label || "Solicitud de revisión"}</h2>
+              <Badge tone={statusTone[item.status] ?? "neutral"}>
+                {statuses[item.status] ?? item.status}
+              </Badge>
+            </div>
+            <p className="muted">
+              Solicitud n.º {item.approval_request_id}
+              {item.created_at && ` · ${requestDate(item.created_at)}`}
+              {all && item.requested_by_name && ` · solicitada por ${item.requested_by_name}`}
             </p>
             <p>{item.reason}</p>
             {item.resolution_notes && <p>Decisión registrada · {item.resolution_notes}</p>}
@@ -201,7 +216,7 @@ export function ApprovalsPage() {
         </section>
       )}
       {selected && (
-        <Modal title={`Revisar solicitud ${selected.approval_request_id}`} onClose={close}>
+        <Modal title="Revisar solicitud" description={selected.resource_label} onClose={close}>
           <p>
             La decisión se registra aquí. Los cambios en el expediente, la sección o la entrega se
             tramitan desde su pantalla.

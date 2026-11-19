@@ -25,6 +25,7 @@ type CatalogSection = {
   credits: number;
 };
 
+/** Adds guidance to the backend's (Spanish) selection errors. */
 function selectionIssue(detail: string, maximum?: number, credits?: number): string {
   const prerequisite = /^Falta aprobar el prerrequisito (.+)$/.exec(detail)?.[1];
   if (prerequisite)

@@ -3333,7 +3333,7 @@ export interface components {
       /** Courses */
       courses: components["schemas"]["TranscriptCourse"][];
       /** Cumulative Average */
-      cumulative_average: number;
+      cumulative_average: number | null;
       /**
        * Curriculum Version
        * @default current
@@ -3343,8 +3343,20 @@ export interface components {
       earned_credits: number;
       /** Enrollment Number */
       enrollment_number: string;
+      /**
+       * Final Result Count
+       * @default 0
+       */
+      final_result_count: number;
       /** Periods */
       periods: components["schemas"]["PeriodRecord"][];
+      /** Provisional Average */
+      provisional_average?: number | null;
+      /**
+       * Provisional Result Count
+       * @default 0
+       */
+      provisional_result_count: number;
       /**
        * Recognized Credits
        * @default 0
@@ -3641,6 +3653,11 @@ export interface components {
       request_type: string;
       /** Requested By */
       requested_by: number;
+      /**
+       * Requested By Name
+       * @default
+       */
+      requested_by_name: string;
       /** Resolution Notes */
       resolution_notes: string;
       /** Resolved At */
@@ -3649,6 +3666,11 @@ export interface components {
       resolved_by: number | null;
       /** Resource Id */
       resource_id: number;
+      /**
+       * Resource Label
+       * @default
+       */
+      resource_label: string;
       /** Resource Type */
       resource_type: string;
       /** Status */
@@ -4584,6 +4606,11 @@ export interface components {
       active_period: string | null;
       /** Alerts */
       alerts: string[];
+      /**
+       * Display Name
+       * @default
+       */
+      display_name: string;
       /** Metrics */
       metrics: components["schemas"]["DashboardMetric"][];
       /** Role */
@@ -5368,7 +5395,7 @@ export interface components {
       /** Attempted Credits */
       attempted_credits: number;
       /** Average */
-      average: number;
+      average: number | null;
       /** Courses */
       courses: number;
       /** Earned Credits */
@@ -5597,6 +5624,11 @@ export interface components {
       /** Grade Average */
       grade_average: number | null;
       /**
+       * Grade Average Final
+       * @default false
+       */
+      grade_average_final: boolean;
+      /**
        * Graded Student Count
        * @default 0
        */
@@ -5611,6 +5643,11 @@ export interface components {
        * @default
        */
       period_name: string;
+      /**
+       * Provisional Student Count
+       * @default 0
+       */
+      provisional_student_count: number;
       /**
        * Published Grade Count
        * @default 0
@@ -5628,6 +5665,11 @@ export interface components {
       subject_name: string;
       /** Teacher Name */
       teacher_name: string;
+      /**
+       * Ungraded Student Count
+       * @default 0
+       */
+      ungraded_student_count: number;
     };
     /** SectionCreate */
     SectionCreate: {
@@ -5924,6 +5966,13 @@ export interface components {
       enrollment_number: string;
       /** Enrollments */
       enrollments: components["schemas"]["StudentEnrollmentSummary"][];
+      /** Final Average */
+      final_average?: number | null;
+      /**
+       * Final Result Count
+       * @default 0
+       */
+      final_result_count: number;
       /**
        * Financial Hold
        * @default false
@@ -5941,6 +5990,13 @@ export interface components {
       overall_average: number | null;
       /** Previous School */
       previous_school?: string | null;
+      /** Provisional Average */
+      provisional_average?: number | null;
+      /**
+       * Provisional Result Count
+       * @default 0
+       */
+      provisional_result_count: number;
       /** Student Id */
       student_id: number;
       /** Telephone */
@@ -6229,6 +6285,30 @@ export interface components {
       code: string;
       /** Description */
       description: string;
+    };
+    /**
+     * SubjectListItem
+     * @description Directory row: where the subject is used, so the table is not just code + name.
+     */
+    SubjectListItem: {
+      /**
+       * Career Codes
+       * @default []
+       */
+      career_codes: string[];
+      /** Code */
+      code: string;
+      /** Credits */
+      credits?: number | null;
+      /** Description */
+      description: string;
+      /**
+       * Section Count
+       * @default 0
+       */
+      section_count: number;
+      /** Subject Id */
+      subject_id: number;
     };
     /** SubjectOut */
     SubjectOut: {
@@ -13639,7 +13719,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["SubjectOut"][];
+          "application/json": components["schemas"]["SubjectListItem"][];
         };
       };
       /** @description Validation Error */

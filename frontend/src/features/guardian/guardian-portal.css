@@ -52,18 +52,36 @@
   gap: 0.75rem;
   margin: 1rem 0;
 }
+.guardian-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.guardian-hero h2 {
+  color: var(--on-accent);
+  font-size: 1.6rem;
+}
 .guardian-metrics article {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.15rem 0.7rem;
-  align-items: center;
+  align-content: start;
+  gap: 0.35rem;
   padding: 1rem;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--surface);
 }
+.guardian-metrics article > span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.guardian-metrics small {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
 .guardian-metrics svg {
-  grid-row: 1/3;
+  width: 17px;
   color: var(--blue);
 }
 .guardian-metrics span {
@@ -99,8 +117,19 @@
   color: var(--muted);
 }
 .guardian-list p {
-  text-align: right;
   margin: 0;
+  font-size: 0.85rem;
+}
+.guardian-list p b {
+  color: var(--ink);
+  font-weight: 700;
+}
+.guardian-list article > div:last-child {
+  text-align: right;
+}
+.guardian-alerts small.is-overdue {
+  color: var(--danger);
+  font-weight: 700;
 }
 .guardian-alerts article {
   padding: 0.9rem;
@@ -143,5 +172,14 @@
   }
   .student-switch select {
     min-width: 100%;
+  }
+}
+@media (max-width: 560px) {
+  .guardian-list article {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .guardian-list article > div:last-child {
+    text-align: left;
   }
 }

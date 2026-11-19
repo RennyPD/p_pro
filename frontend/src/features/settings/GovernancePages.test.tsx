@@ -106,7 +106,7 @@ it("shows missing academic samples as no data and keeps permissions outside inst
   expect(await screen.findByRole("heading", { name: "Ingeniería" })).toBeInTheDocument();
   const average = screen.getByText("Promedio final").parentElement!;
   expect(average).toHaveTextContent("Sin datos");
-  expect(average).toHaveTextContent("0 resultados");
+  expect(average).toHaveTextContent("Sin notas publicadas");
   expect(screen.getByRole("link", { name: "Gestionar permisos en Configuración" })).toHaveAttribute(
     "href",
     "/settings/access",

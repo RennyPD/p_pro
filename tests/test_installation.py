@@ -69,6 +69,10 @@ def test_initial_admin_and_account_validation_on_migrated_database(migrated_engi
             assert response.status_code == 422
             assert response.json()["detail"][0]["loc"] == ["body", "password"]
             assert (
+                response.json()["detail"][0]["msg"]
+                == "Omite este campo si deseas conservar su valor"
+            )
+            assert (
                 client.patch(
                     f"/users/{user_id}", headers=headers, json={"student_id": 23}
                 ).status_code

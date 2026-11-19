@@ -1,5 +1,8 @@
 import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { DateInput } from "../../components/DateInput";
+import { formatDateTime } from "../../lib/format";
+import { provisionalReason } from "../../lib/academicResult";
 import { BookCheck, History, Lock, Plus, Save, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -426,10 +429,15 @@ function SectionBook({ section }: { section: Section }) {
       </label>
       {tab === "book" && (
         <>
-          <p className="muted">
-            Vacío significa pendiente; 0 es una nota válida. Los borradores no afectan resultados
-            oficiales. Guarda cada componente antes de publicarlo.
-          </p>
+          <div className="grade-legend" aria-hidden="true">
+            <span className="grade-state grade-state--published">Publicada</span>
+            <span className="grade-state grade-state--draft">Borrador</span>
+            <span className="grade-state grade-state--dirty">Sin guardar</span>
+            <span className="grade-state grade-state--pending">Pendiente</span>
+            <small>
+              Vacío = pendiente · 0 es una nota válida · los borradores no cuentan en el resultado.
+            </small>
+          </div>
           {!items.length ? (
             <EmptyState
               icon={<BookCheck />}
@@ -453,7 +461,7 @@ function SectionBook({ section }: { section: Section }) {
                         </th>
                       ))}
                       <th>
-                        Resultado publicado<small>Ponderado sobre 100</small>
+                        Resultado<small>Ponderado sobre 100</small>
                       </th>
                     </tr>
                   </thead>
@@ -474,8 +482,15 @@ function SectionBook({ section }: { section: Section }) {
                             const state = key in values ? "dirty" : (grade?.status ?? "pending");
                             return (
                               <td key={item.assessment_id}>
-                                <div className="assessment-grade-input">
+                                <div
+                                  className={`assessment-grade-input assessment-grade-input--${state}`}
+                                >
                                   <input
+                                    title={
+                                      grade?.status === "published"
+                                        ? `Aporta ${((grade.grade_value * item.weight) / 100).toFixed(2)} puntos`
+                                        : undefined
+                                    }
                                     aria-label={
                                       item.name +
                                       " de " +
@@ -537,25 +552,11 @@ function SectionBook({ section }: { section: Section }) {
                                     </button>
                                   )}
                                 </div>
-                                <Badge
-                                  tone={
-                                    state === "published"
-                                      ? "success"
-                                      : state === "dirty" || state === "draft"
-                                        ? "warning"
-                                        : "neutral"
-                                  }
-                                >
+                                <span className={`grade-state grade-state--${state}`}>
                                   {state === "dirty"
                                     ? "Sin guardar"
                                     : (labels[state] ?? "Pendiente")}
-                                </Badge>
-                                {grade?.status === "published" && (
-                                  <small>
-                                    Aporta {((grade.grade_value * item.weight) / 100).toFixed(2)}{" "}
-                                    puntos
-                                  </small>
-                                )}
+                                </span>
                               </td>
                             );
                           })}
@@ -564,8 +565,9 @@ function SectionBook({ section }: { section: Section }) {
                               {result?.completed_weight ? result.weighted_grade.toFixed(2) : "—"}
                             </strong>
                             <small>
-                              {result?.final ? labels[result.status] : "Provisional"} ·{" "}
-                              {result?.completed_weight ?? 0}% calificado
+                              {result?.final
+                                ? `Definitivo · ${labels[result.status]}`
+                                : `Provisional · ${provisionalReason(result?.completed_weight ?? 0)}`}
                             </small>
                           </td>
                         </tr>
@@ -742,7 +744,7 @@ function SectionBook({ section }: { section: Section }) {
               </label>
               <label className="form-field">
                 <span>Fecha límite</span>
-                <input type="date" value={date} onChange={event => setDate(event.target.value)} />
+                <DateInput value={date} onValueChange={event => setDate(event)} />
               </label>
               <div className="form-actions">
                 <Button disabled={create.isPending || configured >= 100}>Crear componente</Button>
@@ -863,7 +865,7 @@ function SectionBook({ section }: { section: Section }) {
                   }[item.action] ?? item.action}
                 </strong>
                 <small>
-                  {new Date(item.created_at + "Z").toLocaleString()} · {item.actor}
+                  {formatDateTime(item.created_at)} · {item.actor}
                 </small>
                 <p>{item.detail}</p>
               </article>
@@ -921,12 +923,7 @@ function AssessmentEditor({ item, refresh }: { item: Assessment; refresh: () => 
       </label>
       <label className="form-field">
         <span>Fecha límite</span>
-        <input
-          type="date"
-          disabled={item.closed}
-          value={date}
-          onChange={event => setDate(event.target.value)}
-        />
+        <DateInput disabled={item.closed} value={date} onValueChange={event => setDate(event)} />
       </label>
       <Button disabled={item.closed || update.isPending}>Guardar datos</Button>
     </form>
@@ -979,7 +976,7 @@ function GradeHistory({
               {change.new_value}
             </strong>
             <small>
-              {change.changed_by_name} · {new Date(change.changed_at + "Z").toLocaleString()}
+              {change.changed_by_name} · {formatDateTime(change.changed_at)}
             </small>
             <p>{change.reason}</p>
             <small>

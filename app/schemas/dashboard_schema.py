@@ -10,6 +10,7 @@ class DashboardMetric(BaseModel):
 
 class DashboardSummary(BaseModel):
     role: str
+    display_name: str = ""
     metrics: list[DashboardMetric]
     active_period: str | None
     alerts: list[str]

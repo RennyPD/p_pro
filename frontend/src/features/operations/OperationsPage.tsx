@@ -1,5 +1,6 @@
 import { confirmAction } from "../../lib/confirm";
 import { DocumentDownload } from "../../components/DocumentDownload";
+import { formatDate, formatDateTime } from "../../lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ClipboardList } from "lucide-react";
 import { useRef, useState } from "react";
@@ -399,7 +400,7 @@ export function OperationsPage() {
                 .sort((a, b) => date(a.starts_at).getTime() - date(b.starts_at).getTime())
                 .map(e => (
                   <article key={e.id}>
-                    <time>{date(e.starts_at).toLocaleDateString("es-DO")}</time>
+                    <time>{formatDate(e.starts_at)}</time>
                     {eventButton(e)}
                   </article>
                 ))}
@@ -460,7 +461,7 @@ export function OperationsPage() {
       {info && (
         <Modal title={info.title} onClose={() => setInfo(null)}>
           <p>
-            {info.subject_name} · {date(info.starts_at).toLocaleDateString("es-DO")}
+            {info.subject_name} · {formatDate(info.starts_at)}
           </p>
           <p>Fecha programada de evaluación. No equivale a una entrega de tarea.</p>
           <Link to={manager ? `/assessments?section=${info.section_id}` : "/my-grades"}>
@@ -731,7 +732,7 @@ function TaskDetail({
         <Badge>{state(task)}</Badge>
         <p className="preserve-lines">{task.instructions}</p>
         <p>
-          Vence: {date(task.due_at).toLocaleString("es-DO")} · Máximo: {task.max_score} puntos
+          Vence: {formatDateTime(task.due_at)} · Máximo: {task.max_score} puntos
         </p>
         <p>
           {task.allow_late ? "Acepta entregas tardías." : "No admite entregas después del plazo."}{" "}
@@ -743,8 +744,7 @@ function TaskDetail({
             {task.submission && (
               <>
                 <p>
-                  {labels[task.submission.status]} ·{" "}
-                  {date(task.submission.submitted_at).toLocaleString("es-DO")}
+                  {labels[task.submission.status]} · {formatDateTime(task.submission.submitted_at)}
                   {date(task.submission.submitted_at) > date(task.due_at) ? " · Tardía" : ""} ·{" "}
                   {task.submission.attempts} intento(s)
                 </p>
@@ -868,7 +868,7 @@ function TaskDetail({
             {revisions.data?.map((r, i) => (
               <article className="attempt-card" key={r.revision_id}>
                 <strong>
-                  Intento {i + 1} · {date(r.submitted_at).toLocaleString("es-DO")}
+                  Intento {i + 1} · {formatDateTime(r.submitted_at)}
                 </strong>
                 <p className="preserve-lines">{r.content}</p>
                 {r.filename && (
@@ -931,7 +931,7 @@ function SubmissionReview({
       {open && item && (
         <>
           <p>
-            {date(item.submitted_at).toLocaleString("es-DO")}
+            {formatDateTime(item.submitted_at)}
             {date(item.submitted_at) > date(task.due_at) ? " · Entrega tardía" : ""}
           </p>
           <p className="preserve-lines">{item.content}</p>

@@ -1,6 +1,9 @@
 import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, ReceiptText, Wallet } from "lucide-react";
+import { DateInput } from "../../components/DateInput";
+import { formatDateTime, formatMoney, todayIso } from "../../lib/format";
+import { Pager } from "../../components/Pager";
+import { ArrowLeft, ArrowRight, Download, ReceiptText, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -79,8 +82,7 @@ type Closing = {
 };
 type Event = { id: number; action: string; actor: string; detail: string; created_at: string };
 type Action = { path: string; payload: unknown; method?: "put"; done?: () => void };
-const money = (value = 0) =>
-  new Intl.NumberFormat("es-DO", { style: "currency", currency: "DOP" }).format(value);
+const money = (value = 0) => formatMoney(value);
 const auditNames: Record<string, string> = {
   "account.updated": "Configuración de cuenta",
   "charge.created": "Cargo registrado",
@@ -135,16 +137,9 @@ function auditDetail(value: string) {
     return "Detalle histórico no disponible";
   }
 }
-const day = () => new Date(Date.now() - 4 * 3600000).toISOString().slice(0, 10);
-const dateLabel = (value: string) =>
-  new Date(
-    value.length === 10 ? value + "T12:00:00" : value.endsWith("Z") ? value : value + "Z",
-  ).toLocaleString("es-DO", {
-    timeZone: "America/Santo_Domingo",
-    ...(value.length === 10
-      ? { dateStyle: "medium" as const }
-      : { dateStyle: "medium" as const, timeStyle: "short" as const }),
-  });
+const day = todayIso;
+const ACCOUNTS_PAGE = 20;
+const dateLabel = (value: string) => formatDateTime(value);
 const labels: Record<string, string> = {
   charge: "Cargo",
   payment: "Abono",
@@ -238,6 +233,8 @@ function FinanceAccounts() {
   });
   const [search, setSearch] = useState("");
   const [state, setState] = useState("");
+  const [order, setOrder] = useState("overdue");
+  const [page, setPage] = useState(0);
   if (query.isLoading)
     return (
       <div className="page">
@@ -255,16 +252,25 @@ function FinanceAccounts() {
         />
       </div>
     );
-  const rows = (query.data || []).filter(
-    a =>
-      `${a.student_name} ${a.enrollment_number}`.toLowerCase().includes(search.toLowerCase()) &&
-      (!state ||
-        (state === "overdue"
-          ? a.overdue_balance > 0
-          : state === "debt"
-            ? a.balance > 0
-            : a.balance <= 0)),
-  );
+  const rows = (query.data || [])
+    .filter(
+      a =>
+        `${a.student_name} ${a.enrollment_number}`.toLowerCase().includes(search.toLowerCase()) &&
+        (!state ||
+          (state === "overdue"
+            ? a.overdue_balance > 0
+            : state === "debt"
+              ? a.balance > 0
+              : a.balance <= 0)),
+    )
+    .sort((a, b) =>
+      order === "name"
+        ? a.student_name.localeCompare(b.student_name, "es")
+        : order === "number"
+          ? a.enrollment_number.localeCompare(b.enrollment_number)
+          : b.overdue_balance - a.overdue_balance || b.balance - a.balance,
+    );
+  const pageRows = rows.slice(page * ACCOUNTS_PAGE, (page + 1) * ACCOUNTS_PAGE);
   return (
     <div className="page finance-page">
       <header className="page-header">
@@ -296,17 +302,40 @@ function FinanceAccounts() {
             <span>Buscar estudiante</span>
             <input
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
               placeholder="Nombre o matrícula"
             />
           </label>
           <label className="form-field">
             <span>Situación de la cuenta</span>
-            <select value={state} onChange={e => setState(e.target.value)}>
+            <select
+              value={state}
+              onChange={e => {
+                setState(e.target.value);
+                setPage(0);
+              }}
+            >
               <option value="">Todas</option>
               <option value="overdue">Con vencimientos</option>
               <option value="debt">Con balance pendiente</option>
               <option value="clear">Sin deuda</option>
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Ordenar por</span>
+            <select
+              value={order}
+              onChange={e => {
+                setOrder(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="overdue">Mayor deuda vencida</option>
+              <option value="name">Nombre</option>
+              <option value="number">Matrícula</option>
             </select>
           </label>
         </div>
@@ -314,7 +343,7 @@ function FinanceAccounts() {
           {rows.length} cuentas · Incluye estudiantes activos e inactivos con historial.
         </p>
         <div className="finance-accounts">
-          {rows.map(a => (
+          {pageRows.map(a => (
             <article key={a.student_id}>
               <div>
                 <strong>{a.student_name}</strong>
@@ -340,6 +369,13 @@ function FinanceAccounts() {
           ))}
         </div>
         {!rows.length && <p className="muted">No hay cuentas para estos filtros.</p>}
+        <Pager
+          page={page}
+          pageSize={ACCOUNTS_PAGE}
+          total={rows.length}
+          onPage={setPage}
+          label="cuentas"
+        />
       </section>
       <FinanceOffice />
     </div>
@@ -448,12 +484,11 @@ function FinanceOffice() {
           >
             <label className="form-field">
               <span>Fecha de caja (República Dominicana)</span>
-              <input
+              <DateInput
                 required
-                type="date"
                 max={day()}
                 value={closingDate}
-                onChange={e => setClosingDate(e.target.value)}
+                onValueChange={e => setClosingDate(e)}
               />
             </label>
             <Button disabled={action.isPending} variant="secondary">
@@ -622,10 +657,14 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
         <FinanceMetric label="Ajustes netos" value={money(data.total_adjustments)} />
         <FinanceMetric label="Balance vencido" value={money(data.overdue_balance)} />
       </section>
-      <aside className="panel finance-notice">
-        Los pagos son internos en pesos dominicanos. Una transferencia pendiente no reduce la deuda.
-        Los recibos no son comprobantes fiscales y el bloqueo financiero se gestiona por separado.
-      </aside>
+      <details className="context-help finance-help">
+        <summary>Cómo funcionan los pagos</summary>
+        <p>
+          Los pagos son internos y en pesos dominicanos. Una transferencia pendiente no reduce la
+          deuda hasta que caja la verifica. Los recibos no son comprobantes fiscales y el bloqueo
+          financiero se gestiona por separado.
+        </p>
+      </details>
       {canManage && (
         <Button
           variant="secondary"
@@ -697,10 +736,9 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
               </label>
               <label className="form-field">
                 <span>Vencimiento del cargo</span>
-                <input
-                  type="date"
+                <DateInput
                   value={charge.due_date}
-                  onChange={e => setCharge({ ...charge, due_date: e.target.value })}
+                  onValueChange={e => setCharge({ ...charge, due_date: e })}
                 />
               </label>
               <small className="muted">Vacío: próximo día {data.due_day}, adaptado al mes.</small>
@@ -822,10 +860,9 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
               {["late_fee", "debit"].includes(adjustment.kind) && (
                 <label className="form-field">
                   <span>Vencimiento del ajuste</span>
-                  <input
-                    type="date"
+                  <DateInput
                     value={adjustment.due_date}
-                    onChange={e => setAdjustment({ ...adjustment, due_date: e.target.value })}
+                    onValueChange={e => setAdjustment({ ...adjustment, due_date: e })}
                   />
                 </label>
               )}
@@ -905,7 +942,7 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
                 <div className="finance-row-actions">
                   {t.type === "payment" && (
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       onClick={() =>
                         download(
                           `/finance/payments/${t.transaction_id}/receipt.pdf`,
@@ -913,7 +950,7 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
                         )
                       }
                     >
-                      Recibo
+                      <Download size={15} /> Recibo
                     </Button>
                   )}
                   {canManage && t.status !== "reversed" && (
@@ -1126,12 +1163,11 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
               </label>
               <label className="form-field">
                 <span>Primer vencimiento</span>
-                <input
+                <DateInput
                   required
-                  type="date"
                   min={day()}
                   value={plan.first_due_date}
-                  onChange={e => setPlan({ ...plan, first_due_date: e.target.value })}
+                  onValueChange={e => setPlan({ ...plan, first_due_date: e })}
                 />
               </label>
               <Button

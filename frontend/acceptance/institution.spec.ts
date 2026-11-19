@@ -227,10 +227,10 @@ test("admin publishes a draft and can filter the resulting audit event", async (
   await page.getByRole("button", { name: "Confirmar publicación" }).click();
   await expect(page.getByRole("cell", { name: "Publicada", exact: true })).toBeVisible();
   await page.goto("/settings/audit");
-  await page.getByLabel("Acción exacta").fill("section.published");
-  await page.getByRole("button", { name: "Aplicar filtros" }).click();
+  await page.getByLabel("Acción", { exact: true }).selectOption("section.published");
+  await page.getByRole("button", { name: "Filtrar" }).click();
   await expect(
-    page.getByRole("cell", { name: "section.published", exact: true }).first(),
+    page.getByRole("cell", { name: "Sección publicada", exact: true }).first(),
   ).toBeVisible();
 });
 
@@ -324,10 +324,7 @@ test("the student can read a filed document and request approval without changin
   await page.getByLabel("Motivo de la decisión").fill("Revisión de aceptación QA");
   await page.getByRole("button", { name: "Registrar decisión" }).click();
   await expect(
-    page
-      .locator("article")
-      .filter({ hasText: reason })
-      .getByText(/^Aprobada ·/),
+    page.locator("article").filter({ hasText: reason }).getByText("Aprobada", { exact: true }),
   ).toBeVisible();
   await page.goto(`/students/${user.student_id}`);
   await page.getByRole("button", { name: "Documentos", exact: true }).click();

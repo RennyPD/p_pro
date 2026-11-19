@@ -216,3 +216,7 @@
     gap: 0.6rem;
   }
 }
+.equivalences-page .form-field {
+  align-self: start;
+  align-content: start;
+}

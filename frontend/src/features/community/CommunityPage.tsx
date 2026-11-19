@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDateTime } from "../../lib/format";
 import { Bell, Check, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -35,10 +36,7 @@ const audiences: Record<string, string> = {
   section: "Estudiantes de una sección",
   section_guardians: "Tutores de una sección",
 };
-const dateLabel = (value: string) =>
-  new Date(value.endsWith("Z") ? value : value + "Z").toLocaleString("es-DO", {
-    timeZone: "America/Santo_Domingo",
-  });
+const dateLabel = (value: string) => formatDateTime(value);
 const operationKey = () =>
   globalThis.crypto?.randomUUID?.() ||
   `notice-${Date.now()}-${Math.random().toString(36).slice(2)}`;

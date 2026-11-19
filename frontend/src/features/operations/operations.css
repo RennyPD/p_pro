@@ -25,9 +25,10 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0.7rem;
-  background: var(--surface);
+  background-color: var(--surface);
   color: var(--ink);
   font: inherit;
+  font-weight: 400;
   max-width: 100%;
 }
 .operations-toolbar select {
@@ -203,4 +204,7 @@
   .operations-tabs a {
     margin-left: 0;
   }
+}
+.operations-toolbar select {
+  padding-right: 2.5rem;
 }

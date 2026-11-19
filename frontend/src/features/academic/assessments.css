@@ -169,3 +169,96 @@
     max-width: 180px;
   }
 }
+/* Compact gradebook: one line per student; state shown by colour + a short label. */
+.assessment-book th,
+.assessment-book td {
+  padding: 0.45rem 0.7rem;
+  vertical-align: middle;
+  min-width: 150px;
+}
+.assessment-book tbody th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.86rem;
+  color: var(--ink);
+  font-weight: 650;
+}
+.assessment-book tbody th small {
+  margin: 0.1rem 0 0;
+  font-size: 0.74rem;
+}
+.assessment-book td > strong + small {
+  margin: 0.1rem 0 0;
+}
+.assessment-grade-input {
+  margin: 0;
+}
+.assessment-grade-input input {
+  width: 76px;
+  padding: 0.4rem 0.5rem;
+  border-left-width: 4px;
+}
+.assessment-grade-input--published input {
+  border-left-color: var(--success);
+}
+.assessment-grade-input--draft input {
+  border-left-color: var(--warning);
+}
+.assessment-grade-input--dirty input {
+  border-left-color: var(--blue);
+  background: var(--blue-soft);
+}
+.assessment-grade-input--pending input {
+  border-left-color: var(--line-dark);
+}
+.grade-state {
+  display: inline-block;
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 650;
+  color: var(--muted);
+}
+.grade-state--published {
+  color: var(--success);
+}
+.grade-state--draft {
+  color: var(--warning-strong);
+}
+.grade-state--dirty {
+  color: var(--blue);
+}
+.assessment-book td .grade-state {
+  display: none;
+}
+.assessment-book td .grade-state--dirty,
+.assessment-book td .grade-state--draft {
+  display: inline-block;
+}
+.grade-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  margin: 0 0 0.8rem;
+}
+.grade-legend .grade-state {
+  margin: 0;
+  padding-left: 0.9rem;
+  position: relative;
+}
+.grade-legend .grade-state::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.2rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 2px;
+  background: currentColor;
+}
+.grade-legend .grade-state--pending {
+  color: var(--subtle);
+}
+.grade-legend small {
+  color: var(--muted);
+}

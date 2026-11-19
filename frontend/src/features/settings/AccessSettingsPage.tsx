@@ -1,5 +1,6 @@
 import { confirmAction } from "../../lib/confirm";
 import { useEffect, useState } from "react";
+import { formatDateTime } from "../../lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +18,18 @@ const roleNames: Record<string, string> = {
   student: "Estudiante",
   guardian: "Tutor",
 };
+/** What each permission unlocks, in the words of the person granting it. */
+const permissionScopes: Record<string, string> = {
+  "academic.manage": "Estudiantes, docentes, carreras, asignaturas y secciones",
+  "access.manage": "Usuarios, roles y esta pantalla de permisos",
+  "communications.manage": "Avisos a secciones o a toda la institución",
+  "finance.manage": "Cargos, pagos, caja y cuentas estudiantiles",
+  "grades.manage": "Libro de notas, asistencia y cierre de evaluaciones",
+  "operations.manage": "Agenda, tareas, solicitudes y casos de seguimiento",
+  "records.own": "Solo su propio expediente o el de estudiantes vinculados",
+  "reports.view": "Control institucional e indicadores",
+};
+
 export function AccessSettingsPage() {
   const uid = useAuthStore(s => s.user?.user_id);
   const client = useQueryClient();
@@ -153,7 +166,7 @@ export function AccessSettingsPage() {
                   />
                   <span>
                     <strong>{p.description}</strong>
-                    <small>{p.slug}</small>
+                    <small title={p.slug}>{permissionScopes[p.slug] ?? p.slug}</small>
                   </span>
                 </label>
               ))}
@@ -206,10 +219,7 @@ export function AccessSettingsPage() {
           history.data.map(h => (
             <article className="intervention-history" key={h.id}>
               <strong>
-                {h.actor} ·{" "}
-                {new Date(h.created_at + "Z").toLocaleString("es-DO", {
-                  timeZone: "America/Santo_Domingo",
-                })}
+                {h.actor} · {formatDateTime(h.created_at)}
               </strong>
               <p>{h.detail}</p>
             </article>

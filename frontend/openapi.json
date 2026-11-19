@@ -383,8 +383,15 @@
             "type": "array"
           },
           "cumulative_average": {
-            "title": "Cumulative Average",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cumulative Average"
           },
           "curriculum_version": {
             "default": "current",
@@ -399,12 +406,33 @@
             "title": "Enrollment Number",
             "type": "string"
           },
+          "final_result_count": {
+            "default": 0,
+            "title": "Final Result Count",
+            "type": "integer"
+          },
           "periods": {
             "items": {
               "$ref": "#/components/schemas/PeriodRecord"
             },
             "title": "Periods",
             "type": "array"
+          },
+          "provisional_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provisional Average"
+          },
+          "provisional_result_count": {
+            "default": 0,
+            "title": "Provisional Result Count",
+            "type": "integer"
           },
           "recognized_credits": {
             "default": 0,
@@ -475,7 +503,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -1164,6 +1191,11 @@
             "title": "Requested By",
             "type": "integer"
           },
+          "requested_by_name": {
+            "default": "",
+            "title": "Requested By Name",
+            "type": "string"
+          },
           "resolution_notes": {
             "title": "Resolution Notes",
             "type": "string"
@@ -1195,6 +1227,11 @@
             "minimum": 1.0,
             "title": "Resource Id",
             "type": "integer"
+          },
+          "resource_label": {
+            "default": "",
+            "title": "Resource Label",
+            "type": "string"
           },
           "resource_type": {
             "maxLength": 40,
@@ -2010,7 +2047,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -3085,7 +3121,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -3882,6 +3917,11 @@
             },
             "title": "Alerts",
             "type": "array"
+          },
+          "display_name": {
+            "default": "",
+            "title": "Display Name",
+            "type": "string"
           },
           "metrics": {
             "items": {
@@ -5749,7 +5789,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -5829,8 +5868,15 @@
             "type": "number"
           },
           "average": {
-            "title": "Average",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
           },
           "courses": {
             "title": "Courses",
@@ -6401,6 +6447,11 @@
             ],
             "title": "Grade Average"
           },
+          "grade_average_final": {
+            "default": false,
+            "title": "Grade Average Final",
+            "type": "boolean"
+          },
           "graded_student_count": {
             "default": 0,
             "title": "Graded Student Count",
@@ -6415,6 +6466,11 @@
             "default": "",
             "title": "Period Name",
             "type": "string"
+          },
+          "provisional_student_count": {
+            "default": 0,
+            "title": "Provisional Student Count",
+            "type": "integer"
           },
           "published_grade_count": {
             "default": 0,
@@ -6444,6 +6500,11 @@
           "teacher_name": {
             "title": "Teacher Name",
             "type": "string"
+          },
+          "ungraded_student_count": {
+            "default": 0,
+            "title": "Ungraded Student Count",
+            "type": "integer"
           }
         },
         "required": [
@@ -7069,7 +7130,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -7194,6 +7254,22 @@
             "title": "Enrollments",
             "type": "array"
           },
+          "final_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Average"
+          },
+          "final_result_count": {
+            "default": 0,
+            "title": "Final Result Count",
+            "type": "integer"
+          },
           "financial_hold": {
             "default": false,
             "title": "Financial Hold",
@@ -7250,6 +7326,22 @@
               }
             ],
             "title": "Previous School"
+          },
+          "provisional_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provisional Average"
+          },
+          "provisional_result_count": {
+            "default": 0,
+            "title": "Provisional Result Count",
+            "type": "integer"
           },
           "student_id": {
             "title": "Student Id",
@@ -8133,6 +8225,58 @@
           "description"
         ],
         "title": "SubjectCreate",
+        "type": "object"
+      },
+      "SubjectListItem": {
+        "description": "Directory row: where the subject is used, so the table is not just code + name.",
+        "properties": {
+          "career_codes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Career Codes",
+            "type": "array"
+          },
+          "code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "credits": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credits"
+          },
+          "description": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "section_count": {
+            "default": 0,
+            "title": "Section Count",
+            "type": "integer"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "description",
+          "subject_id"
+        ],
+        "title": "SubjectListItem",
         "type": "object"
       },
       "SubjectOut": {
@@ -9457,7 +9601,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -21235,7 +21378,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/SubjectOut"
+                    "$ref": "#/components/schemas/SubjectListItem"
                   },
                   "title": "Response Get Subjects Subjects  Get",
                   "type": "array"

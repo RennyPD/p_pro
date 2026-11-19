@@ -22,6 +22,7 @@ from app.models.community_model import StudentGuardian
 from app.models.configuration_model import AcademicPeriod
 from app.models.enrollment_model import Enrollment
 from app.models.finance_model import StudentAccount
+from app.models.grade_model import Grade
 from app.models.operations_model import (
     AdmissionApplication,
     AlertIntervention,
@@ -739,17 +740,53 @@ def enroll_admission(
     "/approvals", response_model=list[ApprovalOut], dependencies=[Depends(operations_admin)]
 )
 def approvals(db: Session = Depends(get_db)):
-    return db.query(ApprovalRequest).order_by(ApprovalRequest.created_at.desc()).all()
+    items = db.query(ApprovalRequest).order_by(ApprovalRequest.created_at.desc()).all()
+    return [describe_approval(db, item) for item in items]
+
+
+def _student_label(student) -> str:
+    return f"{student.first_name} {student.last_name} · {student.enrollment_number}"
+
+
+def approval_resource_label(db: Session, item: ApprovalRequest) -> str:
+    """Human description of what a request is about (never a bare id)."""
+    if item.resource_type == "student" and (student := db.get(Student, item.resource_id)):
+        return f"Expediente de {_student_label(student)}"
+    if item.resource_type == "section" and (section := db.get(Section, item.resource_id)):
+        return f"Sección {section.code} · {section.subject.description}"
+    if item.resource_type == "submission" and (submission := db.get(Submission, item.resource_id)):
+        task = db.get(Assignment, submission.assignment_id)
+        student = db.get(Student, submission.student_id)
+        title = task.title if task else "tarea"
+        return f"Entrega de {title}" + (f" · {_student_label(student)}" if student else "")
+    if item.resource_type == "grade" and (grade := db.get(Grade, item.resource_id)):
+        enrollment = grade.enrollment
+        return (
+            f"Nota de {grade.grade_type} · {enrollment.section.code} · "
+            f"{_student_label(enrollment.student)}"
+        )
+    return "Recurso no disponible"
+
+
+def describe_approval(db: Session, item: ApprovalRequest) -> ApprovalOut:
+    requester = db.get(User, item.requested_by)
+    return ApprovalOut.model_validate(item).model_copy(
+        update={
+            "resource_label": approval_resource_label(db, item),
+            "requested_by_name": requester.username if requester else "",
+        }
+    )
 
 
 @router.get("/approvals/mine", response_model=list[ApprovalOut])
 def my_approvals(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return (
+    items = (
         db.query(ApprovalRequest)
         .filter_by(requested_by=user.user_id)
         .order_by(ApprovalRequest.created_at.desc(), ApprovalRequest.approval_request_id.desc())
         .all()
     )
+    return [describe_approval(db, item) for item in items]
 
 
 def ensure_approval_resource(db, user, data):
@@ -799,7 +836,7 @@ def request_approval(
     )
     db.commit()
     db.refresh(item)
-    return item
+    return describe_approval(db, item)
 
 
 @router.patch("/approvals/{request_id}", response_model=ApprovalOut)
@@ -824,7 +861,7 @@ def resolve_approval(
     record(db, user, "approval.resolved", f"approval:{request_id}", f"pending → {data.status}")
     db.commit()
     db.refresh(item)
-    return item
+    return describe_approval(db, item)
 
 
 @router.get("/students/{student_id}/documents", response_model=list[StudentDocumentOut])
@@ -967,6 +1004,7 @@ def academic_analytics(period: str | None = None, db: Session = Depends(get_db))
     def metrics(enrollments):
         calculations = [academic_result(db, e) for e in enrollments]
         finals = [r for r in calculations if r.final and r.value is not None]
+        provisionals = [r for r in calculations if not r.final and r.value is not None]
         ids = [e.enrollment_id for e in enrollments]
         attendance = (
             db.query(Attendance).filter(Attendance.enrollment_id.in_(ids)).all() if ids else []
@@ -976,6 +1014,12 @@ def academic_analytics(period: str | None = None, db: Session = Depends(get_db))
             if finals
             else None,
             "grade_count": len(finals),
+            "provisional_average_grade": round(
+                sum(r.value for r in provisionals) / len(provisionals), 2
+            )
+            if provisionals
+            else None,
+            "provisional_grade_count": len(provisionals),
             "attendance_count": len(attendance),
             "attendance_percentage": percentage(sum(a.present for a in attendance), len(attendance))
             if attendance

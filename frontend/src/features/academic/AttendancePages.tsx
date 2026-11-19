@@ -1,5 +1,7 @@
 import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { DateInput } from "../../components/DateInput";
+import { formatDate, formatDateTime } from "../../lib/format";
 import { ClipboardCheck, History } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -18,6 +20,13 @@ const labels: Record<string, string> = {
   late: "Tardanza",
   excused: "Justificada",
   early_departure: "Salida anticipada",
+};
+const shortLabels: Record<string, string> = {
+  present: "Presente",
+  absent: "Ausente",
+  late: "Tardanza",
+  excused: "Justificada",
+  early_departure: "Salida ant.",
 };
 const institutionDate = new Intl.DateTimeFormat("en", {
   timeZone: "America/Santo_Domingo",
@@ -104,16 +113,15 @@ export function AttendanceWorkspacePage() {
         </div>
         <label>
           Fecha de clase
-          <input
+          <DateInput
             aria-label="Fecha de clase"
-            type="date"
             max={localDay()}
             value={day}
-            onChange={async e => {
+            onValueChange={async e => {
               if (dirty && !(await confirmAction("Hay cambios sin guardar. ¿Cambiar de fecha?")))
                 return;
               setDirty(false);
-              setDay(e.target.value);
+              setDay(e);
             }}
           />
         </label>
@@ -145,6 +153,7 @@ function AttendanceSession({
     [search, setSearch] = useState("");
   const [historyId, setHistoryId] = useState<number | null>(null);
   const [plans, setPlans] = useState(false);
+  const [openNotes, setOpenNotes] = useState<Set<number>>(new Set());
   const [bulkScope, setBulkScope] = useState<"visible" | "all" | null>(null);
   const query = useQuery<Session>({
     queryKey: ["attendance-session", user?.user_id, sectionId, day],
@@ -260,7 +269,10 @@ function AttendanceSession({
         <p>
           {session.teacher_name} · {session.period_name || "Sin período"} · {session.days_of_week}
         </p>
-        <p>{rule}</p>
+        <details className="context-help">
+          <summary>Cómo se calcula el porcentaje</summary>
+          <p>{rule}</p>
+        </details>
         <div className="attendance-counts">
           <Badge tone={pending ? "warning" : "success"}>{pending} sin registrar</Badge>
           {Object.entries(labels).map(([status, label]) => (
@@ -298,42 +310,66 @@ function AttendanceSession({
                     {row.enrollment_number}
                     {row.state !== "enrolled" ? " · Corrección histórica" : ""}
                   </small>
-                  <Badge>
-                    {changes[row.enrollment_id]
-                      ? "Sin guardar"
-                      : row.status
-                        ? "Registrada"
-                        : "Sin registrar"}
-                  </Badge>
+                  {changes[row.enrollment_id] && <Badge tone="info">Sin guardar</Badge>}
                 </div>
-                <label>
-                  Estado de {row.name} · {row.enrollment_number}
-                  <select
-                    value={value.status}
-                    onChange={e => edit(row, { status: e.target.value })}
+                <div
+                  className="attendance-status"
+                  role="radiogroup"
+                  aria-label={`Estado de ${row.name} · ${row.enrollment_number}`}
+                >
+                  {Object.entries(labels).map(([k, label]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      role="radio"
+                      title={label}
+                      aria-checked={value.status === k}
+                      className={`attendance-status__option attendance-status__option--${k}`}
+                      onClick={() => edit(row, { status: value.status === k ? "" : k })}
+                    >
+                      {shortLabels[k]}
+                    </button>
+                  ))}
+                </div>
+                {!(
+                  value.note ||
+                  value.status === "excused" ||
+                  openNotes.has(row.enrollment_id)
+                ) && (
+                  <button
+                    type="button"
+                    className="attendance-note-toggle"
+                    onClick={() => setOpenNotes(current => new Set(current).add(row.enrollment_id))}
                   >
-                    <option value="">Sin registrar</option>
-                    {Object.entries(labels).map(([k, label]) => (
-                      <option key={k} value={k}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Observación de {row.name} · {row.enrollment_number}
+                    + Observación
+                  </button>
+                )}
+                <label
+                  className={
+                    value.note || value.status === "excused" || openNotes.has(row.enrollment_id)
+                      ? ""
+                      : "attendance-note--collapsed"
+                  }
+                >
+                  <span className="sr-only">
+                    Observación de {row.name} · {row.enrollment_number}
+                  </span>
                   <input
                     maxLength={300}
                     value={value.note}
                     onChange={e => edit(row, { note: e.target.value })}
                     placeholder={
-                      value.status === "excused" ? "Indica el motivo sin datos médicos" : "Opcional"
+                      value.status === "excused"
+                        ? "Motivo (sin datos médicos)"
+                        : "Observación opcional"
                     }
                   />
                 </label>
                 {(value.status === "excused" || value.excuse_reference) && (
                   <label>
-                    Referencia de {row.name} · {row.enrollment_number}
+                    <span className="sr-only">
+                      Referencia de {row.name} · {row.enrollment_number}
+                    </span>
                     <input
                       maxLength={300}
                       value={value.excuse_reference}
@@ -342,10 +378,18 @@ function AttendanceSession({
                     />
                   </label>
                 )}
-                {row.attendance_id && (
-                  <Button variant="ghost" onClick={() => setHistoryId(row.attendance_id)}>
-                    <History size={16} /> Historial
-                  </Button>
+                {row.attendance_id ? (
+                  <button
+                    type="button"
+                    className="icon-button"
+                    title="Historial de cambios"
+                    aria-label={`Historial de ${row.name}`}
+                    onClick={() => setHistoryId(row.attendance_id)}
+                  >
+                    <History size={16} />
+                  </button>
+                ) : (
+                  <span />
                 )}
               </article>
             );
@@ -375,9 +419,10 @@ function AttendanceSession({
               />
             </label>
           )}
-          <p>
-            Se guardan solo {Object.keys(changes).length} estudiantes modificados. Los demás
-            registros no se alteran.
+          <p className="attendance-save__summary">
+            <b>{Object.keys(changes).length}</b>{" "}
+            {Object.keys(changes).length === 1 ? "cambio sin guardar" : "cambios sin guardar"} ·
+            solo se guardan los estudiantes modificados.
           </p>
           {invalid && (
             <p role="alert">
@@ -470,7 +515,7 @@ function AttendanceSession({
                       : "Corrección"}{" "}
                   · {c.changed_by_name}
                 </strong>
-                <small>{new Date(`${c.changed_at}Z`).toLocaleString("es-DO")}</small>
+                <small>{formatDateTime(c.changed_at)}</small>
                 <p>
                   {c.previous ? labels[c.previous.status] : "Sin registro"} →{" "}
                   {c.current ? labels[c.current.status] : "Eliminado"}
@@ -514,7 +559,11 @@ export function StudentAttendancePage() {
         <div>
           <span className="kicker">Clases registradas</span>
           <h1>Mi asistencia</h1>
-          <p>{rule}</p>
+          <p>Porcentaje de asistencia sobre las clases registradas.</p>
+          <details className="context-help">
+            <summary>Cómo se calcula</summary>
+            <p>{rule}</p>
+          </details>
         </div>
       </header>
       <div className="attendance-actions">
@@ -529,11 +578,11 @@ export function StudentAttendancePage() {
         </label>
         <label>
           Desde
-          <input type="date" value={start} onChange={e => setStart(e.target.value)} />
+          <DateInput value={start} onValueChange={e => setStart(e)} />
         </label>
         <label>
           Hasta
-          <input type="date" value={end} onChange={e => setEnd(e.target.value)} />
+          <DateInput value={end} onValueChange={e => setEnd(e)} />
         </label>
         <label>
           Detalle de estados
@@ -579,7 +628,7 @@ export function StudentAttendancePage() {
                     .filter(r => !status || r.status === status)
                     .map(r => (
                       <article className="attendance-day" key={r.attendance_id}>
-                        <time>{new Date(`${r.date}T12:00:00`).toLocaleDateString("es-DO")}</time>
+                        <time>{formatDate(r.date)}</time>
                         <Badge>{labels[r.status]}</Badge>
                         <p>
                           {r.note || "Sin observación"}

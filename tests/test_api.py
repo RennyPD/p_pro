@@ -305,6 +305,10 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(
             self.request("POST", f"/academic/catalog/cart/{new_id}", student_token).status_code, 200
         )
+        # Regression: listing a non-empty cart used to fail with a 500.
+        cart = self.request("GET", "/academic/catalog/cart", student_token)
+        self.assertEqual(cart.status_code, 200, cart.text)
+        self.assertEqual(cart.json()[0]["credits"], 3)
         self.assertEqual(
             self.request("DELETE", f"/curriculum/courses/{course_id}", admin).status_code, 200
         )
@@ -1751,6 +1755,29 @@ class ApiIntegrationTests(unittest.TestCase):
         provisional = self.request("GET", final_path, student).json()
         self.assertEqual(provisional["weighted_grade"], 72)
         self.assertFalse(provisional["final"])
+        # Published but not closed: every view must call it provisional, never final.
+        record = self.request("GET", f"/records/students/{student_id}/transcript", student).json()
+        self.assertIsNone(record["cumulative_average"])
+        self.assertEqual(record["academic_standing"], "no_final_results")
+        self.assertEqual(record["provisional_average"], 72)
+        self.assertEqual(record["provisional_result_count"], 1)
+        profile = self.request("GET", f"/academic/students/{student_id}/profile", admin).json()
+        self.assertIsNone(profile["final_average"])
+        self.assertEqual(profile["provisional_average"], 72)
+        summary = next(
+            row
+            for row in self.request("GET", "/academic/sections/academic-summary", admin).json()
+            if row["section_id"] == section_id
+        )
+        self.assertEqual(
+            (
+                summary["final_student_count"],
+                summary["provisional_student_count"],
+                summary["ungraded_student_count"],
+                summary["grade_average_final"],
+            ),
+            (0, 1, 0, False),
+        )
         for item in items:
             self.assertEqual(
                 self.request(
@@ -1772,6 +1799,9 @@ class ApiIntegrationTests(unittest.TestCase):
             ),
             72,
         )
+        self.assertEqual(transcript["cumulative_average"], 72)
+        self.assertEqual(transcript["academic_standing"], "good")
+        self.assertEqual(transcript["final_result_count"], 1)
         progress = self.request(
             "GET", f"/curriculum/students/{student_id}/progress", student
         ).json()
@@ -4135,6 +4165,8 @@ class ApiIntegrationTests(unittest.TestCase):
         )
         current = self.request("GET", "/operations/approvals/mine", teacher_token)
         self.assertEqual(current.json()[0]["status"], "approved")
+        self.assertTrue(current.json()[0]["resource_label"].startswith("Entrega de "))
+        self.assertNotIn("submission", current.json()[0]["resource_label"])
         with self.Session() as db:
             original = db.get(Submission, submission_id)
             self.assertEqual((original.score, original.feedback, original.status), before)

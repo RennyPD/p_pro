@@ -1,6 +1,6 @@
 import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, DoorOpen } from "lucide-react";
+import { CalendarDays, DoorOpen, Send } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { DocumentDownload } from "../../components/DocumentDownload";
@@ -121,6 +121,7 @@ export function SectionsPage() {
             <button
               type="button"
               aria-label={`Ver bloques de ${row.code}`}
+              title="Bloques de horario"
               onClick={() => setMeetings(row)}
             >
               <CalendarDays size={17} />
@@ -133,8 +134,9 @@ export function SectionsPage() {
                   setPublishError("");
                   setPublication(row);
                 }}
+                title="Publicar sección"
               >
-                Publicar
+                <Send size={16} />
               </button>
             )}
           </>

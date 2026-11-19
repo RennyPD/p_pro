@@ -160,6 +160,7 @@
 }
 .dossier-metrics article {
   display: grid;
+  align-content: start;
   gap: 0.8rem;
   padding: 1.1rem;
   border: 1px solid var(--line);
@@ -522,4 +523,20 @@
 }
 .students-workspace .student-flags {
   min-width: 120px;
+}
+.dossier-metrics .metric-note {
+  margin-top: -0.5rem;
+  color: var(--muted);
+  font-size: 12px;
+}
+.dossier-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+@media (max-width: 760px) {
+  .dossier-actions {
+    justify-content: flex-start;
+  }
 }

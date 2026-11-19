@@ -1,5 +1,7 @@
 import { confirmAction } from "../../lib/confirm";
 import { useId, useState, type FormEvent } from "react";
+import { DateInput } from "../../components/DateInput";
+import { formatDateTime, formatMoney } from "../../lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Users, UserCheck, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -12,6 +14,7 @@ import { useAuthStore } from "../../store/auth";
 import "./institutional-control.css";
 import { AdmissionCreateModal } from "./AdmissionCreateModal";
 import "./alert-history.css";
+import { describeAverage } from "../../lib/academicResult";
 
 const alertLabels: Record<string, string> = {
   academic: "Académica",
@@ -59,10 +62,30 @@ const studentLookup = {
   labelKeys: ["enrollment_number", "first_name", "last_name"],
   placeholder: "Buscar estudiante",
 };
+type GradeMetric = {
+  average_grade: number | null;
+  grade_count: number;
+  provisional_average_grade?: number | null;
+  provisional_grade_count?: number;
+};
+function AverageMetric({ r }: { r: GradeMetric }) {
+  const average = describeAverage({
+    finalAverage: r.average_grade,
+    finalCount: r.grade_count,
+    provisionalAverage: r.provisional_average_grade,
+    provisionalCount: r.provisional_grade_count,
+  });
+  return (
+    <div>
+      <dt>{average.kind === "provisional" ? "Promedio provisional" : "Promedio final"}</dt>
+      <dd>{average.value}</dd>
+      <small>{average.note}</small>
+    </div>
+  );
+}
 const metric = (value: number | null | undefined, suffix = "") =>
   value == null ? "Sin datos" : `${value}${suffix}`;
-const money = (n: number) =>
-  new Intl.NumberFormat("es-DO", { style: "currency", currency: "DOP" }).format(n || 0);
+const money = formatMoney;
 
 export function InstitutionalControlPage() {
   const uid = useAuthStore(s => s.user?.user_id);
@@ -283,11 +306,9 @@ export function InstitutionalControlPage() {
                     ))}
                   </select>
                 </label>
-                <p className="muted">
-                  Los totales institucionales y financieros son globales. El filtro afecta
-                  resultados académicos y casos abiertos de estudiantes con selección en ese
-                  período.
-                </p>
+                <small className="muted">
+                  Filtra resultados académicos y casos; los totales financieros son globales.
+                </small>
                 {periods.error && <p className="form-error">{apiMessage(periods.error)}</p>}
               </section>
               <section className="risk-strip">
@@ -338,11 +359,7 @@ export function InstitutionalControlPage() {
                       </div>
                       <h3>{r.career_name}</h3>
                       <dl className="metric-pairs">
-                        <div>
-                          <dt>Promedio final</dt>
-                          <dd>{metric(r.average_grade)}</dd>
-                          <small>{r.grade_count} resultados</small>
-                        </div>
+                        <AverageMetric r={r} />
                         <div>
                           <dt>Asistencia</dt>
                           <dd>{metric(r.attendance_percentage, "%")}</dd>
@@ -387,14 +404,11 @@ export function InstitutionalControlPage() {
                         <small>{r.enrollments} selecciones</small>
                       </div>
                       <dl className="metric-pairs">
-                        <div>
-                          <dt>Promedio final</dt>
-                          <dd>{metric(r.average_grade)}</dd>
-                          <small>{r.grade_count} resultados</small>
-                        </div>
+                        <AverageMetric r={r} />
                         <div>
                           <dt>Aprobación</dt>
                           <dd>{metric(r.pass_rate, "%")}</dd>
+                          {r.pass_rate == null && <small>Requiere resultados definitivos</small>}
                         </div>
                         <div>
                           <dt>Asistencia</dt>
@@ -678,10 +692,7 @@ export function InstitutionalControlPage() {
               admissionHistory.data.map((h: any) => (
                 <article key={h.id}>
                   <strong>
-                    {h.actor} ·{" "}
-                    {new Date(h.created_at + "Z").toLocaleString("es-DO", {
-                      timeZone: "America/Santo_Domingo",
-                    })}
+                    {h.actor} · {formatDateTime(h.created_at)}
                   </strong>
                   <p>{h.detail}</p>
                 </article>
@@ -844,11 +855,10 @@ function AlertCase({
             </label>
             <label>
               <span>Próximo seguimiento</span>
-              <input
+              <DateInput
                 disabled={busy}
-                type="date"
                 value={draft.follow_up_date}
-                onChange={e => update({ ...draft, follow_up_date: e.target.value })}
+                onValueChange={e => update({ ...draft, follow_up_date: e })}
               />
             </label>
           </div>
@@ -926,11 +936,7 @@ function AlertCase({
                   }[item.action_type as string] || item.action_type}{" "}
                   · {item.performer_name || "Registro histórico"}
                 </strong>
-                <small>
-                  {new Date(item.created_at + "Z").toLocaleString("es-DO", {
-                    timeZone: "America/Santo_Domingo",
-                  })}
-                </small>
+                <small>{formatDateTime(item.created_at)}</small>
                 <p>{item.notes}</p>
               </div>
             ))

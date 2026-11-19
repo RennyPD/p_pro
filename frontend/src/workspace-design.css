@@ -86,8 +86,10 @@
   font-weight: 650;
   line-height: 1.35;
   max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: var(--surface-sunken);
   color: var(--muted);
 }
@@ -1010,4 +1012,312 @@ textarea::placeholder {
 .page select[multiple] {
   background-image: none;
   padding-right: 0.8rem;
+}
+.approval-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.approval-head h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+.page > article.panel + article.panel {
+  margin-top: 0.8rem;
+}
+.document-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.document-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.document-list li > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.document-list small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.audit-filters {
+  display: grid;
+  grid-template-columns: 1.3fr 1.3fr 1fr 1fr auto;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+.audit-filters .form-field {
+  margin: 0;
+}
+.audit-filters > .button {
+  height: 46px;
+}
+.pagination {
+  align-items: center;
+}
+.pagination__page {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+@media (max-width: 900px) {
+  .audit-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .audit-filters > .button {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 760px) {
+  .resource-toolbar {
+    align-items: stretch;
+  }
+  .resource-toolbar .search-box {
+    flex: none;
+    width: 100%;
+  }
+  .resource-toolbar > .button {
+    align-self: flex-start;
+  }
+}
+.modal .form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin-bottom: -1.25rem;
+  padding-bottom: 1.25rem;
+  background: var(--surface);
+}
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--blue);
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+.session-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+.session-list li {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.session-list span {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+.session-list small {
+  color: var(--muted);
+}
+.account-subheading {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  font-size: 1.15rem;
+}
+/* Keep the chevron on every single select even when a page overrides 'background'. */
+.main-surface .page select:not([multiple]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  padding-right: 2.5rem;
+  appearance: none;
+}
+.date-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 150px;
+}
+.date-input > input[type="text"] {
+  width: 100%;
+  padding-right: 2.6rem !important;
+  font-variant-numeric: tabular-nums;
+}
+.date-input__picker {
+  position: absolute;
+  right: 0.35rem;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+.date-input__picker:hover:not(:disabled) {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+.date-input__native {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+  padding: 0;
+}
+.date-input--invalid > input[type="text"] {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.pager > div {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.pager__page {
+  white-space: nowrap;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.attention-list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.attention-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+.attention-item:hover {
+  background: var(--surface-muted);
+}
+.attention-item > svg:first-child {
+  flex-shrink: 0;
+  width: 18px;
+  color: var(--blue-strong);
+}
+.attention-item > span {
+  flex: 1;
+  display: grid;
+  gap: 0.15rem;
+}
+.attention-item small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.attention-item--warning {
+  border-left-color: var(--warning-line);
+}
+.attention-item--info {
+  border-left-color: var(--blue);
+}
+.attention-item--neutral {
+  border-left-color: var(--line-dark);
+}
+.all-clear {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--success);
+  font-weight: 600;
+}
+.all-clear svg {
+  width: 18px;
+}
+.career-bars {
+  display: grid;
+  gap: 1.1rem;
+  margin-top: 0.5rem;
+}
+.career-bar {
+  display: grid;
+  gap: 0.35rem;
+}
+.career-bar__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.86rem;
+}
+.career-bar__head span {
+  color: var(--muted);
+}
+.career-bar__track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.career-bar__track span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--blue);
+}
+.career-bar small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.timeline-item {
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+}
+.day-panel > .text-link,
+.panel > .text-link {
+  margin-top: 1rem;
+}
+.sidebar-nav {
+  gap: 0.1rem;
+}
+.sidebar-nav a {
+  padding: 0.52rem 0.8rem;
+  font-size: 0.86rem;
+}
+.nav-caption {
+  padding: 0.85rem 0.8rem 0.3rem;
+}
+.workspace-switch {
+  margin: 1.2rem 0 0.4rem;
 }

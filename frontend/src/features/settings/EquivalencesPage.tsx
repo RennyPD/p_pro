@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDateTime } from "../../lib/format";
 import { ArrowRightLeft } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -237,10 +238,13 @@ export function EquivalencesPage() {
           </p>
         </div>
       </header>
-      <aside className="panel equivalence-notice">
-        Son reglas generales para todos los estudiantes de la carrera y versión activa. No son
-        solicitudes individuales ni convalidaciones de estudios externos.
-      </aside>
+      <details className="context-help">
+        <summary>¿Qué es una regla de equivalencia?</summary>
+        <p>
+          Es una regla general para todos los estudiantes de la carrera y versión del pensum. No es
+          una solicitud individual ni una convalidación de estudios externos.
+        </p>
+      </details>
       {loadError && (
         <p className="form-error" role="alert">
           {apiMessage(loadError)}
@@ -491,8 +495,8 @@ export function EquivalencesPage() {
                 >
                   Gestionar regla
                 </Button>
-                <Button variant="ghost" onClick={() => setHistoryId(r.course_equivalence_id)}>
-                  Historial
+                <Button variant="secondary" onClick={() => setHistoryId(r.course_equivalence_id)}>
+                  Ver historial
                 </Button>
               </footer>
             </article>
@@ -601,11 +605,7 @@ export function EquivalencesPage() {
                     }[h.action] || h.action}{" "}
                     · {h.actor}
                   </strong>
-                  <time>
-                    {new Date(
-                      h.created_at + (h.created_at.endsWith("Z") ? "" : "Z"),
-                    ).toLocaleString()}
-                  </time>
+                  <time>{formatDateTime(h.created_at)}</time>
                   <p>{h.detail}</p>
                 </article>
               ))}

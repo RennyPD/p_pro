@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { formatDate } from "../../lib/format";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -103,10 +104,7 @@ const modalityLabels: Record<string, string> = {
   virtual: "Virtual",
   hybrid: "Híbrida",
 };
-const dateLabel = (value: string | null) =>
-  value
-    ? new Intl.DateTimeFormat("es", { dateStyle: "medium" }).format(new Date(`${value}T12:00:00`))
-    : "Sin registrar";
+const dateLabel = (value: string | null) => formatDate(value, "Sin registrar");
 
 export function TeacherDossierPage() {
   const { teacherId } = useParams();

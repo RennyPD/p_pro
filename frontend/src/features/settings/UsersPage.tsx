@@ -1,3 +1,4 @@
+import { KeyRound } from "lucide-react";
 import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
@@ -85,8 +86,9 @@ export function UsersPage() {
               type="button"
               onClick={() => setReset(row)}
               aria-label={`Restablecer contraseña de ${row.username}`}
+              title="Restablecer contraseña"
             >
-              Contraseña
+              <KeyRound />
             </button>
             {isCustomRole(String(row.role_name ?? "")) && (
               <button type="button" onClick={() => setAccount(row)}>
