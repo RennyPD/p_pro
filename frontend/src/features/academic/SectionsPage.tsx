@@ -1,6 +1,18 @@
 import { confirmAction } from "../../lib/confirm";
+import { formatTime } from "../../lib/format";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, CalendarDays, DoorOpen, MapPin, Pencil, Plus, Send, Users } from "lucide-react";
+import {
+  Archive,
+  CalendarDays,
+  Clock3,
+  DoorOpen,
+  MapPin,
+  Pencil,
+  Plus,
+  Send,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { DocumentDownload } from "../../components/DocumentDownload";
@@ -248,13 +260,6 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
 
   return (
     <Modal title={`Horario de ${section.code}`} onClose={close}>
-      {!editing && (
-        <DocumentDownload
-          path={`/documents/sections/${section.section_id}/roster.pdf`}
-          filename={`lista-${section.code}.pdf`}
-          label="Descargar lista PDF"
-        />
-      )}
       {blocks.isLoading ? (
         <Spinner label="Cargando bloques" />
       ) : blocks.error ? (
@@ -262,51 +267,84 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
       ) : (
         !editing && (
           <>
-            {!blocks.data?.length && (
-              <p>
-                Horario de respaldo:{" "}
-                {Array.isArray(section.days_of_week)
-                  ? section.days_of_week.join(", ")
-                  : section.days_of_week}{" "}
-                · {String(section.start_time).slice(0, 5)}–{String(section.end_time).slice(0, 5)}.
-                Al agregar bloques, estos reemplazarán ese horario.
+            <div className="room-toolbar">
+              <DocumentDownload
+                path={`/documents/sections/${section.section_id}/roster.pdf`}
+                filename={`lista-${section.code}.pdf`}
+                label="Lista de estudiantes (PDF)"
+              />
+              {editable && (
+                <Button disabled={busy} onClick={() => start("new")}>
+                  <Plus size={16} /> Agregar bloque
+                </Button>
+              )}
+            </div>
+            {!blocks.data?.length ? (
+              <p className="schedule-fallback">
+                Aún no hay bloques. Se usa el horario general de la sección:{" "}
+                <b>
+                  {Array.isArray(section.days_of_week)
+                    ? section.days_of_week.join(", ")
+                    : section.days_of_week}{" "}
+                  · {formatTime(String(section.start_time))}–{formatTime(String(section.end_time))}
+                </b>
+                . Al agregar bloques, reemplazarán ese horario.
               </p>
-            )}
-            {blocks.data?.map(block => (
-              <article className="panel" key={block.meeting_id}>
-                <strong>
-                  {block.day_of_week} · {block.start_time.slice(0, 5)}–{block.end_time.slice(0, 5)}
-                </strong>
-                <p>
-                  {block.classroom_name || section.room} · {modLabels[block.modality]}
-                </p>
-                {editable && (
-                  <div className="form-actions">
-                    <Button variant="secondary" disabled={busy} onClick={() => start(block)}>
-                      Editar bloque
-                    </Button>
-                    <Button
-                      variant="danger"
-                      disabled={busy}
-                      onClick={async () => {
-                        if (
-                          await confirmAction(
-                            `¿Eliminar el bloque del ${block.day_of_week} de ${section.code}?`,
-                          )
-                        )
-                          void change(() => api.delete(`${prefix}/${block.meeting_id}`));
-                      }}
-                    >
-                      Eliminar bloque
-                    </Button>
-                  </div>
-                )}
-              </article>
-            ))}
-            {editable && (
-              <Button disabled={busy} onClick={() => start("new")}>
-                Agregar bloque
-              </Button>
+            ) : (
+              <ul className="room-list">
+                {blocks.data.map(block => (
+                  <li key={block.meeting_id}>
+                    <span className="room-list__icon room-list__icon--day" aria-hidden="true">
+                      {block.day_of_week.slice(0, 3)}
+                    </span>
+                    <div className="room-list__name">
+                      <strong>{block.day_of_week}</strong>
+                      <small>
+                        <Clock3 size={13} /> {formatTime(block.start_time)}–
+                        {formatTime(block.end_time)}
+                      </small>
+                    </div>
+                    <span className="room-list__capacity">
+                      <DoorOpen size={14} /> {block.classroom_name || section.room}
+                    </span>
+                    <Badge tone={block.modality === "virtual" ? "info" : "neutral"}>
+                      {modLabels[block.modality]}
+                    </Badge>
+                    {editable ? (
+                      <div className="row-actions">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          title="Editar bloque"
+                          aria-label={`Editar bloque del ${block.day_of_week}`}
+                          onClick={() => start(block)}
+                        >
+                          <Pencil />
+                        </button>
+                        <button
+                          type="button"
+                          className="danger"
+                          disabled={busy}
+                          title="Eliminar bloque"
+                          aria-label={`Eliminar bloque del ${block.day_of_week}`}
+                          onClick={async () => {
+                            if (
+                              await confirmAction(
+                                `¿Eliminar el bloque del ${block.day_of_week} de ${section.code}?`,
+                              )
+                            )
+                              void change(() => api.delete(`${prefix}/${block.meeting_id}`));
+                          }}
+                        >
+                          <Trash2 />
+                        </button>
+                      </div>
+                    ) : (
+                      <span />
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
           </>
         )

@@ -93,12 +93,22 @@
 .case-title small {
   color: var(--muted);
 }
-.case-title > span {
+.case-severity {
   height: max-content;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.55rem;
   border-radius: 999px;
-  font-size: 0.68rem;
-  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--surface-sunken);
+  color: var(--muted);
+}
+.case-severity--medium {
+  background: var(--warning-soft);
+  color: var(--warning-strong);
+}
+.case-severity--high,
+.case-severity--critical {
   background: var(--danger-soft);
   color: var(--danger);
 }
@@ -131,8 +141,22 @@
 .case-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-top: 0.6rem;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+.case-history-toggle {
+  margin-right: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.case-grid .form-field {
+  margin: 0.6rem 0 0;
 }
 .admission-list,
 .permission-list {

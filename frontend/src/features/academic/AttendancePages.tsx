@@ -2,7 +2,7 @@ import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DateInput } from "../../components/DateInput";
 import { formatDate, formatDateTime } from "../../lib/format";
-import { ClipboardCheck, History } from "lucide-react";
+import { CheckCheck, ClipboardCheck, History, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -252,42 +252,70 @@ function AttendanceSession({
   );
   return (
     <>
-      <section className="panel">
-        <h2>
-          {session.subject_name} · {session.section_code}
-        </h2>
-        <div className="form-actions">
-          <Button variant="secondary" onClick={() => setPlans(true)}>
-            Planes de clase
-          </Button>
-          <RequestApproval
-            resource="section"
-            id={Number(sectionId)}
-            label={`${session.subject_name} · ${session.section_code}`}
-          />
-        </div>
-        <p>
-          {session.teacher_name} · {session.period_name || "Sin período"} · {session.days_of_week}
-        </p>
-        <details className="context-help">
-          <summary>Cómo se calcula el porcentaje</summary>
-          <p>{rule}</p>
-        </details>
-        <div className="attendance-counts">
-          <Badge tone={pending ? "warning" : "success"}>{pending} sin registrar</Badge>
-          {Object.entries(labels).map(([status, label]) => (
-            <span key={status}>
-              {label}: {session.roster.filter(r => current(r).status === status).length}
-            </span>
-          ))}
+      <section className="panel attendance-session">
+        <header className="attendance-session__head">
+          <div>
+            <h2>
+              {session.subject_name} · {session.section_code}
+            </h2>
+            <p>
+              {session.teacher_name} · {session.period_name || "Sin período"} ·{" "}
+              {session.days_of_week}
+            </p>
+          </div>
+          <div className="section-heading__actions">
+            <Link className="button button--secondary" to={`/assessments?section=${sectionId}`}>
+              Libro de notas
+            </Link>
+            <Button variant="secondary" onClick={() => setPlans(true)}>
+              Planes de clase
+            </Button>
+            <RequestApproval
+              resource="section"
+              id={Number(sectionId)}
+              label={`${session.subject_name} · ${session.section_code}`}
+            />
+          </div>
+        </header>
+        <div className="attendance-progress">
+          <div className="attendance-progress__label">
+            <strong>
+              {session.roster.length - pending} de {session.roster.length} registrados
+            </strong>
+            <span>{pending ? `${pending} sin registrar` : "Todo el grupo tiene estado"}</span>
+          </div>
+          <div
+            className="attendance-progress__bar"
+            role="img"
+            aria-label={`${session.roster.length - pending} de ${session.roster.length} estudiantes con estado`}
+          >
+            {Object.keys(labels).map(status => (
+              <span
+                key={status}
+                className={`attendance-progress__segment attendance-progress__segment--${status}`}
+                style={{
+                  flexGrow: session.roster.filter(r => current(r).status === status).length,
+                }}
+              />
+            ))}
+            <span className="attendance-progress__segment" style={{ flexGrow: pending }} />
+          </div>
+          <div className="attendance-counts">
+            {Object.entries(labels).map(([status, label]) => (
+              <span key={status} className={`attendance-count attendance-count--${status}`}>
+                {label} <b>{session.roster.filter(r => current(r).status === status).length}</b>
+              </span>
+            ))}
+          </div>
         </div>
         <div className="attendance-actions">
-          <label>
-            Buscar estudiante
+          <label className="attendance-search">
+            <Search size={17} aria-hidden="true" />
+            <span className="sr-only">Buscar estudiante</span>
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Nombre o matrícula"
+              placeholder="Buscar por nombre o matrícula"
             />
           </label>
           <Button
@@ -295,9 +323,12 @@ function AttendanceSession({
             disabled={!pending || save.isPending}
             onClick={() => setBulkScope("visible")}
           >
-            Marcar sin registrar como presentes
+            <CheckCheck size={16} /> Marcar sin registrar como presentes
           </Button>
-          <Link to={`/assessments?section=${sectionId}`}>Libro de notas →</Link>
+          <details className="context-help attendance-help">
+            <summary>Cómo se calcula el porcentaje</summary>
+            <p>{rule}</p>
+          </details>
         </div>
         <div className="attendance-roster">
           {visible.map(row => {
@@ -398,7 +429,7 @@ function AttendanceSession({
         {!session.roster.length && (
           <p>No hay estudiantes activos ni registros históricos que corregir para esta fecha.</p>
         )}
-        <div className="attendance-save">
+        <div className={`attendance-save${dirty ? " attendance-save--sticky" : ""}`}>
           <label>
             Motivo del registro o corrección
             <input

@@ -108,9 +108,6 @@
   justify-self: start;
 }
 .attendance-save {
-  position: sticky;
-  bottom: 0;
-  z-index: 6;
   margin-top: 1rem;
   padding: 1rem;
   background: var(--bg);
@@ -219,5 +216,169 @@
   .attendance-roster > article {
     padding: 0.7rem 0.8rem;
     gap: 0.5rem;
+  }
+}
+
+/* Session header: title + metadata, actions on the right. */
+.attendance-session__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.attendance-session__head h2 {
+  margin: 0 0 0.25rem;
+}
+
+.attendance-session__head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+/* Registration progress, coloured like the status buttons. */
+.attendance-progress {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1.1rem 0;
+}
+
+.attendance-progress__label {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.88rem;
+}
+
+.attendance-progress__label span {
+  color: var(--muted);
+}
+
+.attendance-progress__bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--surface-sunken);
+}
+
+.attendance-progress__segment {
+  flex-basis: 0;
+  background: var(--surface-sunken);
+}
+
+.attendance-progress__segment--present {
+  background: var(--success);
+}
+
+.attendance-progress__segment--absent {
+  background: var(--danger);
+}
+
+.attendance-progress__segment--late,
+.attendance-progress__segment--early_departure {
+  background: var(--warning);
+}
+
+.attendance-progress__segment--excused {
+  background: var(--blue);
+}
+
+.attendance-page .attendance-counts {
+  margin: 0;
+  gap: 0.5rem;
+}
+
+.attendance-page .attendance-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.attendance-count b {
+  color: var(--ink);
+}
+
+.attendance-count::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.attendance-count--present::before {
+  background: var(--success);
+}
+
+.attendance-count--absent::before {
+  background: var(--danger);
+}
+
+.attendance-count--late::before,
+.attendance-count--early_departure::before {
+  background: var(--warning);
+}
+
+.attendance-count--excused::before {
+  background: var(--blue);
+}
+
+/* Search with icon + bulk action + help on one row. */
+.attendance-page .attendance-actions {
+  margin: 0 0 1rem;
+}
+
+.attendance-search {
+  position: relative;
+  flex: 1 1 280px;
+  display: flex !important;
+  align-items: center;
+}
+
+.attendance-search > svg {
+  position: absolute;
+  left: 0.8rem;
+  color: var(--subtle);
+}
+
+.attendance-search input {
+  width: 100%;
+  padding-left: 2.4rem !important;
+}
+
+.attendance-help {
+  margin: 0 0 0 auto;
+}
+
+/* Stays in view only while there is something to save. */
+.attendance-save--sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+}
+
+@media (max-width: 800px) {
+  .attendance-save {
+    gap: 0.5rem;
+    padding: 0.7rem;
+  }
+
+  .attendance-save > label {
+    flex-basis: 100%;
+  }
+
+  .attendance-save > .button {
+    flex: 1 1 auto;
   }
 }

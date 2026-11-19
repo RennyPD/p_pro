@@ -1451,3 +1451,41 @@ input[type="radio"] {
   padding-top: 0;
   border-top: 0;
 }
+
+/* Panel title on the left, its actions grouped on the right. */
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.section-heading h2 {
+  margin: 0;
+}
+
+.section-heading__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+textarea {
+  font: inherit;
+}
+
+.room-list__icon--day {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.schedule-fallback {
+  padding: 0.9rem 1rem;
+  border: 1px dashed var(--line-dark);
+  border-radius: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}

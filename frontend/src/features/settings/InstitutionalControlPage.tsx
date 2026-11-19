@@ -429,16 +429,18 @@ export function InstitutionalControlPage() {
       )}
       {tab === "alerts" && (
         <section className="panel alert-cases">
-          <div className="panel-heading">
+          <div className="panel-heading section-heading">
             <h2>Casos y seguimientos</h2>
-            <Button onClick={() => setCreatingAlert(true)}>Nuevo caso</Button>
-            <Button
-              variant="secondary"
-              disabled={generate.isPending}
-              onClick={() => generate.mutate()}
-            >
-              Revisar alertas automáticas
-            </Button>
+            <div className="section-heading__actions">
+              <Button
+                variant="secondary"
+                disabled={generate.isPending}
+                onClick={() => generate.mutate()}
+              >
+                Revisar alertas automáticas
+              </Button>
+              <Button onClick={() => setCreatingAlert(true)}>Nuevo caso</Button>
+            </div>
           </div>
           <div className="control-filters">
             <label className="form-field">
@@ -827,12 +829,11 @@ function AlertCase({
       <div className="case-title">
         <div>
           <strong>{studentName ?? `Estudiante #${alert.student_id}`}</strong>
-          <small>
-            {alertLabels[alert.category] ?? alert.category} · prioridad{" "}
-            {severityNames[alert.severity] || alert.severity}
-          </small>
+          <small>{alertLabels[alert.category] ?? alert.category}</small>
         </div>
-        <span>{severityNames[alert.severity] || alert.severity}</span>
+        <span className={`case-severity case-severity--${alert.severity}`}>
+          {severityNames[alert.severity] || alert.severity}
+        </span>
       </div>
       <p>{alert.reason}</p>
       {alert.status === "open" ? (
@@ -876,14 +877,18 @@ function AlertCase({
               ))}
             </select>
           </label>
-          <textarea
-            aria-label="Actuación del caso"
-            disabled={busy}
-            maxLength={5000}
-            placeholder="Describe la llamada, reunión, acuerdo o resultado"
-            value={draft.notes}
-            onChange={e => update({ ...draft, notes: e.target.value })}
-          />
+          <label className="form-field">
+            <span>Detalle de la actuación</span>
+            <textarea
+              aria-label="Actuación del caso"
+              disabled={busy}
+              maxLength={5000}
+              rows={3}
+              placeholder="Describe la llamada, reunión, acuerdo o resultado"
+              value={draft.notes}
+              onChange={e => update({ ...draft, notes: e.target.value })}
+            />
+          </label>
         </>
       ) : (
         <p className="resolution-note">
@@ -891,9 +896,13 @@ function AlertCase({
         </p>
       )}
       <div className="case-actions">
-        <Button variant="ghost" onClick={() => setShowHistory(value => !value)}>
+        <button
+          type="button"
+          className="text-link case-history-toggle"
+          onClick={() => setShowHistory(value => !value)}
+        >
           {showHistory ? "Ocultar historial" : "Ver historial"}
-        </Button>
+        </button>
         {alert.status === "open" ? (
           <>
             <Button variant="secondary" disabled={busy} onClick={() => assign(draft)}>
