@@ -20,6 +20,7 @@ from app.schemas.scheduling_schema import (
     ScheduleBlock,
 )
 from app.services.effective_schedule import (
+    ROOM_UNASSIGNED,
     legacy_blocks,
     meeting_block,
     room_conflict,
@@ -230,6 +231,18 @@ def save_meeting(db, user, data, existing=None):
         )
     )
     validate_schedule(db, section, blocks)
+    # Open drafts reserve rooms too (validate_schedule only sees published sections).
+    block = blocks[-1]
+    if block.modality != "virtual" and block.room.strip().casefold() not in ROOM_UNASSIGNED:
+        conflict = room_conflict(db, section, [block])
+        if conflict:
+            other, _, held = conflict
+            raise HTTPException(
+                409,
+                f"El aula {block.room} está ocupada el {block.day_of_week} de "
+                f"{held.start_time:%H:%M} a {held.end_time:%H:%M} por la sección {other.code}. "
+                "Elige otra aula u horario",
+            )
     meeting = existing if existing is not None else SectionMeeting()
     for key, value in data.model_dump().items():
         setattr(meeting, key, value)

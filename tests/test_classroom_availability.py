@@ -159,3 +159,32 @@ def test_availability_lists_each_classroom_with_its_status(context):
         params={**params, "section_id": hold_id},
     ).json()
     assert next(item for item in own if item["name"] == "Aula Norte")["status"] == "available"
+
+
+def test_a_block_cannot_take_a_room_reserved_by_a_draft(context):
+    client, headers, base = context
+    holder = client.post(
+        "/sections/", headers=headers, json=section(base, "HOLDER", room="Aula Norte")
+    )
+    assert holder.status_code == 200, holder.text
+    other = client.post("/sections/", headers=headers, json=section(base, "BLOCKS"))
+    assert other.status_code == 200, other.text
+    rooms = client.get("/scheduling/classrooms", headers=headers).json()
+    north = next(room["classroom_id"] for room in rooms if room["name"] == "Aula Norte")
+    meeting = {
+        "section_id": other.json()["section_id"],
+        "classroom_id": north,
+        "day_of_week": "Sábado",
+        "start_time": "09:00:00",
+        "end_time": "09:45:00",
+        "modality": "in_person",
+    }
+    clash = client.post("/scheduling/meetings", headers=headers, json=meeting)
+    assert clash.status_code == 409
+    assert "HOLDER" in clash.json()["detail"]
+    free = client.post(
+        "/scheduling/meetings",
+        headers=headers,
+        json={**meeting, "start_time": "10:00:00", "end_time": "11:00:00"},
+    )
+    assert free.status_code == 200, free.text

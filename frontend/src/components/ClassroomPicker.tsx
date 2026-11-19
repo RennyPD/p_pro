@@ -1,11 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Controller, useWatch, type Control, type FieldValues } from "react-hook-form";
-import { api } from "../lib/api";
-import type { ApiSchema } from "../lib/apiTypes";
-import { useAuthStore } from "../store/auth";
+import { freeRoomsLabel, useClassroomAvailability } from "../lib/classroomAvailability";
 
-type Availability = ApiSchema<"ClassroomAvailability">;
 const UNASSIGNED = "Por asignar";
 
 const days = (value: unknown) =>
@@ -27,7 +23,6 @@ export function ClassroomPicker({
   label: string;
   control: Control<FieldValues>;
 }) {
-  const userId = useAuthStore(state => state.user?.user_id);
   const [dayList, start, end, capacity, period, modality, sectionId, status] = useWatch({
     control,
     name: [
@@ -41,24 +36,16 @@ export function ClassroomPicker({
       "status",
     ],
   });
-  const selectedDays = days(dayList);
-  const ready = selectedDays.length > 0 && Boolean(start) && Boolean(end) && start < end;
-  const params = {
-    days: selectedDays.join(","),
-    start_time: String(start ?? "").slice(0, 5),
-    end_time: String(end ?? "").slice(0, 5),
+  const availability = useClassroomAvailability({
+    days: days(dayList),
+    start: String(start ?? ""),
+    end: String(end ?? ""),
     capacity: Number(capacity) || 1,
-    period_name: period || "",
-    section_id: sectionId || undefined,
-  };
-  const availability = useQuery({
-    queryKey: ["classroom-availability", userId, params],
-    queryFn: () =>
-      api
-        .get<Availability[]>("/scheduling/classrooms/availability", { params })
-        .then(response => response.data),
-    enabled: ready && modality !== "virtual",
+    period: period || "",
+    sectionId,
+    enabled: modality !== "virtual",
   });
+  const ready = availability.ready;
   const rooms = availability.data ?? [];
   const find = (value: string) =>
     rooms.find(room => room.name.toLocaleLowerCase() === value.trim().toLocaleLowerCase());
@@ -135,14 +122,7 @@ export function ClassroomPicker({
                 <CheckCircle2 size={14} /> Disponible en ese horario
               </small>
             ) : (
-              <small className="room-hint">
-                {(() => {
-                  const free = rooms.filter(item => item.status === "available").length;
-                  return free === 1
-                    ? "1 aula libre en ese horario"
-                    : `${free} aulas libres en ese horario`;
-                })()}
-              </small>
+              <small className="room-hint">{freeRoomsLabel(rooms)}</small>
             )}
           </label>
         );

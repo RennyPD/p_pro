@@ -1,9 +1,12 @@
 import { confirmAction } from "../../lib/confirm";
+import { freeRoomsLabel, useClassroomAvailability } from "../../lib/classroomAvailability";
 import { formatTime } from "../../lib/format";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   Archive,
   CalendarDays,
+  CheckCircle2,
   Clock3,
   DoorOpen,
   MapPin,
@@ -16,14 +19,13 @@ import {
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { DocumentDownload } from "../../components/DocumentDownload";
-import { LookupSelect } from "../../components/LookupSelect";
 import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { resources } from "../../config/resources";
 import { api, apiMessage } from "../../lib/api";
 import { weekDays } from "../../lib/schedule";
 import { useDraftGuard } from "../../lib/useDraftGuard";
 import { useAuthStore } from "../../store/auth";
-import type { EntityRecord, LookupConfig, ResourceConfig } from "../../types";
+import type { EntityRecord, ResourceConfig } from "../../types";
 import { ResourcePage } from "../resources/ResourcePage";
 
 const modLabels = { in_person: "Presencial", hybrid: "Híbrida", virtual: "Virtual" };
@@ -43,13 +45,6 @@ type Meeting = {
   classroom_name: string | null;
   modality: keyof typeof modLabels;
   virtual_url: string;
-};
-const roomLookup: LookupConfig = {
-  endpoint: "/scheduling/classrooms",
-  valueKey: "classroom_id",
-  labelKeys: ["name"],
-  secondaryKey: "location",
-  placeholder: "Buscar aula",
 };
 const sectionConfig: ResourceConfig = {
   ...resources.sections,
@@ -195,6 +190,7 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
   const roomLabel = useId();
   const [editing, setEditing] = useState<Meeting | "new" | null>(null);
   const [room, setRoom] = useState<number | null>(null);
+  const [slot, setSlot] = useState({ day: "", start: "", end: "", modality: "in_person" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -213,6 +209,16 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
   function start(value: Meeting | "new") {
     setEditing(value);
     setRoom(value === "new" ? null : value.classroom_id);
+    setSlot(
+      value === "new"
+        ? { day: weekDays[0], start: "", end: "", modality: "in_person" }
+        : {
+            day: value.day_of_week,
+            start: value.start_time.slice(0, 5),
+            end: value.end_time.slice(0, 5),
+            modality: value.modality,
+          },
+    );
     setDirty(false);
     setError("");
   }
@@ -249,8 +255,24 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
     }
   }
 
+  const availability = useClassroomAvailability({
+    days: slot.day ? [slot.day] : [],
+    start: slot.start,
+    end: slot.end,
+    capacity: Number(section.capacity) || 1,
+    period: String(section.period_name ?? ""),
+    sectionId: Number(section.section_id),
+    enabled: Boolean(editing) && slot.modality !== "virtual",
+  });
+  const chosen = availability.rooms.find(item => item.classroom_id === room);
+  const roomProblem =
+    slot.modality !== "virtual" && chosen && chosen.status !== "available"
+      ? `${chosen.name}: ${chosen.detail}`
+      : "";
+
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (roomProblem) return;
     const values = Object.fromEntries(new FormData(event.currentTarget));
     const payload = { ...values, section_id: section.section_id, classroom_id: room };
     void change(() =>
@@ -353,7 +375,12 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
         <form className="resource-form" onSubmit={save} onChange={() => setDirty(true)}>
           <label className="form-field">
             <span>Día</span>
-            <select name="day_of_week" defaultValue={existing?.day_of_week} required>
+            <select
+              name="day_of_week"
+              defaultValue={existing?.day_of_week}
+              required
+              onChange={event => setSlot(current => ({ ...current, day: event.target.value }))}
+            >
               {weekDays.map(day => (
                 <option key={day}>{day}</option>
               ))}
@@ -366,6 +393,7 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
               type="time"
               required
               defaultValue={existing?.start_time.slice(0, 5)}
+              onChange={event => setSlot(current => ({ ...current, start: event.target.value }))}
             />
           </label>
           <label className="form-field">
@@ -375,11 +403,16 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
               type="time"
               required
               defaultValue={existing?.end_time.slice(0, 5)}
+              onChange={event => setSlot(current => ({ ...current, end: event.target.value }))}
             />
           </label>
           <label className="form-field">
             <span>Modalidad</span>
-            <select name="modality" defaultValue={existing?.modality}>
+            <select
+              name="modality"
+              defaultValue={existing?.modality}
+              onChange={event => setSlot(current => ({ ...current, modality: event.target.value }))}
+            >
               {Object.entries(modLabels).map(([value, label]) => (
                 <option value={value} key={value}>
                   {label}
@@ -387,18 +420,45 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
               ))}
             </select>
           </label>
-          <div className="form-field">
+          <label className="form-field">
             <span id={roomLabel}>Aula del bloque</span>
-            <LookupSelect
-              config={roomLookup}
-              labelId={roomLabel}
-              value={room}
-              onChange={value => {
-                setRoom(value === null ? null : Number(value));
+            <select
+              aria-labelledby={roomLabel}
+              value={room ?? ""}
+              disabled={slot.modality === "virtual" || !availability.ready}
+              onChange={event => {
+                setRoom(event.target.value ? Number(event.target.value) : null);
                 setDirty(true);
               }}
-            />
-          </div>
+            >
+              <option value="">Aula de la sección ({String(section.room || "Por asignar")})</option>
+              {availability.rooms.map(item => (
+                <option
+                  key={item.classroom_id}
+                  value={item.classroom_id}
+                  disabled={item.status !== "available" && item.classroom_id !== room}
+                >
+                  {item.name} · {item.capacity} plazas
+                  {item.status === "available" ? " · Disponible" : ` · ${item.detail}`}
+                </option>
+              ))}
+            </select>
+            {slot.modality === "virtual" ? (
+              <small className="room-hint">Bloque virtual: no necesita aula.</small>
+            ) : !availability.ready ? (
+              <small className="room-hint">Elige día y horario para ver las aulas libres.</small>
+            ) : roomProblem ? (
+              <small className="room-hint room-hint--warning" role="alert">
+                <AlertTriangle size={14} /> {roomProblem}. No se podrá guardar.
+              </small>
+            ) : chosen ? (
+              <small className="room-hint room-hint--ok">
+                <CheckCircle2 size={14} /> Disponible en ese horario
+              </small>
+            ) : (
+              <small className="room-hint">{freeRoomsLabel(availability.rooms)}</small>
+            )}
+          </label>
           <label className="form-field">
             <span>Enlace de clase virtual</span>
             <input
@@ -412,7 +472,9 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
             <Button type="button" variant="secondary" disabled={busy} onClick={close}>
               Cancelar
             </Button>
-            <Button disabled={busy}>{busy ? "Guardando…" : "Guardar bloque"}</Button>
+            <Button disabled={busy || Boolean(roomProblem)}>
+              {busy ? "Guardando…" : "Guardar bloque"}
+            </Button>
           </div>
         </form>
       )}
