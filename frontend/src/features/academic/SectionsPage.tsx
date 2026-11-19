@@ -1,11 +1,11 @@
 import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, DoorOpen, Send } from "lucide-react";
+import { Archive, CalendarDays, DoorOpen, MapPin, Pencil, Plus, Send, Users } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { DocumentDownload } from "../../components/DocumentDownload";
 import { LookupSelect } from "../../components/LookupSelect";
-import { Button, Modal, Spinner } from "../../components/ui";
+import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { resources } from "../../config/resources";
 import { api, apiMessage } from "../../lib/api";
 import { weekDays } from "../../lib/schedule";
@@ -450,49 +450,87 @@ function RoomDialog({ onClose }: { onClose: () => void }) {
       ) : (
         !editing && (
           <>
-            {!rooms.data?.length && <p>Aún no hay aulas registradas.</p>}
-            {rooms.data?.map(room => (
-              <article className="panel" key={room.classroom_id}>
-                <strong>{room.name}</strong>
-                <p>
-                  {room.capacity} plazas · {room.active ? "Activa" : "Retirada"}
-                  {room.location ? ` · ${room.location}` : ""}
-                </p>
-                <div className="form-actions">
-                  <Button
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() => {
-                      setError("");
-                      setEditing(room);
-                    }}
-                  >
-                    Editar aula
-                  </Button>
-                  {room.active && (
-                    <Button
-                      variant="danger"
-                      disabled={busy}
-                      onClick={async () => {
-                        if (await confirmAction(`¿Retirar el aula ${room.name}?`))
-                          void change(() => api.delete(`${prefix}/${room.classroom_id}`));
-                      }}
+            <div className="room-toolbar">
+              <p className="muted">
+                {rooms.data?.filter(room => room.active).length ?? 0} activas de{" "}
+                {rooms.data?.length ?? 0} aulas
+              </p>
+              <Button
+                disabled={busy}
+                onClick={() => {
+                  setError("");
+                  setEditing("new");
+                }}
+              >
+                <Plus size={16} /> Nueva aula
+              </Button>
+            </div>
+            {!rooms.data?.length ? (
+              <EmptyState
+                icon={<DoorOpen />}
+                title="Aún no hay aulas"
+                description="Registra las aulas para asignarlas a los bloques de horario."
+              />
+            ) : (
+              <ul className="room-list">
+                {[...(rooms.data ?? [])]
+                  .sort(
+                    (x, y) =>
+                      Number(y.active) - Number(x.active) || x.name.localeCompare(y.name, "es"),
+                  )
+                  .map(room => (
+                    <li
+                      key={room.classroom_id}
+                      className={room.active ? "" : "room-list__item--retired"}
                     >
-                      Retirar aula
-                    </Button>
-                  )}
-                </div>
-              </article>
-            ))}
-            <Button
-              disabled={busy}
-              onClick={() => {
-                setError("");
-                setEditing("new");
-              }}
-            >
-              Nueva aula
-            </Button>
+                      <span className="room-list__icon" aria-hidden="true">
+                        <DoorOpen size={18} />
+                      </span>
+                      <div className="room-list__name">
+                        <strong>{room.name}</strong>
+                        <small>
+                          <MapPin size={13} /> {room.location || "Sin ubicación"}
+                        </small>
+                      </div>
+                      <span className="room-list__capacity">
+                        <Users size={14} /> {room.capacity} plazas
+                      </span>
+                      <Badge tone={room.active ? "success" : "neutral"}>
+                        {room.active ? "Activa" : "Retirada"}
+                      </Badge>
+                      <div className="row-actions">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          title="Editar aula"
+                          aria-label={`Editar ${room.name}`}
+                          onClick={() => {
+                            setError("");
+                            setEditing(room);
+                          }}
+                        >
+                          <Pencil />
+                        </button>
+                        {room.active && (
+                          <button
+                            type="button"
+                            className="danger"
+                            disabled={busy}
+                            title="Retirar aula"
+                            aria-label={`Retirar ${room.name}`}
+                            onClick={async () => {
+                              if (await confirmAction(`¿Retirar el aula ${room.name}?`))
+                                void change(() => api.delete(`${prefix}/${room.classroom_id}`));
+                            }}
+                          >
+                            <Archive />
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+            )}
           </>
         )
       )}

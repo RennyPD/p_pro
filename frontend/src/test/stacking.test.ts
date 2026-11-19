@@ -11,6 +11,18 @@ const zIndex = (selector: string) => {
 
 it("keeps an open lookup list above the sticky modal actions", () => {
   expect(zIndex(".lookup-field:has(.lookup-popover)")).toBeGreaterThan(
-    zIndex(".modal .form-actions"),
+    zIndex(".modal form > .form-actions"),
   );
+});
+
+it("only sticks the footer of a modal's own form, not of cards listed inside it", () => {
+  expect(css).not.toMatch(/\.modal \.form-actions \{[^}]*sticky/);
+});
+
+it("lets rich first cells (name + subtitle) wrap instead of overflowing the next column", () => {
+  const table = readFileSync(
+    join(__dirname, "..", "features/resources/resource-table.css"),
+    "utf8",
+  );
+  expect(table).toMatch(/td:first-child:not\(:has\(div\)\)/);
 });

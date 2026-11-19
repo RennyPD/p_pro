@@ -163,13 +163,13 @@ export function ApprovalsPage() {
         </div>
       </header>
       {user?.role_name === "admin" && (
-        <div className="form-actions">
-          <Button variant={all ? "secondary" : "primary"} onClick={() => setAll(false)}>
+        <div className="view-tabs" role="group" aria-label="Bandeja de solicitudes">
+          <button type="button" aria-pressed={!all} onClick={() => setAll(false)}>
             Mis solicitudes
-          </Button>
-          <Button variant={all ? "primary" : "secondary"} onClick={() => setAll(true)}>
+          </button>
+          <button type="button" aria-pressed={all} onClick={() => setAll(true)}>
             Bandeja institucional
-          </Button>
+          </button>
         </div>
       )}
       {listing.isLoading ? (
@@ -212,7 +212,11 @@ export function ApprovalsPage() {
       ) : (
         <section className="panel">
           <p>Aún no hay solicitudes en esta bandeja.</p>
-          {!all && <Link to="/">Volver al inicio</Link>}
+          {!all && (
+            <Link className="text-link" to="/">
+              Volver al inicio
+            </Link>
+          )}
         </section>
       )}
       {selected && (

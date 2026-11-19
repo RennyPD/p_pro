@@ -13,9 +13,10 @@
   overflow-wrap: break-word;
 }
 
-/* Codes, rooms, periods and other short values never split at hyphens. */
-.resource-table td:first-child,
-.resource-table td.table-detail {
+/* Plain short values (codes, rooms, periods) never split at hyphens; rich cells
+   such as a name with a subtitle keep wrapping normally. */
+.resource-table td:first-child:not(:has(div)),
+.resource-table td.table-detail:not(:has(div)) {
   white-space: nowrap;
 }
 
