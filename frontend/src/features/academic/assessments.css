@@ -269,3 +269,105 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Student grades */
+.student-grade-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: 1rem;
+}
+
+.student-grade {
+  display: grid;
+  align-content: start;
+  gap: 0.7rem;
+}
+
+.student-grade > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.student-grade h2 {
+  margin: 0.3rem 0 0;
+  font-size: 1.1rem;
+}
+
+.student-grade__score {
+  display: grid;
+  justify-items: end;
+  gap: 0.3rem;
+}
+
+.student-grade__score strong {
+  font:
+    800 1.9rem "Manrope",
+    sans-serif;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.student-grade__score--success strong {
+  color: var(--success);
+}
+
+.student-grade__score--danger strong {
+  color: var(--danger);
+}
+
+.student-grade__bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface-sunken);
+}
+
+.student-grade__bar span {
+  background: var(--blue);
+}
+
+.student-grade__bar span:nth-child(even) {
+  background: var(--blue-line);
+}
+
+.student-grade__items {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.student-grade__items li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.student-grade__items li:last-child {
+  border-bottom: 0;
+}
+
+.student-grade__items span {
+  display: grid;
+  gap: 0.1rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.student-grade__items small {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.78rem;
+}
+
+.student-grade__items b {
+  font-size: 1.1rem;
+  color: var(--ink);
+}

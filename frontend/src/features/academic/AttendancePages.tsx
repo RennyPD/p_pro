@@ -40,6 +40,13 @@ const localDay = () => {
   );
   return `${parts.year}-${parts.month}-${parts.day}`;
 };
+const statusTone: Record<string, "success" | "danger" | "warning" | "info"> = {
+  present: "success",
+  absent: "danger",
+  late: "warning",
+  early_departure: "warning",
+  excused: "info",
+};
 const rule =
   "Porcentaje sobre clases registradas: presentes, tardanzas y salidas anticipadas cuentan como presencia; ausencias y justificaciones no. Los días sin registro no cuentan.";
 type Entry = {
@@ -636,22 +643,44 @@ export function StudentAttendancePage() {
           {query.data
             ?.filter(c => !period || c.period === period)
             .map(c => (
-              <article className="panel" key={c.enrollment_id}>
-                <span className="kicker">
-                  {c.subject_code} · {c.section_code} · {c.period}
-                </span>
-                <h2>{c.subject_name}</h2>
-                <strong>{c.percentage === null ? "Sin registros" : `${c.percentage}%`}</strong>
-                <p>
-                  {c.present_count} presencias computables de {c.total_count} clases registradas en
-                  el rango.
+              <article className="panel student-attendance" key={c.enrollment_id}>
+                <header>
+                  <div>
+                    <span className="kicker">
+                      {c.subject_code} · {c.section_code}
+                    </span>
+                    <h2>{c.subject_name}</h2>
+                  </div>
+                  <strong
+                    className={`student-attendance__pct ${
+                      c.percentage !== null && c.percentage < 80 ? "is-low" : ""
+                    }`}
+                  >
+                    {c.percentage === null ? "—" : `${c.percentage}%`}
+                  </strong>
+                </header>
+                <div className="attendance-progress__bar" aria-hidden="true">
+                  {Object.keys(labels).map(k => (
+                    <span
+                      key={k}
+                      className={`attendance-progress__segment attendance-progress__segment--${k}`}
+                      style={{ flexGrow: c.counts[k] ?? 0 }}
+                    />
+                  ))}
+                </div>
+                <p className="muted student-attendance__summary">
+                  {c.total_count
+                    ? `${c.present_count} presencias computables de ${c.total_count} clases registradas en el rango.`
+                    : "Aún no hay clases registradas."}
                 </p>
                 <div className="attendance-counts">
-                  {Object.entries(labels).map(([k, label]) => (
-                    <span key={k}>
-                      {label}: {c.counts[k] ?? 0}
-                    </span>
-                  ))}
+                  {Object.entries(labels)
+                    .filter(([k]) => (c.counts[k] ?? 0) > 0)
+                    .map(([k, label]) => (
+                      <span key={k} className={`attendance-count attendance-count--${k}`}>
+                        {label} <b>{c.counts[k]}</b>
+                      </span>
+                    ))}
                 </div>
                 <details>
                   <summary>Ver fechas y observaciones</summary>
@@ -660,7 +689,7 @@ export function StudentAttendancePage() {
                     .map(r => (
                       <article className="attendance-day" key={r.attendance_id}>
                         <time>{formatDate(r.date)}</time>
-                        <Badge>{labels[r.status]}</Badge>
+                        <Badge tone={statusTone[r.status] ?? "neutral"}>{labels[r.status]}</Badge>
                         <p>
                           {r.note || "Sin observación"}
                           {r.excuse_reference && ` · Referencia: ${r.excuse_reference}`}

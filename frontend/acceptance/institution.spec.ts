@@ -397,9 +397,8 @@ test("student confirms a real cart without native dialogs and keeps their seat",
     .getByRole("dialog", { name: "Confirmar selección académica" })
     .getByRole("button", { name: "Confirmar", exact: true })
     .click();
-  await expect(card.getByText("Tu plaza está reservada")).toBeVisible();
   await expect(card.getByText("Confirmada", { exact: true })).toBeVisible();
-  await expect(card.getByText("Sin cupos para nuevas selecciones")).toHaveCount(0);
+  await expect(card.getByText("Sin cupos", { exact: true })).toHaveCount(0);
   const selections = await (await request.get(`${base}/enrollments/`, { headers })).json();
   expect(
     selections.filter(

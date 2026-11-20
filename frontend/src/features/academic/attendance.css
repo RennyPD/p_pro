@@ -382,3 +382,49 @@
     flex: 1 1 auto;
   }
 }
+
+/* Student attendance cards */
+.student-attendance {
+  display: grid;
+  align-content: start;
+  gap: 0.7rem;
+}
+
+.student-attendance > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.student-attendance h2 {
+  margin: 0.3rem 0 0;
+  font-size: 1.1rem;
+}
+
+.student-attendance__pct {
+  font:
+    800 1.9rem "Manrope",
+    sans-serif;
+  line-height: 1;
+  color: var(--success);
+}
+
+.student-attendance__pct.is-low {
+  color: var(--danger);
+}
+
+.student-attendance__summary {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.student-attendance .attendance-counts {
+  margin: 0;
+  gap: 0.4rem;
+}
+
+.attendance-page .student-attendance details > summary {
+  margin: 0.2rem 0 0;
+  color: var(--blue);
+  font-size: 0.88rem;
+}

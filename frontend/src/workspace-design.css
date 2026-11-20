@@ -1680,3 +1680,53 @@ textarea {
 .approval-head h2 {
   margin-top: 0.25rem;
 }
+
+/* Student transcript metrics: equal cards, top-aligned. */
+.transcript-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.transcript-metrics article {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.transcript-metrics span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.transcript-metrics strong {
+  font:
+    800 1.8rem "Manrope",
+    sans-serif;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.transcript-metrics .transcript-metrics__text {
+  font-size: 1.15rem;
+}
+
+.transcript-metrics small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.table-panel:has(table) {
+  min-height: 0;
+}
+
+@media (max-width: 760px) {
+  .transcript-metrics {
+    grid-template-columns: 1fr;
+  }
+}

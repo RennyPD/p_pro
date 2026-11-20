@@ -1,11 +1,10 @@
 import { useState } from "react";
+import { formatTime } from "../../lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
   CalendarDays,
   CheckCircle2,
-  CreditCard,
-  MapPin,
   ShoppingCart,
   Trash2,
   UserRound,
@@ -26,6 +25,40 @@ type CatalogSection = {
 };
 
 /** Adds guidance to the backend's (Spanish) selection errors. */
+type Block = {
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  room: string;
+  modality: string;
+};
+/** "Lunes y Miércoles · 8:00–9:30" instead of one line per day when time and room repeat. */
+function groupBlocks(blocks: Block[]) {
+  const groups: {
+    key: string;
+    days: string;
+    start: string;
+    end: string;
+    room: string;
+    modality: string;
+  }[] = [];
+  for (const block of blocks) {
+    const key = `${block.start_time}-${block.end_time}-${block.room}-${block.modality}`;
+    const found = groups.find(group => group.key === key);
+    if (found) found.days = `${found.days.replace(" y ", ", ")} y ${block.day_of_week}`;
+    else
+      groups.push({
+        key,
+        days: block.day_of_week,
+        start: block.start_time,
+        end: block.end_time,
+        room: block.room,
+        modality: block.modality,
+      });
+  }
+  return groups;
+}
+
 function selectionIssue(detail: string, maximum?: number, credits?: number): string {
   const prerequisite = /^Falta aprobar el prerrequisito (.+)$/.exec(detail)?.[1];
   if (prerequisite)
@@ -229,52 +262,53 @@ export function CourseCatalogPage() {
       )}
       <section className="catalog-grid">
         {query.data?.map((item: any) => (
-          <article className="panel" key={item.section_id}>
-            <div className="panel-heading">
+          <article className="panel catalog-card" key={item.section_id}>
+            <header className="catalog-card__head">
               <div>
                 <span className="kicker">
                   {item.subject_code} · {item.credits} créditos
                 </span>
                 <h2>{item.subject_name}</h2>
-                <small>Sección {item.section_code}</small>
               </div>
-              {item.selection_status === "enrolled" ? (
-                <Badge tone="success">Tu plaza está reservada</Badge>
-              ) : (
-                <Badge tone={item.available_seats ? "success" : "neutral"}>
-                  {item.available_seats
-                    ? `${item.available_seats} cupos disponibles`
-                    : "Sin cupos para nuevas selecciones"}
-                </Badge>
-              )}
-            </div>
-            <p>
-              <UserRound size={16} />
-              {item.teacher_name}
-            </p>
-            {scheduleBlocks(item).map((block, index) => (
-              <div key={index}>
-                <p>
-                  <CalendarDays size={16} />
-                  {block.day_of_week} · {block.start_time.slice(0, 5)}–{block.end_time.slice(0, 5)}
-                </p>
-                <p>
-                  <MapPin size={16} />
-                  {block.room} · {labelModality(block.modality)}
-                </p>
-              </div>
-            ))}
-            {scheduleBlocks(item).length === 0 && <p>Horario por confirmar</p>}
-            <p>
-              <CreditCard size={16} />
-              {item.prerequisite_code ? `Requiere ${item.prerequisite_code}` : "Sin prerrequisito"}
-              {item.corequisite_code ? ` · Correquisito ${item.corequisite_code}` : ""}
-            </p>
-            {item.selection_status ? (
-              <div className="catalog-actions">
-                <Badge tone="info">
+              {item.selection_status ? (
+                <Badge tone={item.selection_status === "enrolled" ? "success" : "info"}>
                   {labelState(item.selection_status, item.waitlist_position)}
                 </Badge>
+              ) : (
+                <Badge tone={item.available_seats ? "success" : "neutral"}>
+                  {item.available_seats ? `${item.available_seats} cupos` : "Sin cupos"}
+                </Badge>
+              )}
+            </header>
+            <ul className="catalog-card__facts">
+              <li>
+                <UserRound size={15} /> {item.teacher_name} · Sección {item.section_code}
+              </li>
+              {groupBlocks(scheduleBlocks(item)).map(group => (
+                <li key={group.key}>
+                  <CalendarDays size={15} />
+                  <span>
+                    {group.days} · {formatTime(group.start)}–{formatTime(group.end)}
+                    <small>
+                      {group.room} · {labelModality(group.modality)}
+                    </small>
+                  </span>
+                </li>
+              ))}
+              {scheduleBlocks(item).length === 0 && (
+                <li>
+                  <CalendarDays size={15} /> Horario por confirmar
+                </li>
+              )}
+            </ul>
+            {(item.prerequisite_code || item.corequisite_code) && (
+              <p className="catalog-card__reqs">
+                {item.prerequisite_code && <span>Requiere {item.prerequisite_code}</span>}
+                {item.corequisite_code && <span>Correquisito {item.corequisite_code}</span>}
+              </p>
+            )}
+            {item.selection_status ? (
+              <div className="catalog-actions">
                 {item.selection_status === "cart" ? (
                   <Button variant="secondary" onClick={() => remove.mutate(item.section_id)}>
                     Quitar

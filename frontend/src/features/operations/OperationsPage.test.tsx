@@ -140,7 +140,10 @@ it("preserves a graded zero and prevents resubmission", async () => {
     attempts: 1,
   });
   fireEvent.click(await screen.findByText("Ver tarea"));
-  expect(screen.getByText("0/20")).toBeInTheDocument();
+  // A graded zero is shown as a real score.
+  expect(screen.getByText("Resultado de la tarea").closest(".task-result")).toHaveTextContent(
+    /^0\/20/,
+  );
   expect(screen.getByText(/Revisa los fundamentos/)).toBeInTheDocument();
   expect(screen.queryByText("Reenviar")).not.toBeInTheDocument();
 });

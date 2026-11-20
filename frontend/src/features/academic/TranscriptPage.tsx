@@ -3,7 +3,14 @@ import { RequestApproval } from "../operations/ApprovalsPage";
 import { DocumentDownload } from "../../components/DocumentDownload";
 import { useQuery } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
-import { EmptyState, Spinner } from "../../components/ui";
+import { Badge, EmptyState, Spinner } from "../../components/ui";
+
+const resultTones: Record<string, "success" | "danger" | "info" | "neutral"> = {
+  passed: "success",
+  failed: "danger",
+  in_progress: "info",
+  recognized: "neutral",
+};
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import { describeAverage, resultLabel, standingLabel } from "../../lib/academicResult";
@@ -67,40 +74,37 @@ export function TranscriptPage() {
           {id && <RequestApproval resource="student" id={id} label={record.enrollment_number} />}
         </div>
       </header>
-      <section className="profile-metrics">
+      <section className="transcript-metrics">
         <article>
-          <small>
+          <span>
             {average.kind === "provisional"
               ? "Promedio acumulado provisional"
               : "Promedio acumulado"}
-          </small>
+          </span>
           <strong>{average.value}</strong>
           <small>{average.note}</small>
         </article>
         <article>
-          <small>Créditos aprobados</small>
+          <span>Créditos aprobados</span>
           <strong>{record.earned_credits}</strong>
+          <small>
+            {record.unverified_credit_courses > 0
+              ? `${record.unverified_credit_courses} asignaturas con créditos por verificar`
+              : record.recognized_credits > 0
+                ? `Incluye ${record.recognized_credits} por equivalencia`
+                : "Créditos confirmados"}
+          </small>
         </article>
         <article>
-          <small>Condición académica</small>
-          <strong>{standingLabel(record.academic_standing)}</strong>
+          <span>Condición académica</span>
+          <strong className="transcript-metrics__text">
+            {standingLabel(record.academic_standing)}
+          </strong>
           {record.academic_standing === "no_final_results" && (
             <small>Se calcula cuando cierran las evaluaciones.</small>
           )}
         </article>
       </section>
-      {record.recognized_credits > 0 && (
-        <p className="muted">
-          {record.recognized_credits} créditos reconocidos por equivalencia (no alteran el
-          promedio).
-        </p>
-      )}
-      {record.unverified_credit_courses > 0 && (
-        <p className="muted">
-          {record.unverified_credit_courses} asignaturas con créditos por verificar por
-          coordinación; los totales solo incluyen créditos confirmados.
-        </p>
-      )}
       <section className="table-panel">
         <div className="table-scroll">
           <table>
@@ -120,13 +124,17 @@ export function TranscriptPage() {
                   <td>
                     <b>{course.subject_code}</b> · {course.subject_name}
                   </td>
-                  <td>{course.credits ?? "Por verificar"}</td>
+                  <td>{course.credits ?? <span className="muted">Por verificar</span>}</td>
                   <td>
                     {course.recognition_type === "equivalence"
                       ? `Sin nota · origen ${course.origin_subject_code}`
                       : (course.average ?? "—")}
                   </td>
-                  <td>{resultLabel(course.result)}</td>
+                  <td>
+                    <Badge tone={resultTones[course.result] ?? "neutral"}>
+                      {resultLabel(course.result)}
+                    </Badge>
+                  </td>
                 </tr>
               ))}
             </tbody>
