@@ -19,7 +19,17 @@ type Approval = {
   requested_by: number;
   created_at?: string;
   resource_label?: string;
+  resource_path?: string;
   requested_by_name?: string;
+  resolved_by_name?: string;
+  resolved_at?: string | null;
+};
+const resourceKinds: Record<string, string> = {
+  student: "Expediente",
+  section: "Sección",
+  submission: "Entrega",
+  grade: "Nota",
+  attendance: "Asistencia",
 };
 const statuses: Record<string, string> = {
   pending: "Pendiente",
@@ -118,6 +128,7 @@ export function ApprovalsPage() {
   const user = useAuthStore(state => state.user);
   const client = useQueryClient();
   const [all, setAll] = useState(false);
+  const [show, setShow] = useState<"pending" | "resolved" | "all">("all");
   const [selected, setSelected] = useState<Approval | null>(null);
   const [status, setStatus] = useState("approved");
   const [reason, setReason] = useState("");
@@ -153,6 +164,20 @@ export function ApprovalsPage() {
       setBusy(false);
     }
   }
+  const pendingCount = (listing.data ?? []).filter(item => item.status === "pending").length;
+  const visible = (listing.data ?? []).filter(item =>
+    show === "all"
+      ? true
+      : show === "pending"
+        ? item.status === "pending"
+        : item.status !== "pending",
+  );
+  function review(item: Approval, decision: "approved" | "rejected") {
+    setSelected(item);
+    setReason("");
+    setStatus(decision);
+    setError("");
+  }
   return (
     <div className="page">
       <header className="page-header">
@@ -172,46 +197,86 @@ export function ApprovalsPage() {
           </button>
         </div>
       )}
+      {Boolean(listing.data?.length) && (
+        <div className="admission-pipeline" role="group" aria-label="Filtrar solicitudes">
+          {(
+            [
+              ["all", "Todas", listing.data?.length ?? 0],
+              ["pending", "Pendientes", pendingCount],
+              ["resolved", "Resueltas", (listing.data?.length ?? 0) - pendingCount],
+            ] as const
+          ).map(([key, label, count]) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={show === key}
+              onClick={() => setShow(key)}
+            >
+              {label} <b>{count}</b>
+            </button>
+          ))}
+        </div>
+      )}
       {listing.isLoading ? (
         <Spinner label="Cargando solicitudes" />
       ) : listing.error ? (
         <p role="alert" className="form-error">
           {apiMessage(listing.error)}
         </p>
-      ) : listing.data?.length ? (
-        listing.data.map(item => (
-          <article className="panel" key={item.approval_request_id}>
-            <div className="approval-head">
-              <h2>{item.resource_label || "Solicitud de revisión"}</h2>
-              <Badge tone={statusTone[item.status] ?? "neutral"}>
-                {statuses[item.status] ?? item.status}
-              </Badge>
-            </div>
-            <p className="muted">
-              Solicitud n.º {item.approval_request_id}
-              {item.created_at && ` · ${requestDate(item.created_at)}`}
-              {all && item.requested_by_name && ` · solicitada por ${item.requested_by_name}`}
-            </p>
-            <p>{item.reason}</p>
-            {item.resolution_notes && <p>Decisión registrada · {item.resolution_notes}</p>}
-            {all && item.status === "pending" && (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setSelected(item);
-                  setReason("");
-                  setStatus("approved");
-                  setError("");
-                }}
-              >
-                Revisar solicitud
-              </Button>
-            )}
-          </article>
-        ))
+      ) : visible.length ? (
+        <div className="approval-list">
+          {visible.map(item => (
+            <article className="panel approval-card" key={item.approval_request_id}>
+              <div className="approval-head">
+                <div>
+                  <span className="kicker">
+                    {resourceKinds[item.resource_type] ?? "Solicitud"} · n.º{" "}
+                    {item.approval_request_id}
+                  </span>
+                  <h2>{item.resource_label || "Solicitud de revisión"}</h2>
+                </div>
+                <Badge tone={statusTone[item.status] ?? "neutral"}>
+                  {statuses[item.status] ?? item.status}
+                </Badge>
+              </div>
+              <p className="muted">
+                {item.created_at && requestDate(item.created_at)}
+                {all && item.requested_by_name && ` · solicitada por ${item.requested_by_name}`}
+              </p>
+              <blockquote className="approval-reason">{item.reason}</blockquote>
+              {item.status !== "pending" && (
+                <p className={`approval-decision approval-decision--${item.status}`}>
+                  <b>{statuses[item.status]}</b>
+                  {item.resolved_by_name && ` por ${item.resolved_by_name}`}
+                  {item.resolved_at && ` el ${requestDate(item.resolved_at)}`}
+                  {item.resolution_notes && `: ${item.resolution_notes}`}
+                </p>
+              )}
+              <div className="approval-actions">
+                {item.resource_path && (
+                  <Link className="text-link" to={item.resource_path}>
+                    Ver registro
+                  </Link>
+                )}
+                {all && item.status === "pending" && (
+                  <>
+                    <Button variant="danger" onClick={() => review(item, "rejected")}>
+                      Rechazar
+                    </Button>
+                    <Button onClick={() => review(item, "approved")}>Aprobar</Button>
+                  </>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
       ) : (
         <section className="panel">
-          <p>Aún no hay solicitudes en esta bandeja.</p>
+          <p>
+            {listing.data?.length
+              ? "No hay solicitudes con este filtro."
+              : "Aún no hay solicitudes en esta bandeja."}
+          </p>
           {!all && (
             <Link className="text-link" to="/">
               Volver al inicio
@@ -220,7 +285,11 @@ export function ApprovalsPage() {
         </section>
       )}
       {selected && (
-        <Modal title="Revisar solicitud" description={selected.resource_label} onClose={close}>
+        <Modal
+          title={status === "approved" ? "Aprobar solicitud" : "Rechazar solicitud"}
+          description={selected.resource_label}
+          onClose={close}
+        >
           <p>
             La decisión se registra aquí. Los cambios en el expediente, la sección o la entrega se
             tramitan desde su pantalla.

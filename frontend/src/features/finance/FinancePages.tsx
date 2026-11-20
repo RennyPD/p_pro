@@ -3,7 +3,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DateInput } from "../../components/DateInput";
 import { formatDateTime, formatMoney, todayIso } from "../../lib/format";
 import { Pager } from "../../components/Pager";
-import { ArrowLeft, ArrowRight, Download, ReceiptText, Wallet } from "lucide-react";
+import {
+  ArrowDownLeft,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  CalendarCog,
+  Download,
+  Plus,
+  SlidersHorizontal,
+  Undo2,
+  Wallet,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -578,6 +590,7 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
   const [simAmount, setSimAmount] = useState("100");
   const [simBusy, setSimBusy] = useState(false);
   const [editingDays, setEditingDays] = useState(false);
+  const [office, setOffice] = useState(false);
   const [accountDays, setAccountDays] = useState({ cutoff_day: "15", due_day: "30" });
   if (query.isLoading)
     return (
@@ -657,28 +670,39 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
         <FinanceMetric label="Ajustes netos" value={money(data.total_adjustments)} />
         <FinanceMetric label="Balance vencido" value={money(data.overdue_balance)} />
       </section>
-      <details className="context-help finance-help">
-        <summary>Cómo funcionan los pagos</summary>
-        <p>
-          Los pagos son internos y en pesos dominicanos. Una transferencia pendiente no reduce la
-          deuda hasta que caja la verifica. Los recibos no son comprobantes fiscales y el bloqueo
-          financiero se gestiona por separado.
-        </p>
-      </details>
-      {canManage && (
-        <Button
-          variant="secondary"
-          onClick={() => {
-            setAccountDays({ cutoff_day: String(data.cutoff_day), due_day: String(data.due_day) });
-            setEditingDays(true);
-          }}
-        >
-          Configurar días de la cuenta
-        </Button>
-      )}
-      {canManage && (
-        <details className="panel finance-office">
-          <summary>Registrar cargo, efectivo o ajuste</summary>
+      <div className="finance-toolbar">
+        <details className="context-help finance-help">
+          <summary>Cómo funcionan los pagos</summary>
+          <p>
+            Los pagos son internos y en pesos dominicanos. Una transferencia pendiente no reduce la
+            deuda hasta que caja la verifica. Los recibos no son comprobantes fiscales y el bloqueo
+            financiero se gestiona por separado.
+          </p>
+        </details>
+        {canManage && (
+          <div className="section-heading__actions">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setAccountDays({
+                  cutoff_day: String(data.cutoff_day),
+                  due_day: String(data.due_day),
+                });
+                setEditingDays(true);
+              }}
+            >
+              <CalendarCog size={16} /> Días de corte y vencimiento
+            </Button>
+            <Button aria-expanded={office} onClick={() => setOffice(open => !open)}>
+              {office ? <X size={16} /> : <Plus size={16} />}{" "}
+              {office ? "Cerrar registro" : "Registrar movimiento"}
+            </Button>
+          </div>
+        )}
+      </div>
+      {canManage && office && (
+        <section className="panel finance-office" aria-label="Registrar cargo, efectivo o ajuste">
+          <h2 className="finance-office__title">Registrar cargo, efectivo o ajuste</h2>
           <div className="finance-actions finance-actions--three">
             <form
               className="finance-form"
@@ -869,7 +893,7 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
               <Button disabled={action.isPending}>Registrar ajuste</Button>
             </form>
           </div>
-        </details>
+        </section>
       )}
       <nav className="finance-tabs" aria-label="Vistas financieras">
         {[
@@ -887,7 +911,9 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
         <section className="panel">
           <div className="panel-heading">
             <h2>Movimientos</h2>
-            <ReceiptText />
+            <span className="muted">
+              {movements.length} {movements.length === 1 ? "movimiento" : "movimientos"}
+            </span>
           </div>
           <div className="finance-filters">
             <label className="form-field">
@@ -916,6 +942,20 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
                 className={t.status === "reversed" ? "is-reversed" : ""}
                 key={`${t.type}-${t.transaction_id}`}
               >
+                <span
+                  className={`finance-kind finance-kind--${
+                    t.direction === "credit" || t.type === "payment" ? "credit" : "debit"
+                  }`}
+                  aria-hidden="true"
+                >
+                  {t.type === "payment" ? (
+                    <ArrowDownLeft size={16} />
+                  ) : t.type === "adjustment" ? (
+                    <SlidersHorizontal size={16} />
+                  ) : (
+                    <ArrowUpRight size={16} />
+                  )}
+                </span>
                 <div>
                   <strong>{t.description}</strong>
                   <small>
@@ -936,9 +976,7 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
                   {t.direction === "credit" || t.type === "payment" ? "−" : "+"}
                   {money(t.amount)}
                 </strong>
-                <Badge tone={t.status === "reversed" ? "neutral" : "info"}>
-                  {labels[t.status || "posted"]}
-                </Badge>
+                {t.status === "reversed" && <Badge tone="neutral">{labels.reversed}</Badge>}
                 <div className="finance-row-actions">
                   {t.type === "payment" && (
                     <Button
@@ -961,7 +999,7 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
                         setReason("");
                       }}
                     >
-                      Reversar
+                      <Undo2 size={15} /> Reversar
                     </Button>
                   )}
                 </div>

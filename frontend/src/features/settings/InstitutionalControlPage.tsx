@@ -36,6 +36,18 @@ const admissionNames: Record<string, string> = {
   rejected: "Rechazada",
   enrolled: "Matriculada",
 };
+const admissionTones: Record<string, "neutral" | "info" | "success" | "danger" | "warning"> = {
+  submitted: "neutral",
+  review: "warning",
+  accepted: "info",
+  rejected: "danger",
+  enrolled: "success",
+};
+const transitionLabels: Record<string, string> = {
+  review: "Pasar a revisión",
+  accepted: "Aceptar",
+  submitted: "Volver a recibida",
+};
 const transitions: Record<string, string[]> = {
   submitted: ["review", "rejected"],
   review: ["accepted", "rejected"],
@@ -535,98 +547,136 @@ export function InstitutionalControlPage() {
             <h2>Solicitudes de admisión</h2>
             <Button onClick={() => setCreatingAdmission(true)}>Nueva solicitud</Button>
           </div>
-          <p className="muted">
-            Recibida → En revisión → Aceptada → Crear estudiante. Una solicitud matriculada no se
-            puede cambiar desde el selector.
-          </p>
-          <div className="control-filters">
-            <label className="form-field">
-              <span>Buscar solicitudes</span>
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Nombre, correo o carrera"
-              />
-            </label>
-            <label className="form-field">
-              <span>Estado de admisión</span>
-              <select value={admissionState} onChange={e => setAdmissionState(e.target.value)}>
-                <option value="">Todos</option>
-                {Object.entries(admissionNames).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="admission-pipeline" role="group" aria-label="Filtrar por estado">
+            <button
+              type="button"
+              aria-pressed={!admissionState}
+              onClick={() => setAdmissionState("")}
+            >
+              Todas <b>{admissions.data?.length ?? 0}</b>
+            </button>
+            {Object.entries(admissionNames).map(([k, v]) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={admissionState === k}
+                className={`admission-chip admission-chip--${k}`}
+                onClick={() => setAdmissionState(admissionState === k ? "" : k)}
+              >
+                {v} <b>{(admissions.data || []).filter((a: any) => a.status === k).length}</b>
+              </button>
+            ))}
           </div>
+          <label className="form-field admission-search">
+            <span className="sr-only">Buscar solicitudes</span>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por nombre, correo o carrera"
+            />
+          </label>
           {admissions.isLoading ? (
             <Spinner />
           ) : admissions.error ? (
             <p className="form-error">{apiMessage(admissions.error)}</p>
           ) : applications.length ? (
             <div className="control-result-grid">
-              {applications.map((a: any) => (
-                <article key={a.admission_application_id}>
-                  <h3>
-                    {a.first_name} {a.last_name}
-                  </h3>
-                  <p>
-                    {a.career_name} · {a.email}
-                  </p>
-                  <p>Estado: {admissionNames[a.status]}</p>
-                  {a.checklist && <p>Documentación: {a.checklist}</p>}
-                  <div className="case-actions">
-                    <label className="form-field">
-                      <span>Cambiar estado</span>
-                      <select
-                        aria-label={`Estado de ${a.first_name} ${a.last_name}, solicitud ${a.admission_application_id}`}
-                        disabled={
-                          enroll.isPending || updateAdmission.isPending || a.status === "enrolled"
-                        }
-                        value={a.status}
-                        onChange={e => {
-                          setTransition({ item: a, status: e.target.value });
-                          setReason("");
-                        }}
-                      >
-                        <option value={a.status}>{admissionNames[a.status]}</option>
-                        {(transitions[a.status] || []).map(s => (
-                          <option key={s} value={s}>
-                            {admissionNames[s]}
-                          </option>
+              {applications.map((a: any) => {
+                const busy = enroll.isPending || updateAdmission.isPending;
+                const complete =
+                  /completo/i.test(a.checklist ?? "") || !/pendiente/i.test(a.checklist ?? "");
+                const step = ["submitted", "review", "accepted", "enrolled"].indexOf(a.status);
+                const ask = (status: string) => {
+                  setTransition({ item: a, status });
+                  setReason("");
+                };
+                return (
+                  <article key={a.admission_application_id} className="admission-card">
+                    <header>
+                      <div>
+                        <h3>
+                          {a.first_name} {a.last_name}
+                        </h3>
+                        <small>
+                          {a.career_name} · {a.email}
+                        </small>
+                      </div>
+                      <Badge tone={admissionTones[a.status] ?? "neutral"}>
+                        {admissionNames[a.status]}
+                      </Badge>
+                    </header>
+                    {a.status !== "rejected" && (
+                      <ol className="admission-steps" aria-label="Avance de la solicitud">
+                        {["Recibida", "Revisión", "Aceptada", "Matriculada"].map((label, index) => (
+                          <li key={label} className={index <= step ? "is-done" : ""}>
+                            {label}
+                          </li>
                         ))}
-                      </select>
-                    </label>
-                    {a.status === "accepted" && (
-                      <Button
-                        disabled={enroll.isPending}
-                        onClick={async () => {
-                          if (
-                            await confirmAction(
-                              "¿Crear el estudiante a partir de esta solicitud aceptada?",
-                            )
-                          )
-                            enroll.mutate(a.admission_application_id);
-                        }}
+                      </ol>
+                    )}
+                    {a.checklist && (
+                      <p className={`admission-docs ${complete ? "is-complete" : ""}`}>
+                        {complete ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+                        {a.checklist}
+                      </p>
+                    )}
+                    <div className="admission-actions">
+                      <button
+                        type="button"
+                        className="text-link admission-history"
+                        onClick={() => setHistoryItem(a.admission_application_id)}
                       >
-                        Crear estudiante
-                      </Button>
-                    )}
-                    {a.student_id && (
-                      <Link className="text-link" to={`/students/${a.student_id}`}>
-                        Abrir expediente
-                      </Link>
-                    )}
-                    <Button
-                      variant="ghost"
-                      onClick={() => setHistoryItem(a.admission_application_id)}
-                    >
-                      Historial
-                    </Button>
-                  </div>
-                </article>
-              ))}
+                        Historial
+                      </button>
+                      {a.student_id && (
+                        <Link className="text-link" to={`/students/${a.student_id}`}>
+                          Abrir expediente
+                        </Link>
+                      )}
+                      {(transitions[a.status] || [])
+                        .filter(status => status === "rejected")
+                        .map(status => (
+                          <Button
+                            key={status}
+                            variant="danger"
+                            disabled={busy}
+                            onClick={() => ask(status)}
+                            aria-label={`Rechazar a ${a.first_name} ${a.last_name}`}
+                          >
+                            Rechazar
+                          </Button>
+                        ))}
+                      {(transitions[a.status] || [])
+                        .filter(status => status !== "rejected")
+                        .map(status => (
+                          <Button
+                            key={status}
+                            variant="secondary"
+                            disabled={busy}
+                            onClick={() => ask(status)}
+                          >
+                            {transitionLabels[status] ?? admissionNames[status]}
+                          </Button>
+                        ))}
+                      {a.status === "accepted" && (
+                        <Button
+                          disabled={busy}
+                          onClick={async () => {
+                            if (
+                              await confirmAction(
+                                "¿Crear el estudiante a partir de esta solicitud aceptada?",
+                              )
+                            )
+                              enroll.mutate(a.admission_application_id);
+                          }}
+                        >
+                          Crear estudiante
+                        </Button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <p className="muted">No hay solicitudes para estos filtros.</p>

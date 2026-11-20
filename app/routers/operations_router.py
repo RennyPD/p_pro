@@ -748,32 +748,49 @@ def _student_label(student) -> str:
     return f"{student.first_name} {student.last_name} · {student.enrollment_number}"
 
 
-def approval_resource_label(db: Session, item: ApprovalRequest) -> str:
-    """Human description of what a request is about (never a bare id)."""
+def approval_resource(db: Session, item: ApprovalRequest) -> tuple[str, str]:
+    """Human description of what a request is about (never a bare id) and where to open it."""
     if item.resource_type == "student" and (student := db.get(Student, item.resource_id)):
-        return f"Expediente de {_student_label(student)}"
+        return f"Expediente de {_student_label(student)}", f"/students/{student.student_id}"
     if item.resource_type == "section" and (section := db.get(Section, item.resource_id)):
-        return f"Sección {section.code} · {section.subject.description}"
+        return (
+            f"Sección {section.code} · {section.subject.description}",
+            f"/sections/{section.section_id}",
+        )
     if item.resource_type == "submission" and (submission := db.get(Submission, item.resource_id)):
         task = db.get(Assignment, submission.assignment_id)
         student = db.get(Student, submission.student_id)
         title = task.title if task else "tarea"
-        return f"Entrega de {title}" + (f" · {_student_label(student)}" if student else "")
+        label = f"Entrega de {title}" + (f" · {_student_label(student)}" if student else "")
+        return label, "/operations"
     if item.resource_type == "grade" and (grade := db.get(Grade, item.resource_id)):
         enrollment = grade.enrollment
         return (
             f"Nota de {grade.grade_type} · {enrollment.section.code} · "
-            f"{_student_label(enrollment.student)}"
+            f"{_student_label(enrollment.student)}",
+            f"/assessments?section={enrollment.section_id}",
         )
-    return "Recurso no disponible"
+    if item.resource_type == "attendance" and (record := db.get(Attendance, item.resource_id)):
+        enrollment = db.get(Enrollment, record.enrollment_id)
+        if enrollment:
+            return (
+                f"Asistencia del {record.date:%d/%m/%Y} · {enrollment.section.code} · "
+                f"{_student_label(enrollment.student)}",
+                f"/sections/{enrollment.section_id}",
+            )
+    return "Registro eliminado o no disponible", ""
 
 
 def describe_approval(db: Session, item: ApprovalRequest) -> ApprovalOut:
     requester = db.get(User, item.requested_by)
+    resolver = db.get(User, item.resolved_by) if item.resolved_by else None
+    label, path = approval_resource(db, item)
     return ApprovalOut.model_validate(item).model_copy(
         update={
-            "resource_label": approval_resource_label(db, item),
+            "resource_label": label,
+            "resource_path": path,
             "requested_by_name": requester.username if requester else "",
+            "resolved_by_name": resolver.username if resolver else "",
         }
     )
 

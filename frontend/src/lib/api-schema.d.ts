@@ -3684,6 +3684,11 @@ export interface components {
       resolved_at: string | null;
       /** Resolved By */
       resolved_by: number | null;
+      /**
+       * Resolved By Name
+       * @default
+       */
+      resolved_by_name: string;
       /** Resource Id */
       resource_id: number;
       /**
@@ -3691,6 +3696,11 @@ export interface components {
        * @default
        */
       resource_label: string;
+      /**
+       * Resource Path
+       * @default
+       */
+      resource_path: string;
       /** Resource Type */
       resource_type: string;
       /** Status */

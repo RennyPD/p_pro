@@ -188,3 +188,30 @@ def test_a_block_cannot_take_a_room_reserved_by_a_draft(context):
         json={**meeting, "start_time": "10:00:00", "end_time": "11:00:00"},
     )
     assert free.status_code == 200, free.text
+
+
+def test_attendance_and_missing_approvals_get_readable_labels(context):
+    from app.models import ApprovalRequest, Attendance, User
+    from app.routers.operations_router import approval_resource
+
+    session = app.dependency_overrides[get_db]
+    db = next(session())
+    record = db.query(Attendance).first()
+    user = db.query(User).first()
+    attendance = ApprovalRequest(
+        request_type="attendance_change",
+        resource_type="attendance",
+        resource_id=record.attendance_id,
+        reason="Justificación",
+        requested_by=user.user_id,
+    )
+    missing = ApprovalRequest(
+        request_type="grade_change",
+        resource_type="grade",
+        resource_id=999999,
+        reason="x",
+        requested_by=user.user_id,
+    )
+    label, path = approval_resource(db, attendance)
+    assert label.startswith("Asistencia del ") and path.startswith("/sections/")
+    assert approval_resource(db, missing) == ("Registro eliminado o no disponible", "")

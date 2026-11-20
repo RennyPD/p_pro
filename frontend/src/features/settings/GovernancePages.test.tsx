@@ -139,9 +139,10 @@ it("limits admission transitions and requires a reason before applying them", as
   const patch = vi.spyOn(api, "patch").mockResolvedValue({ data: {} } as never);
   renderPage(<InstitutionalControlPage />);
   fireEvent.click(screen.getByRole("button", { name: "Admisiones" }));
-  const select = await screen.findByRole("combobox", { name: "Estado de Paula Demo, solicitud 1" });
-  expect(select.querySelectorAll("option")).toHaveLength(3);
-  fireEvent.change(select, { target: { value: "review" } });
+  // Only the transitions allowed from "Recibida" are offered, as explicit actions.
+  fireEvent.click(await screen.findByRole("button", { name: "Pasar a revisión" }));
+  expect(screen.getAllByRole("button", { name: "Rechazar a Paula Demo" })).toHaveLength(1);
+  expect(screen.queryByRole("button", { name: "Aceptar" })).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Motivo de la transición"), {
     target: { value: "Documentos recibidos" },
   });

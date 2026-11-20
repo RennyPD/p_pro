@@ -4200,6 +4200,8 @@ class ApiIntegrationTests(unittest.TestCase):
         current = self.request("GET", "/operations/approvals/mine", teacher_token)
         self.assertEqual(current.json()[0]["status"], "approved")
         self.assertTrue(current.json()[0]["resource_label"].startswith("Entrega de "))
+        self.assertEqual(current.json()[0]["resource_path"], "/operations")
+        self.assertEqual(current.json()[0]["resolved_by_name"], "demo.admin")
         self.assertNotIn("submission", current.json()[0]["resource_label"])
         with self.Session() as db:
             original = db.get(Submission, submission_id)

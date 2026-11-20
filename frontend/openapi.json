@@ -1223,6 +1223,11 @@
             ],
             "title": "Resolved By"
           },
+          "resolved_by_name": {
+            "default": "",
+            "title": "Resolved By Name",
+            "type": "string"
+          },
           "resource_id": {
             "minimum": 1.0,
             "title": "Resource Id",
@@ -1231,6 +1236,11 @@
           "resource_label": {
             "default": "",
             "title": "Resource Label",
+            "type": "string"
+          },
+          "resource_path": {
+            "default": "",
+            "title": "Resource Path",
             "type": "string"
           },
           "resource_type": {

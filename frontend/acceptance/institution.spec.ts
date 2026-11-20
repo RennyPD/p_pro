@@ -321,12 +321,16 @@ test("the student can read a filed document and request approval without changin
   await page
     .locator("article")
     .filter({ hasText: reason })
-    .getByRole("button", { name: "Revisar solicitud" })
+    .getByRole("button", { name: "Aprobar" })
     .click();
   await page.getByLabel("Motivo de la decisión").fill("Revisión de aceptación QA");
   await page.getByRole("button", { name: "Registrar decisión" }).click();
   await expect(
-    page.locator("article").filter({ hasText: reason }).getByText("Aprobada", { exact: true }),
+    page
+      .locator("article")
+      .filter({ hasText: reason })
+      .getByText("Aprobada", { exact: true })
+      .first(),
   ).toBeVisible();
   await page.goto(`/students/${user.student_id}`);
   await page.getByRole("button", { name: "Documentos", exact: true }).click();
