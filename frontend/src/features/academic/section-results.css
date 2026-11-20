@@ -266,3 +266,43 @@
     overflow: visible;
   }
 }
+
+/* Same reading as the student's own views: green ok, red low / failed. */
+.student-summary-value {
+  justify-items: end;
+  gap: 0.25rem;
+}
+
+.student-summary-value b {
+  font:
+    800 1.25rem "Manrope",
+    sans-serif;
+}
+
+.student-summary-value b.is-ok {
+  color: var(--success);
+}
+
+.student-summary-value b.is-low {
+  color: var(--danger);
+}
+
+.result-history > div {
+  grid-template-columns: 140px auto 1fr;
+}
+
+.result-history > div > .badge {
+  justify-self: start;
+}
+
+.result-history > div > span:last-child {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+.results-filters label {
+  flex: 1 1 180px;
+}
+
+.results-filters > small {
+  flex: 0 0 auto;
+}

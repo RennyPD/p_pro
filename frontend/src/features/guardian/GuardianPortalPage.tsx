@@ -1,7 +1,7 @@
 import { RequestApproval } from "../operations/ApprovalsPage";
 import { DocumentDownload } from "../../components/DocumentDownload";
 import { formatDate, formatMoney, formatTime, todayIso } from "../../lib/format";
-import { describeAverage } from "../../lib/academicResult";
+import { describeAverage, isLowAttendance } from "../../lib/academicResult";
 
 import { scheduleBlocks, type ScheduleBlock } from "../../lib/schedule";
 import { useQuery } from "@tanstack/react-query";
@@ -177,7 +177,7 @@ export function GuardianPortalPage() {
             <CalendarDays />
             Asistencia
           </span>
-          <strong>
+          <strong className={isLowAttendance(student.attendance_percentage) ? "is-low" : ""}>
             {student.attendance_percentage === null
               ? "Sin datos"
               : `${student.attendance_percentage}%`}

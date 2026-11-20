@@ -1,4 +1,5 @@
 import { confirmAction } from "../../lib/confirm";
+import { attendanceTones, isLowAttendance } from "../../lib/academicResult";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DateInput } from "../../components/DateInput";
 import { formatDate, formatDateTime } from "../../lib/format";
@@ -40,13 +41,7 @@ const localDay = () => {
   );
   return `${parts.year}-${parts.month}-${parts.day}`;
 };
-const statusTone: Record<string, "success" | "danger" | "warning" | "info"> = {
-  present: "success",
-  absent: "danger",
-  late: "warning",
-  early_departure: "warning",
-  excused: "info",
-};
+const statusTone = attendanceTones;
 const rule =
   "Porcentaje sobre clases registradas: presentes, tardanzas y salidas anticipadas cuentan como presencia; ausencias y justificaciones no. Los días sin registro no cuentan.";
 type Entry = {
@@ -653,7 +648,7 @@ export function StudentAttendancePage() {
                   </div>
                   <strong
                     className={`student-attendance__pct ${
-                      c.percentage !== null && c.percentage < 80 ? "is-low" : ""
+                      isLowAttendance(c.percentage) ? "is-low" : ""
                     }`}
                   >
                     {c.percentage === null ? "—" : `${c.percentage}%`}

@@ -8,7 +8,12 @@ import { Badge, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./section-results.css";
-import { resultLabel } from "../../lib/academicResult";
+import {
+  attendanceTones,
+  isLowAttendance,
+  resultLabel,
+  resultTone,
+} from "../../lib/academicResult";
 
 /** Section progress state, shared by the badge and the "Seguimiento" filter. */
 function gradeProgress(s: Summary): {
@@ -519,22 +524,34 @@ export function SectionResultsDetailPage() {
                 </small>
               </div>
               <div className="student-summary-value">
-                <b>
+                <b
+                  className={
+                    attendance
+                      ? isLowAttendance(s.attendance_percentage)
+                        ? "is-low"
+                        : "is-ok"
+                      : s.result_final
+                        ? s.result_status === "passed"
+                          ? "is-ok"
+                          : "is-low"
+                        : ""
+                  }
+                >
                   {attendance
                     ? s.attendance_percentage === null
                       ? "Sin registros"
                       : `${s.attendance_percentage}%`
                     : (s.average_grade ?? "Sin notas publicadas")}
                 </b>
-                <small>
-                  {attendance
-                    ? "promedio de asistencia"
-                    : s.average_grade === null
-                      ? "sin notas publicadas"
-                      : s.result_final
-                        ? `definitivo · ${resultLabel(s.result_status).toLowerCase()}`
-                        : `provisional · ${s.completed_weight}% del plan`}
-                </small>
+                {attendance ? (
+                  <small>{s.attendances.length} clases registradas</small>
+                ) : s.average_grade === null ? (
+                  <small>sin notas publicadas</small>
+                ) : (
+                  <Badge tone={resultTone(s.result_final ? s.result_status : "in_progress")}>
+                    {s.result_final ? resultLabel(s.result_status) : "Provisional"}
+                  </Badge>
+                )}
               </div>
               <ChevronRight />
             </summary>
@@ -545,17 +562,7 @@ export function SectionResultsDetailPage() {
                   .map(r => (
                     <div key={r.attendance_id}>
                       <time>{displayDate(r.date)}</time>
-                      <Badge
-                        tone={
-                          r.status === "present"
-                            ? "success"
-                            : r.status === "absent"
-                              ? "danger"
-                              : r.status === "excused"
-                                ? "info"
-                                : "warning"
-                        }
-                      >
+                      <Badge tone={attendanceTones[r.status] ?? "neutral"}>
                         {attendanceLabels[r.status] ?? r.status}
                       </Badge>
                       <span>

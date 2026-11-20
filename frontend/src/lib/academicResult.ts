@@ -81,3 +81,30 @@ export function provisionalReason(completedWeight: number, configuredWeight = 10
   if (completedWeight < configuredWeight) return `${completedWeight}% del plan publicado`;
   return "Plan completo · falta cerrar evaluaciones";
 }
+
+export type Tone = "neutral" | "success" | "warning" | "danger" | "info";
+
+/** Same colours for a result in every profile (student, guardian, teacher, admin). */
+export const resultTones: Record<string, Tone> = {
+  passed: "success",
+  failed: "danger",
+  in_progress: "info",
+  recognized: "neutral",
+  withdrawn: "neutral",
+  waitlisted: "warning",
+};
+export const resultTone = (status: string | null | undefined): Tone =>
+  (status && resultTones[status]) || "neutral";
+
+export const attendanceTones: Record<string, Tone> = {
+  present: "success",
+  absent: "danger",
+  late: "warning",
+  early_departure: "warning",
+  excused: "info",
+};
+
+/** Attendance under this percentage is shown as a warning everywhere. */
+export const LOW_ATTENDANCE = 80;
+export const isLowAttendance = (value: number | null | undefined) =>
+  value !== null && value !== undefined && value < LOW_ATTENDANCE;

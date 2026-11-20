@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { resultTone } from "../../lib/academicResult";
 import { BookCheck } from "lucide-react";
 import { Badge, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
@@ -84,11 +85,7 @@ export function StudentGradesPage() {
           const grades = query.data.grades.filter(
             grade => grade.enrollment_id === course.enrollment_id,
           );
-          const tone = course.result_final
-            ? course.result_status === "passed"
-              ? "success"
-              : "danger"
-            : "info";
+          const tone = resultTone(course.result_final ? course.result_status : "in_progress");
           return (
             <article className="panel student-grade" key={course.enrollment_id}>
               <header>

@@ -1,6 +1,11 @@
 import { CurriculumAssignmentPanel } from "./CurriculumAssignmentPanel";
 import { formatDate } from "../../lib/format";
-import { describeAverage } from "../../lib/academicResult";
+import {
+  describeAverage,
+  isLowAttendance,
+  resultLabel,
+  resultTone,
+} from "../../lib/academicResult";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -38,6 +43,8 @@ type Enrollment = {
   period: string;
   state: string;
   average_grade: number | null;
+  result_final?: boolean;
+  result_status?: string;
   attendance_percentage: number | null;
 };
 type Dossier = {
@@ -384,7 +391,10 @@ export function StudentDossierPage() {
                   ? "Asignaturas de mis secciones"
                   : "Historial de asignaturas"}
               </h2>
-              <p>Promedios de las notas registradas; pueden incluir evaluaciones aún en proceso.</p>
+              <p>
+                Resultado con notas publicadas: provisional hasta que el docente cierre las
+                evaluaciones.
+              </p>
             </div>
             <select
               aria-label="Filtrar historial por período"
@@ -445,7 +455,7 @@ export function StudentDossierPage() {
                   <th>Asignatura</th>
                   <th>Período</th>
                   <th>Estado</th>
-                  <th>Promedio</th>
+                  <th>Resultado</th>
                   <th>Asistencia</th>
                   <th>Sección</th>
                 </tr>
@@ -465,8 +475,23 @@ export function StudentDossierPage() {
                         {states[item.state] ?? item.state}
                       </Badge>
                     </td>
-                    <td>{item.average_grade ?? "—"}</td>
                     <td>
+                      {item.average_grade === null ? (
+                        <span className="muted">Sin notas</span>
+                      ) : (
+                        <span className="dossier-result">
+                          <b>{item.average_grade}</b>
+                          <Badge
+                            tone={resultTone(
+                              item.result_final ? item.result_status : "in_progress",
+                            )}
+                          >
+                            {item.result_final ? resultLabel(item.result_status) : "Provisional"}
+                          </Badge>
+                        </span>
+                      )}
+                    </td>
+                    <td className={isLowAttendance(item.attendance_percentage) ? "is-low" : ""}>
                       {item.attendance_percentage === null ? "—" : `${item.attendance_percentage}%`}
                     </td>
                     <td>

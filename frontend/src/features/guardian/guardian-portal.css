@@ -183,3 +183,6 @@
     text-align: left;
   }
 }
+.guardian-metrics strong.is-low {
+  color: var(--danger);
+}

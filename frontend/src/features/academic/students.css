@@ -540,3 +540,14 @@
     justify-content: flex-start;
   }
 }
+
+.dossier-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dossier-academic-table td.is-low {
+  color: var(--danger);
+  font-weight: 700;
+}

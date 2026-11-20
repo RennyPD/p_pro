@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, CheckCircle2, GraduationCap } from "lucide-react";
-import { EmptyState, Spinner } from "../../components/ui";
+import { Badge, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./academic-pages.css";
@@ -99,15 +99,15 @@ export function MyProgressPage() {
                   {course.prerequisite_code ? ` · Requiere ${course.prerequisite_code}` : ""}
                 </small>
               </div>
-              <b>
-                {course.recognition_type === "equivalence"
-                  ? "Reconocida por equivalencia · sin nota"
-                  : course.status === "completed"
-                    ? `Aprobada · ${course.final_average}`
-                    : course.status === "in_progress"
-                      ? "Cursando"
-                      : "Pendiente"}
-              </b>
+              {course.recognition_type === "equivalence" ? (
+                <Badge tone="neutral">Reconocida por equivalencia</Badge>
+              ) : course.status === "completed" ? (
+                <Badge tone="success">Aprobada · {course.final_average}</Badge>
+              ) : course.status === "in_progress" ? (
+                <Badge tone="info">Cursando</Badge>
+              ) : (
+                <Badge tone="neutral">Pendiente</Badge>
+              )}
             </article>
           ))}
         </div>

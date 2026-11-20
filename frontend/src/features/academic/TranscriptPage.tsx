@@ -5,15 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
 import { Badge, EmptyState, Spinner } from "../../components/ui";
 
-const resultTones: Record<string, "success" | "danger" | "info" | "neutral"> = {
-  passed: "success",
-  failed: "danger",
-  in_progress: "info",
-  recognized: "neutral",
-};
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
-import { describeAverage, resultLabel, standingLabel } from "../../lib/academicResult";
+import { describeAverage, resultLabel, resultTone, standingLabel } from "../../lib/academicResult";
 
 export function TranscriptPage() {
   const id = useAuthStore(s => s.user?.student_id);
@@ -131,9 +125,7 @@ export function TranscriptPage() {
                       : (course.average ?? "—")}
                   </td>
                   <td>
-                    <Badge tone={resultTones[course.result] ?? "neutral"}>
-                      {resultLabel(course.result)}
-                    </Badge>
+                    <Badge tone={resultTone(course.result)}>{resultLabel(course.result)}</Badge>
                   </td>
                 </tr>
               ))}
