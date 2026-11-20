@@ -11,10 +11,10 @@ type QueryShape = { data?: Record<string, any>[]; isLoading: boolean; error: unk
 export { StudentGradesPage as MyGradesPage } from "./StudentGradesPage";
 export function MySchedulePage() {
   const user = useAuthStore(s => s.user);
-  const path =
-    user?.role_name === "student"
-      ? `/academic/students/${user.student_id}/schedule`
-      : `/academic/teachers/${user?.teacher_id}/schedule`;
+  const access = useAccess();
+  const path = access.student
+    ? `/academic/students/${user?.student_id}/schedule`
+    : `/academic/teachers/${user?.teacher_id}/schedule`;
   const query = useQuery({
     queryKey: ["my-schedule", path],
     queryFn: () => api.get(path).then(r => r.data),
@@ -182,3 +182,4 @@ export {
   AttendanceWorkspacePage as SectionWorkspacePage,
   StudentAttendancePage as MyAttendancePage,
 } from "./AttendancePages";
+import { useAccess } from "../../lib/permissions";

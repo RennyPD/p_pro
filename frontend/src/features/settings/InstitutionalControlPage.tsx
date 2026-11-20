@@ -250,7 +250,7 @@ export function InstitutionalControlPage() {
           <h1>Control institucional</h1>
           <p>Indicadores, seguimiento y admisiones, separados por tarea.</p>
         </div>
-        <Link className="text-link" to="/settings/access">
+        <Link className="text-link" to="/roles">
           Gestionar permisos en Configuración
         </Link>
       </header>

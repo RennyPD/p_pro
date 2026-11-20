@@ -13,7 +13,9 @@ from app.models import (
     CurriculumCourse,
     Enrollment,
     Grade,
+    Permission,
     Role,
+    RolePermission,
     Section,
     Student,
     Subject,
@@ -21,6 +23,7 @@ from app.models import (
     User,
 )
 from app.security import hash_password
+from app.services.permission_catalog import grant_system_defaults
 
 DEMO_PASSWORDS = {
     "demo.admin": "NexoAdmin2026!",
@@ -54,6 +57,13 @@ def seed_demo(db: Session) -> dict[str, int]:
                 "student": "Consulta del expediente académico propio",
             }.items()
         }
+        # With the catalog in place (after `alembic upgrade head`), built-in roles start
+        # with their usual permissions; a role already configured keeps its grants.
+        # An empty catalog falls back to the defaults in app/auth.py.
+        if db.query(Permission.permission_id).first() is not None:
+            for role in roles.values():
+                if not db.query(RolePermission.role_id).filter_by(role_id=role.role_id).first():
+                    grant_system_defaults(db, role)
         _one_or_create(
             db,
             AcademicPeriod,

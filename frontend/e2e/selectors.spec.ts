@@ -32,7 +32,10 @@ for (const viewport of [
         if (url.pathname === "/auth/login") data = { access_token: "test-only", user };
         if (url.pathname === "/auth/me") data = user;
         if (url.pathname === "/access/me")
-          data = { permissions: ["academic.manage", "reports.view"] };
+          data = {
+            permissions: ["programs.manage", "sections.view", "sections.manage", "reports.view"],
+            scope: "institution",
+          };
         if (url.pathname === "/dashboard/summary") data = { alerts: [], metrics: [] };
         if (url.pathname === "/subjects/") {
           const skip = Number(url.searchParams.get("skip") || 0);

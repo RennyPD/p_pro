@@ -11,6 +11,7 @@ import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./assessments.css";
+import { useAccess } from "../../lib/permissions";
 
 type Section = {
   section_id: number;
@@ -154,6 +155,8 @@ export function AssessmentsPage() {
 
 function SectionBook({ section }: { section: Section }) {
   const user = useAuthStore(state => state.user);
+  const access = useAccess();
+  const canReopen = access.institution && access.can("grades.manage");
   const client = useQueryClient();
   const [tab, setTab] = useState("book");
   const [values, setValues] = useState<Record<string, string>>({});
@@ -653,7 +656,7 @@ function SectionBook({ section }: { section: Section }) {
                           >
                             <Lock size={16} /> Cerrar
                           </Button>
-                        ) : user?.role_name === "admin" ? (
+                        ) : canReopen ? (
                           <Button
                             variant="secondary"
                             disabled={!hasReason || reopen.isPending}

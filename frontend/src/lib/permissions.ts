@@ -1,49 +1,52 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../store/auth";
-import type { Role } from "../types";
 import { api } from "./api";
 
-/** Shape of GET /access/me. */
+export type Scope = "institution" | "sections" | "own" | "linked";
+
+/** Shape of GET /access/me: effective permissions and the role's data scope. */
 export interface MyPermissions {
   permissions: string[];
+  scope?: Scope;
+  role_title?: string;
   configured?: boolean;
 }
 
-/**
- * Grants each built-in role had before permissions were configured. Mirrors the
- * backend fallback: with no permission rows at all, the role name decides.
- */
-export const legacyPermissions: Record<Role, string[]> = {
-  admin: [
-    "academic.manage",
-    "grades.manage",
-    "finance.manage",
-    "reports.view",
-    "communications.manage",
-    "access.manage",
-    "operations.manage",
-    "schedule.manage",
-  ],
-  teacher: ["grades.manage", "communications.manage", "operations.manage"],
-  student: ["records.own"],
-  guardian: ["records.own"],
-};
-
-/** Effective grants: configured ones, or the legacy role defaults. */
-export function resolvePermissions(data: MyPermissions | undefined, role: Role): string[] {
-  const legacy = legacyPermissions[role] ?? [];
-  if (!data || data.configured === false || !Array.isArray(data.permissions)) return legacy;
-  return data.permissions;
+export function resolvePermissions(data: MyPermissions | undefined): string[] {
+  return Array.isArray(data?.permissions) ? data.permissions : [];
 }
 
-/** Whether the signed-in account holds a permission. False while loading. */
-export function useHasPermission(permission: string): boolean {
+/**
+ * Everything the interface may show is decided here, from the role's permissions
+ * and scope (never from the role's name).
+ */
+export function useAccess() {
   const user = useAuthStore(state => state.user);
   const query = useQuery<MyPermissions>({
     queryKey: ["my-permissions", user?.user_id],
     queryFn: () => api.get("/access/me").then(response => response.data),
     enabled: Boolean(user),
+    staleTime: 60_000,
   });
-  if (!user || !query.isSuccess) return false;
-  return resolvePermissions(query.data, user.role_name).includes(permission);
+  const granted = new Set(resolvePermissions(query.data));
+  const scope = query.data?.scope;
+  return {
+    ready: query.isSuccess,
+    scope,
+    roleTitle: query.data?.role_title,
+    permissions: granted,
+    /** Holds every listed permission. */
+    can: (...slugs: string[]) => slugs.every(slug => granted.has(slug)),
+    /** Holds at least one of the listed permissions. */
+    canAny: (...slugs: string[]) => slugs.some(slug => granted.has(slug)),
+    institution: scope === "institution",
+    teaching: scope === "sections",
+    student: scope === "own",
+    guardian: scope === "linked",
+  };
+}
+
+/** Whether the signed-in account holds a permission. False while loading. */
+export function useHasPermission(permission: string): boolean {
+  return useAccess().can(permission);
 }

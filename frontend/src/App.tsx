@@ -1,8 +1,7 @@
-import { isCustomRole } from "./lib/moduleViews";
-import { CustomModuleHome, CustomModuleRoute } from "./features/settings/CustomModulePage";
+import { CustomModuleRoute } from "./features/settings/CustomModulePage";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect } from "react";
-import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { resources } from "./config/resources";
 import {
@@ -34,14 +33,15 @@ import { AuditPage } from "./features/settings/AuditPage";
 import { AccountPage } from "./features/settings/AccountPage";
 import { BulkToolsPage } from "./features/settings/BulkToolsPage";
 import { EquivalencesPage } from "./features/settings/EquivalencesPage";
-import { AccessSettingsPage } from "./features/settings/AccessSettingsPage";
+import { RolesPage } from "./features/settings/RolesPage";
 import { InstitutionSettingsPage } from "./features/settings/InstitutionSettingsPage";
 import { PeriodsPage } from "./features/settings/PeriodsPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { api } from "./lib/api";
 import { useSessionRenewal } from "./lib/useSessionRenewal";
 import { useAuthStore } from "./store/auth";
-import type { Role, User } from "./types";
+import type { User } from "./types";
+import { useAccess } from "./lib/permissions";
 import { Spinner } from "./components/ui";
 
 const StudentProfilePage = lazy(() =>
@@ -116,27 +116,29 @@ function SessionGate() {
 
 function Protected() {
   const { token, user, hydrated } = useAuthStore();
-  const { pathname } = useLocation();
   if (!hydrated) return null;
   if (!token || !user) return <Navigate to="/login" replace />;
-  if (
-    isCustomRole(user.role_name) &&
-    !["/", "/account"].includes(pathname) &&
-    !pathname.startsWith("/modules/")
-  )
-    return <Navigate to="/" replace />;
   return <AppShell />;
 }
 
-function RoleRoute({ roles }: { roles: Role[] }) {
-  const role = useAuthStore(state => state.user?.role_name);
-  return role && roles.includes(role) ? <Outlet /> : <Navigate to="/" replace />;
+type Access = ReturnType<typeof useAccess>;
+
+/** Renders its routes only when the account's permissions and scope allow it. */
+function Allow({ when }: { when: (access: Access) => boolean }) {
+  const access = useAccess();
+  if (!access.ready) return <Spinner label="Comprobando permisos" />;
+  return when(access) ? <Outlet /> : <Navigate to="/" replace />;
 }
+const staff = (a: Access) => a.institution || a.teaching;
+const institution =
+  (...slugs: string[]) =>
+  (a: Access) =>
+    a.institution && a.canAny(...slugs);
 
 function Home() {
-  const role = useAuthStore(state => state.user?.role_name);
-  if (isCustomRole(role)) return <CustomModuleHome />;
-  return role === "guardian" ? <Navigate to="/guardian" replace /> : <DashboardPage />;
+  const access = useAccess();
+  if (!access.ready) return <Spinner label="Preparando tu espacio" />;
+  return access.guardian ? <Navigate to="/guardian" replace /> : <DashboardPage />;
 }
 
 export default function App() {
@@ -151,62 +153,114 @@ export default function App() {
             <Route path="account" element={<AccountPage />} />
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="communications" element={<CommunityPage />} />
-            <Route element={<RoleRoute roles={["guardian"]} />}>
+            <Route element={<Allow when={a => a.guardian && a.can("records.own")} />}>
               <Route path="guardian" element={<GuardianPortalPage />} />
             </Route>
             <Route path="operations" element={<OperationsPage />} />
-            <Route path="my-transcript" element={<TranscriptPage />} />
-            <Route path="my-grades" element={<MyGradesPage />} />
             <Route path="my-schedule" element={<SchedulePage />} />
-            <Route path="my-catalog" element={<CourseCatalogPage />} />
-            <Route path="my-attendance" element={<MyAttendancePage />} />
-            <Route path="my-progress" element={<MyProgressPage />} />
-            <Route path="my-graduation" element={<GraduationAuditPage />} />
-            <Route path="my-finance" element={<FinancePage />} />
-            <Route element={<RoleRoute roles={["admin", "teacher"]} />}>
-              {["students", "sections"].map(key => (
-                <Route
-                  key={key}
-                  path={key}
-                  element={key === "students" ? <StudentsPage /> : <SectionsPage />}
+            <Route element={<Allow when={a => a.student && a.can("records.own")} />}>
+              <Route path="my-transcript" element={<TranscriptPage />} />
+              <Route path="my-grades" element={<MyGradesPage />} />
+              <Route path="my-attendance" element={<MyAttendancePage />} />
+              <Route path="my-progress" element={<MyProgressPage />} />
+              <Route path="my-graduation" element={<GraduationAuditPage />} />
+              <Route path="my-finance" element={<FinancePage />} />
+            </Route>
+            <Route element={<Allow when={a => a.student && a.can("selection.own")} />}>
+              <Route path="my-catalog" element={<CourseCatalogPage />} />
+            </Route>
+            <Route
+              element={
+                <Allow when={a => staff(a) && a.canAny("students.view", "students.manage")} />
+              }
+            >
+              <Route path="students" element={<StudentsPage />} />
+              <Route path="students/:studentId" element={<StudentProfilePage />} />
+              <Route path="students/:studentId/graduation" element={<GraduationAuditPage />} />
+            </Route>
+            <Route
+              element={
+                <Allow when={a => staff(a) && a.canAny("sections.view", "sections.manage")} />
+              }
+            >
+              <Route path="sections" element={<SectionsPage />} />
+              <Route path="sections/:sectionId" element={<SectionWorkspacePage />} />
+            </Route>
+            <Route element={<Allow when={a => staff(a) && a.can("grades.manage")} />}>
+              <Route path="assessments" element={<AssessmentsPage />} />
+            </Route>
+            <Route
+              element={
+                <Allow
+                  when={a =>
+                    staff(a) &&
+                    a.canAny("grades.view", "grades.manage", "attendance.view", "attendance.manage")
+                  }
                 />
-              ))}
+              }
+            >
               <Route path="grades" element={<SectionResultsPage mode="grades" />} />
               <Route path="attendances" element={<SectionResultsPage mode="attendance" />} />
               <Route
                 path="section-results/:sectionId/:mode"
                 element={<SectionResultsDetailPage />}
               />
-              <Route path="assessments" element={<AssessmentsPage />} />
-              <Route path="students/:studentId" element={<StudentProfilePage />} />
-              <Route path="students/:studentId/graduation" element={<GraduationAuditPage />} />
-              <Route path="sections/:sectionId" element={<SectionWorkspacePage />} />
             </Route>
-            <Route element={<RoleRoute roles={["admin"]} />}>
-              {["subjects", "roles", "curriculum"].map(key => (
-                <Route
-                  key={key}
-                  path={key}
-                  element={
-                    key === "subjects" ? <SubjectsPage /> : <ResourcePage config={resources[key]} />
-                  }
-                />
-              ))}
-              <Route path="subjects/:subjectId" element={<SubjectProgramPage />} />
-              <Route path="teachers" element={<TeachersPage />} />
-              <Route path="teachers/:teacherId" element={<TeacherDossierPage />} />
-              <Route path="periods" element={<PeriodsPage />} />
+            <Route element={<Allow when={institution("programs.manage")} />}>
               <Route path="careers" element={<CareersPage />} />
               <Route path="careers/:careerId" element={<CareerProgramPage />} />
+              <Route path="subjects" element={<SubjectsPage />} />
+              <Route path="subjects/:subjectId" element={<SubjectProgramPage />} />
+              <Route path="curriculum" element={<ResourcePage config={resources.curriculum} />} />
+            </Route>
+            <Route element={<Allow when={institution("teachers.view", "teachers.manage")} />}>
+              <Route path="teachers" element={<TeachersPage />} />
+              <Route path="teachers/:teacherId" element={<TeacherDossierPage />} />
+            </Route>
+            <Route element={<Allow when={institution("equivalences.manage")} />}>
               <Route path="equivalences" element={<EquivalencesPage />} />
+            </Route>
+            <Route element={<Allow when={institution("finance.view")} />}>
               <Route path="finance" element={<FinancePage />} />
               <Route path="finance/:studentId" element={<FinancePage />} />
+            </Route>
+            <Route
+              element={
+                <Allow when={institution("reports.view", "cases.manage", "admissions.manage")} />
+              }
+            >
               <Route path="institutional-control" element={<InstitutionalControlPage />} />
+            </Route>
+            <Route
+              element={
+                <Allow
+                  when={institution(
+                    "settings.manage",
+                    "users.manage",
+                    "roles.manage",
+                    "audit.view",
+                    "students.manage",
+                  )}
+                />
+              }
+            >
               <Route path="settings" element={<SettingsPage />} />
-              <Route path="settings/access" element={<AccessSettingsPage />} />
-              <Route path="settings/audit" element={<AuditPage />} />
-              <Route path="users" element={<UsersPage />} />
+            </Route>
+            <Route element={<Allow when={institution("settings.manage")} />}>
+              <Route path="periods" element={<PeriodsPage />} />
               <Route path="settings/institution" element={<InstitutionSettingsPage />} />
+            </Route>
+            <Route element={<Allow when={institution("roles.manage")} />}>
+              <Route path="roles" element={<RolesPage />} />
+              <Route path="settings/access" element={<Navigate to="/roles" replace />} />
+            </Route>
+            <Route element={<Allow when={institution("users.manage")} />}>
+              <Route path="users" element={<UsersPage />} />
+            </Route>
+            <Route element={<Allow when={institution("audit.view")} />}>
+              <Route path="settings/audit" element={<AuditPage />} />
+            </Route>
+            <Route element={<Allow when={institution("students.manage")} />}>
               <Route path="settings/bulk" element={<BulkToolsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

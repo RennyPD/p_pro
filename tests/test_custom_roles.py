@@ -5,10 +5,12 @@ from db_support import make_engine
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
 
+from app.auth import role_permission_slugs
 from app.db.database import Base
 from app.db.Session import get_db
-from app.models import Role, Section, Teacher, User
+from app.models import Role, RolePermission, Section, Teacher, User
 from app.security import hash_password
+from app.services.permission_catalog import sync_permission_catalog
 from main import app
 from scripts.seed_demo import seed_demo
 
@@ -152,3 +154,21 @@ def test_last_role_manager_cannot_lose_role_management(context):
         json={"permissions": ["students.view"], "reason": "Quitar todo"},
     )
     assert removed.status_code == 409
+
+
+def test_fresh_install_gives_built_in_roles_their_permissions(tmp_path):
+    """`alembic upgrade` creates the catalog before any role; the seed must grant defaults."""
+    engine = make_engine(f"sqlite:///{tmp_path / 'fresh.db'}")
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine)() as db:
+        sync_permission_catalog(db)
+        seed_demo(db)
+        db.commit()
+        admin = db.query(User).filter_by(username="demo.admin").one()
+        assert {"roles.manage", "finance.manage", "students.manage"} <= role_permission_slugs(
+            db, admin.role_id
+        )
+        teacher = db.query(Role).filter_by(name="teacher").one()
+        assert teacher.scope == "sections"
+        assert db.query(RolePermission).filter_by(role_id=teacher.role_id).count() == 10
+    engine.dispose()

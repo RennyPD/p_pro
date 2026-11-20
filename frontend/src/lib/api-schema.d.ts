@@ -267,7 +267,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** My Permissions */
+    /**
+     * My Permissions
+     * @description Effective permissions and data scope of the signed-in account.
+     */
     get: operations["my_permissions_access_me_get"];
     put?: never;
     post?: never;
@@ -284,7 +287,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Permissions */
+    /**
+     * Permissions
+     * @description The permission catalog, grouped by module for the role editor.
+     */
     get: operations["permissions_access_permissions_get"];
     put?: never;
     /** Create Permission */
@@ -323,6 +329,23 @@ export interface paths {
     get: operations["role_permissions_access_roles__role_id__permissions_get"];
     /** Set Role Permissions */
     put: operations["set_role_permissions_access_roles__role_id__permissions_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/access/scopes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Scopes */
+    get: operations["scopes_access_scopes_get"];
+    put?: never;
     post?: never;
     delete?: never;
     options?: never;
@@ -5509,6 +5532,11 @@ export interface components {
       label?: string | null;
       /** Name */
       name: string;
+      /**
+       * Scope
+       * @default institution
+       */
+      scope: string;
     };
     /** RoleOut */
     RoleOut: {
@@ -5518,10 +5546,25 @@ export interface components {
       label?: string | null;
       /** Name */
       name: string;
+      /**
+       * Permission Count
+       * @default 0
+       */
+      permission_count: number;
       /** Role Id */
       role_id: number;
       /** Role Title */
       role_title: string;
+      /**
+       * Scope
+       * @default institution
+       */
+      scope: string;
+      /**
+       * User Count
+       * @default 0
+       */
+      user_count: number;
     };
     /** RolePermissionUpdate */
     RolePermissionUpdate: {
@@ -5543,6 +5586,8 @@ export interface components {
       label?: string | null;
       /** Name */
       name?: string | null;
+      /** Scope */
+      scope?: string | null;
     };
     /** RosterAttendanceItem */
     RosterAttendanceItem: {
@@ -7525,6 +7570,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  scopes_access_scopes_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
     };

@@ -7,7 +7,7 @@ import { LookupSelect } from "../../components/LookupSelect";
 import { Badge, Button, Modal } from "../../components/ui";
 import { resources } from "../../config/resources";
 import { api, apiMessage } from "../../lib/api";
-import { isCustomRole, type ModuleView } from "../../lib/moduleViews";
+import { type ModuleView } from "../../lib/moduleViews";
 import { useDraftGuard } from "../../lib/useDraftGuard";
 import type { EntityRecord, LookupConfig, ResourceConfig } from "../../types";
 import { ResourcePage } from "../resources/ResourcePage";
@@ -90,16 +90,14 @@ export function UsersPage() {
             >
               <KeyRound />
             </button>
-            {isCustomRole(String(row.role_name ?? "")) && (
-              <button
-                type="button"
-                onClick={() => setAccount(row)}
-                aria-label={`Módulos de consulta de ${row.username}`}
-                title="Módulos de consulta"
-              >
-                <LayoutGrid />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setAccount(row)}
+              aria-label={`Módulos de consulta de ${row.username}`}
+              title="Módulos de consulta"
+            >
+              <LayoutGrid />
+            </button>
             <AccountStatusButton account={row} />
           </>
         )}

@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import { CommunityPage } from "../community/CommunityPage";
-import { AccessSettingsPage } from "./AccessSettingsPage";
 import { InstitutionSettingsPage } from "./InstitutionSettingsPage";
 import { InstitutionalControlPage } from "./InstitutionalControlPage";
 
@@ -109,7 +108,7 @@ it("shows missing academic samples as no data and keeps permissions outside inst
   expect(average).toHaveTextContent("Sin notas publicadas");
   expect(screen.getByRole("link", { name: "Gestionar permisos en Configuración" })).toHaveAttribute(
     "href",
-    "/settings/access",
+    "/roles",
   );
   expect(screen.queryByRole("button", { name: "Guardar permisos" })).not.toBeInTheDocument();
   expect(screen.getByText("Proporción de estudiantes activos")).toBeInTheDocument();
@@ -195,30 +194,4 @@ it("previews configuration impact and clears the preview when a field changes", 
   );
   fireEvent.change(grade, { target: { value: "90" } });
   expect(screen.queryByText("Revisión antes de guardar")).not.toBeInTheDocument();
-});
-it("protects a dirty role draft when switching roles is refused", async () => {
-  vi.spyOn(api, "get").mockImplementation(
-    async path =>
-      ({
-        data:
-          path === "/roles/"
-            ? [
-                { role_id: 1, name: "admin" },
-                { role_id: 2, name: "teacher" },
-              ]
-            : path === "/access/permissions"
-              ? [{ permission_id: 1, slug: "reports.view", description: "Consultar reportes" }]
-              : String(path).endsWith("/permissions")
-                ? { permissions: [] }
-                : [],
-      }) as never,
-  );
-  renderPage(<AccessSettingsPage />);
-  const checkbox = await screen.findByRole("checkbox", { name: /Consultar reportes/ });
-  fireEvent.click(checkbox);
-  expect(checkbox).toBeChecked();
-  vi.spyOn(window, "confirm").mockReturnValue(false);
-  fireEvent.change(screen.getByLabelText("Rol que se modificará"), { target: { value: "2" } });
-  expect(screen.getByLabelText("Rol que se modificará")).toHaveValue("1");
-  expect(checkbox).toBeChecked();
 });

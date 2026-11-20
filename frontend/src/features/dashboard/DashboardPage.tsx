@@ -20,6 +20,7 @@ import { api } from "../../lib/api";
 import { formatDateTime, formatMoney, formatTime } from "../../lib/format";
 import { scheduleBlocks, weekDays } from "../../lib/schedule";
 import { useAuthStore } from "../../store/auth";
+import { useAccess } from "../../lib/permissions";
 
 type Metric = { key: string; label: string; value: number | null; note: string };
 type Summary = {
@@ -94,6 +95,7 @@ const tones = ["blue", "violet", "amber", "green"];
 
 export function DashboardPage() {
   const { user } = useAuthStore();
+  const access = useAccess();
   const summary = useQuery<Summary>({
     queryKey: ["dashboard-summary", user?.user_id, user?.role_name],
     queryFn: () => api.get("/dashboard/summary").then(response => response.data),
@@ -139,7 +141,8 @@ export function DashboardPage() {
           />
         ))}
       </section>
-      {user?.role_name === "admin" ? <AdminOverview /> : <PersonalDay />}
+      {access.institution && access.can("reports.view") && <AdminOverview />}
+      {(access.teaching || access.student) && <PersonalDay />}
     </div>
   );
 }
@@ -296,7 +299,7 @@ function AdminOverview() {
 /** Teacher and student home: today's classes first, then what is pending. */
 function PersonalDay() {
   const { user } = useAuthStore();
-  const isStudent = user?.role_name === "student";
+  const isStudent = useAccess().student;
   const id = isStudent ? user?.student_id : user?.teacher_id;
   const url = isStudent ? `/academic/students/${id}/schedule` : `/academic/teachers/${id}/schedule`;
   const schedule = useQuery<Record<string, never>[]>({

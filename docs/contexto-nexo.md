@@ -12,7 +12,7 @@ Sistema de gestión académica de una sola institución, muy orientado a univers
 - **Asistencia,** tareas y entregas (PDF/PNG/JPEG hasta 5 MiB), planes de clase, agenda.
 - **Finanzas:** conceptos de cobro, cargos, pagos idempotentes, reversos auditados, planes de pago, transferencias con comprobante, cierre de caja.
 - **Comunidad:** portal de tutores (padres), alertas tempranas, casos institucionales, aprobaciones, admisiones, comunicaciones.
-- **Plataforma:** usuarios, roles y permisos configurables, módulos por rol personalizado, 2FA (TOTP), sesiones revocables, auditoría, importación masiva con prevalidación, PDF (boletines, constancias, expedientes), exportes CSV.
+- **Plataforma:** usuarios, roles creados por la institución con permisos granulares (unos 30, de consulta y gestión por módulo; catálogo en `app/permissions.py`) y ámbito de datos por rol (institución, sus secciones, su expediente, estudiantes vinculados), módulos de consulta por cuenta, 2FA (TOTP), sesiones revocables, auditoría, importación masiva con prevalidación, PDF (boletines, constancias, expedientes), exportes CSV.
 
 ### Arquitectura
 - `app/models` (SQLAlchemy), `app/schemas` (Pydantic), `app/routers`, `app/services`, `app/repositories`, `alembic/`.
@@ -29,7 +29,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-17.pdf` (versión web: https
 - ✅ **A2** (cerrado 17/11/2026: `User.active`, `POST /users/{id}/deactivate` y `/activate`, 409 explicativo al borrar con historial). `User` no tenía campo `active`; borrar un usuario con historial falla (27 claves foráneas apuntan a `users`) y la API responde un 409 genérico.
 
 ### Medios
-- ✅ **M1** (cerrado 18/11/2026: `has_scope` en `app/auth.py` decide el ámbito institucional por permisos; `academic.manage`/`reports.view` para lo académico, `finance.manage`/`reports.view` para finanzas; migración 0039 da al rol `admin` todos los permisos). Las comprobaciones de ámbito usan `is_admin()` por nombre de rol: los roles personalizados con permiso (p. ej. `finance.manage`) reciben 403 al leer.
+- ✅ **M1** (cerrado 18/11/2026; ampliado 20/11/2026: todas las rutas exigen un permiso del catálogo, comprobado por `tests/test_route_permissions.py`, y el menú del frontend se arma con `useAccess()`; migración 0046. Antes: `has_scope` en `app/auth.py` decide el ámbito institucional por permisos; `academic.manage`/`reports.view` para lo académico, `finance.manage`/`reports.view` para finanzas; migración 0039 da al rol `admin` todos los permisos). Las comprobaciones de ámbito usan `is_admin()` por nombre de rol: los roles personalizados con permiso (p. ej. `finance.manage`) reciben 403 al leer.
 - ✅ **M2** (verificado con prueba de regresión 17/11/2026). `student_scope_ids` (alertas) devuelve `None` (= todo) para usuarios no admin sin vínculo.
 - ✅ **M3** (cerrado 17/11/2026: nadie gestiona cuentas ni concede permisos por encima de los suyos). `access.manage` permitía restablecer la contraseña de un admin o crear admins.
 - ✅ **M4** (cerrado 18/11/2026: tabla `login_throttles`, claves IP+usuario e IP; uvicorn con `--proxy-headers`, configurar `FORWARDED_ALLOW_IPS` detrás de un proxy). Límite de login por usuario, en memoria: permite bloquear al admin y no funciona con varios workers.

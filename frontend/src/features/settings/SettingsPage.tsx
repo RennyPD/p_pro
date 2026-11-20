@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { useAccess } from "../../lib/permissions";
 import "./institution-settings.css";
 
 export function SettingsPage() {
@@ -30,24 +31,28 @@ export function SettingsPage() {
         <div className="settings-grid">
           <Setting
             to="/settings/institution"
+            permission="settings.manage"
             icon={<Building2 />}
             title="Institución y matrícula"
             text="Identidad, numeración, créditos y nota aprobatoria para nuevas selecciones."
           />
           <Setting
             to="/periods"
+            permission="settings.manage"
             icon={<CalendarRange />}
             title="Períodos académicos"
             text="Fechas, selección y cierre verificado, con reapertura controlada."
           />
           <Setting
             to="/curriculum"
+            permission="programs.manage"
             icon={<BookOpenCheck />}
             title="Pensum académico"
             text="Materias, créditos, versiones, prerrequisitos y correquisitos."
           />
           <Setting
             to="/careers"
+            permission="programs.manage"
             icon={<Layers3 />}
             title="Carreras"
             text="Oferta académica y organización de los programas."
@@ -58,19 +63,15 @@ export function SettingsPage() {
         <h2>Seguridad y accesos</h2>
         <div className="settings-grid">
           <Setting
-            to="/settings/access"
-            icon={<Shield />}
-            title="Permisos por rol"
-            text="Revisar concesiones y retiros, justificar cambios y consultar el historial."
-          />
-          <Setting
             to="/roles"
+            permission="roles.manage"
             icon={<Shield />}
-            title="Roles"
-            text="Catálogo de perfiles; las autorizaciones se gestionan en Permisos por rol."
+            title="Roles y permisos"
+            text="Crear roles por puesto, elegir su ámbito de datos y activar sus permisos."
           />
           <Setting
             to="/users"
+            permission="users.manage"
             icon={<UserCog />}
             title="Usuarios"
             text="Cuentas vinculadas con estudiantes, docentes y tutores."
@@ -88,18 +89,21 @@ export function SettingsPage() {
         <div className="settings-grid">
           <Setting
             to="/settings/bulk"
+            permission="students.manage"
             icon={<FileSpreadsheet />}
             title="Importar y exportar"
             text="Carga y descarga de estudiantes en CSV."
           />
           <Setting
             to="/settings/audit"
+            permission="audit.view"
             icon={<Shield />}
             title="Auditoría administrativa"
             text="Filtra eventos por actor, acción, recurso y fecha."
           />
           <Setting
             to="/institutional-control"
+            permission="reports.view"
             icon={<Shield />}
             title="Control institucional"
             text="Indicadores, casos de seguimiento y admisiones; separado de la configuración de accesos."
@@ -111,15 +115,19 @@ export function SettingsPage() {
 }
 function Setting({
   to,
+  permission,
   icon,
   title,
   text,
 }: {
   to: string;
+  permission?: string;
   icon: ReactNode;
   title: string;
   text: string;
 }) {
+  const access = useAccess();
+  if (permission && !access.can(permission)) return null;
   return (
     <Link className="setting-card" to={to}>
       <span>{icon}</span>

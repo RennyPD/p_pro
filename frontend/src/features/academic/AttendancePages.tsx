@@ -14,6 +14,7 @@ import { useAuthStore } from "../../store/auth";
 import { RequestApproval } from "../operations/ApprovalsPage";
 import { LessonPlansDialog } from "./LessonPlansDialog";
 import "./attendance.css";
+import { useAccess } from "../../lib/permissions";
 
 const labels: Record<string, string> = {
   present: "Presente",
@@ -149,6 +150,7 @@ function AttendanceSession({
 }) {
   const user = useAuthStore(s => s.user),
     client = useQueryClient();
+  const access = useAccess();
   const [changes, setChanges] = useState<Record<number, Draft>>({}),
     [reason, setReason] = useState(""),
     [exception, setException] = useState(""),
@@ -441,7 +443,7 @@ function AttendanceSession({
               placeholder="Pase de lista o motivo de la corrección"
             />
           </label>
-          {user?.role_name === "admin" && (
+          {access.institution && access.can("attendance.manage") && (
             <label>
               Excepción de día de clase (solo sesión extraordinaria)
               <input

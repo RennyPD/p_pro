@@ -7,6 +7,7 @@ import { api, apiMessage } from "../../lib/api";
 import { scheduleBlocks, weekDays, type ScheduleTimes } from "../../lib/schedule";
 import { useAuthStore } from "../../store/auth";
 import "./schedule.css";
+import { useAccess } from "../../lib/permissions";
 
 type ScheduledSection = ScheduleTimes & {
   section_id: number;
@@ -25,10 +26,10 @@ export function SchedulePage() {
   const [view, setView] = useState<"list" | "week">("week");
   const [clock12, setClock12] = useState(true);
   const [period, setPeriod] = useState("");
-  const path =
-    user?.role_name === "student"
-      ? `/academic/students/${user.student_id}/schedule`
-      : `/academic/teachers/${user?.teacher_id}/schedule`;
+  const access = useAccess();
+  const path = access.student
+    ? `/academic/students/${user?.student_id}/schedule`
+    : `/academic/teachers/${user?.teacher_id}/schedule`;
   const periods = useQuery({
     queryKey: ["periods", "schedule", user?.user_id],
     queryFn: () => api.get<Period[]>("/periods/").then(response => response.data),

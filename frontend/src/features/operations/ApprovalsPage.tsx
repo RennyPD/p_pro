@@ -8,6 +8,7 @@ import { Badge, Button, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useDraftGuard } from "../../lib/useDraftGuard";
 import { useAuthStore } from "../../store/auth";
+import { useAccess } from "../../lib/permissions";
 
 type Approval = {
   approval_request_id: number;
@@ -126,6 +127,7 @@ export function RequestApproval({
 
 export function ApprovalsPage() {
   const user = useAuthStore(state => state.user);
+  const access = useAccess();
   const client = useQueryClient();
   const [all, setAll] = useState(false);
   const [show, setShow] = useState<"pending" | "resolved" | "all">("all");
@@ -187,7 +189,7 @@ export function ApprovalsPage() {
           <p>Revisiones de expedientes, notas, secciones o entregas y su decisión.</p>
         </div>
       </header>
-      {user?.role_name === "admin" && (
+      {access.institution && access.can("approvals.manage") && (
         <div className="view-tabs" role="group" aria-label="Bandeja de solicitudes">
           <button type="button" aria-pressed={!all} onClick={() => setAll(false)}>
             Mis solicitudes

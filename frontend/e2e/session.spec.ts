@@ -44,7 +44,11 @@ async function setup(page: Page, mode: "concurrent" | "proactive" | "revoked") {
       return fulfill({ detail: "La sesión no es válida o expiró. Inicia sesión de nuevo" }, 401);
     }
     if (path === "/auth/me") return fulfill(user);
-    if (path === "/access/me") return fulfill({ permissions: ["academic.manage", "reports.view"] });
+    if (path === "/access/me")
+      return fulfill({
+        permissions: ["programs.manage", "teachers.manage", "reports.view"],
+        scope: "institution",
+      });
     if (path === "/dashboard/summary") return fulfill({ metrics: [], alerts: [] });
     return fulfill([]);
   });

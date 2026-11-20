@@ -23,9 +23,8 @@ import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { resources } from "../../config/resources";
 import { api, apiMessage } from "../../lib/api";
 import { weekDays } from "../../lib/schedule";
-import { useHasPermission } from "../../lib/permissions";
+import { useHasPermission, useAccess } from "../../lib/permissions";
 import { useDraftGuard } from "../../lib/useDraftGuard";
-import { useAuthStore } from "../../store/auth";
 import type { EntityRecord, ResourceConfig } from "../../types";
 import { ResourcePage } from "../resources/ResourcePage";
 
@@ -88,7 +87,8 @@ const sectionConfig: ResourceConfig = {
 };
 
 export function SectionsPage() {
-  const admin = useAuthStore(state => state.user?.role_name === "admin");
+  const access = useAccess();
+  const admin = access.institution && access.can("sections.manage");
   const client = useQueryClient();
   const [meetings, setMeetings] = useState<EntityRecord | null>(null);
   const [rooms, setRooms] = useState(false);

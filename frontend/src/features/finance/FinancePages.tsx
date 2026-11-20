@@ -23,6 +23,7 @@ import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./finance.css";
+import { useAccess } from "../../lib/permissions";
 
 type Account = {
   student_id: number;
@@ -217,8 +218,9 @@ async function download(path: string, name: string) {
 export function FinancePage() {
   const user = useAuthStore(s => s.user);
   const { studentId } = useParams();
+  const access = useAccess();
   const id = studentId ?? user?.student_id;
-  if (user?.role_name === "admin" && !id) return <FinanceAccounts />;
+  if (access.institution && access.can("finance.view") && !id) return <FinanceAccounts />;
   if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0)
     return (
       <div className="page">
@@ -233,7 +235,7 @@ export function FinancePage() {
     <StudentFinance
       key={String(id)}
       studentId={Number(id)}
-      canManage={user?.role_name === "admin"}
+      canManage={access.institution && access.can("finance.manage")}
     />
   );
 }

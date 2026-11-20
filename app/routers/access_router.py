@@ -13,7 +13,7 @@ from app.db.Session import get_db
 from app.models.access_model import Permission, RolePermission
 from app.models.role_model import Role
 from app.models.user_model import User
-from app.permissions import PERMISSIONS, SCOPES
+from app.permissions import INSTITUTIONAL_PERMISSIONS, PERMISSIONS, SCOPES
 from app.services.governance_workflow import history, record
 from app.services.permission_catalog import ensure_catalog
 from app.services.write_locks import lock_access
@@ -44,6 +44,7 @@ def permissions(db: Session = Depends(get_db)):
             "module": item.module,
             "label": item.label,
             "description": item.description,
+            "institutional": item.slug in INSTITUTIONAL_PERMISSIONS,
         }
         for item in PERMISSIONS
     ]
@@ -150,5 +151,6 @@ def my_permissions(user: User = Depends(get_current_user), db: Session = Depends
     return {
         "permissions": sorted(role_permission_slugs(db, user.role_id)),
         "scope": role_scope(user),
+        "role_title": user.role.role_title,
         "configured": True,
     }

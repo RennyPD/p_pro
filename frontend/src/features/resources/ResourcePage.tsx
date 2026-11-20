@@ -18,6 +18,7 @@ import type { EntityRecord, FieldConfig, ResourceConfig } from "../../types";
 import { newLabel } from "../../lib/labels";
 import "./resource-fields.css";
 import "./resource-table.css";
+import { useAccess } from "../../lib/permissions";
 
 const identity = (row: EntityRecord, config: ResourceConfig) =>
   [
@@ -31,6 +32,22 @@ const PAGE_SIZE = 10;
 const EMPTY_ROWS: EntityRecord[] = [];
 const WEEK_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 type FormValues = Record<string, unknown>;
+
+/** Permission that allows creating and editing each generic resource. */
+const writePermission: Record<string, string> = {
+  students: "students.manage",
+  teachers: "teachers.manage",
+  careers: "programs.manage",
+  subjects: "programs.manage",
+  curriculum: "programs.manage",
+  sections: "sections.manage",
+  enrollments: "enrollments.manage",
+  grades: "grades.manage",
+  attendances: "attendance.manage",
+  roles: "roles.manage",
+  periods: "settings.manage",
+  users: "users.manage",
+};
 
 export function ResourcePage({
   config,
@@ -51,9 +68,8 @@ export function ResourcePage({
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<EntityRecord | null | undefined>();
-  const canWrite =
-    user?.role_name === "admin" ||
-    (user?.role_name === "teacher" && ["grades", "attendances"].includes(config.key));
+  const access = useAccess();
+  const canWrite = access.can(writePermission[config.key] ?? "settings.manage");
   const {
     data: result,
     isLoading,

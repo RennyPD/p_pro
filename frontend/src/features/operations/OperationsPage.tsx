@@ -11,6 +11,7 @@ import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./operations.css";
 import { TaskCard, type TaskTone } from "./TaskCard";
+import { useAccess } from "../../lib/permissions";
 
 type Section = { section_id: number; code: string; subject_name: string; period_name: string };
 type Submission = {
@@ -104,7 +105,9 @@ const tone = (t: Task): TaskTone => {
 
 export function OperationsPage() {
   const user = useAuthStore(s => s.user);
-  const manager = user?.role_name === "admin" || user?.role_name === "teacher";
+  const access = useAccess();
+  const manager =
+    (access.institution || access.teaching) && access.canAny("tasks.manage", "calendar.manage");
   const client = useQueryClient();
   const [tab, setTab] = useState("tasks"),
     [section, setSection] = useState(""),
@@ -236,7 +239,7 @@ export function OperationsPage() {
         >
           Agenda académica
         </Button>
-        {user?.role_name === "admin" && (
+        {access.institution && access.canAny("reports.view", "cases.manage") && (
           <Link to="/institutional-control">Seguimiento académico →</Link>
         )}
       </div>
@@ -442,7 +445,7 @@ export function OperationsPage() {
         <TaskDetail
           task={task}
           manager={manager}
-          student={user?.role_name === "student"}
+          student={access.student}
           userId={user?.user_id}
           onClose={() => setSelected(null)}
           onSaved={refresh}
@@ -453,7 +456,7 @@ export function OperationsPage() {
           event={eventEditor}
           sections={sections.data ?? []}
           manager={manager}
-          admin={user?.role_name === "admin"}
+          admin={access.institution && access.can("calendar.manage")}
           onClose={() => setEventEditor(null)}
           onSaved={refresh}
         />

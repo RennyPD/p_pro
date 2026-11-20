@@ -25,7 +25,6 @@ import { Link, useParams } from "react-router-dom";
 import { DocumentDownload } from "../../components/DocumentDownload";
 import { Badge, Button, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
-import { useAuthStore } from "../../store/auth";
 import type { EntityRecord } from "../../types";
 import { ResourceForm } from "../resources/ResourcePage";
 import { CareerChangeDialog, GuardianDialog, StudentDocuments } from "./StudentDossierActions";
@@ -33,6 +32,7 @@ import { RequestApproval } from "../operations/ApprovalsPage";
 import { studentConfig } from "./student-config";
 import "./academic-pages.css";
 import "./students.css";
+import { useAccess } from "../../lib/permissions";
 
 type Enrollment = {
   enrollment_id: number;
@@ -116,8 +116,10 @@ type Tab = (typeof tabs)[number]["key"];
 const dateLabel = (value: string | null) => formatDate(value, "Sin registrar");
 
 export function StudentDossierPage() {
+  const access = useAccess();
+  const institutionView = access.institution;
+  const canManageStudent = access.institution && access.can("students.manage");
   const { studentId } = useParams();
-  const user = useAuthStore(state => state.user);
   const [tab, setTab] = useState<Tab>("overview");
   const [period, setPeriod] = useState("");
   const [editing, setEditing] = useState(false);
@@ -132,7 +134,7 @@ export function StudentDossierPage() {
     queryKey: ["student-transcript", studentId],
     queryFn: () =>
       api.get(`/records/students/${studentId}/transcript`).then(response => response.data),
-    enabled: tab === "academic" && user?.role_name === "admin",
+    enabled: tab === "academic" && institutionView,
   });
   const guardians = useQuery<Guardian[]>({
     queryKey: ["student-guardians", studentId],
@@ -208,7 +210,7 @@ export function StudentDossierPage() {
             id={student.student_id}
             label={`${student.first_name} ${student.last_name} · ${student.enrollment_number}`}
           />
-          {user?.role_name === "admin" && (
+          {canManageStudent && (
             <>
               <Button variant="secondary" onClick={() => setTransferring(true)}>
                 Trasladar carrera
@@ -317,7 +319,7 @@ export function StudentDossierPage() {
                 </span>
                 <ArrowUpRight />
               </button>
-              {user?.role_name === "admin" && (
+              {institutionView && (
                 <Link className="dossier-shortcut" to={`/students/${studentId}/graduation`}>
                   <GraduationCap />
                   <span>
@@ -326,7 +328,7 @@ export function StudentDossierPage() {
                   <ArrowUpRight />
                 </Link>
               )}
-              {user?.role_name === "admin" && (
+              {institutionView && access.can("finance.view") && (
                 <Link className="dossier-shortcut" to={`/finance/${studentId}`}>
                   <Wallet />
                   <span>
@@ -387,9 +389,7 @@ export function StudentDossierPage() {
             <div>
               <span className="kicker">Trayectoria académica</span>
               <h2>
-                {user?.role_name === "teacher"
-                  ? "Asignaturas de mis secciones"
-                  : "Historial de asignaturas"}
+                {access.teaching ? "Asignaturas de mis secciones" : "Historial de asignaturas"}
               </h2>
               <p>
                 Resultado con notas publicadas: provisional hasta que el docente cierre las
@@ -407,7 +407,7 @@ export function StudentDossierPage() {
               ))}
             </select>
           </div>
-          {user?.role_name === "admin" && (
+          {institutionView && (
             <div className="form-actions">
               <DocumentDownload
                 path={`/documents/students/${studentId}/transcript.pdf`}
@@ -517,7 +517,7 @@ export function StudentDossierPage() {
           )}
         </section>
       )}
-      {tab === "academic" && user?.role_name === "admin" && studentId && (
+      {tab === "academic" && canManageStudent && studentId && (
         <CurriculumAssignmentPanel studentId={studentId} />
       )}
       {tab === "support" && (
@@ -537,9 +537,7 @@ export function StudentDossierPage() {
             <span className="kicker">Red de apoyo</span>
             <div className="panel-heading">
               <h2>Tutores vinculados</h2>
-              {user?.role_name === "admin" && (
-                <Button onClick={() => setLinking(true)}>Vincular tutor</Button>
-              )}
+              {canManageStudent && <Button onClick={() => setLinking(true)}>Vincular tutor</Button>}
             </div>
             {guardians.isLoading ? (
               <Spinner />
@@ -573,7 +571,7 @@ export function StudentDossierPage() {
         </div>
       )}
       {tab === "documents" && studentId && (
-        <StudentDocuments studentId={studentId} canUpload={user?.role_name === "admin"} />
+        <StudentDocuments studentId={studentId} canUpload={canManageStudent} />
       )}
       {transferring && studentId && (
         <CareerChangeDialog

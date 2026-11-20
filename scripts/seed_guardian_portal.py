@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.models import Guardian, Permission, Role, RolePermission, Student, StudentGuardian, User
 from app.security import hash_password
+from app.services.permission_catalog import grant_system_defaults
 
 PASSWORD = "NexoTutor2026!"
 
@@ -16,6 +17,7 @@ def seed_guardians(db: Session, limit: int = 6) -> int:
         role = Role(name="guardian", description="Consulta de estudiantes vinculados como tutor")
         db.add(role)
         db.flush()
+        grant_system_defaults(db, role)
     permission = db.scalar(select(Permission).where(Permission.slug == "records.own"))
     if permission and not db.scalar(
         select(RolePermission).where(
