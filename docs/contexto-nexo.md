@@ -1,9 +1,9 @@
 # Nexo: contexto del sistema y hoja de ruta
 
-Última revisión: 17 de noviembre de 2026. Repo: `RennyPD/p_pro`.
+Última revisión: 20 de noviembre de 2026. Repo: `RennyPD/p_pro`.
 
 ## 1. Qué es hoy
-Sistema de gestión académica de una sola institución, muy orientado a universidades. Unas 14.000 líneas de backend (242 rutas, 53 modelos) y 82 archivos de frontend.
+Sistema de gestión académica de una sola institución, muy orientado a universidades. Unas 14.800 líneas de backend (245 rutas, 53 tablas) y 16.700 de frontend. Fase 0 cerrada el 18/11/2026.
 
 ### Módulos existentes
 - **Académico:** carreras, pensum versionado con prerrequisitos y correquisitos, asignaturas, secciones, aulas y bloques horarios, períodos académicos con cierre controlado, equivalencias, auditoría de graduación.
@@ -16,73 +16,78 @@ Sistema de gestión académica de una sola institución, muy orientado a univers
 
 ### Arquitectura
 - `app/models` (SQLAlchemy), `app/schemas` (Pydantic), `app/routers`, `app/services`, `app/repositories`, `alembic/`.
-- Autenticación: JWT de acceso de 30 min + refresh token rotativo en cookie HttpOnly; contraseñas con scrypt; versión de sesión para revocar.
-- Escrituras críticas serializadas con `lock_governance` (una fila global).
+- Autenticación: JWT de acceso de 30 min + refresh token rotativo (con detección de reutilización) en cookie HttpOnly; contraseñas con scrypt; 2FA de un solo uso; límite de intentos en base de datos.
+- Acceso por permisos y ámbito (`has_scope`, funciones `ensure_*` en `app/auth.py`).
+- Escrituras críticas serializadas con bloqueos por clave (`app/services/write_locks.py`): `academic`, `access`, `finance`.
+- Logs JSON en stdout con `X-Request-ID`. Pruebas en SQLite y PostgreSQL (CI).
 - `frontend/src/features/<módulo>`, componentes en `components/ui.tsx`, cliente en `lib/api.ts`.
 - La documentación funcional está en `docs/` (manual, guías por módulo y registros de correcciones).
 
-## 2. Auditoría del 17/11/2026: pendientes
-Informe completo: `docs/auditoria/auditoria-2026-11-17.pdf` (versión web: https://claude.ai/artifact/HEqmZ157CfCEaCHRHBmb1g)
+## 2. Auditoría vigente: 20/11/2026
+Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17/11/2026 (`docs/auditoria/auditoria-2026-11-17.pdf`) quedó cerrada con la Fase 0 salvo B5 y B6.
 
-### Altos
-- ✅ **A1** (cerrado 17/11/2026). Desactivar a un estudiante o docente (`active = False`) no le quita el acceso: `get_current_user`, `login` y `refresh` no lo comprueban.
-- ✅ **A2** (cerrado 17/11/2026: `User.active`, `POST /users/{id}/deactivate` y `/activate`, 409 explicativo al borrar con historial). `User` no tenía campo `active`; borrar un usuario con historial falla (27 claves foráneas apuntan a `users`) y la API responde un 409 genérico.
+| Id | Hallazgo | Fase |
+|---|---|---|
+| A1 | Vínculo tutor–estudiante sin permisos ni auditoría (privacidad de menores) | 2 |
+| A2 | 47 escrituras sin auditoría: bloqueos y estado del estudiante, usuarios, roles, inscripciones, importación | 1 |
+| M1 | 15 rutas y 42 controles del frontend por nombre de rol | 1 |
+| M2 | 32 escrituras sin bloqueo (asistencia, estudiantes, secciones…) | 1 |
+| M3 | Paginación en memoria en 7 listados | 1 |
+| M4 | Archivos dentro de la base (5 columnas binarias) | 4 |
+| M5 | Copias de seguridad solo para SQLite | 1 |
+| M6 | Sin correo: recuperación de contraseña, invitaciones, avisos | 2 |
+| M7 | Finanzas incompletas para escuelas | 2 (vista y pagos) y 3 (facturación) |
+| M8 | Portales de tutor y estudiante densos y sin desglose en móvil | 2 |
+| M9 | Pruebas del frontend escasas; componentes de más de 1.000 líneas | continuo |
+| B1–B8 | Tipos a mano, build pesado, cobertura baja en auditoría/panel/permisos, dos sistemas de acceso, períodos por nombre, bloqueo académico único, límites solo en login, restos heredados | según fase |
+| SaaS | 16 unicidades globales, configuración de una fila, catálogos sin filtro | 4 |
 
-### Medios
-- ✅ **M1** (cerrado 18/11/2026: `has_scope` en `app/auth.py` decide el ámbito institucional por permisos; `academic.manage`/`reports.view` para lo académico, `finance.manage`/`reports.view` para finanzas; migración 0039 da al rol `admin` todos los permisos). Las comprobaciones de ámbito usan `is_admin()` por nombre de rol: los roles personalizados con permiso (p. ej. `finance.manage`) reciben 403 al leer.
-- ✅ **M2** (verificado con prueba de regresión 17/11/2026). `student_scope_ids` (alertas) devuelve `None` (= todo) para usuarios no admin sin vínculo.
-- ✅ **M3** (cerrado 17/11/2026: nadie gestiona cuentas ni concede permisos por encima de los suyos). `access.manage` permitía restablecer la contraseña de un admin o crear admins.
-- ✅ **M4** (cerrado 18/11/2026: tabla `login_throttles`, claves IP+usuario e IP; uvicorn con `--proxy-headers`, configurar `FORWARDED_ALLOW_IPS` detrás de un proxy). Límite de login por usuario, en memoria: permite bloquear al admin y no funciona con varios workers.
-- ✅ **M5** (cerrado 18/11/2026: `ensure_student_document_access` y sección de documentos en el portal familiar). Los tutores no podían descargar documentos de sus hijos.
-- ✅ **M6** (cerrado 18/11/2026: mensajes del API, validadores y errores 422 en español; `tests/test_spanish_messages.py` impide que vuelvan). 97 mensajes de error del API en inglés que llegan a la interfaz.
-- ✅ **M7** (parcial, 18/11/2026: bloqueos por clave `write_locks` con formato `<institución>:<dominio>`; accesos y finanzas separados de lo académico. **Pendiente:** dividir el dominio académico tras auditar sus invariantes). Un único bloqueo global para todas las escrituras.
-- ✅ **M8** (cerrado 18/11/2026: cuentas con `selectinload`, cierre de caja por rango indexado, alertas con join; `tests/test_query_counts.py`). Consultas N+1 o de tabla completa en cuentas financieras, cierre de caja y alertas.
+### Historial: auditoría del 17/11/2026
+Cerrados en la Fase 0 (18/11/2026): A1, A2, M1–M6, M8, M7 parcial (bloqueos por clave), bajos de seguridad y datos (Float→Numeric, TOTP, refresh, bootstrap, nginx, logs, `date_recorded`, `school.db`), PostgreSQL de punta a punta, Prettier, mensajes en español, tokens de diseño, diálogo propio y tipos generados.
 
-### Bajos
-~~Montos en `Float`~~ (✅ 18/11: `Numeric(12,2)` y `Decimal`, migración 0042), ~~TOTP reutilizable dentro de su ventana~~ (✅ 18/11), ~~enumeración de usuarios por tiempo~~ (✅ 18/11: hash de relleno), ~~sin detección de reutilización del refresh token~~ (✅ 18/11), ~~`/auth/bootstrap` abierto en una instalación vacía~~ (✅ 18/11: `BOOTSTRAP_TOKEN` en producción), ~~sin logs~~ (✅ 18/11: logs JSON con `X-Request-ID`), ~~nginx sin cabeceras de seguridad~~ (✅ 18/11), ~~`school.db` y `__pycache__` versionados~~ (✅ 18/11), ~~`date_recorded` como texto~~ (✅ 18/11, migración 0044), períodos enlazados por nombre (**pendiente**: pasar `period_name` a `period_id`; toca secciones, inscripciones y reportes, conviene hacerlo al empezar la Fase 1). ~~PostgreSQL sin probar de punta a punta~~ (✅ 18/11: migraciones corregidas, `alembic check` limpio y suite completa en PostgreSQL en CI; se corrigieron 2 migraciones y 2 consultas que fallaban en PostgreSQL).
+## 3. Hoja de ruta (reconstruida el 20/11/2026)
+Cada fase se cierra con pruebas de regresión, capturas antes/después en lo visual y sin romper lo anterior. Tamaño relativo: S (días), M (1–2 semanas), L (varias semanas).
 
-### Frontend y UI
-✅ Cerrado el 18/11/2026 (Fase 0, paso 3):
-- Prettier 3.3.3 en todo el frontend, comprobado en CI (`npm run format:check`).
-- Tokens de diseño en `src/styles.css`; sin colores escritos a mano en los CSS (lo vigila `src/test/design-tokens.test.ts`). `--muted` = #5b6678.
-- Diálogo de confirmación propio (`confirmAction` en `src/lib/confirm.ts`), sin `window.confirm`.
-- Fuentes con `<link>` en `index.html`, no con `@import`.
-- Tipos del API generados con `openapi-typescript` (`npm run api:types` → `src/lib/api-schema.d.ts`, usados con `ApiSchema<"Nombre">`). `User` y `TokenResponse` ya los usan. **Pendiente:** migrar los demás tipos escritos a mano en `src/features/*` módulo por módulo; varias rutas devuelven diccionarios sin `response_model` y necesitan esquema antes de poder tiparse.
+### Fase 0: dejar perfecto lo actual ✅ (18/11/2026)
 
-## 3. Hoja de ruta
-Cada fase se cierra con pruebas de regresión y sin romper lo anterior.
+### Fase 1: cimientos de confianza (M)
+Lo que hace falta para que cualquier cliente confíe en los datos. Base para todo lo demás.
+1. **Auditoría completa (A2):** `record(...)` en todas las escrituras sensibles y una prueba que falle si una ruta de escritura nueva no registra nada. Añadir inscripciones, bloqueos y vínculos de tutor a la regla 11.
+2. **Permisos en lugar de roles (M1, B4):** permisos nuevos (`guardians.manage`, `curriculum.manage`, `scheduling.manage`, `tasks.manage`…), quitar `require_roles` y que el frontend decida menú y botones con la lista de permisos de `/access/me`. Unificar las vistas de módulo con los permisos.
+3. **Bloqueos (M2):** asistencia, estudiantes, secciones y vínculos bajo el bloqueo de su dominio.
+4. **Paginación en la base (M3)** en los 7 listados.
+5. **Copias de seguridad de PostgreSQL (M5)** con restauración probada.
+6. **Cobertura (B3)** de auditoría, panel y permisos; limpiar código muerto (B8).
 
-### Fase 0: dejar perfecto lo actual
-1. ✅ Acceso: A1, A2, M2, M3.
-2. ✅ Permisos y portal: M1, M5.
-3. ✅ Calidad y UX: Prettier/Ruff, mensajes en español, contraste, tokens de diseño, modales, tipos generados (queda la migración progresiva de tipos por módulo).
-4. ✅ Producción: M4 (en base de datos, sin Redis), M7 (parcial), M8, bajos (salvo períodos por nombre) y prueba completa sobre PostgreSQL en CI.
+### Fase 2: familias, pagos y experiencia (L)
+Lo que se ve y lo que piden las familias. Funciona con los datos actuales.
+1. **Sistema visual:** componentes reutilizables (tarjeta, indicador, chip, estado, avatar, pestañas, progreso) y criterio de «menos texto»; móvil primero en portales. ✅ Primer caso: tarjeta de tareas.
+2. **Vínculo tutor–estudiante con permisos (A1):** responsable de pago, ve notas, ve asistencia, ve finanzas; auditado. Por defecto ve lo académico y lo financiero solo si es responsable de pago (pendiente de confirmar).
+3. **Portal del tutor detallado (M8):** vista familiar y pestañas por hijo con notas por asignatura y evaluación, asistencia por día y materia, tareas, horario, alertas, comunicados y documentos.
+4. **Módulo de pagos para estudiante y tutor (M7, M8):** balance, próximo vencimiento, cuotas, movimientos, recibos y reporte de transferencia; total familiar con desglose por hijo y concepto, y una transferencia para varios hijos. Si el estudiante menor ve sus finanzas lo decide cada institución (por defecto: no en escuelas, sí en universidades; pendiente de confirmar).
+5. **Correo electrónico (M6):** recuperación de contraseña, invitaciones y avisos (comunicados, vencimientos, notas publicadas) con un proveedor configurable.
+6. **Rediseño de pantallas clave** con el sistema visual: panel principal, «Mi cuenta», finanzas de administración; dividir los componentes de más de 1.000 líneas (M9) y migrar sus tipos a `ApiSchema` (B1).
 
-### Fase 1: escuela, familias y pagos (adaptada el 18/11/2026)
-Reutiliza todo lo común (asistencia, finanzas, tareas, comunicaciones, documentos) detrás de la configuración por institución. Orden de trabajo:
+### Fase 3: modelo escolar (L)
+1. **Períodos por id (B5)** y año lectivo con trimestres o bimestres.
+2. **Tipo de institución** (`university` | `school` | ambos) como configuración.
+3. **Grados y secciones fijas**, inscripción y reinscripción anual, promoción de grado.
+4. **Escala de calificación configurable** (0–100, A–F, conceptual).
+5. **Finanzas escolares (M7):** plan de cobros por grado y año que genera mensualidades con bloqueo e idempotencia; cuenta familiar y descuento por hermanos; reglas de mora y bloqueo automático; cajero y supervisor separados; reportes de morosidad e ingresos.
+6. **Boletines MINERD** y reportes por período.
+7. **Bloqueo académico por sección y período (B6)** cuando las invariantes escolares estén definidas.
 
-**1.1 Sistema visual.** Componentes reutilizables (tarjeta, indicador, chip de dato, estado con color, avatar, pestañas, barra de progreso) y criterio de "menos texto": lo esencial visible, el detalle al abrir. Móvil primero en los portales de estudiante y tutor. Se aplica pantalla por pantalla con capturas antes/después. ✅ Primer caso: tarjeta de tareas (`TaskCard`).
+### Fase 4: SaaS (L)
+- Multi-tenant: `institution_id` en modelos y consultas, las 16 unicidades por institución, configuración por institución, catálogos filtrados, bloqueos por institución (ya preparados).
+- Alta de instituciones (onboarding) y subdominio por cliente; panel de superadmin.
+- Planes, límites, suscripciones, prueba gratuita y suspensión por impago (Stripe o PayPal y Azul o CardNet).
+- Pagos en línea para familias, comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
+- Archivos en almacenamiento de objetos (M4), Redis si hace falta, Sentry, límites de peticiones en subidas e importaciones (B7), build ligero (B2).
 
-**1.2 Vínculo tutor–estudiante con permisos.** Cada vínculo indica qué puede ver el tutor (notas, asistencia, finanzas) y si es responsable de pago; necesario para padres separados o tutores sin custodia. Por defecto: ve lo académico, no lo financiero salvo que sea responsable de pago.
+### Fase 5: lanzamiento (M)
+Landing page, demo pública, términos de uso, política de privacidad conforme a la Ley 172-13 con atención a datos de menores, documentación para clientes y soporte.
 
-**1.3 Portal del tutor detallado.** Vista familiar y pestañas por hijo: notas por asignatura y evaluación (solo publicadas), asistencia por día y materia con justificaciones, tareas (pendientes, entregadas, calificadas), horario, alertas, comunicados, documentos y pagos.
-
-**1.4 Módulo de pagos para estudiante y tutor.** Estudiante: balance, próximo vencimiento, cuotas, movimientos, recibos y reporte de transferencia. Tutor (responsable de pago): total de la familia y desglose por hijo y concepto, vencidos, recibos PDF y una transferencia que cubra a varios hijos. Configurable por institución si el estudiante menor ve sus finanzas. El botón "Pagar en línea" llega en la Fase 2.
-
-**1.5 Base escolar.** Tipo de institución (`university` | `school` | ambos), períodos enlazados por id, año lectivo con trimestres o bimestres, grados y secciones fijas, inscripción y reinscripción anual, promoción de grado, escala de calificación configurable (0–100, A–F, conceptual).
-
-**1.6 Finanzas escolares.** Plan de cobros por grado o carrera y año, que genera los cargos (mensualidades, inscripción) de forma idempotente y con bloqueo; cuenta familiar con descuento por hermanos; reglas de mora (recargo) y bloqueo automático por vencidos; permisos separados de cajero y supervisor (reversos aprobados por otra persona); reportes de morosidad por antigüedad e ingresos por concepto.
-
-**1.7 Boletines MINERD** y reportes por período.
-
-### Fase 2: SaaS
-- Finanzas: pagos en línea (tarjeta y pasarela local), comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
-- Multi-tenant: `institution_id` en todos los modelos y consultas (o una base por cliente), unicidad por institución, bloqueos por institución.
-- Alta de instituciones (onboarding), subdominio por cliente.
-- Email transaccional: invitaciones, recuperación de contraseña, notificaciones.
-- Planes, límites por plan, suscripciones y pagos (Stripe o PayPal y una pasarela local como Azul o CardNet), periodo de prueba y suspensión por impago.
-- Archivos fuera de la base (S3 o compatible), Redis, logs estructurados, Sentry, backups de PostgreSQL.
-- Panel de superadmin (todas las instituciones).
-
-### Fase 3: lanzamiento
-Landing page, términos de uso, política de privacidad (datos de menores), documentación para clientes, demo pública.
+### Decisiones pendientes del dueño del producto
+1. Visibilidad por defecto del tutor (propuesta: académico sí, financiero solo si es responsable de pago).
+2. ¿El estudiante menor ve sus finanzas? (propuesta: configurable; no en escuelas, sí en universidades).
+3. Proveedor de correo y de comprobantes fiscales.
