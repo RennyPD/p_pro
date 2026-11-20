@@ -120,3 +120,96 @@ class TransferReview(ReasonRequest):
 class SimulationCreate(BaseModel):
     amount: Money
     outcome: str = Field(pattern=r"^(approved|declined|cancelled)$")
+
+
+Cycle = Annotated[str, StringConstraints(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")]
+PlanName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)]
+ChargeText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=150)]
+
+
+class BillingPlanTargets(BaseModel):
+    """Careers (or school grades), extra students and excluded students."""
+
+    career_ids: list[int] = Field(default_factory=list, max_length=500)
+    student_ids: list[int] = Field(default_factory=list, max_length=5000)
+    excluded_student_ids: list[int] = Field(default_factory=list, max_length=5000)
+
+
+class BillingPlanCreate(BaseModel):
+    name: PlanName
+    charge_description: ChargeText
+    billing_concept_id: int | None = None
+    amount: Money
+    frequency: str = Field(default="monthly", pattern=r"^(monthly|single)$")
+    start_month: Cycle
+    end_month: Cycle | None = None
+    due_day: int = Field(default=5, ge=1, le=28)
+    period_id: int | None = None
+    targets: BillingPlanTargets = Field(default_factory=BillingPlanTargets)
+
+
+class BillingPlanUpdate(BaseModel):
+    name: PlanName | None = None
+    charge_description: ChargeText | None = None
+    amount: Money | None = None
+    end_month: Cycle | None = None
+    due_day: int | None = Field(default=None, ge=1, le=28)
+    active: bool | None = None
+
+
+class BillingPlanOut(BaseModel):
+    billing_plan_id: int
+    name: str
+    charge_description: str
+    billing_concept_id: int | None
+    amount: Decimal
+    frequency: str
+    start_month: str
+    end_month: str
+    due_day: int
+    period_id: int | None
+    active: bool
+    targets: BillingPlanTargets
+    cycles: list[str]
+    generated_cycles: list[str]
+    next_cycle: str | None
+
+
+class BillingCycleRequest(BaseModel):
+    cycle: Cycle
+
+
+class BillingRunCreate(BillingCycleRequest):
+    reason: Reason = "Generación de cargos del ciclo"
+    idempotency_key: Reference | None = None
+
+
+class BillingPreviewStudent(BaseModel):
+    student_id: int
+    enrollment_number: str
+    student_name: str
+    has_payment_plan: bool = False
+
+
+class BillingPreview(BaseModel):
+    cycle: str
+    cycle_label: str
+    due_date: date
+    amount: Decimal
+    charge_description: str
+    to_charge: int
+    already_charged: int
+    total: Decimal
+    with_payment_plan: int
+    students: list[BillingPreviewStudent]
+
+
+class BillingRunOut(BaseModel):
+    billing_run_id: int
+    billing_plan_id: int
+    cycle: str
+    charge_count: int
+    total: Decimal
+    reason: str
+    created_by: int
+    created_at: datetime

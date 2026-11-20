@@ -9,6 +9,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   CalendarCog,
+  CalendarRange,
   Download,
   Plus,
   SlidersHorizontal,
@@ -295,6 +296,10 @@ function FinanceAccounts() {
             Cargos, abonos verificados y compromisos. No se procesan tarjetas ni cobros automáticos.
           </p>
         </div>
+        <Link className="button button--secondary finance-plans-link" to="/finance/plans">
+          <CalendarRange size={18} />
+          Planes de cobro
+        </Link>
       </header>
       <section className="profile-metrics">
         <FinanceMetric
@@ -417,7 +422,8 @@ function FinanceOffice() {
         <section>
           <h2>Conceptos de cobro</h2>
           <p className="muted">
-            Plantillas de importes. La frecuencia es informativa; no genera cargos automáticamente.
+            Plantillas de importes. Para cobrar cada mes a un grupo, crea un plan en «Planes de
+            cobro».
           </p>
           <form
             className="finance-form"

@@ -1461,6 +1461,96 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/finance/billing-plans": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Billing Plans */
+    get: operations["list_billing_plans_finance_billing_plans_get"];
+    put?: never;
+    /** Create Billing Plan */
+    post: operations["create_billing_plan_finance_billing_plans_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/billing-plans/{plan_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update Billing Plan */
+    patch: operations["update_billing_plan_finance_billing_plans__plan_id__patch"];
+    trace?: never;
+  };
+  "/finance/billing-plans/{plan_id}/preview": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Preview Billing Cycle
+     * @description Who would be charged for a cycle. Writes nothing.
+     */
+    post: operations["preview_billing_cycle_finance_billing_plans__plan_id__preview_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/billing-plans/{plan_id}/runs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Billing Runs */
+    get: operations["billing_runs_finance_billing_plans__plan_id__runs_get"];
+    put?: never;
+    /** Generate Billing Cycle */
+    post: operations["generate_billing_cycle_finance_billing_plans__plan_id__runs_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/billing-plans/{plan_id}/targets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Update Billing Plan Targets */
+    put: operations["update_billing_plan_targets_finance_billing_plans__plan_id__targets_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/finance/cash-closings": {
     parameters: {
       query?: never;
@@ -4029,6 +4119,172 @@ export interface components {
       frequency: string;
       /** Name */
       name: string;
+    };
+    /** BillingCycleRequest */
+    BillingCycleRequest: {
+      /** Cycle */
+      cycle: string;
+    };
+    /** BillingPlanCreate */
+    BillingPlanCreate: {
+      /** Amount */
+      amount: number | string;
+      /** Billing Concept Id */
+      billing_concept_id?: number | null;
+      /** Charge Description */
+      charge_description: string;
+      /**
+       * Due Day
+       * @default 5
+       */
+      due_day: number;
+      /** End Month */
+      end_month?: string | null;
+      /**
+       * Frequency
+       * @default monthly
+       */
+      frequency: string;
+      /** Name */
+      name: string;
+      /** Period Id */
+      period_id?: number | null;
+      /** Start Month */
+      start_month: string;
+      targets?: components["schemas"]["BillingPlanTargets"];
+    };
+    /** BillingPlanOut */
+    BillingPlanOut: {
+      /** Active */
+      active: boolean;
+      /** Amount */
+      amount: string;
+      /** Billing Concept Id */
+      billing_concept_id: number | null;
+      /** Billing Plan Id */
+      billing_plan_id: number;
+      /** Charge Description */
+      charge_description: string;
+      /** Cycles */
+      cycles: string[];
+      /** Due Day */
+      due_day: number;
+      /** End Month */
+      end_month: string;
+      /** Frequency */
+      frequency: string;
+      /** Generated Cycles */
+      generated_cycles: string[];
+      /** Name */
+      name: string;
+      /** Next Cycle */
+      next_cycle: string | null;
+      /** Period Id */
+      period_id: number | null;
+      /** Start Month */
+      start_month: string;
+      targets: components["schemas"]["BillingPlanTargets"];
+    };
+    /**
+     * BillingPlanTargets
+     * @description Careers (or school grades), extra students and excluded students.
+     */
+    BillingPlanTargets: {
+      /** Career Ids */
+      career_ids?: number[];
+      /** Excluded Student Ids */
+      excluded_student_ids?: number[];
+      /** Student Ids */
+      student_ids?: number[];
+    };
+    /** BillingPlanUpdate */
+    BillingPlanUpdate: {
+      /** Active */
+      active?: boolean | null;
+      /** Amount */
+      amount?: number | string | null;
+      /** Charge Description */
+      charge_description?: string | null;
+      /** Due Day */
+      due_day?: number | null;
+      /** End Month */
+      end_month?: string | null;
+      /** Name */
+      name?: string | null;
+    };
+    /** BillingPreview */
+    BillingPreview: {
+      /** Already Charged */
+      already_charged: number;
+      /** Amount */
+      amount: string;
+      /** Charge Description */
+      charge_description: string;
+      /** Cycle */
+      cycle: string;
+      /** Cycle Label */
+      cycle_label: string;
+      /**
+       * Due Date
+       * Format: date
+       */
+      due_date: string;
+      /** Students */
+      students: components["schemas"]["BillingPreviewStudent"][];
+      /** To Charge */
+      to_charge: number;
+      /** Total */
+      total: string;
+      /** With Payment Plan */
+      with_payment_plan: number;
+    };
+    /** BillingPreviewStudent */
+    BillingPreviewStudent: {
+      /** Enrollment Number */
+      enrollment_number: string;
+      /**
+       * Has Payment Plan
+       * @default false
+       */
+      has_payment_plan: boolean;
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
+    };
+    /** BillingRunCreate */
+    BillingRunCreate: {
+      /** Cycle */
+      cycle: string;
+      /** Idempotency Key */
+      idempotency_key?: string | null;
+      /**
+       * Reason
+       * @default Generación de cargos del ciclo
+       */
+      reason: string;
+    };
+    /** BillingRunOut */
+    BillingRunOut: {
+      /** Billing Plan Id */
+      billing_plan_id: number;
+      /** Billing Run Id */
+      billing_run_id: number;
+      /** Charge Count */
+      charge_count: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Created By */
+      created_by: number;
+      /** Cycle */
+      cycle: string;
+      /** Reason */
+      reason: string;
+      /** Total */
+      total: string;
     };
     /** BootstrapRequest */
     BootstrapRequest: {
@@ -10101,6 +10357,230 @@ export interface operations {
         };
         content: {
           "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_billing_plans_finance_billing_plans_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BillingPlanOut"][];
+        };
+      };
+    };
+  };
+  create_billing_plan_finance_billing_plans_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BillingPlanCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BillingPlanOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_billing_plan_finance_billing_plans__plan_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BillingPlanUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BillingPlanOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  preview_billing_cycle_finance_billing_plans__plan_id__preview_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BillingCycleRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BillingPreview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  billing_runs_finance_billing_plans__plan_id__runs_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BillingRunOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  generate_billing_cycle_finance_billing_plans__plan_id__runs_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BillingRunCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BillingRunOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_billing_plan_targets_finance_billing_plans__plan_id__targets_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        plan_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BillingPlanTargets"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BillingPlanOut"];
         };
       };
       /** @description Validation Error */

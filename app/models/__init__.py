@@ -8,6 +8,9 @@ from .curriculum_model import CurriculumCourse
 from .enrollment_model import CourseSelectionCart, Enrollment
 from .finance_model import (
     BillingConcept,
+    BillingPlan,
+    BillingPlanTarget,
+    BillingRun,
     CashClosing,
     Charge,
     FinanceEvent,

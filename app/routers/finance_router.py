@@ -18,6 +18,8 @@ from app.db.database import settings
 from app.db.Session import get_db
 from app.models.finance_model import (
     BillingConcept,
+    BillingPlan,
+    BillingRun,
     CashClosing,
     Charge,
     FinanceEvent,
@@ -34,6 +36,14 @@ from app.schemas.finance_schema import (
     AccountUpdate,
     AdjustmentCreate,
     BillingConceptCreate,
+    BillingCycleRequest,
+    BillingPlanCreate,
+    BillingPlanOut,
+    BillingPlanTargets,
+    BillingPlanUpdate,
+    BillingPreview,
+    BillingRunCreate,
+    BillingRunOut,
     ChargeCreate,
     FinanceAccountListItem,
     PaymentCreate,
@@ -44,6 +54,7 @@ from app.schemas.finance_schema import (
     TransferCreate,
     TransferReview,
 )
+from app.services import billing_plans
 from app.services.business_time import INSTITUTION_TIME_ZONE, business_day_utc_range
 from app.services.finance_workflow import (
     CREDIT_KINDS,
@@ -625,6 +636,88 @@ def create_billing_concept(
     db.commit()
     db.refresh(item)
     return item
+
+
+@router.get(
+    "/billing-plans", response_model=list[BillingPlanOut], dependencies=[Depends(finance_viewer)]
+)
+def list_billing_plans(db: Session = Depends(get_db)):
+    plans = db.query(BillingPlan).order_by(BillingPlan.active.desc(), BillingPlan.name)
+    return [billing_plans.plan_out(db, plan) for plan in plans]
+
+
+@router.post("/billing-plans", response_model=BillingPlanOut)
+def create_billing_plan(
+    data: BillingPlanCreate, db: Session = Depends(get_db), user: User = Depends(finance_manager)
+):
+    plan = billing_plans.create_plan(db, data, user)
+    db.commit()
+    return billing_plans.plan_out(db, plan)
+
+
+@router.patch("/billing-plans/{plan_id}", response_model=BillingPlanOut)
+def update_billing_plan(
+    plan_id: int,
+    data: BillingPlanUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(finance_manager),
+):
+    plan = billing_plans.get_plan(db, plan_id)
+    billing_plans.update_plan(db, plan, data, user)
+    db.commit()
+    return billing_plans.plan_out(db, plan)
+
+
+@router.put("/billing-plans/{plan_id}/targets", response_model=BillingPlanOut)
+def update_billing_plan_targets(
+    plan_id: int,
+    data: BillingPlanTargets,
+    db: Session = Depends(get_db),
+    user: User = Depends(finance_manager),
+):
+    plan = billing_plans.get_plan(db, plan_id)
+    billing_plans.replace_targets(db, plan, data, user)
+    db.commit()
+    return billing_plans.plan_out(db, plan)
+
+
+@router.post(
+    "/billing-plans/{plan_id}/preview",
+    response_model=BillingPreview,
+    dependencies=[Depends(finance_viewer)],
+)
+def preview_billing_cycle(plan_id: int, data: BillingCycleRequest, db: Session = Depends(get_db)):
+    """Who would be charged for a cycle. Writes nothing."""
+    return billing_plans.preview(db, billing_plans.get_plan(db, plan_id), data.cycle)
+
+
+@router.post("/billing-plans/{plan_id}/runs", response_model=BillingRunOut)
+def generate_billing_cycle(
+    plan_id: int,
+    data: BillingRunCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(finance_manager),
+):
+    plan = billing_plans.get_plan(db, plan_id)
+    run = billing_plans.generate(db, plan, data.cycle, user, data.reason, data.idempotency_key)
+    db.commit()
+    db.refresh(run)
+    return run
+
+
+@router.get(
+    "/billing-plans/{plan_id}/runs",
+    response_model=list[BillingRunOut],
+    dependencies=[Depends(finance_viewer)],
+)
+def billing_runs(plan_id: int, db: Session = Depends(get_db)):
+    billing_plans.get_plan(db, plan_id)
+    return (
+        db.query(BillingRun)
+        .filter_by(billing_plan_id=plan_id)
+        .order_by(BillingRun.created_at.desc(), BillingRun.billing_run_id.desc())
+        .all()
+    )
 
 
 @router.get("/cash-closings", dependencies=[Depends(finance_viewer)])

@@ -349,3 +349,10 @@
   color: var(--danger);
   background: var(--danger-soft);
 }
+.finance-plans-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  text-decoration: none;
+}

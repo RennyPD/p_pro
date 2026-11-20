@@ -71,7 +71,7 @@ Reutiliza todo lo común (asistencia, finanzas, tareas, comunicaciones, document
 
 **1.5 Base escolar.** Tipo de institución (`university` | `school` | ambos), períodos enlazados por id, año lectivo con trimestres o bimestres, grados y secciones fijas, inscripción y reinscripción anual, promoción de grado, escala de calificación configurable (0–100, A–F, conceptual).
 
-**1.6 Finanzas escolares.** Plan de cobros por grado o carrera y año, que genera los cargos (mensualidades, inscripción) de forma idempotente y con bloqueo; cuenta familiar con descuento por hermanos; reglas de mora (recargo) y bloqueo automático por vencidos; permisos separados de cajero y supervisor (reversos aprobados por otra persona); reportes de morosidad por antigüedad e ingresos por concepto.
+**1.6 Finanzas escolares.** ✅ *Fase 1 hecha (20/11/2026): planes de cobro por carrera o grado (la carrera hace de grado hasta el modo escuela), mensuales o de pago único, con vista previa y generación por mes idempotente (`uq_charges_plan_cycle`, `lock_finance`, `billing_runs`); `app/services/billing_plans.py`, migración 0047, pantalla Finanzas → Planes de cobro.* Pendiente: generación automática programada; cuenta familiar con descuento por hermanos; reglas de mora (recargo) y bloqueo automático por vencidos; permisos separados de cajero y supervisor (reversos aprobados por otra persona); reportes de morosidad por antigüedad e ingresos por concepto.
 
 **1.7 Boletines MINERD** y reportes por período.
 
