@@ -102,3 +102,44 @@ it("shows classroom availability in the block form and blocks a busy room", asyn
   expect(within(dialog).getByText("Disponible en ese horario")).toBeInTheDocument();
   expect(within(dialog).getByRole("button", { name: "Guardar bloque" })).toBeEnabled();
 });
+
+it("shows schedule blocks read-only without the schedule.manage permission", async () => {
+  useAuthStore.setState({
+    user: {
+      user_id: 2,
+      username: "docente",
+      email: "docente@example.com",
+      role_id: 2,
+      role_name: "teacher",
+      student_id: null,
+      teacher_id: 7,
+    },
+  });
+  vi.spyOn(api, "get").mockImplementation(async path => {
+    const url = String(path);
+    const data = url.startsWith("/access/me")
+      ? { permissions: ["grades.manage"], configured: true }
+      : url.includes("/meetings")
+        ? [meeting]
+        : url.startsWith("/sections")
+          ? [section]
+          : [];
+    return { data, headers: {} } as never;
+  });
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter>
+        <SectionsPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(await screen.findByRole("button", { name: "Ver bloques de DS-102-A" }));
+  const dialog = await screen.findByRole("dialog");
+  expect(await within(dialog).findByText(/Solo lectura/)).toBeInTheDocument();
+  expect(within(dialog).getByText("Aula Sur")).toBeInTheDocument();
+  expect(within(dialog).queryByRole("button", { name: /Agregar bloque/ })).toBeNull();
+  expect(within(dialog).queryByRole("button", { name: "Editar bloque del Martes" })).toBeNull();
+  expect(within(dialog).queryByRole("button", { name: "Eliminar bloque del Martes" })).toBeNull();
+});

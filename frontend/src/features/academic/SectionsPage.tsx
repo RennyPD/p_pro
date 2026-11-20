@@ -23,6 +23,7 @@ import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { resources } from "../../config/resources";
 import { api, apiMessage } from "../../lib/api";
 import { weekDays } from "../../lib/schedule";
+import { useHasPermission } from "../../lib/permissions";
 import { useDraftGuard } from "../../lib/useDraftGuard";
 import { useAuthStore } from "../../store/auth";
 import type { EntityRecord, ResourceConfig } from "../../types";
@@ -195,7 +196,9 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
   useDraftGuard(dirty, busy);
-  const editable = !["closed", "cancelled"].includes(String(section.status));
+  const canSchedule = useHasPermission("schedule.manage");
+  const open = !["closed", "cancelled"].includes(String(section.status));
+  const editable = canSchedule && open;
   const prefix = "/scheduling/meetings";
   const key = ["section-meetings", section.section_id];
   const blocks = useQuery({
@@ -301,6 +304,11 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
                 </Button>
               )}
             </div>
+            {open && !canSchedule && (
+              <p className="room-hint">
+                Solo lectura: modificar bloques requiere el permiso de gestión de horarios.
+              </p>
+            )}
             {!blocks.data?.length ? (
               <p className="schedule-fallback">
                 Aún no hay bloques. Se usa el horario general de la sección:{" "}

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_section_access, get_current_user, require_permissions, require_roles
+from app.auth import ensure_section_access, get_current_user, require_permissions
 from app.db.Session import get_db
 from app.enums.dayEnum import DAY_ORDER, canonical_day
 from app.models.scheduling_model import Classroom, SectionMeeting
@@ -29,7 +29,10 @@ from app.services.effective_schedule import (
 from app.services.governance_workflow import lock_governance, record
 
 router = APIRouter(prefix="/scheduling", tags=["scheduling"])
-scheduling_manager = require_roles("admin", "teacher")
+# Editing schedule blocks is a grant, not a role: institutions decide whether
+# coordinators or teachers may do it. Scope still applies (own sections unless
+# the account has institution-wide academic scope).
+scheduling_manager = require_permissions("schedule.manage", fallback_roles=("admin",))
 classroom_manager = require_permissions("academic.manage", fallback_roles=("admin",))
 
 
