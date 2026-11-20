@@ -32,8 +32,8 @@ router = APIRouter(prefix="/scheduling", tags=["scheduling"])
 # Editing schedule blocks is a grant, not a role: institutions decide whether
 # coordinators or teachers may do it. Scope still applies (own sections unless
 # the account has institution-wide academic scope).
-scheduling_manager = require_permissions("schedule.manage", fallback_roles=("admin",))
-classroom_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+scheduling_manager = require_permissions("schedule.manage")
+classroom_manager = require_permissions("classrooms.manage")
 
 
 def meeting_out(meeting: SectionMeeting) -> MeetingOut:

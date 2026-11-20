@@ -27,7 +27,7 @@ from app.services.business_time import business_date
 from app.services.governance_workflow import history, lock_governance, record
 
 router = APIRouter(tags=["academic configuration"])
-academic_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+academic_manager = require_permissions("settings.manage")
 
 
 def get_or_create_settings(db, write=False):

@@ -14,7 +14,7 @@ from app.services.career_service import (
 )
 
 router = APIRouter(prefix="/careers", tags=["careers"])
-career_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+career_manager = require_permissions("programs.manage")
 
 
 @router.post("/", response_model=CareerOut, dependencies=[Depends(career_manager)])

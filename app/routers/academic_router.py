@@ -10,6 +10,7 @@ from app.auth import (
     ensure_teacher_access,
     get_current_user,
     has_scope,
+    require_personal,
 )
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
@@ -44,6 +45,7 @@ from app.services.effective_schedule import effective_blocks, load_schedule
 from app.services.enrollment_service import create_enrollment_service
 from app.services.governance_workflow import lock_governance
 
+selection_user = require_personal("selection.own", "own")
 router = APIRouter(prefix="/academic", tags=["academic queries"])
 
 
@@ -66,7 +68,7 @@ def schedule_item(section: Section) -> ScheduleItem:
 
 
 @router.get("/catalog", response_model=list[CourseOffering])
-def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def course_catalog(db: Session = Depends(get_db), user: User = Depends(selection_user)):
     if user.student_id is None:
         raise HTTPException(
             status_code=403,
@@ -160,7 +162,7 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
 
 
 @router.get("/catalog/summary", response_model=CourseSelectionSummary)
-def course_selection_summary(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def course_selection_summary(db: Session = Depends(get_db), user: User = Depends(selection_user)):
     if user.student_id is None:
         raise HTTPException(
             status_code=403,
@@ -214,7 +216,7 @@ def course_selection_summary(db: Session = Depends(get_db), user: User = Depends
 
 
 @router.get("/catalog/cart", response_model=list[CartItemOut])
-def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def selection_cart(db: Session = Depends(get_db), user: User = Depends(selection_user)):
     if user.student_id is None:
         raise HTTPException(
             status_code=403,
@@ -255,7 +257,7 @@ def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_curre
 
 @router.post("/catalog/cart/{section_id}")
 def add_to_selection_cart(
-    section_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+    section_id: int, db: Session = Depends(get_db), user: User = Depends(selection_user)
 ):
     lock_governance(db)
     if user.student_id is None:
@@ -312,7 +314,7 @@ def add_to_selection_cart(
 
 @router.delete("/catalog/cart/{section_id}")
 def remove_from_selection_cart(
-    section_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+    section_id: int, db: Session = Depends(get_db), user: User = Depends(selection_user)
 ):
     lock_governance(db)
     item = (
@@ -328,7 +330,7 @@ def remove_from_selection_cart(
 
 
 @router.post("/catalog/confirm")
-def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(selection_user)):
     if user.student_id is None:
         raise HTTPException(
             status_code=403,
@@ -423,7 +425,7 @@ def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(g
 def select_course(
     section_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(selection_user),
 ):
     if user.student_id is None:
         raise HTTPException(
@@ -450,7 +452,7 @@ def select_course(
 def withdraw_course_selection(
     section_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(selection_user),
 ):
     if user.student_id is None:
         raise HTTPException(

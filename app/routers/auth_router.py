@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 from app.auth import account_is_active, ensure_account_active, get_current_user
 from app.db.database import settings
 from app.db.Session import get_db
-from app.models.access_model import Permission, RolePermission
 from app.models.role_model import Role
 from app.models.security_model import AuditLog, RefreshToken
 from app.models.user_model import User
@@ -35,6 +34,7 @@ from app.security import (
 )
 from app.services.account_sessions import lock_account, revoke_account_sessions
 from app.services.login_throttle import ensure_not_blocked, record_failure, record_success
+from app.services.permission_catalog import grant_system_defaults
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -110,14 +110,8 @@ def bootstrap_admin(
         role = Role(name="admin", description="System administrator")
         db.add(role)
         db.flush()
-    assigned = {
-        item.permission_id for item in db.query(RolePermission).filter_by(role_id=role.role_id)
-    }
-    db.add_all(
-        RolePermission(role_id=role.role_id, permission_id=permission.permission_id)
-        for permission in db.query(Permission).all()
-        if permission.permission_id not in assigned
-    )
+    # Fresh installations get the whole permission catalog for the first administrator.
+    grant_system_defaults(db, role)
     user_data = UserCreate(**data.model_dump(), role_id=role.role_id)
     user = create_user(db, user_data, commit=False)
     return issue_session(db, response, user)

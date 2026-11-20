@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_permissions, require_roles
+from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.career_model import Career
 from app.models.configuration_model import AcademicPeriod
@@ -13,7 +13,6 @@ from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.pagination import page_query
 from app.services.governance_workflow import record
-from app.services.role_service import SYSTEM_ROLES
 from app.services.write_locks import lock_access
 
 router = APIRouter(prefix="/module-views", tags=["read-only modules"])
@@ -91,29 +90,27 @@ def module_list(keys):
 
 @router.get("/mine")
 def my_modules(user: User = Depends(get_current_user)):
-    return module_list(user.module_views or []) if user.role_name not in SYSTEM_ROLES else []
+    return module_list(user.module_views or [])
 
 
-@router.get("/accounts/{user_id}", dependencies=[Depends(require_roles("admin"))])
+@router.get("/accounts/{user_id}")
 def account_modules(
     user_id: int,
     db: Session = Depends(get_db),
-    _actor: User = Depends(require_permissions("access.manage", fallback_roles=("admin",))),
+    _actor: User = Depends(require_permissions("users.manage", institutional=True)),
 ):
     account = db.get(User, user_id)
     if account is None:
         raise HTTPException(404, "La cuenta ya no está disponible")
-    if account.role_name in SYSTEM_ROLES:
-        raise HTTPException(409, "Selecciona una cuenta con un rol personalizado")
     return {"available": module_list(MODULES), "selected": account.module_views or []}
 
 
-@router.put("/accounts/{user_id}", dependencies=[Depends(require_roles("admin"))])
+@router.put("/accounts/{user_id}")
 def update_modules(
     user_id: int,
     data: ModuleUpdate,
     db: Session = Depends(get_db),
-    actor: User = Depends(require_permissions("access.manage", fallback_roles=("admin",))),
+    actor: User = Depends(require_permissions("users.manage", institutional=True)),
 ):
     lock_access(db)
     account_modules(user_id, db, actor)
@@ -139,11 +136,7 @@ def read_module(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    if (
-        user.role_name in SYSTEM_ROLES
-        or module not in MODULES
-        or module not in (user.module_views or [])
-    ):
+    if module not in MODULES or module not in (user.module_views or []):
         raise HTTPException(403, "Tu cuenta no tiene acceso de consulta a este módulo")
     title, model, id_field, fields = MODULES[module]
     rows = page_query(db.query(model).order_by(getattr(model, id_field)), response, skip, limit)

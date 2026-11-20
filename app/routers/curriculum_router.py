@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, StringConstraints
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
-from app.auth import ensure_student_access, get_current_user, require_permissions, require_roles
+from app.auth import ensure_student_access, get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.career_model import Career
 from app.models.curriculum_model import CurriculumCourse
@@ -26,8 +26,8 @@ from app.services.academic_recognition import current_courses, recognize
 from app.services.governance_workflow import lock_governance, record
 
 router = APIRouter(prefix="/curriculum", tags=["curriculum"])
-curriculum_manager = require_permissions("academic.manage", fallback_roles=("admin",))
-assignment_admin = Depends(require_roles("admin"))
+curriculum_manager = require_permissions("programs.manage")
+assignment_admin = Depends(require_permissions("students.manage"))
 Version = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]
 Reason = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=250)]
 

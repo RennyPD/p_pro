@@ -21,7 +21,7 @@ from app.services.section_service import (
 )
 
 router = APIRouter(prefix="/sections", tags=["sections"])
-section_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+section_manager = require_permissions("sections.manage")
 
 
 @router.post("/", response_model=SectionOut, dependencies=[Depends(section_manager)])

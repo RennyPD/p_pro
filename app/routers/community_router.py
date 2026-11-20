@@ -6,12 +6,12 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth import (
+    calendar_audience,
     ensure_section_access,
     ensure_student_academic_access,
     get_current_user,
     has_scope,
     require_permissions,
-    require_roles,
 )
 from app.db.Session import get_db
 from app.models.community_model import Announcement, Guardian, Notification, StudentGuardian
@@ -49,7 +49,7 @@ def link_out(link: StudentGuardian) -> GuardianLinkOut:
     )
 
 
-@router.post("/guardians", dependencies=[Depends(require_roles("admin"))])
+@router.post("/guardians", dependencies=[Depends(require_permissions("students.manage"))])
 def create_guardian(data: GuardianCreate, db: Session = Depends(get_db)):
     guardian = Guardian(**data.model_dump())
     db.add(guardian)
@@ -58,7 +58,7 @@ def create_guardian(data: GuardianCreate, db: Session = Depends(get_db)):
     return guardian
 
 
-@router.get("/guardians", dependencies=[Depends(require_roles("admin"))])
+@router.get("/guardians", dependencies=[Depends(require_permissions("students.manage"))])
 def list_guardians(
     response: Response,
     q: str | None = None,
@@ -81,7 +81,7 @@ def list_guardians(
 @router.post(
     "/guardian-links",
     response_model=GuardianLinkOut,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(require_permissions("students.manage"))],
 )
 def link_guardian(data: GuardianLinkCreate, db: Session = Depends(get_db)):
     link = StudentGuardian(**data.model_dump())
@@ -107,7 +107,7 @@ def register_guardian(
     student_id: int,
     data: StudentGuardianRegistration,
     db: Session = Depends(get_db),
-    actor: User = Depends(require_roles("admin")),
+    actor: User = Depends(require_permissions("students.manage")),
 ):
     lock_governance(db)
     if db.get(Student, student_id) is None:
@@ -139,9 +139,7 @@ def register_guardian(
     return link_out(link)
 
 
-communications_manager = require_permissions(
-    "communications.manage", fallback_roles=("admin", "teacher")
-)
+communications_manager = require_permissions("communications.manage")
 
 
 def target_users(db, data, user):
@@ -173,7 +171,13 @@ def target_users(db, data, user):
         raise HTTPException(403, "El docente solo puede comunicar a sus secciones o sus tutores")
     query = db.query(User).join(User.role)
     if data.audience != "all":
-        query = query.filter(User.role.has(name=data.audience))
+        scopes = {
+            "admin": "institution",
+            "teacher": "sections",
+            "student": "own",
+            "guardian": "linked",
+        }
+        query = query.filter(User.role.has(scope=scopes.get(data.audience, data.audience)))
     # Exclude inactive linked student/teacher profiles; users have no standalone active flag.
     return [
         u
@@ -254,7 +258,7 @@ def preview_announcement(
         "count": len(targets),
         "fingerprint": fingerprint(targets),
         "roles": {
-            role: sum(u.role.name == role for u in targets)
+            role: sum(calendar_audience(u) == role for u in targets)
             for role in ("admin", "teacher", "student", "guardian")
         },
     }

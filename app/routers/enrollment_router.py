@@ -25,7 +25,7 @@ from app.services.enrollment_service import (
 )
 
 router = APIRouter(prefix="/enrollments", tags=["enrollment"])
-enrollment_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+enrollment_manager = require_permissions("enrollments.manage")
 
 
 @router.post("/", response_model=EnrollmentOut, dependencies=[Depends(enrollment_manager)])

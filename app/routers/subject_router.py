@@ -24,7 +24,7 @@ from app.services.subject_service import (
 )
 
 router = APIRouter(prefix="/subjects", tags=["subjects"])
-subject_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+subject_manager = require_permissions("programs.manage")
 
 
 @router.post("/", response_model=SubjectOut, dependencies=[Depends(subject_manager)])

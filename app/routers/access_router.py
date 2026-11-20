@@ -7,16 +7,19 @@ from app.auth import (
     get_current_user,
     require_permissions,
     role_permission_slugs,
+    role_scope,
 )
 from app.db.Session import get_db
 from app.models.access_model import Permission, RolePermission
 from app.models.role_model import Role
 from app.models.user_model import User
+from app.permissions import PERMISSIONS, SCOPES
 from app.services.governance_workflow import history, record
+from app.services.permission_catalog import ensure_catalog
 from app.services.write_locks import lock_access
 
 router = APIRouter(prefix="/access", tags=["access control"])
-access_manager = require_permissions("access.manage", fallback_roles=("admin",))
+access_manager = require_permissions("roles.manage")
 
 
 class PermissionCreate(BaseModel):
@@ -32,7 +35,23 @@ class RolePermissionUpdate(BaseModel):
 
 @router.get("/permissions", dependencies=[Depends(access_manager)])
 def permissions(db: Session = Depends(get_db)):
-    return db.query(Permission).order_by(Permission.slug).all()
+    """The permission catalog, grouped by module for the role editor."""
+    ensure_catalog(db)
+    db.commit()
+    return [
+        {
+            "slug": item.slug,
+            "module": item.module,
+            "label": item.label,
+            "description": item.description,
+        }
+        for item in PERMISSIONS
+    ]
+
+
+@router.get("/scopes", dependencies=[Depends(access_manager)])
+def scopes():
+    return [{"value": key, "label": label} for key, label in SCOPES.items()]
 
 
 @router.post("/permissions")
@@ -62,6 +81,7 @@ def set_role_permissions(
     role = db.get(Role, role_id)
     if role is None:
         raise HTTPException(status_code=404, detail="Rol no encontrado")
+    ensure_catalog(db)
     selected = db.query(Permission).filter(Permission.slug.in_(data.permissions)).all()
     if len(selected) != len(set(data.permissions)):
         raise HTTPException(status_code=422, detail="Uno o más permisos no existen")
@@ -78,26 +98,19 @@ def set_role_permissions(
     ensure_role_within_actor(db, user, role_id)
     if set(data.permissions) - set(before) - role_permission_slugs(db, user.role_id):
         raise HTTPException(403, "Solo puedes conceder permisos que tu cuenta tiene")
-    if (role_id == user.role_id or role.name.casefold() == "admin") and (
-        {"access.manage", "academic.manage", "reports.view"} & set(before)
-    ) - set(data.permissions):
-        raise HTTPException(
-            409, "Conserva los permisos esenciales de tu sesión y del rol Administración"
-        )
-    if "access.manage" in before and "access.manage" not in data.permissions:
-        alternatives = (
-            db.query(User)
-            .join(RolePermission, User.role_id == RolePermission.role_id)
-            .join(Permission, RolePermission.permission_id == Permission.permission_id)
-            .filter(
-                Permission.slug == "access.manage",
-                User.role_id != role_id,
-                User.active.is_(True),
-            )
-            .count()
-        )
+    essential = {"roles.manage", "users.manage"}
+    effective_before = role_permission_slugs(db, role_id)
+    if role_id == user.role_id and essential & effective_before - set(data.permissions):
+        raise HTTPException(409, "No puedes quitar a tu propio rol la gestión de usuarios y roles")
+    if "roles.manage" in effective_before and "roles.manage" not in data.permissions:
+        alternatives = [
+            other
+            for other in db.query(User).filter(User.role_id != role_id, User.active.is_(True))
+            if "roles.manage" in role_permission_slugs(db, other.role_id)
+            and role_scope(other) == "institution"
+        ]
         if not alternatives:
-            raise HTTPException(409, "Debe quedar al menos un usuario con gestión de accesos")
+            raise HTTPException(409, "Debe quedar al menos un usuario con gestión de roles")
     db.query(RolePermission).filter(RolePermission.role_id == role_id).delete()
     db.add_all(
         [RolePermission(role_id=role_id, permission_id=item.permission_id) for item in selected]
@@ -133,13 +146,9 @@ def role_permissions(role_id: int, db: Session = Depends(get_db)):
 
 @router.get("/me")
 def my_permissions(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    values = (
-        db.query(Permission.slug)
-        .join(RolePermission)
-        .filter(RolePermission.role_id == user.role_id)
-        .all()
-    )
+    """Effective permissions and data scope of the signed-in account."""
     return {
-        "permissions": sorted(row[0] for row in values),
-        "configured": db.query(Permission).count() > 0,
+        "permissions": sorted(role_permission_slugs(db, user.role_id)),
+        "scope": role_scope(user),
+        "configured": True,
     }

@@ -168,7 +168,7 @@ def student_transcript(
 
 @router.get(
     "/reports/students.csv",
-    dependencies=[Depends(require_permissions("reports.view", fallback_roles=("admin",)))],
+    dependencies=[Depends(require_permissions("reports.view"))],
 )
 def student_report(db: Session = Depends(get_db)):
     output = io.StringIO()

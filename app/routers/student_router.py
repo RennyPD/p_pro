@@ -23,7 +23,7 @@ from app.services.student_service import (
 )
 
 router = APIRouter(prefix="/students", tags=["students"])
-student_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+student_manager = require_permissions("students.manage")
 
 
 @router.post("/", response_model=StudentOut, dependencies=[Depends(student_manager)])

@@ -56,6 +56,7 @@ from app.models import (
     User,
 )
 from app.security import hash_password
+from app.services.permission_catalog import grant_system_defaults
 
 PASSWORDS = {
     "admin": "NexoAdmin2026!",
@@ -299,38 +300,8 @@ def seed_institution(db: Session) -> dict[str, int]:
     }
     db.add_all(roles.values())
     db.flush()
-    permission_specs = {
-        "academic.manage": "Gestionar operación académica",
-        "grades.manage": "Registrar y cerrar calificaciones",
-        "finance.manage": "Gestionar cuentas y caja",
-        "reports.view": "Consultar reportes institucionales",
-        "records.own": "Consultar expediente vinculado",
-        "communications.manage": "Publicar comunicaciones",
-        "access.manage": "Gestionar usuarios, roles y permisos",
-        "operations.manage": "Gestionar agenda, tareas y procesos institucionales",
-        "schedule.manage": "Gestionar bloques de horario y aulas de las secciones",
-    }
-    permissions = {
-        slug: Permission(slug=slug, description=description)
-        for slug, description in permission_specs.items()
-    }
-    db.add_all(permissions.values())
-    db.flush()
-    grants = {
-        "admin": set(permissions),
-        "teacher": {
-            "grades.manage",
-            "communications.manage",
-            "operations.manage",
-        },
-        "student": {"records.own"},
-        "guardian": {"records.own"},
-    }
-    db.add_all(
-        RolePermission(role_id=roles[role].role_id, permission_id=permissions[slug].permission_id)
-        for role, slugs in grants.items()
-        for slug in slugs
-    )
+    for role in roles.values():
+        grant_system_defaults(db, role)
     db.add(
         InstitutionSettings(
             settings_id=1,

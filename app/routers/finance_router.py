@@ -67,7 +67,8 @@ from app.services.finance_workflow import (
 from app.services.pdf_service import simple_pdf
 
 router = APIRouter(prefix="/finance", tags=["finance"])
-finance_manager = require_permissions("finance.manage", fallback_roles=("admin",))
+finance_manager = require_permissions("finance.manage")
+finance_viewer = require_permissions("finance.view")
 # Kept for document and report consumers; reads never create persisted accounts.
 get_or_create_account = get_account
 build_summary = summary
@@ -97,7 +98,7 @@ def options(user: User = Depends(get_current_user)):
 @router.get(
     "/accounts",
     response_model=list[FinanceAccountListItem],
-    dependencies=[Depends(finance_manager)],
+    dependencies=[Depends(finance_viewer)],
 )
 def list_accounts(db: Session = Depends(get_db)):
     # Constant number of queries regardless of the number of students (audit M8).
@@ -563,7 +564,7 @@ def receipt(identifier: int, db: Session = Depends(get_db), user: User = Depends
     )
 
 
-@router.get("/students/{student_id}/history", dependencies=[Depends(finance_manager)])
+@router.get("/students/{student_id}/history", dependencies=[Depends(finance_viewer)])
 def history(student_id: int, db: Session = Depends(get_db)):
     get_account(db, student_id)
     return [
@@ -601,7 +602,7 @@ def simulate(
     }
 
 
-@router.get("/billing-concepts", dependencies=[Depends(finance_manager)])
+@router.get("/billing-concepts", dependencies=[Depends(finance_viewer)])
 def billing_concepts(db: Session = Depends(get_db)):
     return db.query(BillingConcept).order_by(BillingConcept.name).all()
 
@@ -626,7 +627,7 @@ def create_billing_concept(
     return item
 
 
-@router.get("/cash-closings", dependencies=[Depends(finance_manager)])
+@router.get("/cash-closings", dependencies=[Depends(finance_viewer)])
 def closings(db: Session = Depends(get_db)):
     return db.query(CashClosing).order_by(CashClosing.closing_date.desc()).all()
 

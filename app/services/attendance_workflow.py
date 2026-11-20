@@ -61,7 +61,7 @@ def validate_day(db, user, enrollment, day, existing=None, exception_reason=None
     if not any(
         DAY_ORDER[block.day_of_week] == day.weekday() for block in effective_blocks(section)
     ):
-        if not (has_scope(user, "academic.manage") and exception_reason):
+        if not (has_scope(user, "attendance.manage") and exception_reason):
             raise HTTPException(
                 422,
                 "No es un día de clase de la sección. Una sesión extraordinaria exige excepción administrativa con motivo",

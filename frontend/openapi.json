@@ -6095,6 +6095,12 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "scope": {
+            "default": "institution",
+            "pattern": "^(institution|sections|own|linked)$",
+            "title": "Scope",
+            "type": "string"
           }
         },
         "required": [
@@ -6127,6 +6133,11 @@
             "title": "Name",
             "type": "string"
           },
+          "permission_count": {
+            "default": 0,
+            "title": "Permission Count",
+            "type": "integer"
+          },
           "role_id": {
             "title": "Role Id",
             "type": "integer"
@@ -6134,6 +6145,17 @@
           "role_title": {
             "title": "Role Title",
             "type": "string"
+          },
+          "scope": {
+            "default": "institution",
+            "pattern": "^(institution|sections|own|linked)$",
+            "title": "Scope",
+            "type": "string"
+          },
+          "user_count": {
+            "default": 0,
+            "title": "User Count",
+            "type": "integer"
           }
         },
         "required": [
@@ -6216,6 +6238,18 @@
               }
             ],
             "title": "Name"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "pattern": "^(institution|sections|own|linked)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope"
           }
         },
         "title": "RoleUpdate",
@@ -11068,6 +11102,7 @@
     },
     "/access/me": {
       "get": {
+        "description": "Effective permissions and data scope of the signed-in account.",
         "operationId": "my_permissions_access_me_get",
         "responses": {
           "200": {
@@ -11092,6 +11127,7 @@
     },
     "/access/permissions": {
       "get": {
+        "description": "The permission catalog, grouped by module for the role editor.",
         "operationId": "permissions_access_permissions_get",
         "responses": {
           "200": {
@@ -11294,6 +11330,30 @@
           }
         ],
         "summary": "Set Role Permissions",
+        "tags": [
+          "access control"
+        ]
+      }
+    },
+    "/access/scopes": {
+      "get": {
+        "operationId": "scopes_access_scopes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Scopes",
         "tags": [
           "access control"
         ]
