@@ -28,6 +28,7 @@ const permissionScopes: Record<string, string> = {
   "operations.manage": "Agenda, tareas, solicitudes y casos de seguimiento",
   "records.own": "Solo su propio expediente o el de estudiantes vinculados",
   "reports.view": "Control institucional e indicadores",
+  "schedule.manage": "Bloques de horario y aula de las secciones a su alcance",
 };
 
 export function AccessSettingsPage() {

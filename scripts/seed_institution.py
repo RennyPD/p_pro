@@ -308,6 +308,7 @@ def seed_institution(db: Session) -> dict[str, int]:
         "communications.manage": "Publicar comunicaciones",
         "access.manage": "Gestionar usuarios, roles y permisos",
         "operations.manage": "Gestionar agenda, tareas y procesos institucionales",
+        "schedule.manage": "Gestionar bloques de horario y aulas de las secciones",
     }
     permissions = {
         slug: Permission(slug=slug, description=description)

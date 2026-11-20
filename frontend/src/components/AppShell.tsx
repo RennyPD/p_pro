@@ -24,6 +24,7 @@ import { Fragment, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { isCustomRole, useModuleViews } from "../lib/moduleViews";
 import { api } from "../lib/api";
+import { type MyPermissions, resolvePermissions } from "../lib/permissions";
 import { useAuthStore } from "../store/auth";
 import type { Role } from "../types";
 
@@ -106,20 +107,6 @@ const navPermissions: Record<string, string> = {
   "/roles": "access.manage",
   "/users": "access.manage",
 };
-const legacyPermissions: Record<Role, string[]> = {
-  admin: [
-    "academic.manage",
-    "grades.manage",
-    "finance.manage",
-    "reports.view",
-    "communications.manage",
-    "access.manage",
-    "operations.manage",
-  ],
-  teacher: ["grades.manage", "communications.manage", "operations.manage"],
-  student: ["records.own"],
-  guardian: ["records.own"],
-};
 const roleLabels: Record<Role, string> = {
   admin: "Administración",
   teacher: "Docente",
@@ -142,7 +129,7 @@ export function AppShell() {
   const queryClient = useQueryClient();
   const custom = isCustomRole(user?.role_name);
   const modules = useModuleViews();
-  const permissionsQuery = useQuery<{ permissions: string[]; configured?: boolean }>({
+  const permissionsQuery = useQuery<MyPermissions>({
     queryKey: ["my-permissions", user?.user_id],
     queryFn: () => api.get("/access/me").then(response => response.data),
     enabled: Boolean(user) && !custom,
@@ -166,10 +153,7 @@ export function AppShell() {
         : user.role_name === "guardian"
           ? guardianNav
           : studentNav;
-  const configuredPermissions =
-    permissionsQuery.data?.configured === false
-      ? legacyPermissions[user.role_name]
-      : (permissionsQuery.data?.permissions ?? legacyPermissions[user.role_name]);
+  const configuredPermissions = resolvePermissions(permissionsQuery.data, user.role_name);
   const nav = custom
     ? [
         { to: "/", label: "Módulos de consulta", icon: LayoutDashboard },
