@@ -1960,6 +1960,20 @@ class ApiIntegrationTests(unittest.TestCase):
             len(self.request("GET", f"/assessments/sections/{section_id}", admin).json()), 0
         )
 
+    def test_component_template_apply_is_audited(self):
+        admin, _, section_id, _, _ = self.grading_fixture()
+        template = self.request(
+            "POST", "/assessments/templates", admin, json={"name": "Quiz", "weight": 25}
+        )
+        self.assertEqual(template.status_code, 200, template.text)
+        path = f"/assessments/templates/{template.json()['assessment_template_id']}/apply"
+        applied = self.request("POST", path, admin, json={"section_id": section_id})
+        self.assertEqual(applied.status_code, 200, applied.text)
+        audit = self.request("GET", f"/assessments/sections/{section_id}/audit", admin).json()
+        created = [item for item in audit if item["action"] == "assessment.created"]
+        self.assertEqual(len(created), 1)
+        self.assertIn("plantilla=Quiz", created[0]["detail"])
+
     def test_period_lock_and_reopen_audit(self):
         admin, _, section_id, enrollment_id, _ = self.grading_fixture()
         item = self.request(

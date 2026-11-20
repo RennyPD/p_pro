@@ -262,3 +262,10 @@
 .grade-legend small {
   color: var(--muted);
 }
+
+.assessment-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

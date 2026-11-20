@@ -348,7 +348,10 @@ function SectionBook({ section }: { section: Section }) {
         section_id: section.section_id,
         due_date: date || null,
       }),
-    onSuccess: refresh,
+    onSuccess: () => {
+      refresh();
+      toast.success("Componente agregado a la sección");
+    },
     onError: error => toast.error(apiMessage(error)),
   });
   const saveComponent = useMutation({
@@ -384,6 +387,18 @@ function SectionBook({ section }: { section: Section }) {
     0,
   );
   const hasReason = reason.trim().length >= 2;
+  const remaining = Math.max(0, 100 - configured);
+  const weightTooHigh = weight !== "" && Number(weight) > remaining + 0.001;
+  const distributionHint = dirty
+    ? "Guarda o descarta primero las notas sin guardar del Libro de notas."
+    : !Object.keys(weights).length
+      ? "Cambia al menos un porcentaje para guardar."
+      : Math.abs(proposed - 100) > 0.001
+        ? "El total debe sumar 100 %; ahora suma " + proposed.toFixed(2) + " %."
+        : !hasReason
+          ? "Escribe el motivo del cambio para guardar."
+          : "";
+  const focusReason = () => document.getElementById("assessment-reason")?.focus();
   return (
     <div data-unsaved-grades={dirty || Object.keys(weights).length > 0}>
       <div className="assessment-context">
@@ -421,6 +436,7 @@ function SectionBook({ section }: { section: Section }) {
       <label className="form-field assessment-reason">
         <span>Motivo del registro, corrección o reapertura</span>
         <input
+          id="assessment-reason"
           value={reason}
           onChange={event => setReason(event.target.value)}
           placeholder="Ej. Revisión del examen y corrección del puntaje"
@@ -696,18 +712,22 @@ function SectionBook({ section }: { section: Section }) {
             <div className="form-actions">
               <strong>Total propuesto: {proposed.toFixed(2)}%</strong>
               <Button
-                disabled={
-                  !Object.keys(weights).length ||
-                  Math.abs(proposed - 100) > 0.001 ||
-                  !hasReason ||
-                  distribute.isPending ||
-                  dirty
-                }
+                disabled={Boolean(distributionHint) || distribute.isPending}
                 onClick={() => distribute.mutate()}
               >
                 Guardar distribución
               </Button>
             </div>
+            {distributionHint && (
+              <p className="muted assessment-hint" role="status">
+                {distributionHint}{" "}
+                {!dirty && Object.keys(weights).length > 0 && !hasReason && (
+                  <Button type="button" variant="secondary" onClick={focusReason}>
+                    Escribir motivo
+                  </Button>
+                )}
+              </p>
+            )}
           </section>
           <div className="assessment-plan-grid">
             <form
@@ -739,15 +759,27 @@ function SectionBook({ section }: { section: Section }) {
                   max="100"
                   step=".01"
                   value={weight}
+                  aria-describedby="assessment-weight-hint"
                   onChange={event => setWeight(event.target.value)}
                 />
               </label>
+              <p
+                id="assessment-weight-hint"
+                className={weightTooHigh ? "form-error" : "muted"}
+                role={weightTooHigh ? "alert" : undefined}
+              >
+                {weightTooHigh
+                  ? "Supera el disponible: quedan " + remaining.toFixed(2) + " % por configurar."
+                  : "Disponible: " + remaining.toFixed(2) + " %."}
+              </p>
               <label className="form-field">
                 <span>Fecha límite</span>
                 <DateInput value={date} onValueChange={event => setDate(event)} />
               </label>
               <div className="form-actions">
-                <Button disabled={create.isPending || configured >= 100}>Crear componente</Button>
+                <Button disabled={create.isPending || configured >= 100 || weightTooHigh}>
+                  Crear componente
+                </Button>
                 <Button
                   type="button"
                   variant="secondary"

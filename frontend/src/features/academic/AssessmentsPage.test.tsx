@@ -150,4 +150,36 @@ describe("Assessment workflow", () => {
       }),
     );
   });
+  it("explains why the distribution cannot be saved and focuses the reason field", async () => {
+    setup();
+    await screen.findByRole("spinbutton", { name: "Parcial de Luis Demo, matrícula EST-5" });
+    fireEvent.click(screen.getByRole("button", { name: "Distribución y plantillas" }));
+    expect(screen.getByText("Cambia al menos un porcentaje para guardar.")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Porcentaje de Parcial" }), {
+      target: { value: "50" },
+    });
+    expect(screen.getByText("El total debe sumar 100 %; ahora suma 130.00 %.")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Porcentaje de Proyecto" }), {
+      target: { value: "50" },
+    });
+    expect(screen.getByText("Escribe el motivo del cambio para guardar.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Escribir motivo" }));
+    expect(document.activeElement).toBe(
+      screen.getByPlaceholderText("Ej. Revisión del examen y corrección del puntaje"),
+    );
+  });
+  it("warns before creating a component above the remaining percentage", async () => {
+    const { post } = setup();
+    await screen.findByRole("spinbutton", { name: "Parcial de Luis Demo, matrícula EST-5" });
+    fireEvent.click(screen.getByRole("button", { name: "Distribución y plantillas" }));
+    expect(screen.getByRole("button", { name: "Crear componente" })).toBeDisabled();
+    expect(screen.getByText("Disponible: 0.00 %.")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Peso porcentual" }), {
+      target: { value: "10" },
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Supera el disponible: quedan 0.00 % por configurar.",
+    );
+    expect(post).not.toHaveBeenCalledWith("/assessments/", expect.anything());
+  });
 });

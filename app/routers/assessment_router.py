@@ -78,6 +78,14 @@ def apply_assessment_template(
         due_date=data.due_date,
     )
     db.add(item)
+    db.flush()
+    audit_event(
+        db,
+        user.user_id,
+        "assessment.created",
+        f"assessment:{item.assessment_id}",
+        f"{item.name}; peso={item.weight}%; plantilla={template.name}",
+    )
     db.commit()
     db.refresh(item)
     return item
