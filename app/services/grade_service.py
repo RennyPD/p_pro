@@ -1,46 +1,16 @@
+"""Grade lookups. Grades are written only through academic_grading.write_grade,
+which checks the grading window, takes the academic lock and keeps the history."""
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.repositories.grade_repository import (
-    create_grade,
-    delete_grade,
-    get_grade_by_id,
-    get_grades,
-    update_grade,
-)
-from app.schemas.grade_schema import GradeCreate, GradeUpdate
+from app.models.grade_model import Grade
 
 
-def create_grade_service(db: Session, grade_data: GradeCreate):
-    return create_grade(db, grade_data)
-
-
-def get_grades_service(db: Session):
-    return get_grades(db)
-
-
-def get_grade_by_id_service(db: Session, grade_id: int):
-    grade = get_grade_by_id(db, grade_id)
+def get_grade_by_id_service(db: Session, grade_id: int) -> Grade:
+    grade = db.get(Grade, grade_id)
 
     if not grade:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nota no encontrada")
 
     return grade
-
-
-def update_grade_service(db: Session, grade_id: int, grade_data: GradeUpdate):
-    grade = update_grade(db, grade_id, grade_data)
-
-    if not grade:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nota no encontrada")
-
-    return grade
-
-
-def delete_grade_service(db: Session, grade_id: int):
-    grade = delete_grade(db, grade_id)
-
-    if not grade:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nota no encontrada")
-
-    return {"message": "Nota eliminada"}
