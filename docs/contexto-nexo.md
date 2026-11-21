@@ -23,20 +23,20 @@ Sistema de gestión académica de una sola institución, muy orientado a univers
 - `frontend/src/features/<módulo>`, componentes en `components/ui.tsx`, cliente en `lib/api.ts`.
 - La documentación funcional está en `docs/` (manual, guías por módulo y registros de correcciones).
 
-## 2. Auditoría vigente: 20/11/2026
+## 2. Auditoría vigente: 20/11/2026 (medida de nuevo el 21/11 sobre `master`)
 Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17/11/2026 (`docs/auditoria/auditoria-2026-11-17.pdf`) quedó cerrada con la Fase 0 salvo B5 y B6.
 
 | Id | Hallazgo | Fase |
 |---|---|---|
 | A1 | Vínculo tutor–estudiante sin permisos ni auditoría (privacidad de menores) | 2 |
-| A2 | 47 escrituras sin auditoría: bloqueos y estado del estudiante, usuarios, roles, inscripciones, importación | 1 |
-| M1 | 15 rutas y 42 controles del frontend por nombre de rol | 1 |
-| M2 | 32 escrituras sin bloqueo (asistencia, estudiantes, secciones…) | 1 |
+| A2 | Unas 50 escrituras sin auditoría: bloqueos y estado del estudiante, usuarios, edición de roles, inscripciones, importación | 1 |
+| M1 | ✅ Cerrado en `master` (20/11): permisos granulares por ruta y menú por permisos | — |
+| M2 | Unas 37 escrituras sin bloqueo (asistencia, estudiantes, secciones…) | 1 |
 | M3 | Paginación en memoria en 7 listados | 1 |
 | M4 | Archivos dentro de la base (5 columnas binarias) | 4 |
 | M5 | Copias de seguridad solo para SQLite | 1 |
 | M6 | Sin correo: recuperación de contraseña, invitaciones, avisos | 2 |
-| M7 | Finanzas incompletas para escuelas | 2 (vista y pagos) y 3 (facturación) |
+| M7 | Finanzas incompletas para escuelas (los planes de cobro ya existen) | 2 (vista y pagos) y 3 (facturación) |
 | M8 | Portales de tutor y estudiante densos y sin desglose en móvil | 2 |
 | M9 | Pruebas del frontend escasas; componentes de más de 1.000 líneas | continuo |
 | B1–B8 | Tipos a mano, build pesado, cobertura baja en auditoría/panel/permisos, dos sistemas de acceso, períodos por nombre, bloqueo académico único, límites solo en login, restos heredados | según fase |
@@ -53,7 +53,7 @@ Cada fase se cierra con pruebas de regresión, capturas antes/después en lo vis
 ### Fase 1: cimientos de confianza (M)
 Lo que hace falta para que cualquier cliente confíe en los datos. Base para todo lo demás.
 1. **Auditoría completa (A2):** `record(...)` en todas las escrituras sensibles y una prueba que falle si una ruta de escritura nueva no registra nada. Añadir inscripciones, bloqueos y vínculos de tutor a la regla 11.
-2. **Permisos en lugar de roles (M1, B4):** permisos nuevos (`guardians.manage`, `curriculum.manage`, `scheduling.manage`, `tasks.manage`…), quitar `require_roles` y que el frontend decida menú y botones con la lista de permisos de `/access/me`. Unificar las vistas de módulo con los permisos.
+2. **Unificar las vistas de módulo con los permisos (B4).** M1 ya está cerrado en `master`.
 3. **Bloqueos (M2):** asistencia, estudiantes, secciones y vínculos bajo el bloqueo de su dominio.
 4. **Paginación en la base (M3)** en los 7 listados.
 5. **Copias de seguridad de PostgreSQL (M5)** con restauración probada.
@@ -73,7 +73,7 @@ Lo que se ve y lo que piden las familias. Funciona con los datos actuales.
 2. **Tipo de institución** (`university` | `school` | ambos) como configuración.
 3. **Grados y secciones fijas**, inscripción y reinscripción anual, promoción de grado.
 4. **Escala de calificación configurable** (0–100, A–F, conceptual).
-5. **Finanzas escolares (M7):** plan de cobros por grado y año que genera mensualidades con bloqueo e idempotencia; cuenta familiar y descuento por hermanos; reglas de mora y bloqueo automático; cajero y supervisor separados; reportes de morosidad e ingresos.
+5. **Finanzas escolares (M7):** planes de cobro por grado y año (ya existen por carrera desde el 20/11) con generación programada; cuenta familiar y descuento por hermanos; reglas de mora y bloqueo automático; cajero y supervisor separados; reportes de morosidad e ingresos.
 6. **Boletines MINERD** y reportes por período.
 7. **Bloqueo académico por sección y período (B6)** cuando las invariantes escolares estén definidas.
 
