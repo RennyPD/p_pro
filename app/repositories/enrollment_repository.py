@@ -10,9 +10,8 @@ from app.services.enrollment_policy import selection_period
 from app.services.governance_workflow import lock_governance
 
 
-def create_enrollment(
-    db: Session, enrollment_data: EnrollmentCreate, *, commit: bool = True
-) -> Enrollment:
+def create_enrollment(db: Session, enrollment_data: EnrollmentCreate) -> Enrollment:
+    """Add the selection; the service records it and commits."""
     lock_governance(db)
     selection_period(db, enrollment_data.section_id, enrollment_data.period, registration=True)
     settings = db.get(InstitutionSettings, 1)
@@ -36,9 +35,6 @@ def create_enrollment(
 
     db.add(new_enrollment)
     db.flush()
-    if commit:
-        db.commit()
-        db.refresh(new_enrollment)
 
     return new_enrollment
 
@@ -52,7 +48,7 @@ def get_enrollment_by_id(db: Session, enrollment_id: int) -> Enrollment:
 
 
 def update_enrollment(
-    db: Session, enrollment_id: int, enrollment_data: EnrollmentUpdate, *, commit: bool = True
+    db: Session, enrollment_id: int, enrollment_data: EnrollmentUpdate
 ) -> Enrollment:
 
     lock_governance(db)
@@ -72,14 +68,11 @@ def update_enrollment(
         setattr(enrollment, key, value)
 
     db.flush()
-    if commit:
-        db.commit()
-        db.refresh(enrollment)
 
     return enrollment
 
 
-def delete_enrollment(db: Session, enrollment_id: int, *, commit: bool = True) -> bool:
+def delete_enrollment(db: Session, enrollment_id: int) -> bool:
     enrollment = get_enrollment_by_id(db, enrollment_id)
 
     if not enrollment:
@@ -87,7 +80,5 @@ def delete_enrollment(db: Session, enrollment_id: int, *, commit: bool = True) -
 
     db.delete(enrollment)
     db.flush()
-    if commit:
-        db.commit()
 
     return True

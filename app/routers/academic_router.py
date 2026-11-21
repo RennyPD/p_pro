@@ -396,6 +396,7 @@ def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(s
                     ),
                     require_program=True,
                     paired_corequisite=counterpart if pair is not None and queued is item else None,
+                    actor=user,
                     commit=False,
                 )
                 if pair is not None and enrollment.state != "enrolled":
@@ -445,6 +446,7 @@ def select_course(
             period=period.name,
         ),
         require_program=True,
+        actor=user,
     )
 
 
@@ -476,7 +478,7 @@ def withdraw_course_selection(
     from app.services.enrollment_service import update_enrollment_service
 
     return update_enrollment_service(
-        db, enrollment.enrollment_id, EnrollmentUpdate(state="withdrawn")
+        db, enrollment.enrollment_id, EnrollmentUpdate(state="withdrawn"), actor=user
     )
 
 

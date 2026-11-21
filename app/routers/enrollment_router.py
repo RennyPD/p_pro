@@ -28,9 +28,13 @@ router = APIRouter(prefix="/enrollments", tags=["enrollment"])
 enrollment_manager = require_permissions("enrollments.manage")
 
 
-@router.post("/", response_model=EnrollmentOut, dependencies=[Depends(enrollment_manager)])
-def create_enrollment(enrollment_data: EnrollmentCreate, db: Session = Depends(get_db)):
-    return create_enrollment_service(db, enrollment_data)
+@router.post("/", response_model=EnrollmentOut)
+def create_enrollment(
+    enrollment_data: EnrollmentCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(enrollment_manager),
+):
+    return create_enrollment_service(db, enrollment_data, actor=user)
 
 
 @router.get("/", response_model=list[EnrollmentOut], dependencies=[Depends(get_current_user)])
@@ -91,15 +95,18 @@ def get_enrollment_by_id(
     return enrollment
 
 
-@router.patch(
-    "/{enrollment_id}", response_model=EnrollmentOut, dependencies=[Depends(enrollment_manager)]
-)
+@router.patch("/{enrollment_id}", response_model=EnrollmentOut)
 def update_enrollment(
-    enrollment_id: int, enrollment_data: EnrollmentUpdate, db: Session = Depends(get_db)
+    enrollment_id: int,
+    enrollment_data: EnrollmentUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(enrollment_manager),
 ):
-    return update_enrollment_service(db, enrollment_id, enrollment_data)
+    return update_enrollment_service(db, enrollment_id, enrollment_data, actor=user)
 
 
-@router.delete("/{enrollment_id}", dependencies=[Depends(enrollment_manager)])
-def delete_enrollment(enrollment_id: int, db: Session = Depends(get_db)):
-    return delete_enrollment_service(db, enrollment_id)
+@router.delete("/{enrollment_id}")
+def delete_enrollment(
+    enrollment_id: int, db: Session = Depends(get_db), user: User = Depends(enrollment_manager)
+):
+    return delete_enrollment_service(db, enrollment_id, actor=user)

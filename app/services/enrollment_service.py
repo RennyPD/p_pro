@@ -18,10 +18,20 @@ from app.repositories.enrollment_repository import (
 )
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate
 from app.services.academic_recognition import recognize
+from app.services.audit_log import changes, record, snapshot
 from app.services.business_time import business_date
 from app.services.effective_schedule import effective_blocks, overlap
 from app.services.enrollment_policy import selection_period
 from app.services.governance_workflow import lock_governance
+
+AUDITED_FIELDS = ("state", "waitlist_position")
+
+
+def describe(enrollment: Enrollment) -> str:
+    return (
+        f"Estudiante {enrollment.student_id}; sección {enrollment.section_id}; "
+        f"período {enrollment.period}; estado {enrollment.state}"
+    )
 
 
 def validate_eligibility(
@@ -163,8 +173,10 @@ def create_enrollment_service(
     *,
     require_program: bool = False,
     paired_corequisite: int | None = None,
+    actor=None,
     commit: bool = True,
 ):
+    """Create a selection and record it. With ``commit=False`` the caller commits."""
     # Acquire the database-backed writer lock BEFORE reading eligibility/capacity.
     lock_governance(db)
     if enrollment_data.state != "enrolled" or enrollment_data.waitlist_position is not None:
@@ -185,7 +197,7 @@ def create_enrollment_service(
         db, enrollment_data, require_program=require_program, paired_corequisite=paired_corequisite
     )
     # Existing eligible waitlisted candidates have priority over newcomers.
-    promote_waitlist(db, requested_section.section_id, enrollment_data.period)
+    promote_waitlist(db, requested_section.section_id, enrollment_data.period, actor)
     enrolled_count = (
         db.query(Enrollment)
         .filter(
@@ -209,7 +221,18 @@ def create_enrollment_service(
         enrollment_data = enrollment_data.model_copy(
             update={"state": "waitlisted", "waitlist_position": waitlist_position}
         )
-    return create_enrollment(db, enrollment_data, commit=commit)
+    enrollment = create_enrollment(db, enrollment_data)
+    record(
+        db,
+        actor,
+        "enrollment.created",
+        f"enrollment:{enrollment.enrollment_id}",
+        describe(enrollment),
+    )
+    if commit:
+        db.commit()
+        db.refresh(enrollment)
+    return enrollment
 
 
 def get_enrollments_service(db: Session):
@@ -227,28 +250,32 @@ def get_enrollment_by_id_service(db: Session, enrollment_id: int):
     return enrollment
 
 
-def update_enrollment_service(db: Session, enrollment_id: int, enrollment_data: EnrollmentUpdate):
+def update_enrollment_service(
+    db: Session, enrollment_id: int, enrollment_data: EnrollmentUpdate, actor=None
+):
     lock_governance(db)
     current = get_enrollment_by_id(db, enrollment_id)
     if not current:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Inscripción no encontrada"
         )
-    changes = enrollment_data.model_dump(exclude_unset=True)
+    requested = enrollment_data.model_dump(exclude_unset=True)
     for field in ("student_id", "section_id", "period"):
-        if field in changes and changes[field] != getattr(current, field):
+        if field in requested and requested[field] != getattr(current, field):
             raise HTTPException(409, "La selección no se puede cambiar; retírala y crea una nueva")
     if any(
-        changes.get(field, getattr(current, field)) is None
+        requested.get(field, getattr(current, field)) is None
         for field in ("student_id", "section_id", "period", "state")
     ):
         raise HTTPException(422, "La identidad y el estado de la selección no pueden quedar vacíos")
-    if "waitlist_position" in changes:
+    if "waitlist_position" in requested:
         raise HTTPException(422, "La posición en la lista de espera la gestiona el sistema")
     period = selection_period(db, current.section_id, current.period)
     previous_state = current.state
-    target_state = changes.get("state", previous_state)
-    if target_state == previous_state and all(getattr(current, k) == v for k, v in changes.items()):
+    target_state = requested.get("state", previous_state)
+    if target_state == previous_state and all(
+        getattr(current, k) == v for k, v in requested.items()
+    ):
         db.commit()
         return current
     if target_state == "withdrawn":
@@ -259,7 +286,8 @@ def update_enrollment_service(db: Session, enrollment_id: int, enrollment_data: 
             409,
             "Aquí solo se admite el retiro; el cierre académico se hace desde las calificaciones",
         )
-    enrollment = update_enrollment(db, enrollment_id, enrollment_data, commit=False)
+    before = snapshot(current, AUDITED_FIELDS)
+    enrollment = update_enrollment(db, enrollment_id, enrollment_data)
     if target_state == "withdrawn":
         enrollment.waitlist_position = None
         db.flush()
@@ -269,14 +297,21 @@ def update_enrollment_service(db: Session, enrollment_id: int, enrollment_data: 
             status_code=status.HTTP_404_NOT_FOUND, detail="Inscripción no encontrada"
         )
 
+    record(
+        db,
+        actor,
+        "enrollment.withdrawn" if target_state == "withdrawn" else "enrollment.updated",
+        f"enrollment:{enrollment_id}",
+        f"{describe(enrollment)}; {changes(before, snapshot(enrollment, AUDITED_FIELDS))}",
+    )
     if previous_state == "enrolled" and target_state == "withdrawn":
-        promote_waitlist(db, enrollment.section_id, enrollment.period)
+        promote_waitlist(db, enrollment.section_id, enrollment.period, actor)
     db.commit()
     db.refresh(enrollment)
     return enrollment
 
 
-def promote_waitlist(db, section_id, period):
+def promote_waitlist(db, section_id, period, actor=None):
     section = db.get(Section, section_id)
     waiting = (
         db.query(Enrollment)
@@ -306,9 +341,16 @@ def promote_waitlist(db, section_id, period):
         candidate.state = "enrolled"
         candidate.waitlist_position = None
         db.flush()
+        record(
+            db,
+            actor,
+            "enrollment.promoted",
+            f"enrollment:{candidate.enrollment_id}",
+            f"{describe(candidate)}; promovido desde la lista de espera",
+        )
 
 
-def delete_enrollment_service(db: Session, enrollment_id: int):
+def delete_enrollment_service(db: Session, enrollment_id: int, actor=None):
     lock_governance(db)
     current = get_enrollment_by_id(db, enrollment_id)
     if current:
@@ -338,14 +380,16 @@ def delete_enrollment_service(db: Session, enrollment_id: int):
     section_id, period, previous_state = (
         (current.section_id, current.period, current.state) if current else (None, None, None)
     )
-    enrollment = delete_enrollment(db, enrollment_id, commit=False)
+    summary = describe(current) if current else ""
+    enrollment = delete_enrollment(db, enrollment_id)
 
     if not enrollment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Inscripción no encontrada"
         )
 
+    record(db, actor, "enrollment.deleted", f"enrollment:{enrollment_id}", summary)
     if previous_state == "enrolled":
-        promote_waitlist(db, section_id, period)
+        promote_waitlist(db, section_id, period, actor)
     db.commit()
     return {"message": "Inscripción eliminada"}

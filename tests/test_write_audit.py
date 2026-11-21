@@ -188,3 +188,116 @@ def test_bulk_import_records_one_summary_and_dry_run_records_nothing(demo):
     [(actor, _, detail)] = entries(sessions, "students.imported")
     assert actor == "demo.admin"
     assert detail.startswith("Creados: 2; rechazados: 0")
+
+
+# Lote 2: inscripciones y selección en el catálogo.
+
+
+def open_section(sessions, code, capacity=5, student_id=None):
+    """A section of a subject in the student's plan, on a free evening."""
+    from datetime import time
+
+    from app.models import AcademicPeriod, CurriculumCourse, Section, Subject
+
+    with sessions() as db:
+        student = db.get(Student, student_id) if student_id else None
+        source = db.query(Section).filter_by(code="PROG-101-A").one()
+        period = db.query(AcademicPeriod).filter_by(active=True).one().name
+        subject = Subject(code=code, description=f"Asignatura {code}")
+        db.add(subject)
+        db.flush()
+        if student is not None:
+            db.add(
+                CurriculumCourse(
+                    career_id=student.career_id,
+                    subject_id=subject.subject_id,
+                    term_number=1,
+                    credits=3,
+                    curriculum_version=student.career.curriculum_version,
+                )
+            )
+        section = Section(
+            code=code,
+            description=f"Sección {code}",
+            teacher_id=source.teacher_id,
+            subject_id=subject.subject_id,
+            days_of_week="Domingo",
+            start_time=time(20),
+            end_time=time(21),
+            capacity=capacity,
+            period_name=period,
+            status="active",
+        )
+        db.add(section)
+        db.commit()
+        return section.section_id, period
+
+
+def test_enrollment_create_withdraw_promote_and_delete_are_audited(demo):
+    client, sessions, tokens = demo
+    section_id, period = open_section(sessions, "AUD-INS", capacity=1)
+    first, career_id = a_student(sessions)
+    with sessions() as db:
+        other = Student(
+            first_name="Segundo",
+            last_name="Estudiante",
+            email="segundo@example.com",
+            enrollment_number="AUD-2",
+            telephone="8095550100",
+            address="Calle 4",
+            career_id=career_id,
+        )
+        db.add(other)
+        db.commit()
+        second = other.student_id
+    created = [
+        client.post(
+            "/enrollments/",
+            headers=tokens["admin"],
+            json={"student_id": student, "section_id": section_id, "period": period},
+        )
+        for student in (first, second)
+    ]
+    assert [r.status_code for r in created] == [200, 200], created[1].text
+    first_id, second_id = (r.json()["enrollment_id"] for r in created)
+    assert [r.json()["state"] for r in created] == ["enrolled", "waitlisted"]
+
+    withdrawn = client.patch(
+        f"/enrollments/{first_id}", headers=tokens["admin"], json={"state": "withdrawn"}
+    )
+    assert withdrawn.status_code == 200, withdrawn.text
+
+    assert [e[0] for e in entries(sessions, "enrollment.created")] == ["demo.admin"] * 2
+    [(actor, _, detail)] = entries(sessions, "enrollment.withdrawn", f"enrollment:{first_id}")
+    assert actor == "demo.admin" and "state: enrolled → withdrawn" in detail
+    [(actor, _, _)] = entries(sessions, "enrollment.promoted", f"enrollment:{second_id}")
+    assert actor == "demo.admin"
+
+    assert client.delete(f"/enrollments/{second_id}", headers=tokens["admin"]).status_code == 200
+    [(actor, _, detail)] = entries(sessions, "enrollment.deleted", f"enrollment:{second_id}")
+    assert actor == "demo.admin" and f"Estudiante {second}" in detail
+
+
+def test_student_catalog_selection_is_audited_but_the_cart_is_not(demo):
+    client, sessions, tokens = demo
+    with sessions() as db:
+        student_id = db.query(User).filter_by(username="demo.estudiante").one().student_id
+    direct, _ = open_section(sessions, "AUD-SEL", student_id=student_id)
+    queued, _ = open_section(sessions, "AUD-CART", student_id=student_id)
+    headers = tokens["estudiante"]
+
+    selected = client.post(f"/academic/catalog/sections/{direct}/select", headers=headers)
+    assert selected.status_code == 200, selected.text
+    withdrawn = client.post(f"/academic/catalog/sections/{direct}/withdraw", headers=headers)
+    assert withdrawn.status_code == 200, withdrawn.text
+
+    assert client.post(f"/academic/catalog/cart/{queued}", headers=headers).status_code == 200
+    before_confirm = entries(sessions, "enrollment.created")
+    confirmed = client.post("/academic/catalog/confirm", headers=headers)
+    assert confirmed.status_code == 200 and confirmed.json()["errors"] == [], confirmed.text
+
+    created = entries(sessions, "enrollment.created")
+    assert [e[0] for e in created] == ["demo.estudiante"] * 2
+    assert len(before_confirm) == 1
+    assert f"sección {queued}" in created[-1][2]
+    assert [e[0] for e in entries(sessions, "enrollment.withdrawn")] == ["demo.estudiante"]
