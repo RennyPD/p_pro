@@ -2122,6 +2122,100 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/guardian/students/{student_id}/attendance": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Attendance */
+    get: operations["attendance_guardian_students__student_id__attendance_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/guardian/students/{student_id}/finance": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Finance */
+    get: operations["finance_guardian_students__student_id__finance_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/guardian/students/{student_id}/grades": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Grades
+     * @description Published grades only, per subject and assessment.
+     */
+    get: operations["grades_guardian_students__student_id__grades_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/guardian/students/{student_id}/performance": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Performance
+     * @description Averages per period (oldest first) and open follow-up alerts.
+     */
+    get: operations["performance_guardian_students__student_id__performance_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/guardian/students/{student_id}/tasks": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Tasks
+     * @description Published tasks of the student's sections with the student's own submission.
+     */
+    get: operations["tasks_guardian_students__student_id__tasks_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -5399,6 +5493,78 @@ export interface components {
       /** Subject Name */
       subject_name: string;
     };
+    /** GuardianAlert */
+    GuardianAlert: {
+      /** Category */
+      category: string;
+      /** Early Alert Id */
+      early_alert_id: number;
+      /** Follow Up Date */
+      follow_up_date: string | null;
+      /** Reason */
+      reason: string;
+      /** Severity */
+      severity: string;
+    };
+    /** GuardianAssessment */
+    GuardianAssessment: {
+      /** Assessment Id */
+      assessment_id: number | null;
+      /** Contribution */
+      contribution: number | null;
+      /** Due Date */
+      due_date: string | null;
+      /** Grade Value */
+      grade_value: number | null;
+      /** Name */
+      name: string;
+      /** Weight */
+      weight: number | null;
+    };
+    /** GuardianAttendance */
+    GuardianAttendance: {
+      /** Counts */
+      counts: {
+        [key: string]: number;
+      };
+      /** Courses */
+      courses: components["schemas"]["AttendanceCourseSummary"][];
+      /** Percentage */
+      percentage: number | null;
+      /** Period */
+      period: string | null;
+      /** Present Count */
+      present_count: number;
+      /** Student Id */
+      student_id: number;
+      /** Total Count */
+      total_count: number;
+    };
+    /** GuardianCourseGrades */
+    GuardianCourseGrades: {
+      /** Assessments */
+      assessments: components["schemas"]["GuardianAssessment"][];
+      /** Completed Weight */
+      completed_weight: number;
+      /** Configured Weight */
+      configured_weight: number;
+      /** Enrollment Id */
+      enrollment_id: number;
+      /** Final */
+      final: boolean;
+      /** Result */
+      result: number | null;
+      /** Result Status */
+      result_status: string;
+      /** Section Code */
+      section_code: string;
+      /** State */
+      state: string;
+      /** Subject Code */
+      subject_code: string;
+      /** Subject Name */
+      subject_name: string;
+    };
     /** GuardianCreate */
     GuardianCreate: {
       /**
@@ -5417,6 +5583,54 @@ export interface components {
       last_name: string;
       /** Telephone */
       telephone: string;
+    };
+    /** GuardianFinance */
+    GuardianFinance: {
+      /** Balance */
+      balance: number;
+      /**
+       * Currency
+       * @default DOP
+       */
+      currency: string;
+      /** Cutoff Day */
+      cutoff_day: number;
+      /** Due Day */
+      due_day: number;
+      /** Enrollment Number */
+      enrollment_number: string;
+      /** Financial Responsible */
+      financial_responsible: boolean;
+      /** Next Due Amount */
+      next_due_amount: number | null;
+      /** Next Due Date */
+      next_due_date: string | null;
+      /** Overdue Balance */
+      overdue_balance: number;
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
+      /**
+       * Total Adjustments
+       * @default 0
+       */
+      total_adjustments: number;
+      /** Total Charges */
+      total_charges: number;
+      /** Total Payments */
+      total_payments: number;
+      /** Transactions */
+      transactions: components["schemas"]["FinanceTransaction"][];
+    };
+    /** GuardianGrades */
+    GuardianGrades: {
+      /** Courses */
+      courses: components["schemas"]["GuardianCourseGrades"][];
+      /** Period */
+      period: string | null;
+      /** Student Id */
+      student_id: number;
     };
     /** GuardianLinkCreate */
     GuardianLinkCreate: {
@@ -5545,6 +5759,58 @@ export interface components {
       primary_contact?: boolean | null;
       /** Relationship */
       relationship?: string | null;
+    };
+    /** GuardianPerformance */
+    GuardianPerformance: {
+      /** Alerts */
+      alerts: components["schemas"]["GuardianAlert"][];
+      /** Periods */
+      periods: components["schemas"]["GuardianPeriodPerformance"][];
+      /** Student Id */
+      student_id: number;
+    };
+    /** GuardianPeriodPerformance */
+    GuardianPeriodPerformance: {
+      /** Attendance Percentage */
+      attendance_percentage: number | null;
+      /** Average Grade */
+      average_grade: number | null;
+      /** Course Count */
+      course_count: number;
+      /** Final Grade Count */
+      final_grade_count: number;
+      /** Period */
+      period: string;
+      /** Provisional Average Grade */
+      provisional_average_grade: number | null;
+      /** Provisional Grade Count */
+      provisional_grade_count: number;
+    };
+    /** GuardianTask */
+    GuardianTask: {
+      /** Assignment Id */
+      assignment_id: number;
+      /**
+       * Due At
+       * Format: date-time
+       */
+      due_at: string;
+      /** Feedback */
+      feedback: string;
+      /** Max Score */
+      max_score: number;
+      /** Score */
+      score: number | null;
+      /** Section Code */
+      section_code: string;
+      /** Status */
+      status: string;
+      /** Subject Name */
+      subject_name: string;
+      /** Submitted At */
+      submitted_at: string | null;
+      /** Title */
+      title: string;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -11979,6 +12245,171 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["GradeChangeOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  attendance_guardian_students__student_id__attendance_get: {
+    parameters: {
+      query?: {
+        period?: string | null;
+        start?: string | null;
+        end?: string | null;
+      };
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GuardianAttendance"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  finance_guardian_students__student_id__finance_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GuardianFinance"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  grades_guardian_students__student_id__grades_get: {
+    parameters: {
+      query?: {
+        period?: string | null;
+      };
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GuardianGrades"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  performance_guardian_students__student_id__performance_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GuardianPerformance"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  tasks_guardian_students__student_id__tasks_get: {
+    parameters: {
+      query?: {
+        status?: string | null;
+        skip?: number;
+        limit?: number;
+      };
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GuardianTask"][];
         };
       };
       /** @description Validation Error */

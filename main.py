@@ -29,6 +29,7 @@ from app.routers.enrollment_router import router as enrollment_router
 from app.routers.finance_router import router as finance_router
 from app.routers.governance_router import router as governance_router
 from app.routers.grade_router import router as grade_router
+from app.routers.guardian_router import router as guardian_router
 from app.routers.module_router import router as module_router
 from app.routers.operations_router import router as operations_router
 from app.routers.record_router import router as record_router
@@ -147,3 +148,4 @@ app.include_router(governance_router)
 app.include_router(finance_router)
 app.include_router(operations_router)
 app.include_router(module_router)
+app.include_router(guardian_router)

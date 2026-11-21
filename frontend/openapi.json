@@ -5672,6 +5672,257 @@
         "title": "GraduationRequirement",
         "type": "object"
       },
+      "GuardianAlert": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "early_alert_id": {
+            "title": "Early Alert Id",
+            "type": "integer"
+          },
+          "follow_up_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follow Up Date"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "early_alert_id",
+          "category",
+          "severity",
+          "reason",
+          "follow_up_date"
+        ],
+        "title": "GuardianAlert",
+        "type": "object"
+      },
+      "GuardianAssessment": {
+        "properties": {
+          "assessment_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessment Id"
+          },
+          "contribution": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contribution"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "grade_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Value"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          }
+        },
+        "required": [
+          "assessment_id",
+          "name",
+          "weight",
+          "due_date",
+          "grade_value",
+          "contribution"
+        ],
+        "title": "GuardianAssessment",
+        "type": "object"
+      },
+      "GuardianAttendance": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/AttendanceCourseSummary"
+            },
+            "title": "Courses",
+            "type": "array"
+          },
+          "percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentage"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          },
+          "present_count": {
+            "title": "Present Count",
+            "type": "integer"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "total_count": {
+            "title": "Total Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "student_id",
+          "period",
+          "present_count",
+          "total_count",
+          "percentage",
+          "counts",
+          "courses"
+        ],
+        "title": "GuardianAttendance",
+        "type": "object"
+      },
+      "GuardianCourseGrades": {
+        "properties": {
+          "assessments": {
+            "items": {
+              "$ref": "#/components/schemas/GuardianAssessment"
+            },
+            "title": "Assessments",
+            "type": "array"
+          },
+          "completed_weight": {
+            "title": "Completed Weight",
+            "type": "number"
+          },
+          "configured_weight": {
+            "title": "Configured Weight",
+            "type": "number"
+          },
+          "enrollment_id": {
+            "title": "Enrollment Id",
+            "type": "integer"
+          },
+          "final": {
+            "title": "Final",
+            "type": "boolean"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "result_status": {
+            "title": "Result Status",
+            "type": "string"
+          },
+          "section_code": {
+            "title": "Section Code",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "subject_code": {
+            "title": "Subject Code",
+            "type": "string"
+          },
+          "subject_name": {
+            "title": "Subject Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enrollment_id",
+          "section_code",
+          "subject_code",
+          "subject_name",
+          "state",
+          "result",
+          "result_status",
+          "final",
+          "completed_weight",
+          "configured_weight",
+          "assessments"
+        ],
+        "title": "GuardianCourseGrades",
+        "type": "object"
+      },
       "GuardianCreate": {
         "properties": {
           "address": {
@@ -5704,6 +5955,140 @@
           "telephone"
         ],
         "title": "GuardianCreate",
+        "type": "object"
+      },
+      "GuardianFinance": {
+        "properties": {
+          "balance": {
+            "title": "Balance",
+            "type": "number"
+          },
+          "currency": {
+            "default": "DOP",
+            "title": "Currency",
+            "type": "string"
+          },
+          "cutoff_day": {
+            "title": "Cutoff Day",
+            "type": "integer"
+          },
+          "due_day": {
+            "title": "Due Day",
+            "type": "integer"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "financial_responsible": {
+            "title": "Financial Responsible",
+            "type": "boolean"
+          },
+          "next_due_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due Amount"
+          },
+          "next_due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due Date"
+          },
+          "overdue_balance": {
+            "title": "Overdue Balance",
+            "type": "number"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "total_adjustments": {
+            "default": 0,
+            "title": "Total Adjustments",
+            "type": "number"
+          },
+          "total_charges": {
+            "title": "Total Charges",
+            "type": "number"
+          },
+          "total_payments": {
+            "title": "Total Payments",
+            "type": "number"
+          },
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/FinanceTransaction"
+            },
+            "title": "Transactions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "student_id",
+          "enrollment_number",
+          "student_name",
+          "cutoff_day",
+          "due_day",
+          "total_charges",
+          "total_payments",
+          "balance",
+          "overdue_balance",
+          "transactions",
+          "next_due_date",
+          "next_due_amount",
+          "financial_responsible"
+        ],
+        "title": "GuardianFinance",
+        "type": "object"
+      },
+      "GuardianGrades": {
+        "properties": {
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/GuardianCourseGrades"
+            },
+            "title": "Courses",
+            "type": "array"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "student_id",
+          "period",
+          "courses"
+        ],
+        "title": "GuardianGrades",
         "type": "object"
       },
       "GuardianLinkCreate": {
@@ -5953,6 +6338,173 @@
           }
         },
         "title": "GuardianLinkUpdate",
+        "type": "object"
+      },
+      "GuardianPerformance": {
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/GuardianAlert"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/GuardianPeriodPerformance"
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "student_id",
+          "periods",
+          "alerts"
+        ],
+        "title": "GuardianPerformance",
+        "type": "object"
+      },
+      "GuardianPeriodPerformance": {
+        "properties": {
+          "attendance_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attendance Percentage"
+          },
+          "average_grade": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Grade"
+          },
+          "course_count": {
+            "title": "Course Count",
+            "type": "integer"
+          },
+          "final_grade_count": {
+            "title": "Final Grade Count",
+            "type": "integer"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "provisional_average_grade": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provisional Average Grade"
+          },
+          "provisional_grade_count": {
+            "title": "Provisional Grade Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period",
+          "average_grade",
+          "final_grade_count",
+          "provisional_average_grade",
+          "provisional_grade_count",
+          "attendance_percentage",
+          "course_count"
+        ],
+        "title": "GuardianPeriodPerformance",
+        "type": "object"
+      },
+      "GuardianTask": {
+        "properties": {
+          "assignment_id": {
+            "title": "Assignment Id",
+            "type": "integer"
+          },
+          "due_at": {
+            "format": "date-time",
+            "title": "Due At",
+            "type": "string"
+          },
+          "feedback": {
+            "title": "Feedback",
+            "type": "string"
+          },
+          "max_score": {
+            "title": "Max Score",
+            "type": "number"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "section_code": {
+            "title": "Section Code",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subject_name": {
+            "title": "Subject Name",
+            "type": "string"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assignment_id",
+          "title",
+          "subject_name",
+          "section_code",
+          "due_at",
+          "max_score",
+          "status",
+          "submitted_at",
+          "score",
+          "feedback"
+        ],
+        "title": "GuardianTask",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -18584,6 +19136,354 @@
         "summary": "Grade History",
         "tags": [
           "grades"
+        ]
+      }
+    },
+    "/guardian/students/{student_id}/attendance": {
+      "get": {
+        "operationId": "attendance_guardian_students__student_id__attendance_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Period"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardianAttendance"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Attendance",
+        "tags": [
+          "guardian portal"
+        ]
+      }
+    },
+    "/guardian/students/{student_id}/finance": {
+      "get": {
+        "operationId": "finance_guardian_students__student_id__finance_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardianFinance"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Finance",
+        "tags": [
+          "guardian portal"
+        ]
+      }
+    },
+    "/guardian/students/{student_id}/grades": {
+      "get": {
+        "description": "Published grades only, per subject and assessment.",
+        "operationId": "grades_guardian_students__student_id__grades_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardianGrades"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Grades",
+        "tags": [
+          "guardian portal"
+        ]
+      }
+    },
+    "/guardian/students/{student_id}/performance": {
+      "get": {
+        "description": "Averages per period (oldest first) and open follow-up alerts.",
+        "operationId": "performance_guardian_students__student_id__performance_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardianPerformance"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Performance",
+        "tags": [
+          "guardian portal"
+        ]
+      }
+    },
+    "/guardian/students/{student_id}/tasks": {
+      "get": {
+        "description": "Published tasks of the student's sections with the student's own submission.",
+        "operationId": "tasks_guardian_students__student_id__tasks_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(pending|overdue|submitted|graded)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GuardianTask"
+                  },
+                  "title": "Response Tasks Guardian Students  Student Id  Tasks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Tasks",
+        "tags": [
+          "guardian portal"
         ]
       }
     },

@@ -89,20 +89,23 @@ def event(db, user, student_id, action, detail):
     )
 
 
-def summary(account):
-    charges = sum(cents(c.amount) for c in account.charges if active(c))
-    payments = sum(cents(p.amount) for p in account.payments if active(p))
-    adjustments = sum(
-        cents(a.amount) * (-1 if a.kind in CREDIT_KINDS else 1)
-        for a in account.adjustments
-        if active(a)
-    )
-    obligations = [
+def first_unpaid(account_obligations, available, today):
+    """First obligation still unpaid on or after ``today`` (credits apply oldest first)."""
+    for due, _, _, _, amount in sorted(account_obligations):
+        applied = min(available, amount)
+        available -= applied
+        if amount - applied > 0 and due >= today:
+            return due, amount - applied
+    return None, None
+
+
+def obligations_of(account):
+    items = [
         (c.due_date, c.created_at, "charge", c.charge_id, cents(c.amount))
         for c in account.charges
         if active(c)
     ]
-    obligations += [
+    items += [
         (
             a.due_date or business_date(a.created_at),
             a.created_at,
@@ -113,6 +116,24 @@ def summary(account):
         for a in account.adjustments
         if active(a) and a.kind not in CREDIT_KINDS
     ]
+    return items
+
+
+def upcoming_due(account):
+    """(date, amount) of the next installment to pay, or (None, None)."""
+    due, remaining = first_unpaid(obligations_of(account), credits(account), business_date())
+    return due, (money(remaining) if remaining is not None else None)
+
+
+def summary(account):
+    charges = sum(cents(c.amount) for c in account.charges if active(c))
+    payments = sum(cents(p.amount) for p in account.payments if active(p))
+    adjustments = sum(
+        cents(a.amount) * (-1 if a.kind in CREDIT_KINDS else 1)
+        for a in account.adjustments
+        if active(a)
+    )
+    obligations = obligations_of(account)
     available = credits(account)
     overdue = 0
     for due, _, _, _, amount in sorted(obligations):
