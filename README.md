@@ -12,7 +12,7 @@ Backend educativo en FastAPI y SQLAlchemy. Esta etapa usa SQLite por defecto y d
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.lock
 Copy-Item .env.example .env
 ```
 

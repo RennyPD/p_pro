@@ -1,6 +1,6 @@
 # CLAUDE.md: Nexo
 
-Nexo es un sistema de gestión educativa que se venderá como SaaS. El objetivo es un producto completo para **universidades y escuelas (K-12)**, configurable por institución y multi-tenant. El contexto completo, los pendientes de la auditoría y la hoja de ruta están en `docs/contexto-nexo.md`: léelo antes de un cambio grande. El informe de la auditoría está en `docs/auditoria/auditoria-2026-11-17.pdf`.
+Nexo es un sistema de gestión educativa que se venderá como SaaS. El objetivo es un producto completo para **universidades y escuelas (K-12)**, configurable por institución y multi-tenant. El contexto completo, los pendientes de la auditoría y la hoja de ruta están en `docs/contexto-nexo.md`: léelo antes de un cambio grande. La auditoría vigente es `docs/auditoria/auditoria-2026-11-20.md`.
 
 El dueño del producto escribe en español. Responde en español; código, nombres y commits pueden ir en inglés.
 
@@ -15,7 +15,7 @@ El dueño del producto escribe en español. Responde en español; código, nombr
 ## Comandos
 Backend, desde la raíz:
 ```
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.lock
 alembic upgrade head
 uvicorn main:app --reload
 python -m scripts.seed_demo
