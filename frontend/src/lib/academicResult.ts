@@ -108,3 +108,11 @@ export const attendanceTones: Record<string, Tone> = {
 export const LOW_ATTENDANCE = 80;
 export const isLowAttendance = (value: number | null | undefined) =>
   value !== null && value !== undefined && value < LOW_ATTENDANCE;
+
+export const attendanceLabels: Record<string, string> = {
+  present: "Presente",
+  absent: "Ausente",
+  late: "Tardanza",
+  excused: "Justificada",
+  early_departure: "Salida anticipada",
+};

@@ -1,77 +1,46 @@
-import { RequestApproval } from "../operations/ApprovalsPage";
-import { DocumentDownload } from "../../components/DocumentDownload";
-import { formatDate, formatMoney, formatTime, todayIso } from "../../lib/format";
-import { describeAverage, isLowAttendance } from "../../lib/academicResult";
-
-import { scheduleBlocks, type ScheduleBlock } from "../../lib/schedule";
 import { useQuery } from "@tanstack/react-query";
 import {
-  AlertTriangle,
-  CalendarDays,
-  FileText,
+  BarChart3,
+  CalendarCheck,
+  ClipboardList,
   GraduationCap,
+  LayoutDashboard,
   UserRound,
   Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
+import type { ApiSchema } from "../../lib/apiTypes";
+import { GuardianAttendance } from "./GuardianAttendance";
+import { GuardianFinance } from "./GuardianFinance";
+import { GuardianGrades } from "./GuardianGrades";
+import { GuardianPerformance } from "./GuardianPerformance";
+import { GuardianSummary } from "./GuardianSummary";
+import { GuardianTasks } from "./GuardianTasks";
 import "./guardian-portal.css";
 
-type StudentOverview = {
-  student_id: number;
-  student_name: string;
-  enrollment_number: string;
-  career_name: string;
-  active: boolean;
-  average_grade: number | null;
-  provisional_average_grade?: number | null;
-  final_grade_count?: number;
-  provisional_grade_count?: number;
-  attendance_percentage: number | null;
-  attendance_count?: number;
-  metrics_period?: string | null;
-  balance: number;
-  schedule: Array<{
-    section_id: number;
-    section_code: string;
-    subject_name: string;
-    days_of_week: string;
-    start_time: string;
-    end_time: string;
-    room: string;
-    modality: string;
-    blocks?: ScheduleBlock[];
-  }>;
-  alerts: Array<{
-    early_alert_id: number;
-    category: string;
-    severity: string;
-    reason: string;
-    follow_up_date: string | null;
-  }>;
-};
+export type StudentOverview = ApiSchema<"GuardianStudentOverview">;
+type Area = keyof StudentOverview["permissions"];
+type TabKey = "summary" | "attendance" | "grades" | "tasks" | "finance" | "performance";
 
-const categories: Record<string, string> = {
-  academic: "Académica",
-  attendance: "Asistencia",
-  financial: "Financiera",
-  behavior: "Convivencia",
-  other: "Otra",
-};
-const priorities: Record<string, string> = {
-  low: "Baja",
-  medium: "Media",
-  high: "Alta",
-  critical: "Crítica",
-};
-const modalities: Record<string, string> = {
-  in_person: "Presencial",
-  virtual: "Virtual",
-  hybrid: "Híbrida",
-};
-const money = formatMoney;
-const time = (value: string) => formatTime(value);
+const TABS: { key: TabKey; label: string; icon: ReactNode; area?: Area }[] = [
+  { key: "summary", label: "Resumen", icon: <LayoutDashboard /> },
+  { key: "attendance", label: "Asistencia", icon: <CalendarCheck />, area: "attendance" },
+  { key: "grades", label: "Notas", icon: <GraduationCap />, area: "academic" },
+  { key: "tasks", label: "Tareas", icon: <ClipboardList />, area: "tasks" },
+  { key: "finance", label: "Pagos", icon: <Wallet />, area: "finance" },
+  { key: "performance", label: "Desempeño", icon: <BarChart3 />, area: "academic" },
+];
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join("");
+}
 
 export function GuardianPortalPage() {
   const query = useQuery<StudentOverview[]>({
@@ -79,6 +48,7 @@ export function GuardianPortalPage() {
     queryFn: () => api.get("/operations/guardian/overview").then(response => response.data),
   });
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [tab, setTab] = useState<TabKey>("summary");
   if (query.isLoading)
     return (
       <div className="page">
@@ -105,214 +75,92 @@ export function GuardianPortalPage() {
         />
       </div>
     );
-  const student = query.data.find(item => item.student_id === selectedId) ?? query.data[0];
-  const average = describeAverage({
-    finalAverage: student.average_grade,
-    finalCount: student.final_grade_count,
-    provisionalAverage: student.provisional_average_grade,
-    provisionalCount: student.provisional_grade_count,
-  });
-  const today = todayIso();
+  const students = query.data;
+  const student = students.find(item => item.student_id === selectedId) ?? students[0];
+  const tabs = TABS.filter(item => !item.area || student.permissions[item.area]);
+  const current = tabs.some(item => item.key === tab) ? tab : "summary";
 
   return (
     <div className="page guardian-page">
-      <header className="page-header">
-        <div>
-          <span className="kicker">Portal familiar</span>
-          <h1>Seguimiento académico</h1>
-          <p>Información esencial para acompañar el progreso del estudiante.</p>
-        </div>
-        <div className="guardian-actions">
-          {query.data.length > 1 && (
-            <label className="student-switch">
-              <span>Estudiante</span>
-              <select
-                value={student.student_id}
-                onChange={event => setSelectedId(Number(event.target.value))}
-              >
-                {query.data.map(item => (
-                  <option key={item.student_id} value={item.student_id}>
-                    {item.student_name} · {item.enrollment_number}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <RequestApproval
-            resource="student"
-            id={student.student_id}
-            label={`${student.student_name} · ${student.enrollment_number}`}
-          />
-        </div>
+      <header className="guardian-header">
+        <span className="kicker">Portal familiar</span>
+        <h1>Seguimiento familiar</h1>
       </header>
-      <section className="guardian-hero">
+
+      {students.length > 1 && (
+        <div className="guardian-children" role="tablist" aria-label="Estudiantes vinculados">
+          {students.map(item => {
+            const active = item.student_id === student.student_id;
+            return (
+              <button
+                key={item.student_id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={active ? "is-active" : undefined}
+                onClick={() => setSelectedId(item.student_id)}
+              >
+                <span className="guardian-initials" aria-hidden="true">
+                  {initials(item.student_name)}
+                </span>
+                <span>{item.student_name.split(" ")[0]}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <section className="guardian-hero" aria-label="Estudiante seleccionado">
+        <span className="guardian-initials guardian-initials--large" aria-hidden="true">
+          {initials(student.student_name)}
+        </span>
         <div>
-          <span className="guardian-avatar">
-            <UserRound />
-          </span>
-          <div>
-            <small>{student.enrollment_number}</small>
-            <h2>{student.student_name}</h2>
-            <p>{student.career_name}</p>
-          </div>
+          <h2>{student.student_name}</h2>
+          <p>
+            {student.enrollment_number} · {student.career_name}
+          </p>
         </div>
         <span className={student.active ? "status-active" : "status-inactive"}>
           {student.active ? "Activo" : "Inactivo"}
         </span>
       </section>
-      <GuardianDocuments student={student} />
-      <section className="guardian-metrics">
-        <article>
-          <span>
-            <GraduationCap />
-            {average.kind === "provisional" ? "Promedio provisional" : "Promedio"}
-          </span>
-          <strong>{average.value}</strong>
-          <small>
-            {average.note} · {student.metrics_period ?? "Sin período vigente"}
-          </small>
-        </article>
-        <article>
-          <span>
-            <CalendarDays />
-            Asistencia
-          </span>
-          <strong className={isLowAttendance(student.attendance_percentage) ? "is-low" : ""}>
-            {student.attendance_percentage === null
-              ? "Sin datos"
-              : `${student.attendance_percentage}%`}
-          </strong>
-          <small>{student.attendance_count ?? 0} clases registradas</small>
-        </article>
-        <article>
-          <span>
-            <AlertTriangle />
-            Alertas abiertas
-          </span>
-          <strong>{student.alerts.length}</strong>
-          <small>
-            {student.alerts.length ? "Requieren acompañamiento" : "Sin situaciones abiertas"}
-          </small>
-        </article>
-        <article>
-          <span>
-            <Wallet />
-            Balance pendiente
-          </span>
-          <strong>{money(student.balance)}</strong>
-          <small>{student.balance > 0 ? "Consulta con caja institucional" : "Al día"}</small>
-        </article>
-      </section>
-      <div className="guardian-grid">
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <span className="kicker">Semana académica</span>
-              <h2>Horario actual</h2>
-            </div>
-            <CalendarDays />
-          </div>
-          {student.schedule.length ? (
-            <div className="guardian-list">
-              {student.schedule.map(item => (
-                <article key={item.section_id}>
-                  <div>
-                    <strong>{item.subject_name}</strong>
-                    <small>
-                      {item.section_code} ·{" "}
-                      {modalities[item.modality] ?? "Modalidad no especificada"}
-                    </small>
-                  </div>
-                  <div>
-                    {scheduleBlocks(item).map((block, index) => (
-                      <p key={index}>
-                        <b>{block.day_of_week}</b> {time(block.start_time)}–{time(block.end_time)} ·{" "}
-                        {block.room}
-                      </p>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="muted">No tiene asignaturas seleccionadas actualmente.</p>
-          )}
-        </section>
-        <section className="panel">
-          <div className="panel-heading">
-            <div>
-              <span className="kicker">Acompañamiento</span>
-              <h2>Alertas activas</h2>
-            </div>
-            <AlertTriangle />
-          </div>
-          {student.alerts.length ? (
-            <div className="guardian-alerts">
-              {student.alerts.map(alert => (
-                <article key={alert.early_alert_id}>
-                  <div>
-                    <strong>{categories[alert.category] ?? "Otra"}</strong>
-                    <span>Prioridad {priorities[alert.severity] ?? "No especificada"}</span>
-                  </div>
-                  <p>{alert.reason}</p>
-                  {alert.follow_up_date && (
-                    <small className={alert.follow_up_date < today ? "is-overdue" : ""}>
-                      {alert.follow_up_date < today
-                        ? "Seguimiento vencido desde el"
-                        : "Próximo seguimiento:"}{" "}
-                      {formatDate(alert.follow_up_date)}
-                    </small>
-                  )}
-                </article>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={<GraduationCap />}
-              title="Sin alertas abiertas"
-              description="No hay situaciones académicas que requieran atención."
-            />
-          )}
-        </section>
+
+      <nav className="guardian-tabs" role="tablist" aria-label="Información del estudiante">
+        {tabs.map(item => (
+          <button
+            key={item.key}
+            type="button"
+            role="tab"
+            id={`guardian-tab-${item.key}`}
+            aria-selected={current === item.key}
+            aria-controls="guardian-panel"
+            className={current === item.key ? "is-active" : undefined}
+            onClick={() => setTab(item.key)}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      <div
+        id="guardian-panel"
+        role="tabpanel"
+        aria-labelledby={`guardian-tab-${current}`}
+        className="guardian-panel"
+      >
+        {current === "summary" && <GuardianSummary student={student} onOpen={setTab} />}
+        {current === "attendance" && <GuardianAttendance studentId={student.student_id} />}
+        {current === "grades" && <GuardianGrades studentId={student.student_id} />}
+        {current === "tasks" && <GuardianTasks studentId={student.student_id} />}
+        {current === "finance" && (
+          <GuardianFinance
+            studentId={student.student_id}
+            enrollmentNumber={student.enrollment_number}
+          />
+        )}
+        {current === "performance" && <GuardianPerformance studentId={student.student_id} />}
       </div>
     </div>
-  );
-}
-
-function GuardianDocuments({ student }: { student: StudentOverview }) {
-  const base = `/documents/students/${student.student_id}`;
-  const suffix = student.enrollment_number;
-  return (
-    <section className="panel" aria-label={`Documentos de ${student.student_name}`}>
-      <div className="panel-heading">
-        <div>
-          <span className="kicker">Documentos</span>
-          <h2>Descargas del estudiante</h2>
-        </div>
-        <FileText />
-      </div>
-      <div className="form-actions">
-        <DocumentDownload
-          path={`${base}/report-card.pdf`}
-          filename={`boletin-${suffix}.pdf`}
-          label="Boletín PDF"
-        />
-        <DocumentDownload
-          path={`${base}/enrollment-certificate.pdf`}
-          filename={`constancia-${suffix}.pdf`}
-          label="Constancia PDF"
-        />
-        <DocumentDownload
-          path={`${base}/transcript.pdf`}
-          filename={`expediente-${suffix}.pdf`}
-          label="Expediente PDF"
-        />
-        <DocumentDownload
-          path={`${base}/statement.pdf`}
-          filename={`estado-${suffix}.pdf`}
-          label="Estado de cuenta PDF"
-        />
-      </div>
-    </section>
   );
 }

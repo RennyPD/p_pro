@@ -5506,6 +5506,17 @@ export interface components {
       /** Severity */
       severity: string;
     };
+    /** GuardianAreas */
+    GuardianAreas: {
+      /** Academic */
+      academic: boolean;
+      /** Attendance */
+      attendance: boolean;
+      /** Finance */
+      finance: boolean;
+      /** Tasks */
+      tasks: boolean;
+    };
     /** GuardianAssessment */
     GuardianAssessment: {
       /** Assessment Id */
@@ -5785,6 +5796,61 @@ export interface components {
       provisional_average_grade: number | null;
       /** Provisional Grade Count */
       provisional_grade_count: number;
+    };
+    /** GuardianScheduleItem */
+    GuardianScheduleItem: {
+      /** Blocks */
+      blocks: components["schemas"]["ScheduleBlock"][];
+      /** Days Of Week */
+      days_of_week: string;
+      /** End Time */
+      end_time: string;
+      /** Modality */
+      modality: string;
+      /** Room */
+      room: string;
+      /** Section Code */
+      section_code: string;
+      /** Section Id */
+      section_id: number;
+      /** Start Time */
+      start_time: string;
+      /** Subject Name */
+      subject_name: string;
+    };
+    /** GuardianStudentOverview */
+    GuardianStudentOverview: {
+      /** Active */
+      active: boolean;
+      /** Alerts */
+      alerts: components["schemas"]["GuardianAlert"][];
+      /** Attendance Count */
+      attendance_count: number;
+      /** Attendance Percentage */
+      attendance_percentage: number | null;
+      /** Average Grade */
+      average_grade: number | null;
+      /** Balance */
+      balance: number | null;
+      /** Career Name */
+      career_name: string;
+      /** Enrollment Number */
+      enrollment_number: string;
+      /** Final Grade Count */
+      final_grade_count: number;
+      /** Metrics Period */
+      metrics_period: string | null;
+      permissions: components["schemas"]["GuardianAreas"];
+      /** Provisional Average Grade */
+      provisional_average_grade: number | null;
+      /** Provisional Grade Count */
+      provisional_grade_count: number;
+      /** Schedule */
+      schedule: components["schemas"]["GuardianScheduleItem"][];
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
     };
     /** GuardianTask */
     GuardianTask: {
@@ -13442,7 +13508,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["GuardianStudentOverview"][];
         };
       };
     };

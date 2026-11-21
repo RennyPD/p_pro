@@ -551,3 +551,33 @@
   color: var(--danger);
   font-weight: 700;
 }
+
+.guardian-access,
+.guardian-access__single {
+  grid-column: 1 / -1;
+}
+.guardian-access {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.guardian-access legend {
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+}
+.guardian-access label,
+.guardian-access__single {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.guardian-access label span,
+.guardian-access__single span {
+  display: grid;
+}
+.guardian-access small,
+.guardian-access__single small {
+  color: var(--muted);
+}

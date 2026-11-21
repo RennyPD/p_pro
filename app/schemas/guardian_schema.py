@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
-from app.schemas.academic_schema import AttendanceCourseSummary
+from app.schemas.academic_schema import AttendanceCourseSummary, ScheduleBlock
 from app.schemas.finance_schema import StudentFinanceSummary
 
 
@@ -87,4 +87,42 @@ class GuardianAlert(BaseModel):
 class GuardianPerformance(BaseModel):
     student_id: int
     periods: list[GuardianPeriodPerformance]
+    alerts: list[GuardianAlert]
+
+
+class GuardianScheduleItem(BaseModel):
+    section_id: int
+    section_code: str
+    subject_name: str
+    days_of_week: str
+    start_time: str
+    end_time: str
+    room: str
+    modality: str
+    blocks: list[ScheduleBlock]
+
+
+class GuardianAreas(BaseModel):
+    academic: bool
+    attendance: bool
+    finance: bool
+    tasks: bool
+
+
+class GuardianStudentOverview(BaseModel):
+    student_id: int
+    student_name: str
+    enrollment_number: str
+    career_name: str
+    active: bool
+    permissions: GuardianAreas
+    average_grade: float | None
+    final_grade_count: int
+    provisional_average_grade: float | None
+    provisional_grade_count: int
+    attendance_percentage: float | None
+    attendance_count: int
+    metrics_period: str | None
+    balance: float | None
+    schedule: list[GuardianScheduleItem]
     alerts: list[GuardianAlert]

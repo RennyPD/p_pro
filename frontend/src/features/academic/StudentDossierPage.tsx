@@ -28,6 +28,7 @@ import { api, apiMessage } from "../../lib/api";
 import type { EntityRecord } from "../../types";
 import { ResourceForm } from "../resources/ResourcePage";
 import { CareerChangeDialog, GuardianDialog, StudentDocuments } from "./StudentDossierActions";
+import { GuardianLinkCard, type GuardianLink } from "./GuardianLinkCard";
 import { RequestApproval } from "../operations/ApprovalsPage";
 import { studentConfig } from "./student-config";
 import "./academic-pages.css";
@@ -75,15 +76,6 @@ type Dossier = {
   provisional_result_count?: number;
   overall_attendance: number | null;
   enrollments: Enrollment[];
-};
-type Guardian = {
-  student_guardian_id: number;
-  guardian_name: string;
-  guardian_email: string;
-  relationship: string;
-  primary_contact: boolean;
-  emergency_contact: boolean;
-  authorized_pickup: boolean;
 };
 type Transcript = {
   cumulative_average: number;
@@ -136,7 +128,7 @@ export function StudentDossierPage() {
       api.get(`/records/students/${studentId}/transcript`).then(response => response.data),
     enabled: tab === "academic" && institutionView,
   });
-  const guardians = useQuery<Guardian[]>({
+  const guardians = useQuery<GuardianLink[]>({
     queryKey: ["student-guardians", studentId],
     queryFn: () =>
       api.get(`/community/students/${studentId}/guardians`).then(response => response.data),
@@ -549,16 +541,12 @@ export function StudentDossierPage() {
               />
             ) : guardians.data?.length ? (
               guardians.data.map(guardian => (
-                <article className="dossier-guardian" key={guardian.student_guardian_id}>
-                  <strong>{guardian.guardian_name}</strong>
-                  <span>{guardian.relationship}</span>
-                  <a href={`mailto:${guardian.guardian_email}`}>{guardian.guardian_email}</a>
-                  <div>
-                    {guardian.primary_contact && <Badge tone="info">Contacto principal</Badge>}
-                    {guardian.emergency_contact && <Badge tone="warning">Emergencia</Badge>}
-                    {guardian.authorized_pickup && <Badge tone="success">Retiro autorizado</Badge>}
-                  </div>
-                </article>
+                <GuardianLinkCard
+                  key={guardian.student_guardian_id}
+                  link={guardian}
+                  studentId={Number(studentId)}
+                  canManage={canManageStudent}
+                />
               ))
             ) : (
               <EmptyState

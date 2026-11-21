@@ -45,6 +45,7 @@ from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.routers.assignment_router import router as assignment_routes
 from app.routers.assignment_router import scope, utc
+from app.schemas.guardian_schema import GuardianStudentOverview
 from app.schemas.operations_schema import (
     AdmissionCreate,
     AdmissionOut,
@@ -559,7 +560,7 @@ def reopen_alert(
     return item
 
 
-@router.get("/guardian/overview")
+@router.get("/guardian/overview", response_model=list[GuardianStudentOverview])
 def guardian_overview(
     db: Session = Depends(get_db), user: User = Depends(require_personal("records.own", "linked"))
 ):

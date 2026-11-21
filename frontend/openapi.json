@@ -5713,6 +5713,34 @@
         "title": "GuardianAlert",
         "type": "object"
       },
+      "GuardianAreas": {
+        "properties": {
+          "academic": {
+            "title": "Academic",
+            "type": "boolean"
+          },
+          "attendance": {
+            "title": "Attendance",
+            "type": "boolean"
+          },
+          "finance": {
+            "title": "Finance",
+            "type": "boolean"
+          },
+          "tasks": {
+            "title": "Tasks",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "academic",
+          "attendance",
+          "finance",
+          "tasks"
+        ],
+        "title": "GuardianAreas",
+        "type": "object"
+      },
       "GuardianAssessment": {
         "properties": {
           "assessment_id": {
@@ -6431,6 +6459,190 @@
           "course_count"
         ],
         "title": "GuardianPeriodPerformance",
+        "type": "object"
+      },
+      "GuardianScheduleItem": {
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleBlock"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "days_of_week": {
+            "title": "Days Of Week",
+            "type": "string"
+          },
+          "end_time": {
+            "title": "End Time",
+            "type": "string"
+          },
+          "modality": {
+            "title": "Modality",
+            "type": "string"
+          },
+          "room": {
+            "title": "Room",
+            "type": "string"
+          },
+          "section_code": {
+            "title": "Section Code",
+            "type": "string"
+          },
+          "section_id": {
+            "title": "Section Id",
+            "type": "integer"
+          },
+          "start_time": {
+            "title": "Start Time",
+            "type": "string"
+          },
+          "subject_name": {
+            "title": "Subject Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section_id",
+          "section_code",
+          "subject_name",
+          "days_of_week",
+          "start_time",
+          "end_time",
+          "room",
+          "modality",
+          "blocks"
+        ],
+        "title": "GuardianScheduleItem",
+        "type": "object"
+      },
+      "GuardianStudentOverview": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/GuardianAlert"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
+          "attendance_count": {
+            "title": "Attendance Count",
+            "type": "integer"
+          },
+          "attendance_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attendance Percentage"
+          },
+          "average_grade": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Grade"
+          },
+          "balance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Balance"
+          },
+          "career_name": {
+            "title": "Career Name",
+            "type": "string"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "final_grade_count": {
+            "title": "Final Grade Count",
+            "type": "integer"
+          },
+          "metrics_period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics Period"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/GuardianAreas"
+          },
+          "provisional_average_grade": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provisional Average Grade"
+          },
+          "provisional_grade_count": {
+            "title": "Provisional Grade Count",
+            "type": "integer"
+          },
+          "schedule": {
+            "items": {
+              "$ref": "#/components/schemas/GuardianScheduleItem"
+            },
+            "title": "Schedule",
+            "type": "array"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "student_name",
+          "enrollment_number",
+          "career_name",
+          "active",
+          "permissions",
+          "average_grade",
+          "final_grade_count",
+          "provisional_average_grade",
+          "provisional_grade_count",
+          "attendance_percentage",
+          "attendance_count",
+          "metrics_period",
+          "balance",
+          "schedule",
+          "alerts"
+        ],
+        "title": "GuardianStudentOverview",
         "type": "object"
       },
       "GuardianTask": {
@@ -21013,7 +21225,13 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GuardianStudentOverview"
+                  },
+                  "title": "Response Guardian Overview Operations Guardian Overview Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"
