@@ -16,6 +16,7 @@ from app.schemas.subject_schema import (
     SubjectProgramOut,
     SubjectUpdate,
 )
+from app.services.governance_workflow import lock_governance
 from app.services.subject_service import (
     create_subject_service,
     delete_subject_service,
@@ -34,6 +35,7 @@ def create_subject(
     db: Session = Depends(get_db),
     user: User = Depends(subject_manager),
 ):
+    lock_governance(db)
     return create_subject_service(db, subject_data, user)
 
 
@@ -116,6 +118,7 @@ def update_subject(
     db: Session = Depends(get_db),
     user: User = Depends(subject_manager),
 ):
+    lock_governance(db)
     return update_subject_service(db, subject_id, subject_data, user)
 
 
@@ -123,4 +126,5 @@ def update_subject(
 def delete_subject(
     subject_id: int, db: Session = Depends(get_db), user: User = Depends(subject_manager)
 ):
+    lock_governance(db)
     return delete_subject_service(db, subject_id, user)

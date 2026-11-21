@@ -55,6 +55,7 @@ def create_guardian(
     db: Session = Depends(get_db),
     actor: User = Depends(require_permissions("students.manage")),
 ):
+    lock_governance(db)
     guardian = Guardian(**data.model_dump())
     db.add(guardian)
     db.flush()
@@ -96,6 +97,7 @@ def link_guardian(
     db: Session = Depends(get_db),
     actor: User = Depends(require_permissions("students.manage")),
 ):
+    lock_governance(db)
     link = StudentGuardian(**data.model_dump())
     db.add(link)
     db.flush()

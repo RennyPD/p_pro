@@ -13,6 +13,7 @@ from app.services.career_service import (
     get_careers_service,
     update_career_service,
 )
+from app.services.governance_workflow import lock_governance
 
 router = APIRouter(prefix="/careers", tags=["careers"])
 career_manager = require_permissions("programs.manage")
@@ -22,6 +23,7 @@ career_manager = require_permissions("programs.manage")
 def create_career(
     data: CareerCreate, db: Session = Depends(get_db), user: User = Depends(career_manager)
 ):
+    lock_governance(db)
     return create_career_service(db, data, user)
 
 
@@ -114,4 +116,5 @@ def update_career(
 def delete_career(
     career_id: int, db: Session = Depends(get_db), user: User = Depends(career_manager)
 ):
+    lock_governance(db)
     return delete_career_service(db, career_id, user)

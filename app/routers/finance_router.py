@@ -622,6 +622,7 @@ def billing_concepts(db: Session = Depends(get_db)):
 def create_billing_concept(
     data: BillingConceptCreate, db: Session = Depends(get_db), user: User = Depends(finance_manager)
 ):
+    lock_finance(db)
     item = BillingConcept(
         **(data.model_dump() | {"amount": money(cents(data.amount)), "name": data.name.strip()})
     )

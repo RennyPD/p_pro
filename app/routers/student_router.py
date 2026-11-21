@@ -15,6 +15,7 @@ from app.models.student_model import Student
 from app.models.user_model import User
 from app.pagination import paginate_and_filter
 from app.schemas.student_schema import StudentCreate, StudentOut, StudentUpdate
+from app.services.governance_workflow import lock_governance
 from app.services.student_service import (
     create_student_service,
     delete_student_service,
@@ -101,6 +102,7 @@ def update_student(
     db: Session = Depends(get_db),
     user: User = Depends(student_manager),
 ):
+    lock_governance(db)
     return update_student_service(db, student_id, student_data, actor=user)
 
 
@@ -108,4 +110,5 @@ def update_student(
 def delete_student(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(student_manager)
 ):
+    lock_governance(db)
     return delete_student_service(db, student_id, actor=user)

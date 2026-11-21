@@ -12,6 +12,7 @@ from app.db.Session import get_db
 from app.models.user_model import User
 from app.pagination import paginate_and_filter
 from app.schemas.section_schema import SectionCreate, SectionOut, SectionUpdate
+from app.services.governance_workflow import lock_governance
 from app.services.section_service import (
     create_section_service,
     delete_section_service,
@@ -77,4 +78,5 @@ def update_section(
 def delete_section(
     section_id: int, db: Session = Depends(get_db), user: User = Depends(section_manager)
 ):
+    lock_governance(db)
     return delete_section_service(db, section_id, user)

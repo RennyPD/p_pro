@@ -23,6 +23,7 @@ from app.schemas.teacher_schema import (
     TeacherWorkload,
 )
 from app.services.effective_schedule import effective_blocks, load_schedule
+from app.services.governance_workflow import lock_governance
 from app.services.teacher_service import (
     create_teacher_service,
     delete_teacher_service,
@@ -40,6 +41,7 @@ def create_teacher(
     db: Session = Depends(get_db),
     user: User = Depends(teacher_manager),
 ):
+    lock_governance(db)
     return create_teacher_service(db, teacher_data, user)
 
 
@@ -197,6 +199,7 @@ def update_teacher(
     db: Session = Depends(get_db),
     user: User = Depends(teacher_manager),
 ):
+    lock_governance(db)
     return update_teacher_service(db, teacher_id, teacher_data, user)
 
 
@@ -204,4 +207,5 @@ def update_teacher(
 def delete_teacher(
     teacher_id: int, db: Session = Depends(get_db), user: User = Depends(teacher_manager)
 ):
+    lock_governance(db)
     return delete_teacher_service(db, teacher_id, user)

@@ -16,6 +16,7 @@ from app.models.user_model import User
 from app.schemas.governance_schema import EquivalenceCreate, EquivalenceOut, EquivalenceUpdate
 from app.services.academic_grading import audit_event
 from app.services.academic_recognition import current_courses, recognize
+from app.services.governance_workflow import lock_governance
 
 router = APIRouter()
 
@@ -201,6 +202,7 @@ def preview(data: EquivalenceCreate, db: Session = Depends(get_db), user: User =
 
 @router.post("/equivalences", response_model=EquivalenceOut)
 def create(data: EquivalenceCreate, db: Session = Depends(get_db), user: User = Depends(manager)):
+    lock_governance(db)
     validate(db, data)
     item = CourseEquivalence(
         **data.model_dump(exclude={"reason"}),
@@ -257,6 +259,7 @@ def edit(
     db: Session = Depends(get_db),
     user: User = Depends(manager),
 ):
+    lock_governance(db)
     item = get_rule(db, identifier)
     if data.active and not item.active:
         validate(

@@ -361,6 +361,7 @@ def save_plan_template(
     db: Session = Depends(get_db),
     user: User = Depends(assessment_manager),
 ):
+    lock_governance(db)
     if db.get(Subject, data.subject_id) is None:
         raise HTTPException(status_code=404, detail="Asignatura no encontrada")
     template = db.query(AssessmentTemplate).filter_by(owner_id=user.user_id, name=data.name).first()

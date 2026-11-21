@@ -129,6 +129,7 @@ def create_event(
     db: Session = Depends(get_db),
     user: User = Depends(calendar_manager),
 ):
+    lock_governance(db)
     if not has_scope(user, "calendar.manage"):
         if data.audience != "section":
             raise HTTPException(403, "Solo puedes crear eventos para tus secciones")
@@ -161,6 +162,7 @@ def edit_event(
     db: Session = Depends(get_db),
     user: User = Depends(calendar_manager),
 ):
+    lock_governance(db)
     item = db.get(CalendarEvent, event_id)
     if not item:
         raise HTTPException(404, "Evento no disponible")
@@ -928,6 +930,7 @@ def upload_document(
     db: Session = Depends(get_db),
     user: User = Depends(documents_manager),
 ):
+    lock_governance(db)
     if db.get(Student, student_id) is None:
         raise HTTPException(404, "El expediente del estudiante ya no está disponible")
     try:
