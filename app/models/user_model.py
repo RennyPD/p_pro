@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, true
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -28,7 +28,6 @@ class User(Base):
     # Last accepted TOTP time step: a code is accepted only once.
     mfa_last_step: Mapped[int | None] = mapped_column(nullable=True)
     session_version: Mapped[int] = mapped_column(default=0, server_default="0")
-    module_views: Mapped[list[str] | None] = mapped_column(JSON)
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
 
     role: Mapped["Role"] = relationship("Role", back_populates="users")

@@ -39,6 +39,12 @@ PERMISSIONS: tuple[PermissionDef, ...] = (
     PermissionDef("teachers.manage", "Docentes", "Gestionar docentes", "Crear y editar docentes"),
     # Oferta académica
     PermissionDef(
+        "programs.view",
+        "Oferta académica",
+        "Consultar oferta académica",
+        "Carreras, asignaturas y períodos, sin editarlos",
+    ),
+    PermissionDef(
         "programs.manage",
         "Oferta académica",
         "Gestionar carreras y pensum",

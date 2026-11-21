@@ -1677,51 +1677,60 @@ class ApiIntegrationTests(unittest.TestCase):
         self.assertEqual(historical_course()["curriculum_version"], original_version)
         self.assertEqual(self.request("PUT", verify, admin, json=data).status_code, 409)
 
-    def test_custom_modules_are_per_account_and_enforced_on_direct_requests(self):
+    def test_read_only_modules_follow_role_permissions(self):
         admin, student, *_ = self.grading_fixture()
         role = self.request(
             "POST", "/roles/", admin, json={"name": "observador", "description": "Consulta"}
         )
         self.assertEqual(role.status_code, 200, role.text)
         role_id = role.json()["role_id"]
-        tokens = []
-        for username in ("consulta.uno", "consulta.dos"):
-            account = self.request(
-                "POST",
-                "/users/",
-                admin,
-                json={
-                    "username": username,
-                    "email": f"{username}@example.com",
-                    "password": "TestAccount2026!",
-                    "role_id": role_id,
-                },
-            )
-            self.assertEqual(account.status_code, 200, account.text)
-            token = self.request(
-                "POST", "/auth/login", json={"username": username, "password": "TestAccount2026!"}
-            ).json()["access_token"]
-            tokens.append((account.json()["user_id"], token))
-        (user_id, observer), (_, other) = tokens
-        path = f"/module-views/accounts/{user_id}"
-        self.assertEqual(self.request("GET", path, student).status_code, 403)
-        for module in ("students", "teachers", "careers", "subjects", "sections", "periods"):
+        account = self.request(
+            "POST",
+            "/users/",
+            admin,
+            json={
+                "username": "consulta.uno",
+                "email": "consulta.uno@example.com",
+                "password": "TestAccount2026!",
+                "role_id": role_id,
+            },
+        )
+        self.assertEqual(account.status_code, 200, account.text)
+        observer = self.request(
+            "POST", "/auth/login", json={"username": "consulta.uno", "password": "TestAccount2026!"}
+        ).json()["access_token"]
+        modules = ["careers", "subjects", "periods"]
+        self.assertEqual(self.request("GET", "/module-views/mine", observer).json(), [])
+        for module in modules:
             self.assertEqual(
                 self.request("GET", f"/module-views/{module}", observer).status_code, 403
             )
-        modules = ["students", "teachers", "careers", "subjects", "sections", "periods"]
-        self.assertEqual(
-            self.request("PUT", path, admin, json={"modules": modules}).status_code, 200
+        granted = self.request(
+            "PUT",
+            f"/access/roles/{role_id}/permissions",
+            admin,
+            json={"permissions": ["programs.view"]},
         )
-        self.assertEqual(len(self.request("GET", "/module-views/mine", observer).json()), 6)
+        self.assertEqual(granted.status_code, 200, granted.text)
+        mine = self.request("GET", "/module-views/mine", observer).json()
+        self.assertEqual([item["key"] for item in mine], modules)
         for module in modules:
             response = self.request("GET", f"/module-views/{module}?limit=1", observer)
             self.assertEqual(response.status_code, 200, response.text)
             self.assertEqual(len(response.json()["rows"]), 1)
-            self.assertEqual(self.request("GET", f"/module-views/{module}", other).status_code, 403)
-        self.assertEqual(self.request("PUT", "/module-views/students", observer).status_code, 405)
-        self.assertEqual(self.request("PUT", path, admin, json={"modules": []}).status_code, 200)
-        self.assertEqual(self.request("GET", "/module-views/students", observer).status_code, 403)
+            self.assertEqual(
+                self.request("GET", f"/module-views/{module}", student).status_code, 403
+            )
+        # Per-account grants are gone: one access system, the role's permissions.
+        self.assertEqual(
+            self.request(
+                "PUT", f"/module-views/accounts/{account.json()['user_id']}", admin
+            ).status_code,
+            404,
+        )
+        self.assertEqual(self.request("GET", "/module-views/students", observer).status_code, 404)
+        # The administrator has the full pages, so nothing is duplicated under «Consulta».
+        self.assertEqual(self.request("GET", "/module-views/mine", admin).json(), [])
 
     def test_draft_privacy_zero_and_consistent_weighted_results(self):
         admin, student, section_id, enrollment_id, student_id = self.grading_fixture()

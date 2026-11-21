@@ -34,7 +34,6 @@ SCOPE_CHECKED = {
     ("POST", "/community/notifications/read-all"): "own notifications",
     ("POST", "/community/notifications/{notification_id}/read"): "own notifications",
     ("GET", "/module-views/mine"): "own read-only modules",
-    ("GET", "/module-views/{module}"): "per-account read-only grant checked inside",
     ("GET", "/configuration/institution"): "institution name for the shell",
     ("GET", "/periods/"): "period names for filters",
     ("GET", "/finance/options"): "transfer instructions shown to account holders",

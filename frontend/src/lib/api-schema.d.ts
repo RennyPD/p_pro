@@ -2118,24 +2118,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/module-views/accounts/{user_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Account Modules */
-    get: operations["account_modules_module_views_accounts__user_id__get"];
-    /** Update Modules */
-    put: operations["update_modules_module_views_accounts__user_id__put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   "/module-views/mine": {
     parameters: {
       query?: never;
@@ -2143,7 +2125,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** My Modules */
+    /**
+     * My Modules
+     * @description Modules shown under «Consulta»: readable and without their full page.
+     */
     get: operations["my_modules_module_views_mine_get"];
     put?: never;
     post?: never;
@@ -5667,11 +5652,6 @@ export interface components {
       current_code?: string | null;
       /** Current Password */
       current_password: string;
-    };
-    /** ModuleUpdate */
-    ModuleUpdate: {
-      /** Modules */
-      modules: string[];
     };
     /** NotificationOut */
     NotificationOut: {
@@ -11845,72 +11825,6 @@ export interface operations {
         };
         content: {
           "application/json": unknown;
-        };
-      };
-    };
-  };
-  account_modules_module_views_accounts__user_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        user_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_modules_module_views_accounts__user_id__put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        user_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ModuleUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

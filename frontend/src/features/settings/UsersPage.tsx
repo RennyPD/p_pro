@@ -1,4 +1,4 @@
-import { KeyRound, LayoutGrid, UserCheck, UserX } from "lucide-react";
+import { KeyRound, UserCheck, UserX } from "lucide-react";
 import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
@@ -7,7 +7,6 @@ import { LookupSelect } from "../../components/LookupSelect";
 import { Badge, Button, Modal } from "../../components/ui";
 import { resources } from "../../config/resources";
 import { api, apiMessage } from "../../lib/api";
-import { type ModuleView } from "../../lib/moduleViews";
 import { useDraftGuard } from "../../lib/useDraftGuard";
 import type { EntityRecord, LookupConfig, ResourceConfig } from "../../types";
 import { ResourcePage } from "../resources/ResourcePage";
@@ -74,7 +73,6 @@ const config: ResourceConfig = {
 
 export function UsersPage() {
   const [reset, setReset] = useState<EntityRecord | null>(null);
-  const [account, setAccount] = useState<EntityRecord | null>(null);
   return (
     <>
       <ResourcePage
@@ -90,20 +88,11 @@ export function UsersPage() {
             >
               <KeyRound />
             </button>
-            <button
-              type="button"
-              onClick={() => setAccount(row)}
-              aria-label={`Módulos de consulta de ${row.username}`}
-              title="Módulos de consulta"
-            >
-              <LayoutGrid />
-            </button>
             <AccountStatusButton account={row} />
           </>
         )}
       />
       {reset && <UserEditor record={reset} passwordReset onClose={() => setReset(null)} />}
-      {account && <ModuleEditor account={account} onClose={() => setAccount(null)} />}
     </>
   );
 }
@@ -142,88 +131,6 @@ function AccountStatusButton({ account }: { account: EntityRecord }) {
     >
       {active ? <UserX /> : <UserCheck />}
     </button>
-  );
-}
-
-function ModuleEditor({ account, onClose }: { account: EntityRecord; onClose: () => void }) {
-  const client = useQueryClient();
-  const endpoint = `/module-views/accounts/${account.user_id}`;
-  const config = useQuery({
-    queryKey: ["module-views", "account", account.user_id],
-    queryFn: () =>
-      api
-        .get<{ available: ModuleView[]; selected: string[] }>(endpoint)
-        .then(response => response.data),
-  });
-  const [draft, setDraft] = useState<string[] | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const selected = draft ?? config.data?.selected ?? [];
-  useDraftGuard(draft !== null, busy);
-
-  async function close() {
-    if (!busy && (!draft || (await confirmAction("¿Descartar los cambios de módulos?")))) onClose();
-  }
-
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      await api.put(endpoint, { modules: selected });
-      await client.invalidateQueries({ queryKey: ["module-views"] });
-      toast.success("Módulos guardados");
-      onClose();
-    } catch (failure) {
-      setError(apiMessage(failure));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Modal title={`Módulos de ${account.username}`} onClose={close}>
-      {config.isPending ? (
-        <p>Cargando módulos…</p>
-      ) : config.isError ? (
-        <p role="alert">
-          {apiMessage(config.error)}{" "}
-          <Button onClick={() => void config.refetch()}>Reintentar</Button>
-        </p>
-      ) : (
-        <form className="resource-form" onSubmit={save}>
-          <p>Selecciona los módulos de consulta institucional para esta cuenta.</p>
-          {config.data.available.map(item => (
-            <label key={item.key}>
-              <input
-                type="checkbox"
-                disabled={busy}
-                checked={selected.includes(item.key)}
-                onChange={event =>
-                  setDraft(
-                    event.target.checked
-                      ? [...selected, item.key]
-                      : selected.filter(key => key !== item.key),
-                  )
-                }
-              />{" "}
-              {item.label}
-            </label>
-          ))}
-          {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          )}
-          <div className="form-actions">
-            <Button type="button" variant="secondary" disabled={busy} onClick={close}>
-              Cancelar
-            </Button>
-            <Button disabled={busy || !draft}>{busy ? "Guardando…" : "Guardar módulos"}</Button>
-          </div>
-        </form>
-      )}
-    </Modal>
   );
 }
 

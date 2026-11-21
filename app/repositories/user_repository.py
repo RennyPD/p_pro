@@ -35,9 +35,6 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate) -> User:
         return None
 
     update_data = user_data.model_dump(exclude_unset=True)
-    if "role_id" in update_data and update_data["role_id"] != user.role_id:
-        user.module_views = None
-
     if "password" in update_data:
         user = lock_account(db, user)
         update_data["password"] = hash_password(update_data["password"])
