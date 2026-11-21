@@ -66,6 +66,6 @@ def update_role(
     return role_out(db, update_role_service(db, role_id, role_data, actor))
 
 
-@router.delete("/{role_id}", dependencies=[Depends(access_manager)])
-def delete_role(role_id: int, db: Session = Depends(get_db)):
-    return delete_role_service(db, role_id)
+@router.delete("/{role_id}")
+def delete_role(role_id: int, db: Session = Depends(get_db), actor: User = Depends(access_manager)):
+    return delete_role_service(db, role_id, actor)

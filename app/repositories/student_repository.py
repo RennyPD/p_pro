@@ -5,18 +5,14 @@ from app.models.student_model import Student
 from app.schemas.student_schema import StudentCreate, StudentUpdate
 
 
-def create_student(db: Session, student_data: StudentCreate, commit: bool = True):
+def create_student(db: Session, student_data: StudentCreate):
     student = Student(**student_data.model_dump())
     career = db.get(Career, student.career_id)
     if career is not None:
         student.assigned_curriculum_version = career.curriculum_version
 
     db.add(student)
-    if commit:
-        db.commit()
-        db.refresh(student)
-    else:
-        db.flush()
+    db.flush()
 
     return student
 
@@ -42,8 +38,7 @@ def update_student(db: Session, student_id: int, student_data: StudentUpdate):
     for key, value in update_data.items():
         setattr(student, key, value)
 
-    db.commit()
-    db.refresh(student)
+    db.flush()
 
     return student
 
@@ -57,6 +52,6 @@ def delete_student(db: Session, student_id: int):
 
     student.active = False
 
-    db.commit()
+    db.flush()
 
     return student

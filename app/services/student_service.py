@@ -10,10 +10,28 @@ from app.repositories.student_repository import (
     update_student,
 )
 from app.schemas.student_schema import StudentCreate, StudentUpdate
+from app.services.audit_log import changes, record, snapshot
 from app.services.business_time import business_date
 
+# Fields whose change is recorded on PATCH /students (holds and status first).
+AUDITED_FIELDS = (
+    "academic_hold",
+    "financial_hold",
+    "active",
+    "first_name",
+    "last_name",
+    "email",
+    "telephone",
+    "address",
+    "document_number",
+    "enrollment_number",
+)
 
-def create_student_service(db: Session, student_data: StudentCreate, commit: bool = True):
+
+def create_student_service(
+    db: Session, student_data: StudentCreate, actor=None, commit: bool = True
+):
+    """Create a student. With ``commit=False`` the caller records and commits."""
     from app.services.governance_workflow import lock_governance
 
     lock_governance(db)
@@ -42,7 +60,18 @@ def create_student_service(db: Session, student_data: StudentCreate, commit: boo
             generated = f"{settings.enrollment_prefix}-{year}-{sequence}"
         settings.next_enrollment_number += 1
         student_data = student_data.model_copy(update={"enrollment_number": generated})
-    return create_student(db, student_data, commit=commit)
+    student = create_student(db, student_data)
+    if commit:
+        record(
+            db,
+            actor,
+            "student.created",
+            f"student:{student.student_id}",
+            f"{student.enrollment_number} {student.first_name} {student.last_name}",
+        )
+        db.commit()
+        db.refresh(student)
+    return student
 
 
 def get_students_service(db: Session):
@@ -61,8 +90,9 @@ def get_student_by_id_service(db: Session, student_id: int):
     return student
 
 
-def update_student_service(db: Session, student_id: int, student_data: StudentUpdate):
+def update_student_service(db: Session, student_id: int, student_data: StudentUpdate, actor):
     current = get_student_by_id_service(db, student_id)
+    before = snapshot(current, AUDITED_FIELDS)
     if "career_id" in student_data.model_fields_set and student_data.career_id != current.career_id:
         raise HTTPException(
             409,
@@ -76,11 +106,19 @@ def update_student_service(db: Session, student_id: int, student_data: StudentUp
             status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado"
         )
 
+    record(
+        db,
+        actor,
+        "student.updated",
+        f"student:{student_id}",
+        changes(before, snapshot(student, AUDITED_FIELDS)),
+    )
+    db.commit()
+    db.refresh(student)
     return student
 
 
-def delete_student_service(db: Session, student_id: int):
-
+def delete_student_service(db: Session, student_id: int, actor):
     student = delete_student(db, student_id)
 
     if not student:
@@ -88,4 +126,6 @@ def delete_student_service(db: Session, student_id: int):
             status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado"
         )
 
+    record(db, actor, "student.deactivated", f"student:{student_id}", student.enrollment_number)
+    db.commit()
     return {"message": "Estudiante eliminado"}

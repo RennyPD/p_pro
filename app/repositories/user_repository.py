@@ -7,18 +7,14 @@ from app.security import hash_password
 from app.services.account_sessions import lock_account, revoke_account_sessions
 
 
-def create_user(db: Session, user_data: UserCreate, *, commit: bool = True) -> User:
+def create_user(db: Session, user_data: UserCreate) -> User:
 
     data = user_data.model_dump()
     data["password"] = hash_password(data["password"])
     new_user = User(**data)
 
     db.add(new_user)
-    if commit:
-        db.commit()
-        db.refresh(new_user)
-    else:
-        db.flush()
+    db.flush()
 
     return new_user
 

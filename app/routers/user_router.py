@@ -35,7 +35,7 @@ def create_user(
 ):
     lock_access(db)
     ensure_role_within_actor(db, actor, user_data.role_id)
-    return create_user_service(db, user_data)
+    return create_user_service(db, user_data, actor)
 
 
 @router.get("/", response_model=list[UserOut], dependencies=[Depends(access_manager)])

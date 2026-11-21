@@ -9,8 +9,7 @@ def create_role(db: Session, role_data: RoleCreate) -> Role:
     new_role = Role(**role_data.model_dump())
 
     db.add(new_role)
-    db.commit()
-    db.refresh(new_role)
+    db.flush()
 
     return new_role
 
@@ -35,8 +34,7 @@ def update_role(db: Session, role_id: int, role_data: RoleUpdate) -> Role:
     for key, value in update_data.items():
         setattr(role, key, value)
 
-    db.commit()
-    db.refresh(role)
+    db.flush()
 
     return role
 
@@ -49,6 +47,6 @@ def delete_role(db: Session, role_id: int) -> bool:
         return False
 
     db.delete(role)
-    db.commit()
+    db.flush()
 
     return True

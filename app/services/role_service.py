@@ -9,6 +9,7 @@ from app.repositories.role_repository import (
     update_role,
 )
 from app.schemas.role_schema import RoleCreate, RoleUpdate
+from app.services.audit_log import changes, record, snapshot
 from app.services.write_locks import lock_access
 
 SYSTEM_ROLES = {"admin", "teacher", "student", "guardian"}
@@ -42,6 +43,7 @@ def ensure_members_fit_scope(role, scope: str) -> None:
 
 
 def create_role_service(db: Session, role_data: RoleCreate, actor=None):
+    """Create a role; the caller records the change and commits."""
     lock_access(db)
     if "scope" not in role_data.model_fields_set:
         # Re-creating a built-in role (teacher, student...) keeps its usual scope.
@@ -67,8 +69,6 @@ def create_role_service(db: Session, role_data: RoleCreate, actor=None):
     if code in SYSTEM_ROLE_DEFAULTS and db.query(Permission.permission_id).first() is not None:
         # A re-created built-in role starts with its usual permissions.
         grant_system_defaults(db, role)
-        db.commit()
-        db.refresh(role)
     return role
 
 
@@ -95,24 +95,32 @@ def update_role_service(db: Session, role_id: int, role_data: RoleUpdate, actor=
         raise HTTPException(409, "El código del rol es fijo. Cambia su etiqueta visible")
     if "description" in role_data.model_fields_set and role_data.description is None:
         raise HTTPException(422, "Escribe una descripción para el rol")
+    fields = ("label", "description", "scope")
+    before = snapshot(current, fields)
     role = update_role(db, role_id, role_data)
 
     if not role:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rol no encontrado")
 
+    record(db, actor, "role.updated", f"role:{role_id}", changes(before, snapshot(role, fields)))
+    db.commit()
+    db.refresh(role)
     return role
 
 
-def delete_role_service(db: Session, role_id: int):
+def delete_role_service(db: Session, role_id: int, actor):
     lock_access(db)
     current = get_role_by_id_service(db, role_id)
     if current.name.casefold() in SYSTEM_ROLES or current.users:
         raise HTTPException(
             409, "Conserva los roles del sistema y los roles con cuentas vinculadas"
         )
+    name = current.name
     role = delete_role(db, role_id)
 
     if not role:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rol no encontrado")
 
+    record(db, actor, "role.deleted", f"role:{role_id}", name)
+    db.commit()
     return {"message": "Rol eliminado"}

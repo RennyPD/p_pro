@@ -2,17 +2,13 @@
 
 from app.models.security_model import AuditLog
 from app.models.user_model import User
-from app.services.academic_grading import audit_event
+from app.services.audit_log import record  # noqa: F401  (re-exported)
 from app.services.write_locks import lock_scope
 
 
 def lock_governance(db):
     """Academic write domain (see app/services/write_locks.py)."""
     lock_scope(db, "academic")
-
-
-def record(db, user, action, resource, detail):
-    audit_event(db, user.user_id, action, resource, detail)
 
 
 def history(db, resource):

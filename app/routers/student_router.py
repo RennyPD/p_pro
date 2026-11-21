@@ -26,9 +26,13 @@ router = APIRouter(prefix="/students", tags=["students"])
 student_manager = require_permissions("students.manage")
 
 
-@router.post("/", response_model=StudentOut, dependencies=[Depends(student_manager)])
-def create_student(student_data: StudentCreate, db: Session = Depends(get_db)):
-    return create_student_service(db, student_data)
+@router.post("/", response_model=StudentOut)
+def create_student(
+    student_data: StudentCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(student_manager),
+):
+    return create_student_service(db, student_data, actor=user)
 
 
 @router.get("/", response_model=list[StudentOut], dependencies=[Depends(get_current_user)])
@@ -90,11 +94,18 @@ def get_student_by_id(
     return get_student_by_id_service(db, student_id)
 
 
-@router.patch("/{student_id}", response_model=StudentOut, dependencies=[Depends(student_manager)])
-def update_student(student_id: int, student_data: StudentUpdate, db: Session = Depends(get_db)):
-    return update_student_service(db, student_id, student_data)
+@router.patch("/{student_id}", response_model=StudentOut)
+def update_student(
+    student_id: int,
+    student_data: StudentUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(student_manager),
+):
+    return update_student_service(db, student_id, student_data, actor=user)
 
 
-@router.delete("/{student_id}", dependencies=[Depends(student_manager)])
-def delete_student(student_id: int, db: Session = Depends(get_db)):
-    return delete_student_service(db, student_id)
+@router.delete("/{student_id}")
+def delete_student(
+    student_id: int, db: Session = Depends(get_db), user: User = Depends(student_manager)
+):
+    return delete_student_service(db, student_id, actor=user)

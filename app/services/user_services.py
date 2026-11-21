@@ -13,6 +13,7 @@ from app.repositories.user_repository import (
     update_user,
 )
 from app.schemas.user_schema import UserCreate, UserUpdate
+from app.services.audit_log import record
 
 
 def validate_profile(db: Session, state: dict):
@@ -43,7 +44,7 @@ def validate_profile(db: Session, state: dict):
             raise HTTPException(422, "Selecciona una persona existente para esta cuenta")
 
 
-def create_user_service(db: Session, user_data: UserCreate):
+def create_user_service(db: Session, user_data: UserCreate, actor):
     validate_profile(db, user_data.model_dump())
     users = get_users(db)
 
@@ -53,7 +54,17 @@ def create_user_service(db: Session, user_data: UserCreate):
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe ese nombre de usuario"
             )
 
-    return create_user(db, user_data)
+    user = create_user(db, user_data)
+    record(
+        db,
+        actor,
+        "user.created",
+        f"user:{user.user_id}",
+        f"{user.username}; rol {user.role_id}",
+    )
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def get_users_service(db: Session):

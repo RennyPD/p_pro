@@ -14,7 +14,7 @@ from app.models.student_model import Student
 from app.models.user_model import User
 from app.schemas.student_schema import StudentCreate
 from app.services.csv_export import spreadsheet_safe_row
-from app.services.governance_workflow import lock_governance
+from app.services.governance_workflow import lock_governance, record
 from app.services.student_service import create_student_service
 
 router = APIRouter(prefix="/bulk", tags=["bulk operations"])
@@ -71,7 +71,7 @@ def match_student(db, data):
 def import_students(
     content: bytes = Body(..., media_type="text/csv"),
     db: Session = Depends(get_db),
-    _user: User = Depends(academic_manager),
+    user: User = Depends(academic_manager),
     dry_run: bool = False,
 ):
     try:
@@ -140,6 +140,14 @@ def import_students(
     if dry_run:
         db.rollback()
     else:
+        record(
+            db,
+            user,
+            "students.imported",
+            "students:import",
+            f"Creados: {len(created)}; rechazados: {len(errors)}; "
+            f"sin cambios: {len(rows) - len(created) - len(errors)}",
+        )
         db.commit()
     return {"created": len(created), "student_ids": created, "errors": errors, "rows": rows}
 

@@ -113,7 +113,8 @@ def bootstrap_admin(
     # Fresh installations get the whole permission catalog for the first administrator.
     grant_system_defaults(db, role)
     user_data = UserCreate(**data.model_dump(), role_id=role.role_id)
-    user = create_user(db, user_data, commit=False)
+    user = create_user(db, user_data)
+    audit(db, "account.bootstrapped", f"user:{user.user_id}", user.user_id, "Primer administrador")
     return issue_session(db, response, user)
 
 

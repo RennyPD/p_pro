@@ -10,7 +10,7 @@ from app.models.assessment_model import Assessment
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade, GradeChange
-from app.models.security_model import AuditLog
+from app.services.audit_log import audit_event  # noqa: F401  (re-exported)
 from app.services.business_time import business_date
 
 
@@ -88,18 +88,6 @@ def ensure_grading_open(
                 status_code=409,
                 detail="El período está cerrado o venció el plazo de calificación. Requiere reapertura administrativa.",
             )
-
-
-def audit_event(db: Session, user_id: int, action: str, resource: str, detail: str):
-    db.add(
-        AuditLog(
-            user_id=user_id,
-            action=action,
-            resource=resource,
-            detail=detail[:500],
-            created_at=datetime.now(UTC).replace(tzinfo=None),
-        )
-    )
 
 
 def record_change(
