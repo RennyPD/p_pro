@@ -12,6 +12,8 @@ from app.auth import (
     ensure_section_access,
     ensure_student_academic_access,
     get_current_user,
+    guardian_permissions,
+    guardian_student_ids,
     has_permission,
     has_scope,
     require_permissions,
@@ -85,7 +87,7 @@ approvals_manager = require_permissions("approvals.manage", institutional=True)
 documents_manager = require_permissions("students.manage", institutional=True)
 
 
-def student_scope_ids(db: Session, user: User) -> list[int] | None:
+def student_scope_ids(db: Session, user: User, area: str = "academic") -> list[int] | None:
     if has_scope(user, *ACADEMIC_SCOPE):
         return None
     if user.student_id:
@@ -99,12 +101,7 @@ def student_scope_ids(db: Session, user: User) -> list[int] | None:
             .distinct()
         ]
     if user.guardian_id:
-        return [
-            row[0]
-            for row in db.query(StudentGuardian.student_id).filter(
-                StudentGuardian.guardian_id == user.guardian_id
-            )
-        ]
+        return guardian_student_ids(db, user, area)
     return []
 
 
@@ -566,10 +563,14 @@ def reopen_alert(
 def guardian_overview(
     db: Session = Depends(get_db), user: User = Depends(require_personal("records.own", "linked"))
 ):
-    ids = student_scope_ids(db, user) or []
+    links = {
+        link.student_id: link
+        for link in db.query(StudentGuardian).filter_by(guardian_id=user.guardian_id)
+    }
     active_period = db.query(AcademicPeriod).filter_by(active=True).first()
     result = []
-    for student in db.query(Student).filter(Student.student_id.in_(ids)).all():
+    for student in db.query(Student).filter(Student.student_id.in_(links)).all():
+        allowed = guardian_permissions(links[student.student_id])
         enrollments = db.query(Enrollment).filter_by(student_id=student.student_id).all()
         summary = summarize_results(
             db,
@@ -583,6 +584,16 @@ def guardian_overview(
             .order_by(EarlyAlert.created_at.desc())
             .all()
         )
+        if not allowed["academic"]:
+            summary.update(
+                average_grade=None,
+                final_grade_count=0,
+                provisional_average_grade=None,
+                provisional_grade_count=0,
+            )
+            enrollments, alerts = [], []
+        if not allowed["attendance"]:
+            summary.update(attendance_percentage=None, attendance_count=0)
         result.append(
             {
                 "student_id": student.student_id,
@@ -590,9 +601,10 @@ def guardian_overview(
                 "enrollment_number": student.enrollment_number,
                 "career_name": student.career.name,
                 "active": student.active,
+                "permissions": allowed,
                 **summary,
                 "metrics_period": active_period.name if active_period else None,
-                "balance": round(float(balance), 2),
+                "balance": round(float(balance), 2) if allowed["finance"] else None,
                 "schedule": [
                     {
                         "section_id": item.section_id,

@@ -72,7 +72,7 @@ def transcript_pdf(
 def statement_pdf(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    ensure_student_document_access(db, user, student_id, FINANCE_SCOPE)
+    ensure_student_document_access(db, user, student_id, FINANCE_SCOPE, area="finance")
     summary = build_summary(get_or_create_account(db, student_id))
     lines = [
         f"Estudiante: {summary.student_name}",

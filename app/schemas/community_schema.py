@@ -11,7 +11,17 @@ class GuardianCreate(BaseModel):
     address: str = ""
 
 
-class GuardianLinkCreate(BaseModel):
+class GuardianLinkPermissions(BaseModel):
+    """What a guardian sees of the linked student. Everything by default (A1)."""
+
+    can_view_academic: bool = True
+    can_view_attendance: bool = True
+    can_view_finance: bool = True
+    can_view_tasks: bool = True
+    financial_responsible: bool = False
+
+
+class GuardianLinkCreate(GuardianLinkPermissions):
     student_id: int
     guardian_id: int
     relationship: str
@@ -20,13 +30,25 @@ class GuardianLinkCreate(BaseModel):
     authorized_pickup: bool = False
 
 
+class GuardianLinkUpdate(BaseModel):
+    relationship: str | None = Field(default=None, min_length=2, max_length=50)
+    primary_contact: bool | None = None
+    emergency_contact: bool | None = None
+    authorized_pickup: bool | None = None
+    can_view_academic: bool | None = None
+    can_view_attendance: bool | None = None
+    can_view_finance: bool | None = None
+    can_view_tasks: bool | None = None
+    financial_responsible: bool | None = None
+
+
 class GuardianLinkOut(GuardianLinkCreate):
     student_guardian_id: int
     guardian_name: str
     guardian_email: EmailStr
 
 
-class StudentGuardianRegistration(BaseModel):
+class StudentGuardianRegistration(GuardianLinkPermissions):
     guardian_id: int | None = Field(default=None, ge=1)
     new_guardian: GuardianCreate | None = None
     relationship: str = Field(min_length=2, max_length=50)

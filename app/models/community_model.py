@@ -1,6 +1,16 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    false,
+    true,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import relationship as orm_relationship
 
@@ -29,6 +39,16 @@ class StudentGuardian(Base):
     primary_contact: Mapped[bool] = mapped_column(Boolean, default=False)
     emergency_contact: Mapped[bool] = mapped_column(Boolean, default=False)
     authorized_pickup: Mapped[bool] = mapped_column(Boolean, default=False)
+    # What the guardian sees of this student (audit A1). Everything by default;
+    # the institution restricts a single link when needed (custody, legal cases).
+    can_view_academic: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    can_view_attendance: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    can_view_finance: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    can_view_tasks: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    # Who pays: separate from seeing the balance (used by the payments module).
+    financial_responsible: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
     guardian: Mapped[Guardian] = orm_relationship("Guardian")
 
 

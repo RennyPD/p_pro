@@ -5713,9 +5713,34 @@
             "title": "Authorized Pickup",
             "type": "boolean"
           },
+          "can_view_academic": {
+            "default": true,
+            "title": "Can View Academic",
+            "type": "boolean"
+          },
+          "can_view_attendance": {
+            "default": true,
+            "title": "Can View Attendance",
+            "type": "boolean"
+          },
+          "can_view_finance": {
+            "default": true,
+            "title": "Can View Finance",
+            "type": "boolean"
+          },
+          "can_view_tasks": {
+            "default": true,
+            "title": "Can View Tasks",
+            "type": "boolean"
+          },
           "emergency_contact": {
             "default": false,
             "title": "Emergency Contact",
+            "type": "boolean"
+          },
+          "financial_responsible": {
+            "default": false,
+            "title": "Financial Responsible",
             "type": "boolean"
           },
           "guardian_id": {
@@ -5751,9 +5776,34 @@
             "title": "Authorized Pickup",
             "type": "boolean"
           },
+          "can_view_academic": {
+            "default": true,
+            "title": "Can View Academic",
+            "type": "boolean"
+          },
+          "can_view_attendance": {
+            "default": true,
+            "title": "Can View Attendance",
+            "type": "boolean"
+          },
+          "can_view_finance": {
+            "default": true,
+            "title": "Can View Finance",
+            "type": "boolean"
+          },
+          "can_view_tasks": {
+            "default": true,
+            "title": "Can View Tasks",
+            "type": "boolean"
+          },
           "emergency_contact": {
             "default": false,
             "title": "Emergency Contact",
+            "type": "boolean"
+          },
+          "financial_responsible": {
+            "default": false,
+            "title": "Financial Responsible",
             "type": "boolean"
           },
           "guardian_email": {
@@ -5796,6 +5846,113 @@
           "guardian_email"
         ],
         "title": "GuardianLinkOut",
+        "type": "object"
+      },
+      "GuardianLinkUpdate": {
+        "properties": {
+          "authorized_pickup": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorized Pickup"
+          },
+          "can_view_academic": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can View Academic"
+          },
+          "can_view_attendance": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can View Attendance"
+          },
+          "can_view_finance": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can View Finance"
+          },
+          "can_view_tasks": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can View Tasks"
+          },
+          "emergency_contact": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emergency Contact"
+          },
+          "financial_responsible": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Financial Responsible"
+          },
+          "primary_contact": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Contact"
+          },
+          "relationship": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relationship"
+          }
+        },
+        "title": "GuardianLinkUpdate",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -8380,9 +8537,34 @@
             "title": "Authorized Pickup",
             "type": "boolean"
           },
+          "can_view_academic": {
+            "default": true,
+            "title": "Can View Academic",
+            "type": "boolean"
+          },
+          "can_view_attendance": {
+            "default": true,
+            "title": "Can View Attendance",
+            "type": "boolean"
+          },
+          "can_view_finance": {
+            "default": true,
+            "title": "Can View Finance",
+            "type": "boolean"
+          },
+          "can_view_tasks": {
+            "default": true,
+            "title": "Can View Tasks",
+            "type": "boolean"
+          },
           "emergency_contact": {
             "default": false,
             "title": "Emergency Contact",
+            "type": "boolean"
+          },
+          "financial_responsible": {
+            "default": false,
+            "title": "Financial Responsible",
             "type": "boolean"
           },
           "guardian_id": {
@@ -14341,6 +14523,107 @@
           }
         ],
         "summary": "Link Guardian",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/community/guardian-links/{link_id}": {
+      "delete": {
+        "operationId": "delete_guardian_link_community_guardian_links__link_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "title": "Link Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Guardian Link",
+        "tags": [
+          "community"
+        ]
+      },
+      "patch": {
+        "description": "Change what a guardian sees of one student (audit A1).",
+        "operationId": "update_guardian_link_community_guardian_links__link_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "link_id",
+            "required": true,
+            "schema": {
+              "title": "Link Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuardianLinkUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardianLinkOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Guardian Link",
         "tags": [
           "community"
         ]

@@ -29,6 +29,11 @@ def grant_system_defaults(db: Session, role: Role) -> None:
         return
     scope, slugs = defaults
     role.scope = scope
+    if db.query(Permission.permission_id).first() is None:
+        # Creating the catalog ends the implicit defaults of every built-in role,
+        # so seed all of them, not only this one (ensure_catalog calls back here).
+        ensure_catalog(db)
+        return
     catalog = sync_permission_catalog(db)
     held = {
         row[0]

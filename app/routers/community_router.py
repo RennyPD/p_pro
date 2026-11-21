@@ -27,9 +27,12 @@ from app.schemas.community_schema import (
     GuardianCreate,
     GuardianLinkCreate,
     GuardianLinkOut,
+    GuardianLinkUpdate,
     NotificationOut,
     StudentGuardianRegistration,
 )
+from app.services.audit_log import changes as audit_changes
+from app.services.audit_log import snapshot
 from app.services.governance_workflow import lock_governance, record
 
 router = APIRouter(prefix="/community", tags=["community"])
@@ -44,6 +47,11 @@ def link_out(link: StudentGuardian) -> GuardianLinkOut:
         primary_contact=link.primary_contact,
         emergency_contact=link.emergency_contact,
         authorized_pickup=link.authorized_pickup,
+        can_view_academic=link.can_view_academic,
+        can_view_attendance=link.can_view_attendance,
+        can_view_finance=link.can_view_finance,
+        can_view_tasks=link.can_view_tasks,
+        financial_responsible=link.financial_responsible,
         guardian_name=f"{link.guardian.first_name} {link.guardian.last_name}",
         guardian_email=link.guardian.email,
     )
@@ -111,6 +119,74 @@ def link_guardian(
     db.commit()
     db.refresh(link)
     return link_out(link)
+
+
+LINK_FIELDS = (
+    "relationship",
+    "primary_contact",
+    "emergency_contact",
+    "authorized_pickup",
+    "can_view_academic",
+    "can_view_attendance",
+    "can_view_finance",
+    "can_view_tasks",
+    "financial_responsible",
+)
+
+
+def get_link(db: Session, link_id: int) -> StudentGuardian:
+    link = db.get(StudentGuardian, link_id)
+    if link is None:
+        raise HTTPException(404, "El vínculo familiar ya no existe")
+    return link
+
+
+@router.patch("/guardian-links/{link_id}", response_model=GuardianLinkOut)
+def update_guardian_link(
+    link_id: int,
+    data: GuardianLinkUpdate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permissions("students.manage")),
+):
+    """Change what a guardian sees of one student (audit A1)."""
+    lock_governance(db)
+    link = get_link(db, link_id)
+    values = data.model_dump(exclude_unset=True)
+    if any(value is None for value in values.values()):
+        raise HTTPException(422, "Los datos del vínculo no pueden quedar vacíos")
+    before = snapshot(link, LINK_FIELDS)
+    for key, value in values.items():
+        setattr(link, key, value.strip() if isinstance(value, str) else value)
+    record(
+        db,
+        actor,
+        "guardian.link.updated",
+        f"student:{link.student_id}",
+        f"Tutor {link.guardian_id}; " + audit_changes(before, snapshot(link, LINK_FIELDS)),
+    )
+    db.commit()
+    db.refresh(link)
+    return link_out(link)
+
+
+@router.delete("/guardian-links/{link_id}")
+def delete_guardian_link(
+    link_id: int,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permissions("students.manage")),
+):
+    lock_governance(db)
+    link = get_link(db, link_id)
+    record(
+        db,
+        actor,
+        "guardian.unlinked",
+        f"student:{link.student_id}",
+        f"Tutor {link.guardian_id}; parentesco {link.relationship}",
+    )
+    db.delete(link)
+    db.commit()
+    return {"message": "Vínculo familiar eliminado"}
 
 
 @router.get("/students/{student_id}/guardians", response_model=list[GuardianLinkOut])

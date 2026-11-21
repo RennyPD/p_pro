@@ -272,15 +272,49 @@ def has_permission(user: User, *slugs: str) -> bool:
     return set(slugs).issubset(user_permission_slugs(user))
 
 
-def guardian_student_ids(db: Session, user: User) -> list[int]:
+# Areas a guardian link can restrict (audit A1) and the column that grants each.
+GUARDIAN_AREAS = {
+    "academic": "can_view_academic",
+    "attendance": "can_view_attendance",
+    "finance": "can_view_finance",
+    "tasks": "can_view_tasks",
+}
+
+
+def guardian_student_ids(db: Session, user: User, area: str | None = None) -> list[int]:
+    """Students linked to the guardian account; with ``area``, only links that allow it."""
     if user.guardian_id is None:
         return []
-    return [
-        row[0]
-        for row in db.query(StudentGuardian.student_id).filter(
-            StudentGuardian.guardian_id == user.guardian_id
-        )
-    ]
+    query = db.query(StudentGuardian.student_id).filter(
+        StudentGuardian.guardian_id == user.guardian_id
+    )
+    if area is not None:
+        query = query.filter(getattr(StudentGuardian, GUARDIAN_AREAS[area]).is_(True))
+    return [row[0] for row in query]
+
+
+def guardian_link(db: Session, user: User, student_id: int) -> StudentGuardian | None:
+    if user.guardian_id is None:
+        return None
+    return (
+        db.query(StudentGuardian)
+        .filter_by(guardian_id=user.guardian_id, student_id=student_id)
+        .first()
+    )
+
+
+def guardian_permissions(link: StudentGuardian) -> dict[str, bool]:
+    return {area: bool(getattr(link, column)) for area, column in GUARDIAN_AREAS.items()}
+
+
+def ensure_guardian_view(db: Session, user: User, student_id: int, area: str) -> StudentGuardian:
+    """The guardian is linked to the student and the link allows ``area``."""
+    link = guardian_link(db, user, student_id)
+    if link is None:
+        raise HTTPException(403, "Este estudiante no está vinculado a tu cuenta")
+    if not getattr(link, GUARDIAN_AREAS[area]):
+        raise HTTPException(403, "La institución restringió esta información para tu cuenta")
+    return link
 
 
 def ensure_student_access(
@@ -292,12 +326,16 @@ def ensure_student_access(
 
 
 def ensure_student_document_access(
-    db: Session, user: User, student_id: int, grants: tuple[str, ...] = ACADEMIC_SCOPE
+    db: Session,
+    user: User,
+    student_id: int,
+    grants: tuple[str, ...] = ACADEMIC_SCOPE,
+    area: str = "academic",
 ) -> None:
-    """Own record, linked guardian, or institutional scope for the document's area."""
+    """Own record, linked guardian allowed to see ``area``, or institutional scope."""
     if user.student_id == student_id or has_scope(user, *grants):
         return
-    if student_id in guardian_student_ids(db, user):
+    if student_id in guardian_student_ids(db, user, area):
         return
     raise HTTPException(status_code=403, detail="Este documento está fuera del ámbito de tu cuenta")
 

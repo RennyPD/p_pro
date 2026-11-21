@@ -1043,6 +1043,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/community/guardian-links/{link_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete Guardian Link */
+    delete: operations["delete_guardian_link_community_guardian_links__link_id__delete"];
+    options?: never;
+    head?: never;
+    /**
+     * Update Guardian Link
+     * @description Change what a guardian sees of one student (audit A1).
+     */
+    patch: operations["update_guardian_link_community_guardian_links__link_id__patch"];
+    trace?: never;
+  };
   "/community/guardians": {
     parameters: {
       query?: never;
@@ -5405,10 +5426,35 @@ export interface components {
        */
       authorized_pickup: boolean;
       /**
+       * Can View Academic
+       * @default true
+       */
+      can_view_academic: boolean;
+      /**
+       * Can View Attendance
+       * @default true
+       */
+      can_view_attendance: boolean;
+      /**
+       * Can View Finance
+       * @default true
+       */
+      can_view_finance: boolean;
+      /**
+       * Can View Tasks
+       * @default true
+       */
+      can_view_tasks: boolean;
+      /**
        * Emergency Contact
        * @default false
        */
       emergency_contact: boolean;
+      /**
+       * Financial Responsible
+       * @default false
+       */
+      financial_responsible: boolean;
       /** Guardian Id */
       guardian_id: number;
       /**
@@ -5429,10 +5475,35 @@ export interface components {
        */
       authorized_pickup: boolean;
       /**
+       * Can View Academic
+       * @default true
+       */
+      can_view_academic: boolean;
+      /**
+       * Can View Attendance
+       * @default true
+       */
+      can_view_attendance: boolean;
+      /**
+       * Can View Finance
+       * @default true
+       */
+      can_view_finance: boolean;
+      /**
+       * Can View Tasks
+       * @default true
+       */
+      can_view_tasks: boolean;
+      /**
        * Emergency Contact
        * @default false
        */
       emergency_contact: boolean;
+      /**
+       * Financial Responsible
+       * @default false
+       */
+      financial_responsible: boolean;
       /**
        * Guardian Email
        * Format: email
@@ -5453,6 +5524,27 @@ export interface components {
       student_guardian_id: number;
       /** Student Id */
       student_id: number;
+    };
+    /** GuardianLinkUpdate */
+    GuardianLinkUpdate: {
+      /** Authorized Pickup */
+      authorized_pickup?: boolean | null;
+      /** Can View Academic */
+      can_view_academic?: boolean | null;
+      /** Can View Attendance */
+      can_view_attendance?: boolean | null;
+      /** Can View Finance */
+      can_view_finance?: boolean | null;
+      /** Can View Tasks */
+      can_view_tasks?: boolean | null;
+      /** Emergency Contact */
+      emergency_contact?: boolean | null;
+      /** Financial Responsible */
+      financial_responsible?: boolean | null;
+      /** Primary Contact */
+      primary_contact?: boolean | null;
+      /** Relationship */
+      relationship?: string | null;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -6513,10 +6605,35 @@ export interface components {
        */
       authorized_pickup: boolean;
       /**
+       * Can View Academic
+       * @default true
+       */
+      can_view_academic: boolean;
+      /**
+       * Can View Attendance
+       * @default true
+       */
+      can_view_attendance: boolean;
+      /**
+       * Can View Finance
+       * @default true
+       */
+      can_view_finance: boolean;
+      /**
+       * Can View Tasks
+       * @default true
+       */
+      can_view_tasks: boolean;
+      /**
        * Emergency Contact
        * @default false
        */
       emergency_contact: boolean;
+      /**
+       * Financial Responsible
+       * @default false
+       */
+      financial_responsible: boolean;
       /** Guardian Id */
       guardian_id?: number | null;
       new_guardian?: components["schemas"]["GuardianCreate"] | null;
@@ -9320,6 +9437,72 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["GuardianLinkCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GuardianLinkOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_guardian_link_community_guardian_links__link_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        link_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_guardian_link_community_guardian_links__link_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        link_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GuardianLinkUpdate"];
       };
     };
     responses: {

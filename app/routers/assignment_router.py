@@ -67,7 +67,7 @@ def scope(db, user):
     if user.teacher_id:
         return db.query(Section.section_id).filter(Section.teacher_id == user.teacher_id)
     # Without a linked person the scope is empty, never "everything".
-    ids = [user.student_id] if user.student_id else guardian_student_ids(db, user)
+    ids = [user.student_id] if user.student_id else guardian_student_ids(db, user, "tasks")
     return db.query(Enrollment.section_id).filter(
         Enrollment.student_id.in_(ids), Enrollment.state.in_(["enrolled", "completed", "failed"])
     )
