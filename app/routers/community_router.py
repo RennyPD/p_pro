@@ -49,10 +49,22 @@ def link_out(link: StudentGuardian) -> GuardianLinkOut:
     )
 
 
-@router.post("/guardians", dependencies=[Depends(require_permissions("students.manage"))])
-def create_guardian(data: GuardianCreate, db: Session = Depends(get_db)):
+@router.post("/guardians")
+def create_guardian(
+    data: GuardianCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permissions("students.manage")),
+):
     guardian = Guardian(**data.model_dump())
     db.add(guardian)
+    db.flush()
+    record(
+        db,
+        actor,
+        "guardian.created",
+        f"guardian:{guardian.guardian_id}",
+        f"{guardian.first_name} {guardian.last_name} <{guardian.email}>",
+    )
     db.commit()
     db.refresh(guardian)
     return guardian
@@ -78,14 +90,22 @@ def list_guardians(
     return page_query(query.order_by(Guardian.guardian_id), response, skip, limit)
 
 
-@router.post(
-    "/guardian-links",
-    response_model=GuardianLinkOut,
-    dependencies=[Depends(require_permissions("students.manage"))],
-)
-def link_guardian(data: GuardianLinkCreate, db: Session = Depends(get_db)):
+@router.post("/guardian-links", response_model=GuardianLinkOut)
+def link_guardian(
+    data: GuardianLinkCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permissions("students.manage")),
+):
     link = StudentGuardian(**data.model_dump())
     db.add(link)
+    db.flush()
+    record(
+        db,
+        actor,
+        "guardian.linked",
+        f"student:{link.student_id}",
+        f"Tutor {link.guardian_id}; parentesco {link.relationship}",
+    )
     db.commit()
     db.refresh(link)
     return link_out(link)
@@ -134,7 +154,14 @@ def register_guardian(
         **data.model_dump(exclude={"guardian_id", "new_guardian"}),
     )
     db.add(link)
-    record(db, actor, "guardian.linked", f"student:{student_id}", "Alta de vínculo familiar")
+    db.flush()
+    record(
+        db,
+        actor,
+        "guardian.linked",
+        f"student:{student_id}",
+        f"Tutor {guardian.guardian_id}; parentesco {link.relationship}",
+    )
     db.commit()
     return link_out(link)
 

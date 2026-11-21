@@ -301,3 +301,38 @@ def test_student_catalog_selection_is_audited_but_the_cart_is_not(demo):
     assert len(before_confirm) == 1
     assert f"sección {queued}" in created[-1][2]
     assert [e[0] for e in entries(sessions, "enrollment.withdrawn")] == ["demo.estudiante"]
+
+
+# Lote 4: tutores y vínculos familiares.
+
+
+def test_guardian_creation_and_links_are_audited(demo):
+    client, sessions, tokens = demo
+    student_id, _ = a_student(sessions)
+    guardian = client.post(
+        "/community/guardians",
+        headers=tokens["admin"],
+        json={
+            "first_name": "Rosa",
+            "last_name": "Tutora",
+            "email": "rosa.tutora@example.com",
+            "telephone": "8095550100",
+        },
+    )
+    assert guardian.status_code == 200, guardian.text
+    guardian_id = guardian.json()["guardian_id"]
+    linked = client.post(
+        "/community/guardian-links",
+        headers=tokens["admin"],
+        json={"student_id": student_id, "guardian_id": guardian_id, "relationship": "Madre"},
+    )
+    assert linked.status_code == 200, linked.text
+
+    [(actor, _, detail)] = entries(sessions, "guardian.created", f"guardian:{guardian_id}")
+    assert actor == "demo.admin" and "rosa.tutora@example.com" in detail
+    links = entries(sessions, "guardian.linked", f"student:{student_id}")
+    assert links[-1] == (
+        "demo.admin",
+        f"student:{student_id}",
+        f"Tutor {guardian_id}; parentesco Madre",
+    )
