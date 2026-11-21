@@ -10,6 +10,8 @@ Nexo es hoy una base técnica sólida para **una sola institución universitaria
 2. **Familias, pagos y experiencia móvil.** El portal del tutor sigue siendo una sola página larga sin desglose por hijo; no hay módulo de pagos para el tutor ni correo electrónico (recuperación de contraseña, avisos).
 3. **Modelo escolar y multi-tenant.** No existen grados ni años lectivos (los planes de cobro usan la carrera como grado); 16 restricciones de unicidad son globales y la configuración es una sola fila.
 
+Al fusionar se encontró que la migración `20261120_0046` (permisos granulares, de otra sesión) fallaba en PostgreSQL: el job `postgres` de CI estaba en rojo en `master` y el sistema no podía desplegarse. Se corrigió en la misma fusión con conversiones de tipo explícitas.
+
 ## Cifras
 
 | Medida | Valor |

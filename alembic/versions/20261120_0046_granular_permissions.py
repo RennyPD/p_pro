@@ -124,8 +124,10 @@ def upgrade() -> None:
     for slug, description in CATALOG.items():
         connection.execute(
             sa.text(
-                "INSERT INTO permissions (slug, description) SELECT :slug, :description "
-                "WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE slug = :slug)"
+                # Explicit casts: PostgreSQL cannot infer the type of a reused parameter.
+                "INSERT INTO permissions (slug, description) "
+                "SELECT CAST(:slug AS VARCHAR), CAST(:description AS VARCHAR) "
+                "WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE slug = CAST(:slug AS VARCHAR))"
             ),
             {"slug": slug, "description": description},
         )
@@ -184,8 +186,10 @@ def downgrade() -> None:
     }.items():
         connection.execute(
             sa.text(
-                "INSERT INTO permissions (slug, description) SELECT :slug, :description "
-                "WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE slug = :slug)"
+                # Explicit casts: PostgreSQL cannot infer the type of a reused parameter.
+                "INSERT INTO permissions (slug, description) "
+                "SELECT CAST(:slug AS VARCHAR), CAST(:description AS VARCHAR) "
+                "WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE slug = CAST(:slug AS VARCHAR))"
             ),
             {"slug": legacy, "description": description},
         )
