@@ -50,11 +50,12 @@ Antes de dar una tarea por terminada, corre como mínimo pytest y ruff (backend)
 5. **Universidad y escuela.** Antes de diseñar una funcionalidad, piensa cómo funciona con créditos y selección libre (universidad) y con grados y secciones fijas (escuela). Prefiere la configuración por institución al código duplicado.
 6. **Interfaz 100 % en español.** Los mensajes de `HTTPException` que llegan al usuario van en español.
 7. **Tipos correctos.** Dinero en `Decimal`/`Numeric`, nunca `Float`. Fechas como `date`/`datetime`, nunca texto libre.
-8. **Concurrencia.** Las escrituras críticas usan `lock_governance` / `lock_finance`. No añadas escrituras de notas, inscripciones o finanzas sin bloqueo.
-9. **Tipos del API generados.** En el frontend usa `ApiSchema<"Nombre">` (`src/lib/apiTypes.ts`) en vez de escribir a mano los tipos de las respuestas.
-10. **Código legible.** El backend se formatea con Ruff. En el frontend, nada de JSX ni CSS compactado en una línea. Usa los tokens CSS (`--ink`, `--muted`, etc.), no colores escritos a mano.
-11. **Auditoría.** Toda ruta de escritura registra quién cambió qué con `record(...)` (`app/services/audit_log.py`), en la misma transacción que el cambio: notas, finanzas, usuarios, permisos, períodos, inscripciones, asistencia, bloqueos y estado del estudiante y vínculos de tutor. `tests/test_route_audit.py` falla si una ruta nueva no registra nada; las excepciones (vistas previas, borradores propios) van justificadas en su lista `UNAUDITED`. Los repositorios hacen `flush()`, no `commit()`: el servicio registra y confirma.
-12. **Sin secretos en el repo.** Nada de `.env`, bases de datos ni `__pycache__` versionados.
+8. **Concurrencia.** Toda ruta de escritura toma el bloqueo de su dominio (`lock_governance`, `lock_finance`, `lock_access`) antes de leer lo que valida. `tests/test_route_locks.py` falla si una ruta nueva no lo hace; las excepciones van justificadas en su lista `UNLOCKED`.
+9. **Listados paginados en la base.** Filtra con `search(...)` y pagina con `page_query(...)` (`app/pagination.py`); nunca cargues la tabla entera para filtrar en Python.
+10. **Tipos del API generados.** En el frontend usa `ApiSchema<"Nombre">` (`src/lib/apiTypes.ts`) en vez de escribir a mano los tipos de las respuestas.
+11. **Código legible.** El backend se formatea con Ruff. En el frontend, nada de JSX ni CSS compactado en una línea. Usa los tokens CSS (`--ink`, `--muted`, etc.), no colores escritos a mano.
+12. **Auditoría.** Toda ruta de escritura registra quién cambió qué con `record(...)` (`app/services/audit_log.py`), en la misma transacción que el cambio: notas, finanzas, usuarios, permisos, períodos, inscripciones, asistencia, bloqueos y estado del estudiante y vínculos de tutor. `tests/test_route_audit.py` falla si una ruta nueva no registra nada; las excepciones (vistas previas, borradores propios) van justificadas en su lista `UNAUDITED`. Los repositorios hacen `flush()`, no `commit()`: el servicio registra y confirma.
+13. **Sin secretos en el repo.** Nada de `.env`, bases de datos ni `__pycache__` versionados.
 
 ## Forma de trabajar
 - Para cambios grandes: primero un plan corto (archivos, migraciones, riesgos) y espera aprobación; después implementa un paso a la vez.

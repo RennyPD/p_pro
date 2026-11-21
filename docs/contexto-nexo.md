@@ -3,7 +3,7 @@
 Última revisión: 20 de noviembre de 2026. Repo: `RennyPD/p_pro`.
 
 ## 1. Qué es hoy
-Sistema de gestión académica de una sola institución, muy orientado a universidades. Unas 14.800 líneas de backend (245 rutas, 53 tablas) y 16.700 de frontend. Fase 0 cerrada el 18/11/2026.
+Sistema de gestión académica de una sola institución, muy orientado a universidades. Unas 14.800 líneas de backend (245 rutas, 53 tablas) y 16.700 de frontend. Fase 0 cerrada el 18/11/2026; Fase 1 cerrada el 21/11/2026.
 
 ### Módulos existentes
 - **Académico:** carreras, pensum versionado con prerrequisitos y correquisitos, asignaturas, secciones, aulas y bloques horarios, períodos académicos con cierre controlado, equivalencias, auditoría de graduación.
@@ -12,7 +12,7 @@ Sistema de gestión académica de una sola institución, muy orientado a univers
 - **Asistencia,** tareas y entregas (PDF/PNG/JPEG hasta 5 MiB), planes de clase, agenda.
 - **Finanzas:** conceptos de cobro, cargos, pagos idempotentes, reversos auditados, planes de pago, transferencias con comprobante, cierre de caja.
 - **Comunidad:** portal de tutores (padres), alertas tempranas, casos institucionales, aprobaciones, admisiones, comunicaciones.
-- **Plataforma:** usuarios, roles creados por la institución con permisos granulares (unos 30, de consulta y gestión por módulo; catálogo en `app/permissions.py`) y ámbito de datos por rol (institución, sus secciones, su expediente, estudiantes vinculados), módulos de consulta por cuenta, 2FA (TOTP), sesiones revocables, auditoría, importación masiva con prevalidación, PDF (boletines, constancias, expedientes), exportes CSV.
+- **Plataforma:** usuarios, roles creados por la institución con permisos granulares (unos 30, de consulta y gestión por módulo; catálogo en `app/permissions.py`) y ámbito de datos por rol (institución, sus secciones, su expediente, estudiantes vinculados), módulos de consulta de la oferta académica con el permiso `programs.view`, 2FA (TOTP), sesiones revocables, auditoría, importación masiva con prevalidación, PDF (boletines, constancias, expedientes), exportes CSV.
 
 ### Arquitectura
 - `app/models` (SQLAlchemy), `app/schemas` (Pydantic), `app/routers`, `app/services`, `app/repositories`, `alembic/`.
@@ -31,15 +31,16 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 | A1 | Vínculo tutor–estudiante sin permisos ni auditoría (privacidad de menores) | 2 |
 | A2 | ✅ Cerrado (21/11): toda ruta de escritura registra auditoría; `tests/test_route_audit.py` lo vigila | — |
 | M1 | ✅ Cerrado en `master` (20/11): permisos granulares por ruta y menú por permisos | — |
-| M2 | Unas 37 escrituras sin bloqueo (asistencia, estudiantes, secciones…) | 1 |
-| M3 | Paginación en memoria en 7 listados | 1 |
+| M2 | ✅ Cerrado (21/11): toda ruta de escritura toma el bloqueo de su dominio; `tests/test_route_locks.py` | — |
+| M3 | ✅ Cerrado (21/11): los listados filtran y paginan en SQL (`search`, `page_query`) | — |
 | M4 | Archivos dentro de la base (5 columnas binarias) | 4 |
-| M5 | Copias de seguridad solo para SQLite | 1 |
+| M5 | ✅ Cerrado (21/11): copia y restauración de PostgreSQL verificadas en CI | — |
 | M6 | Sin correo: recuperación de contraseña, invitaciones, avisos | 2 |
 | M7 | Finanzas incompletas para escuelas (los planes de cobro ya existen) | 2 (vista y pagos) y 3 (facturación) |
 | M8 | Portales de tutor y estudiante densos y sin desglose en móvil | 2 |
 | M9 | Pruebas del frontend escasas; componentes de más de 1.000 líneas | continuo |
-| B1–B8 | Tipos a mano, build pesado, cobertura baja en auditoría/panel/permisos, dos sistemas de acceso, períodos por nombre, bloqueo académico único, límites solo en login, restos heredados | según fase |
+| B3, B4, B8 | ✅ Cerrados (21/11): cobertura de auditoría, panel y permisos al 94–100 %; módulos de consulta por permisos; código muerto de notas eliminado | — |
+| B1, B2, B5–B7 | Tipos a mano, build pesado, períodos por nombre, bloqueo académico único, límites solo en login | según fase |
 | SaaS | 16 unicidades globales, configuración de una fila, catálogos sin filtro | 4 |
 
 ### Historial: auditoría del 17/11/2026
@@ -50,14 +51,14 @@ Cada fase se cierra con pruebas de regresión, capturas antes/después en lo vis
 
 ### Fase 0: dejar perfecto lo actual ✅ (18/11/2026)
 
-### Fase 1: cimientos de confianza (M)
+### Fase 1: cimientos de confianza (M) ✅ (21/11/2026)
 Lo que hace falta para que cualquier cliente confíe en los datos. Base para todo lo demás.
 1. ✅ **Auditoría completa (A2), 21/11/2026:** `record(...)` en todas las rutas de escritura, en la misma transacción que el cambio (los repositorios hacen `flush()`); `tests/test_route_audit.py` falla si una ruta nueva no registra nada y `tests/test_write_audit.py` comprueba actor y detalle en los casos críticos. Regla 11 ampliada. La medición real eran unas 45 rutas: asistencia, autenticación, finanzas y notas ya tenían su propio historial.
-2. **Unificar las vistas de módulo con los permisos (B4).** M1 ya está cerrado en `master`.
-3. **Bloqueos (M2):** asistencia, estudiantes, secciones y vínculos bajo el bloqueo de su dominio.
-4. **Paginación en la base (M3)** en los 7 listados.
-5. **Copias de seguridad de PostgreSQL (M5)** con restauración probada.
-6. **Cobertura (B3)** de auditoría, panel y permisos; limpiar código muerto (B8).
+2. ✅ **Vistas de módulo por permisos (B4):** las concesiones por cuenta (`users.module_views`) pasan a permisos del rol con la migración `20261121_0048`; carreras, asignaturas y períodos se consultan con el nuevo `programs.view`.
+3. ✅ **Bloqueos (M2):** asistencia, estudiantes, carreras, asignaturas, docentes, secciones, tutores, equivalencias, calendario, documentos y conceptos de cobro bajo el bloqueo de su dominio; prueba guardiana `tests/test_route_locks.py`.
+4. ✅ **Paginación en la base (M3)** en estudiantes, docentes, secciones, carreras, asignaturas y roles, con `X-Total-Count`.
+5. ✅ **Copias de seguridad de PostgreSQL (M5):** `pg_dump`/`pg_restore` en `scripts/backup_database.py`, restauración solo en una base vacía y comparación de filas; probado en CI contra PostgreSQL 16. Procedimiento en el README.
+6. ✅ **Cobertura (B3) y código muerto (B8):** auditoría, panel y módulos al 100 %, editor de permisos al 94 %; eliminados `grade_repository` y las escrituras de notas sin bloqueo ni historial; `objetivos.txt` movido a `docs/historico/`. Queda pendiente unificar del todo las capas `repositories`/`services`, que no bloquea nada.
 
 ### Fase 2: familias, pagos y experiencia (L)
 Lo que se ve y lo que piden las familias. Funciona con los datos actuales.
