@@ -1,7 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { DateInput } from "../../components/DateInput";
+import { formatDateTime } from "../../lib/format";
 import { useState, type FormEvent } from "react";
-import { Button, Spinner } from "../../components/ui";
+import { LookupSelect } from "../../components/LookupSelect";
+import { Button, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
+import { auditActionLabel, auditActions, auditResourceLabel } from "../../lib/auditLabels";
+import { ShieldCheck } from "lucide-react";
 
 type Event = {
   audit_log_id: number;
@@ -13,15 +18,19 @@ type Event = {
   created_at: string;
 };
 const size = 25;
-const date = new Intl.DateTimeFormat("es-DO", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "America/Santo_Domingo",
-});
+const userLookup = {
+  endpoint: "/users/",
+  valueKey: "user_id",
+  labelKeys: ["username"],
+  secondaryKey: "email",
+  placeholder: "Todas las cuentas",
+};
+const actionOptions = Object.entries(auditActions).sort(([, a], [, b]) => a.localeCompare(b, "es"));
 
 export function AuditPage() {
   const [page, setPage] = useState(0);
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [actor, setActor] = useState<number | string | null>(null);
   const events = useQuery({
     queryKey: ["audit", filters, page],
     queryFn: () =>
@@ -35,43 +44,54 @@ export function AuditPage() {
 
   function filter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFilters(
-      Object.fromEntries(
-        [...new FormData(event.currentTarget)]
-          .map(([key, value]) => [key, String(value).trim()])
-          .filter(([, value]) => value),
-      ),
+    const values = Object.fromEntries(
+      [...new FormData(event.currentTarget)]
+        .map(([key, value]) => [key, String(value).trim()])
+        .filter(([, value]) => value),
     );
+    setFilters(actor ? { ...values, user_id: String(actor) } : values);
     setPage(0);
   }
 
   return (
     <div className="page">
       <header className="page-header">
-        <h1>Auditoría administrativa</h1>
+        <div>
+          <span className="kicker">Configuración · Supervisión</span>
+          <h1>Auditoría administrativa</h1>
+          <p>Quién hizo cada cambio sensible y cuándo.</p>
+        </div>
       </header>
-      <form className="panel resource-form" onSubmit={filter}>
+      <form className="panel audit-filters" onSubmit={filter}>
         <label className="form-field">
-          <span>Acción exacta</span>
-          <input name="action" placeholder="section.published" />
+          <span>Acción</span>
+          <select name="action" aria-label="Acción" defaultValue="">
+            <option value="">Todas las acciones</option>
+            {actionOptions.map(([code, label]) => (
+              <option key={code} value={code}>
+                {label}
+              </option>
+            ))}
+          </select>
         </label>
-        <label className="form-field">
-          <span>Recurso</span>
-          <input name="resource" placeholder="section:12" />
-        </label>
-        <label className="form-field">
-          <span>ID de cuenta del actor</span>
-          <input name="user_id" type="number" min="1" />
-        </label>
+        <div className="form-field">
+          <span id="audit-actor">Cuenta</span>
+          <LookupSelect
+            config={userLookup}
+            value={actor}
+            onChange={setActor}
+            labelId="audit-actor"
+          />
+        </div>
         <label className="form-field">
           <span>Desde</span>
-          <input name="start" type="date" />
+          <DateInput name="start" />
         </label>
         <label className="form-field">
           <span>Hasta</span>
-          <input name="end" type="date" />
+          <DateInput name="end" />
         </label>
-        <Button>Aplicar filtros</Button>
+        <Button>Filtrar</Button>
       </form>
       {events.isLoading ? (
         <Spinner label="Cargando eventos" />
@@ -80,14 +100,18 @@ export function AuditPage() {
           {apiMessage(events.error)}
         </p>
       ) : !events.data?.rows.length ? (
-        <p>No hay eventos para estos filtros.</p>
+        <EmptyState
+          icon={<ShieldCheck />}
+          title="Sin eventos"
+          description="No hay eventos para estos filtros."
+        />
       ) : (
         <div className="panel table-scroll">
           <table>
             <thead>
               <tr>
                 <th>Fecha</th>
-                <th>Actor</th>
+                <th>Cuenta</th>
                 <th>Acción</th>
                 <th>Recurso</th>
                 <th>Detalle</th>
@@ -96,10 +120,10 @@ export function AuditPage() {
             <tbody>
               {events.data.rows.map(event => (
                 <tr key={event.audit_log_id}>
-                  <td>{date.format(new Date(event.created_at))}</td>
+                  <td>{formatDateTime(event.created_at)}</td>
                   <td>{event.actor ?? "Sin cuenta registrada"}</td>
-                  <td>{event.action}</td>
-                  <td>{event.resource}</td>
+                  <td title={event.action}>{auditActionLabel(event.action)}</td>
+                  <td title={event.resource}>{auditResourceLabel(event.resource)}</td>
                   <td>{event.detail || "—"}</td>
                 </tr>
               ))}
@@ -115,7 +139,7 @@ export function AuditPage() {
         >
           Anterior
         </Button>
-        <span>Página {page + 1}</span>
+        <span className="pagination__page">Página {page + 1}</span>
         <Button
           variant="secondary"
           disabled={!events.data?.more || events.isFetching}

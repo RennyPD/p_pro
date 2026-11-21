@@ -55,9 +55,9 @@ function prepare(cart = false) {
 }
 it("does not label a student's reserved place as waitlisted when the section is full", async () => {
   prepare();
-  expect(await screen.findByText("Tu plaza está reservada")).toBeInTheDocument();
-  expect(screen.getByText("Confirmada")).toBeInTheDocument();
-  expect(screen.queryByText("Sin cupos para nuevas selecciones")).not.toBeInTheDocument();
+  // One status badge: the reserved place reads "Confirmada", never "Sin cupos".
+  expect(await screen.findByText("Confirmada")).toBeInTheDocument();
+  expect(screen.queryByText("Sin cupos")).not.toBeInTheDocument();
 });
 it("uses an accessible confirmation and retains per-section errors", async () => {
   vi.spyOn(api, "post").mockResolvedValue({

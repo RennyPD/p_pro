@@ -7,13 +7,8 @@ const profiles = [
     student_id: null,
     teacher_id: null,
     expected: "Control institucional",
-    permissions: [
-      "academic.manage",
-      "grades.manage",
-      "finance.manage",
-      "reports.view",
-      "communications.manage",
-    ],
+    scope: "institution",
+    permissions: ["students.view", "sections.view", "finance.view", "reports.view"],
   },
   {
     role: "teacher",
@@ -21,7 +16,8 @@ const profiles = [
     student_id: null,
     teacher_id: 1,
     expected: "Mis secciones",
-    permissions: ["grades.manage", "communications.manage"],
+    scope: "sections",
+    permissions: ["sections.view", "grades.manage", "communications.manage"],
   },
   {
     role: "student",
@@ -29,7 +25,8 @@ const profiles = [
     student_id: 1,
     teacher_id: null,
     expected: "Elegir asignaturas",
-    permissions: ["records.own"],
+    scope: "own",
+    permissions: ["records.own", "selection.own"],
   },
   {
     role: "guardian",
@@ -38,6 +35,7 @@ const profiles = [
     teacher_id: null,
     guardian_id: 1,
     expected: "Seguimiento familiar",
+    scope: "linked",
     permissions: ["records.own"],
   },
 ];
@@ -68,7 +66,7 @@ for (const [index, profile] of profiles.entries()) {
         return route.fulfill({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ permissions: profile.permissions }),
+          body: JSON.stringify({ permissions: profile.permissions, scope: profile.scope }),
         });
       if (path === "/dashboard/summary")
         return route.fulfill({

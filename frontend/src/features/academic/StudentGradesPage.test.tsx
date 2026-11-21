@@ -71,9 +71,9 @@ it("shows the weighted result and preserves published zero grades", async () => 
     </QueryClientProvider>,
   );
   expect(await screen.findByText("Aprobada")).toBeInTheDocument();
-  expect(screen.getByText("Parcial · 0/100")).toBeInTheDocument();
-  expect(screen.getByText("80% de la nota · aporta 72 puntos")).toBeInTheDocument();
-  expect(
-    screen.getByText("100% del plan con notas publicadas. Resultado definitivo."),
-  ).toBeInTheDocument();
+  // A published zero is a real grade, shown as 0 (not as missing).
+  const partial = screen.getByText("Parcial").closest("li")!;
+  expect(partial).toHaveTextContent(/Parcial.*0$/);
+  expect(screen.getByText("Vale 80% · aporta 72")).toBeInTheDocument();
+  expect(screen.getByText("Resultado definitivo")).toBeInTheDocument();
 });

@@ -139,3 +139,39 @@ def validate_schedule(db, section, blocks):
                         f"El bloque del {block.day_of_week} de {section.code} se superpone con "
                         f"{other.code} por {resource}. Cambia el horario o la asignación",
                     )
+
+
+ROOM_UNASSIGNED = {"", "por asignar"}
+
+
+def room_conflict(db, section, blocks):
+    """First other open section (drafts included) holding the same room at an overlapping time.
+
+    Drafts count because a planned section already reserves its room; closed and
+    cancelled sections never do. Returns (other_section, block, existing_block) or None.
+    """
+    periods = db.query(AcademicPeriod).all()
+    by_name = {period.name: period for period in periods}
+    active = next(
+        (period.name for period in periods if period.active and period.status != "closed"), None
+    )
+    when = schedule_periods(section, active)
+    candidates = (
+        db.query(Section)
+        .options(load_schedule(), selectinload(Section.enrollments))
+        .filter(Section.status.notin_(("closed", "cancelled")))
+    )
+    if section.section_id is not None:
+        candidates = candidates.filter(Section.section_id != section.section_id)
+    for other in candidates:
+        if not any(
+            overlapping_periods(name, other_name, by_name)
+            for name in when
+            for other_name in schedule_periods(other, active)
+        ):
+            continue
+        for block in blocks:
+            for existing in effective_blocks(other):
+                if overlap(block, existing) and same_room(block, existing):
+                    return other, block, existing
+    return None

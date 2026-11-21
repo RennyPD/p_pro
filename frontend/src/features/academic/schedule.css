@@ -38,7 +38,7 @@
 }
 .week-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(180px, 1fr));
+  grid-template-columns: repeat(var(--week-days, 7), minmax(150px, 1fr));
   gap: 0.65rem;
   overflow: auto;
 }
@@ -84,6 +84,6 @@
     padding-bottom: 0.6rem;
   }
   .week-grid {
-    grid-template-columns: repeat(7, 240px);
+    grid-template-columns: repeat(var(--week-days, 7), 240px);
   }
 }

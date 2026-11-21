@@ -383,8 +383,15 @@
             "type": "array"
           },
           "cumulative_average": {
-            "title": "Cumulative Average",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cumulative Average"
           },
           "curriculum_version": {
             "default": "current",
@@ -399,12 +406,33 @@
             "title": "Enrollment Number",
             "type": "string"
           },
+          "final_result_count": {
+            "default": 0,
+            "title": "Final Result Count",
+            "type": "integer"
+          },
           "periods": {
             "items": {
               "$ref": "#/components/schemas/PeriodRecord"
             },
             "title": "Periods",
             "type": "array"
+          },
+          "provisional_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provisional Average"
+          },
+          "provisional_result_count": {
+            "default": 0,
+            "title": "Provisional Result Count",
+            "type": "integer"
           },
           "recognized_credits": {
             "default": 0,
@@ -1164,6 +1192,11 @@
             "title": "Requested By",
             "type": "integer"
           },
+          "requested_by_name": {
+            "default": "",
+            "title": "Requested By Name",
+            "type": "string"
+          },
           "resolution_notes": {
             "title": "Resolution Notes",
             "type": "string"
@@ -1191,10 +1224,25 @@
             ],
             "title": "Resolved By"
           },
+          "resolved_by_name": {
+            "default": "",
+            "title": "Resolved By Name",
+            "type": "string"
+          },
           "resource_id": {
             "minimum": 1.0,
             "title": "Resource Id",
             "type": "integer"
+          },
+          "resource_label": {
+            "default": "",
+            "title": "Resource Label",
+            "type": "string"
+          },
+          "resource_path": {
+            "default": "",
+            "title": "Resource Path",
+            "type": "string"
           },
           "resource_type": {
             "maxLength": 40,
@@ -2040,6 +2088,511 @@
           "amount"
         ],
         "title": "BillingConceptCreate",
+        "type": "object"
+      },
+      "BillingCycleRequest": {
+        "properties": {
+          "cycle": {
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "title": "Cycle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cycle"
+        ],
+        "title": "BillingCycleRequest",
+        "type": "object"
+      },
+      "BillingPlanCreate": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "billing_concept_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Concept Id"
+          },
+          "charge_description": {
+            "maxLength": 150,
+            "minLength": 2,
+            "title": "Charge Description",
+            "type": "string"
+          },
+          "due_day": {
+            "default": 5,
+            "maximum": 28.0,
+            "minimum": 1.0,
+            "title": "Due Day",
+            "type": "integer"
+          },
+          "end_month": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Month"
+          },
+          "frequency": {
+            "default": "monthly",
+            "pattern": "^(monthly|single)$",
+            "title": "Frequency",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "period_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Id"
+          },
+          "start_month": {
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "title": "Start Month",
+            "type": "string"
+          },
+          "targets": {
+            "$ref": "#/components/schemas/BillingPlanTargets"
+          }
+        },
+        "required": [
+          "name",
+          "charge_description",
+          "amount",
+          "start_month"
+        ],
+        "title": "BillingPlanCreate",
+        "type": "object"
+      },
+      "BillingPlanOut": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "billing_concept_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Concept Id"
+          },
+          "billing_plan_id": {
+            "title": "Billing Plan Id",
+            "type": "integer"
+          },
+          "charge_description": {
+            "title": "Charge Description",
+            "type": "string"
+          },
+          "cycles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cycles",
+            "type": "array"
+          },
+          "due_day": {
+            "title": "Due Day",
+            "type": "integer"
+          },
+          "end_month": {
+            "title": "End Month",
+            "type": "string"
+          },
+          "frequency": {
+            "title": "Frequency",
+            "type": "string"
+          },
+          "generated_cycles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Generated Cycles",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "next_cycle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cycle"
+          },
+          "period_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Id"
+          },
+          "start_month": {
+            "title": "Start Month",
+            "type": "string"
+          },
+          "targets": {
+            "$ref": "#/components/schemas/BillingPlanTargets"
+          }
+        },
+        "required": [
+          "billing_plan_id",
+          "name",
+          "charge_description",
+          "billing_concept_id",
+          "amount",
+          "frequency",
+          "start_month",
+          "end_month",
+          "due_day",
+          "period_id",
+          "active",
+          "targets",
+          "cycles",
+          "generated_cycles",
+          "next_cycle"
+        ],
+        "title": "BillingPlanOut",
+        "type": "object"
+      },
+      "BillingPlanTargets": {
+        "description": "Careers (or school grades), extra students and excluded students.",
+        "properties": {
+          "career_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 500,
+            "title": "Career Ids",
+            "type": "array"
+          },
+          "excluded_student_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 5000,
+            "title": "Excluded Student Ids",
+            "type": "array"
+          },
+          "student_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 5000,
+            "title": "Student Ids",
+            "type": "array"
+          }
+        },
+        "title": "BillingPlanTargets",
+        "type": "object"
+      },
+      "BillingPlanUpdate": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "charge_description": {
+            "anyOf": [
+              {
+                "maxLength": 150,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Charge Description"
+          },
+          "due_day": {
+            "anyOf": [
+              {
+                "maximum": 28.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Day"
+          },
+          "end_month": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Month"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "BillingPlanUpdate",
+        "type": "object"
+      },
+      "BillingPreview": {
+        "properties": {
+          "already_charged": {
+            "title": "Already Charged",
+            "type": "integer"
+          },
+          "amount": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "type": "string"
+          },
+          "charge_description": {
+            "title": "Charge Description",
+            "type": "string"
+          },
+          "cycle": {
+            "title": "Cycle",
+            "type": "string"
+          },
+          "cycle_label": {
+            "title": "Cycle Label",
+            "type": "string"
+          },
+          "due_date": {
+            "format": "date",
+            "title": "Due Date",
+            "type": "string"
+          },
+          "students": {
+            "items": {
+              "$ref": "#/components/schemas/BillingPreviewStudent"
+            },
+            "title": "Students",
+            "type": "array"
+          },
+          "to_charge": {
+            "title": "To Charge",
+            "type": "integer"
+          },
+          "total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "type": "string"
+          },
+          "with_payment_plan": {
+            "title": "With Payment Plan",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cycle",
+          "cycle_label",
+          "due_date",
+          "amount",
+          "charge_description",
+          "to_charge",
+          "already_charged",
+          "total",
+          "with_payment_plan",
+          "students"
+        ],
+        "title": "BillingPreview",
+        "type": "object"
+      },
+      "BillingPreviewStudent": {
+        "properties": {
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "has_payment_plan": {
+            "default": false,
+            "title": "Has Payment Plan",
+            "type": "boolean"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "enrollment_number",
+          "student_name"
+        ],
+        "title": "BillingPreviewStudent",
+        "type": "object"
+      },
+      "BillingRunCreate": {
+        "properties": {
+          "cycle": {
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "title": "Cycle",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 2,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "reason": {
+            "default": "Generación de cargos del ciclo",
+            "maxLength": 250,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cycle"
+        ],
+        "title": "BillingRunCreate",
+        "type": "object"
+      },
+      "BillingRunOut": {
+        "properties": {
+          "billing_plan_id": {
+            "title": "Billing Plan Id",
+            "type": "integer"
+          },
+          "billing_run_id": {
+            "title": "Billing Run Id",
+            "type": "integer"
+          },
+          "charge_count": {
+            "title": "Charge Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "integer"
+          },
+          "cycle": {
+            "title": "Cycle",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "total": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "billing_run_id",
+          "billing_plan_id",
+          "cycle",
+          "charge_count",
+          "total",
+          "reason",
+          "created_by",
+          "created_at"
+        ],
+        "title": "BillingRunOut",
         "type": "object"
       },
       "BootstrapRequest": {
@@ -3117,6 +3670,55 @@
         "title": "ChargeCreate",
         "type": "object"
       },
+      "ClassroomAvailability": {
+        "description": "A classroom and whether it can host a section at a given time.",
+        "properties": {
+          "active": {
+            "default": true,
+            "title": "Active",
+            "type": "boolean"
+          },
+          "capacity": {
+            "default": 30,
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "classroom_id": {
+            "title": "Classroom Id",
+            "type": "integer"
+          },
+          "detail": {
+            "default": "",
+            "title": "Detail",
+            "type": "string"
+          },
+          "location": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Location",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "classroom_id",
+          "status"
+        ],
+        "title": "ClassroomAvailability",
+        "type": "object"
+      },
       "ClassroomCreate": {
         "properties": {
           "active": {
@@ -3882,6 +4484,11 @@
             },
             "title": "Alerts",
             "type": "array"
+          },
+          "display_name": {
+            "default": "",
+            "title": "Display Name",
+            "type": "string"
           },
           "metrics": {
             "items": {
@@ -5829,8 +6436,15 @@
             "type": "number"
           },
           "average": {
-            "title": "Average",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
           },
           "courses": {
             "title": "Courses",
@@ -5990,6 +6604,12 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "scope": {
+            "default": "institution",
+            "pattern": "^(institution|sections|own|linked)$",
+            "title": "Scope",
+            "type": "string"
           }
         },
         "required": [
@@ -6022,6 +6642,11 @@
             "title": "Name",
             "type": "string"
           },
+          "permission_count": {
+            "default": 0,
+            "title": "Permission Count",
+            "type": "integer"
+          },
           "role_id": {
             "title": "Role Id",
             "type": "integer"
@@ -6029,6 +6654,17 @@
           "role_title": {
             "title": "Role Title",
             "type": "string"
+          },
+          "scope": {
+            "default": "institution",
+            "pattern": "^(institution|sections|own|linked)$",
+            "title": "Scope",
+            "type": "string"
+          },
+          "user_count": {
+            "default": 0,
+            "title": "User Count",
+            "type": "integer"
           }
         },
         "required": [
@@ -6111,6 +6747,18 @@
               }
             ],
             "title": "Name"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "pattern": "^(institution|sections|own|linked)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope"
           }
         },
         "title": "RoleUpdate",
@@ -6401,6 +7049,11 @@
             ],
             "title": "Grade Average"
           },
+          "grade_average_final": {
+            "default": false,
+            "title": "Grade Average Final",
+            "type": "boolean"
+          },
           "graded_student_count": {
             "default": 0,
             "title": "Graded Student Count",
@@ -6415,6 +7068,11 @@
             "default": "",
             "title": "Period Name",
             "type": "string"
+          },
+          "provisional_student_count": {
+            "default": 0,
+            "title": "Provisional Student Count",
+            "type": "integer"
           },
           "published_grade_count": {
             "default": 0,
@@ -6444,6 +7102,11 @@
           "teacher_name": {
             "title": "Teacher Name",
             "type": "string"
+          },
+          "ungraded_student_count": {
+            "default": 0,
+            "title": "Ungraded Student Count",
+            "type": "integer"
           }
         },
         "required": [
@@ -7194,6 +7857,22 @@
             "title": "Enrollments",
             "type": "array"
           },
+          "final_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Average"
+          },
+          "final_result_count": {
+            "default": 0,
+            "title": "Final Result Count",
+            "type": "integer"
+          },
           "financial_hold": {
             "default": false,
             "title": "Financial Hold",
@@ -7250,6 +7929,22 @@
               }
             ],
             "title": "Previous School"
+          },
+          "provisional_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provisional Average"
+          },
+          "provisional_result_count": {
+            "default": 0,
+            "title": "Provisional Result Count",
+            "type": "integer"
           },
           "student_id": {
             "title": "Student Id",
@@ -8133,6 +8828,58 @@
           "description"
         ],
         "title": "SubjectCreate",
+        "type": "object"
+      },
+      "SubjectListItem": {
+        "description": "Directory row: where the subject is used, so the table is not just code + name.",
+        "properties": {
+          "career_codes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Career Codes",
+            "type": "array"
+          },
+          "code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "credits": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credits"
+          },
+          "description": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "section_count": {
+            "default": 0,
+            "title": "Section Count",
+            "type": "integer"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "description",
+          "subject_id"
+        ],
+        "title": "SubjectListItem",
         "type": "object"
       },
       "SubjectOut": {
@@ -10866,6 +11613,7 @@
     },
     "/access/me": {
       "get": {
+        "description": "Effective permissions and data scope of the signed-in account.",
         "operationId": "my_permissions_access_me_get",
         "responses": {
           "200": {
@@ -10890,6 +11638,7 @@
     },
     "/access/permissions": {
       "get": {
+        "description": "The permission catalog, grouped by module for the role editor.",
         "operationId": "permissions_access_permissions_get",
         "responses": {
           "200": {
@@ -11092,6 +11841,30 @@
           }
         ],
         "summary": "Set Role Permissions",
+        "tags": [
+          "access control"
+        ]
+      }
+    },
+    "/access/scopes": {
+      "get": {
+        "operationId": "scopes_access_scopes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Scopes",
         "tags": [
           "access control"
         ]
@@ -15166,6 +15939,358 @@
           }
         ],
         "summary": "Create Billing Concept",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/finance/billing-plans": {
+      "get": {
+        "operationId": "list_billing_plans_finance_billing_plans_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BillingPlanOut"
+                  },
+                  "title": "Response List Billing Plans Finance Billing Plans Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Billing Plans",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "create_billing_plan_finance_billing_plans_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingPlanCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Billing Plan",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/finance/billing-plans/{plan_id}": {
+      "patch": {
+        "operationId": "update_billing_plan_finance_billing_plans__plan_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingPlanUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Billing Plan",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/finance/billing-plans/{plan_id}/preview": {
+      "post": {
+        "description": "Who would be charged for a cycle. Writes nothing.",
+        "operationId": "preview_billing_cycle_finance_billing_plans__plan_id__preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingCycleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview Billing Cycle",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/finance/billing-plans/{plan_id}/runs": {
+      "get": {
+        "operationId": "billing_runs_finance_billing_plans__plan_id__runs_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BillingRunOut"
+                  },
+                  "title": "Response Billing Runs Finance Billing Plans  Plan Id  Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Billing Runs",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "generate_billing_cycle_finance_billing_plans__plan_id__runs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingRunCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRunOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Generate Billing Cycle",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/finance/billing-plans/{plan_id}/targets": {
+      "put": {
+        "operationId": "update_billing_plan_targets_finance_billing_plans__plan_id__targets_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingPlanTargets"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Billing Plan Targets",
         "tags": [
           "finance"
         ]
@@ -20287,6 +21412,118 @@
         ]
       }
     },
+    "/scheduling/classrooms/availability": {
+      "get": {
+        "description": "Every classroom with whether it can host a section at this time (drafts reserve too).",
+        "operationId": "classroom_availability_scheduling_classrooms_availability_get",
+        "parameters": [
+          {
+            "description": "Días separados por coma, p. ej. Lunes,Miércoles",
+            "in": "query",
+            "name": "days",
+            "required": true,
+            "schema": {
+              "description": "Días separados por coma, p. ej. Lunes,Miércoles",
+              "title": "Days",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_time",
+            "required": true,
+            "schema": {
+              "format": "time",
+              "title": "Start Time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_time",
+            "required": true,
+            "schema": {
+              "format": "time",
+              "title": "End Time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capacity",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Capacity",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period_name",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Period Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "section_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Section Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClassroomAvailability"
+                  },
+                  "title": "Response Classroom Availability Scheduling Classrooms Availability Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Classroom Availability",
+        "tags": [
+          "scheduling"
+        ]
+      }
+    },
     "/scheduling/classrooms/{classroom_id}": {
       "delete": {
         "operationId": "retire_classroom_scheduling_classrooms__classroom_id__delete",
@@ -21235,7 +22472,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/SubjectOut"
+                    "$ref": "#/components/schemas/SubjectListItem"
                   },
                   "title": "Response Get Subjects Subjects  Get",
                   "type": "array"

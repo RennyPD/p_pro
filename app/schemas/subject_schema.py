@@ -37,6 +37,14 @@ class SubjectOut(SubjectBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class SubjectListItem(SubjectOut):
+    """Directory row: where the subject is used, so the table is not just code + name."""
+
+    career_codes: list[str] = []
+    credits: float | None = None
+    section_count: int = 0
+
+
 class SubjectProgramOut(CurriculumCourseOut):
     career_name: str
     career_code: str

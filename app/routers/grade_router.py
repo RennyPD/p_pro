@@ -6,6 +6,7 @@ from app.auth import (
     ensure_enrollment_access,
     ensure_section_access,
     get_current_user,
+    has_scope,
     require_permissions,
 )
 from app.db.Session import get_db
@@ -28,7 +29,7 @@ from app.services.governance_workflow import lock_governance
 from app.services.grade_service import get_grade_by_id_service
 
 router = APIRouter(prefix="/grades", tags=["grades"])
-grade_manager = require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
+grade_manager = require_permissions("grades.manage")
 
 
 def validate_assessment(db: Session, assessment_id: int | None, section_id: int):
@@ -114,7 +115,7 @@ def get_grades(
     user: User = Depends(get_current_user),
 ):
     query = db.query(Grade).filter(Grade.status != "voided")
-    if user.role.name.casefold() != "admin":
+    if not has_scope(user, "grades.view"):
         query = query.join(Grade.enrollment)
         if user.student_id is not None:
             query = query.filter(

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_student_access, get_current_user, require_roles
+from app.auth import ensure_student_access, get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.career_model import Career
 from app.models.curriculum_model import CurriculumCourse
@@ -42,7 +42,8 @@ def career_change_impact(db, student, target):
 
 
 @router.get(
-    "/students/{student_id}/career-change/preview", dependencies=[Depends(require_roles("admin"))]
+    "/students/{student_id}/career-change/preview",
+    dependencies=[Depends(require_permissions("students.manage", institutional=True))],
 )
 def preview_career_change(student_id: int, career_id: int, db: Session = Depends(get_db)):
     student = db.get(Student, student_id)
@@ -59,7 +60,7 @@ def change_student_career(
     student_id: int,
     data: CareerChangeCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("admin")),
+    user: User = Depends(require_permissions("students.manage", institutional=True)),
 ):
     lock_governance(db)
     if data.effective_date > business_date():

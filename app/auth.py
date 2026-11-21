@@ -9,6 +9,14 @@ from app.models.enrollment_model import Enrollment
 from app.models.role_model import Role
 from app.models.section_model import Section
 from app.models.user_model import User
+from app.permissions import (
+    INSTITUTIONAL_PERMISSIONS,
+    LEGACY_BUNDLES,
+    PERMISSION_SLUGS,
+    SYSTEM_ROLE_DEFAULTS,
+    default_scope,
+    expand,
+)
 from app.security import decode_access_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -53,7 +61,8 @@ def ensure_account_active(user: User, status_code: int = 401) -> None:
         raise HTTPException(status_code=status_code, detail=INACTIVE_ACCOUNT_MESSAGE)
 
 
-def role_permission_slugs(db: Session, role_id: int) -> set[str]:
+def assigned_permission_slugs(db: Session, role_id: int) -> set[str]:
+    """Permission rows saved for the role, exactly as stored."""
     return {
         row[0]
         for row in db.query(Permission.slug)
@@ -61,6 +70,21 @@ def role_permission_slugs(db: Session, role_id: int) -> set[str]:
         .filter(RolePermission.role_id == role_id)
         .all()
     }
+
+
+def role_permission_slugs(db: Session, role_id: int) -> set[str]:
+    """Effective granular permissions of a role.
+
+    Legacy broad grants unfold into their bundles. A database whose permission
+    catalog is still empty (fresh install before seeding) gives the built-in
+    roles their default permissions, so the system is usable from the start.
+    """
+    assigned = assigned_permission_slugs(db, role_id)
+    if not assigned and db.query(Permission.permission_id).first() is None:
+        role = db.get(Role, role_id)
+        if role is not None:
+            return set(SYSTEM_ROLE_DEFAULTS.get(role.name.casefold(), ("", frozenset()))[1])
+    return set(expand(assigned))
 
 
 def ensure_role_within_actor(db: Session, actor: User, role_id: int | None) -> None:
@@ -83,11 +107,30 @@ def ensure_role_within_actor(db: Session, actor: User, role_id: int | None) -> N
         and role.name.casefold() == "admin"
         and actor.role.name.casefold() != "admin"
     )
-    if missing or unconfigured_admin:
+    # Nor can an account hand out a wider data scope than its own.
+    wider_scope = role.scope == "institution" and role_scope(actor) != "institution"
+    if missing or unconfigured_admin or wider_scope:
         raise HTTPException(
             status_code=403,
             detail="No puedes gestionar cuentas ni roles con permisos que tu cuenta no tiene",
         )
+
+
+def role_scope(user: User) -> str:
+    return getattr(user.role, "scope", None) or default_scope(user.role.name)
+
+
+SCOPE_AUDIENCE = {
+    "institution": "admin",
+    "sections": "teacher",
+    "own": "student",
+    "linked": "guardian",
+}
+
+
+def calendar_audience(user: User) -> str:
+    """Calendar audience a role belongs to, from its scope (not its name)."""
+    return SCOPE_AUDIENCE.get(role_scope(user), "admin")
 
 
 def require_roles(*allowed_roles: str):
@@ -107,44 +150,84 @@ def require_roles(*allowed_roles: str):
 def require_permissions(
     *required_permissions: str, fallback_roles: tuple[str, ...] = (), institutional: bool = False
 ):
-    """Require configured permissions while keeping unconfigured legacy roles operable."""
+    """Require every listed permission (granular slugs from app.permissions).
+
+    `institutional` additionally requires the role's scope to be the whole
+    institution. `fallback_roles` is ignored: built-in roles get their default
+    permissions from app.permissions when the catalog is empty.
+    """
     required = set(required_permissions)
-    fallback = {role.casefold() for role in fallback_roles}
+    unknown = required - PERMISSION_SLUGS - set(LEGACY_BUNDLES)
+    if unknown:
+        raise ValueError(f"Unknown permission(s): {', '.join(sorted(unknown))}")
 
     def dependency(
         current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
     ) -> User:
         # Institutional administration is not a teaching capability, even when
         # an older role still carries the broad academic.manage grant.
-        if (institutional or "academic.manage" in required) and not institutional_profile(
-            current_user
-        ):
+        needs_institution = institutional or bool(expand(required) & INSTITUTIONAL_PERMISSIONS)
+        if needs_institution and not institutional_profile(current_user):
             raise HTTPException(
                 status_code=403,
                 detail="La administración académica requiere un perfil de personal institucional",
             )
         assigned = role_permission_slugs(db, current_user.role_id)
-        if required.issubset(assigned):
-            return current_user
-        if (
-            not assigned
-            and db.query(Permission).count() == 0
-            and current_user.role.name.casefold() in fallback
-        ):
+        if expand(required).issubset(assigned) or required.issubset(assigned):
             return current_user
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Te falta el permiso: {', '.join(sorted(required - assigned))}",
         )
 
+    dependency.nexo_permissions = tuple(sorted(required))
+    return dependency
+
+
+def require_any_permission(*slugs: str):
+    """Require at least one of the listed permissions."""
+    unknown = set(slugs) - PERMISSION_SLUGS
+    if unknown:
+        raise ValueError(f"Unknown permission(s): {', '.join(sorted(unknown))}")
+
+    def dependency(
+        current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    ) -> User:
+        if role_permission_slugs(db, current_user.role_id) & set(slugs):
+            return current_user
+        raise HTTPException(status_code=403, detail="No tienes permiso para esta acción")
+
+    dependency.nexo_permissions = tuple(sorted(slugs))
+    return dependency
+
+
+def require_personal(permission: str, *scopes: str):
+    """A personal-portal permission used from a role with one of `scopes` (own / linked)."""
+    base = require_permissions(permission)
+
+    def dependency(current_user: User = Depends(base)) -> User:
+        linked = {"own": current_user.student_id, "linked": current_user.guardian_id}
+        if role_scope(current_user) not in scopes or not any(linked.get(scope) for scope in scopes):
+            raise HTTPException(
+                status_code=403, detail="Esta función es para el portal personal vinculado"
+            )
+        return current_user
+
+    dependency.nexo_permissions = tuple(sorted([permission]))
     return dependency
 
 
 # Grants that open institution-wide reads. Accounts without them only see what
 # their link (own student record, assigned sections, guardian children) allows.
-ACADEMIC_SCOPE = ("academic.manage", "reports.view")
-FINANCE_SCOPE = ("finance.manage", "reports.view")
-DIRECTORY_SCOPE = ("academic.manage", "reports.view", "finance.manage")
+ACADEMIC_SCOPE = (
+    "students.view",
+    "sections.view",
+    "grades.view",
+    "attendance.view",
+    "reports.view",
+)
+FINANCE_SCOPE = ("finance.view", "reports.view")
+DIRECTORY_SCOPE = (*ACADEMIC_SCOPE, "finance.view")
 _PERMISSION_CACHE = "_nexo_permission_slugs"
 
 
@@ -158,12 +241,14 @@ def is_admin(user: User) -> bool:
 
 
 def institutional_profile(user: User) -> bool:
-    """Accounts tied to a teacher, student or guardian are scoped to that person."""
-    if user.role.name.casefold() in {"teacher", "student", "guardian"}:
-        return False
+    """True when the role's scope is the whole institution.
+
+    Accounts linked to a student or guardian never reach institution-wide data,
+    whatever their role says.
+    """
     if user.student_id is not None or user.guardian_id is not None:
         return False
-    return user.teacher_id is None or is_admin(user)
+    return role_scope(user) == "institution"
 
 
 def user_permission_slugs(user: User) -> frozenset[str]:
@@ -175,26 +260,16 @@ def user_permission_slugs(user: User) -> frozenset[str]:
     return cached
 
 
-def _legacy_admin(user: User) -> bool:
-    # Same fallback as require_permissions: installations that never configured
-    # permissions keep the built-in administrator operable.
-    db = object_session(user)
-    return (
-        db is not None
-        and is_admin(user)
-        and not user_permission_slugs(user)
-        and db.query(Permission.permission_id).first() is None
-    )
-
-
 def has_scope(user: User, *grants: str) -> bool:
     """True when the account holds institution-wide reach through one of `grants`."""
     if not institutional_profile(user):
         return False
-    slugs = user_permission_slugs(user)
-    if slugs & set(grants):
-        return True
-    return not slugs and _legacy_admin(user)
+    return bool(user_permission_slugs(user) & set(grants))
+
+
+def has_permission(user: User, *slugs: str) -> bool:
+    """True when the account holds every listed permission (scope aside)."""
+    return set(slugs).issubset(user_permission_slugs(user))
 
 
 def guardian_student_ids(db: Session, user: User) -> list[int]:

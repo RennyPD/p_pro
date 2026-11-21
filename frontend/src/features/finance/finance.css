@@ -88,7 +88,7 @@
 }
 .finance-filters {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -221,7 +221,7 @@
   padding: 1rem 0;
   border-bottom: 1px solid var(--line);
 }
-.finance-movements article > div:first-child {
+.finance-movements article > span.finance-kind + div {
   display: grid;
   gap: 0.3rem;
   flex: 1;
@@ -310,4 +310,49 @@
   .finance-movements .finance-row-actions {
     width: 100%;
   }
+}
+
+/* Account toolbar: help on the left, actions on the right. */
+.finance-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.finance-toolbar .finance-help {
+  margin: 0;
+}
+
+.finance-office__title {
+  margin: 0 0 1rem;
+}
+
+/* Movement direction icon: green = reduces the debt, red = adds to it. */
+.finance-kind {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.finance-kind--credit {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.finance-kind--debit {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.finance-plans-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  text-decoration: none;
 }

@@ -1,17 +1,31 @@
 import { confirmAction } from "../../lib/confirm";
+import { freeRoomsLabel, useClassroomAvailability } from "../../lib/classroomAvailability";
+import { formatTime } from "../../lib/format";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, DoorOpen } from "lucide-react";
+import {
+  AlertTriangle,
+  Archive,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  DoorOpen,
+  MapPin,
+  Pencil,
+  Plus,
+  Send,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { DocumentDownload } from "../../components/DocumentDownload";
-import { LookupSelect } from "../../components/LookupSelect";
-import { Button, Modal, Spinner } from "../../components/ui";
+import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { resources } from "../../config/resources";
 import { api, apiMessage } from "../../lib/api";
 import { weekDays } from "../../lib/schedule";
+import { useHasPermission, useAccess } from "../../lib/permissions";
 import { useDraftGuard } from "../../lib/useDraftGuard";
-import { useAuthStore } from "../../store/auth";
-import type { EntityRecord, LookupConfig, ResourceConfig } from "../../types";
+import type { EntityRecord, ResourceConfig } from "../../types";
 import { ResourcePage } from "../resources/ResourcePage";
 
 const modLabels = { in_person: "Presencial", hybrid: "Híbrida", virtual: "Virtual" };
@@ -31,13 +45,6 @@ type Meeting = {
   classroom_name: string | null;
   modality: keyof typeof modLabels;
   virtual_url: string;
-};
-const roomLookup: LookupConfig = {
-  endpoint: "/scheduling/classrooms",
-  valueKey: "classroom_id",
-  labelKeys: ["name"],
-  secondaryKey: "location",
-  placeholder: "Buscar aula",
 };
 const sectionConfig: ResourceConfig = {
   ...resources.sections,
@@ -80,7 +87,8 @@ const sectionConfig: ResourceConfig = {
 };
 
 export function SectionsPage() {
-  const admin = useAuthStore(state => state.user?.role_name === "admin");
+  const access = useAccess();
+  const admin = access.institution && access.can("sections.manage");
   const client = useQueryClient();
   const [meetings, setMeetings] = useState<EntityRecord | null>(null);
   const [rooms, setRooms] = useState(false);
@@ -121,6 +129,7 @@ export function SectionsPage() {
             <button
               type="button"
               aria-label={`Ver bloques de ${row.code}`}
+              title="Bloques de horario"
               onClick={() => setMeetings(row)}
             >
               <CalendarDays size={17} />
@@ -133,8 +142,9 @@ export function SectionsPage() {
                   setPublishError("");
                   setPublication(row);
                 }}
+                title="Publicar sección"
               >
-                Publicar
+                <Send size={16} />
               </button>
             )}
           </>
@@ -181,11 +191,14 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
   const roomLabel = useId();
   const [editing, setEditing] = useState<Meeting | "new" | null>(null);
   const [room, setRoom] = useState<number | null>(null);
+  const [slot, setSlot] = useState({ day: "", start: "", end: "", modality: "in_person" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
   useDraftGuard(dirty, busy);
-  const editable = !["closed", "cancelled"].includes(String(section.status));
+  const canSchedule = useHasPermission("schedule.manage");
+  const open = !["closed", "cancelled"].includes(String(section.status));
+  const editable = canSchedule && open;
   const prefix = "/scheduling/meetings";
   const key = ["section-meetings", section.section_id];
   const blocks = useQuery({
@@ -199,6 +212,16 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
   function start(value: Meeting | "new") {
     setEditing(value);
     setRoom(value === "new" ? null : value.classroom_id);
+    setSlot(
+      value === "new"
+        ? { day: weekDays[0], start: "", end: "", modality: "in_person" }
+        : {
+            day: value.day_of_week,
+            start: value.start_time.slice(0, 5),
+            end: value.end_time.slice(0, 5),
+            modality: value.modality,
+          },
+    );
     setDirty(false);
     setError("");
   }
@@ -235,8 +258,24 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
     }
   }
 
+  const availability = useClassroomAvailability({
+    days: slot.day ? [slot.day] : [],
+    start: slot.start,
+    end: slot.end,
+    capacity: Number(section.capacity) || 1,
+    period: String(section.period_name ?? ""),
+    sectionId: Number(section.section_id),
+    enabled: Boolean(editing) && slot.modality !== "virtual",
+  });
+  const chosen = availability.rooms.find(item => item.classroom_id === room);
+  const roomProblem =
+    slot.modality !== "virtual" && chosen && chosen.status !== "available"
+      ? `${chosen.name}: ${chosen.detail}`
+      : "";
+
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (roomProblem) return;
     const values = Object.fromEntries(new FormData(event.currentTarget));
     const payload = { ...values, section_id: section.section_id, classroom_id: room };
     void change(() =>
@@ -246,13 +285,6 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
 
   return (
     <Modal title={`Horario de ${section.code}`} onClose={close}>
-      {!editing && (
-        <DocumentDownload
-          path={`/documents/sections/${section.section_id}/roster.pdf`}
-          filename={`lista-${section.code}.pdf`}
-          label="Descargar lista PDF"
-        />
-      )}
       {blocks.isLoading ? (
         <Spinner label="Cargando bloques" />
       ) : blocks.error ? (
@@ -260,51 +292,89 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
       ) : (
         !editing && (
           <>
-            {!blocks.data?.length && (
-              <p>
-                Horario de respaldo:{" "}
-                {Array.isArray(section.days_of_week)
-                  ? section.days_of_week.join(", ")
-                  : section.days_of_week}{" "}
-                · {String(section.start_time).slice(0, 5)}–{String(section.end_time).slice(0, 5)}.
-                Al agregar bloques, estos reemplazarán ese horario.
+            <div className="room-toolbar">
+              <DocumentDownload
+                path={`/documents/sections/${section.section_id}/roster.pdf`}
+                filename={`lista-${section.code}.pdf`}
+                label="Lista de estudiantes (PDF)"
+              />
+              {editable && (
+                <Button disabled={busy} onClick={() => start("new")}>
+                  <Plus size={16} /> Agregar bloque
+                </Button>
+              )}
+            </div>
+            {open && !canSchedule && (
+              <p className="room-hint">
+                Solo lectura: modificar bloques requiere el permiso de gestión de horarios.
               </p>
             )}
-            {blocks.data?.map(block => (
-              <article className="panel" key={block.meeting_id}>
-                <strong>
-                  {block.day_of_week} · {block.start_time.slice(0, 5)}–{block.end_time.slice(0, 5)}
-                </strong>
-                <p>
-                  {block.classroom_name || section.room} · {modLabels[block.modality]}
-                </p>
-                {editable && (
-                  <div className="form-actions">
-                    <Button variant="secondary" disabled={busy} onClick={() => start(block)}>
-                      Editar bloque
-                    </Button>
-                    <Button
-                      variant="danger"
-                      disabled={busy}
-                      onClick={async () => {
-                        if (
-                          await confirmAction(
-                            `¿Eliminar el bloque del ${block.day_of_week} de ${section.code}?`,
-                          )
-                        )
-                          void change(() => api.delete(`${prefix}/${block.meeting_id}`));
-                      }}
-                    >
-                      Eliminar bloque
-                    </Button>
-                  </div>
-                )}
-              </article>
-            ))}
-            {editable && (
-              <Button disabled={busy} onClick={() => start("new")}>
-                Agregar bloque
-              </Button>
+            {!blocks.data?.length ? (
+              <p className="schedule-fallback">
+                Aún no hay bloques. Se usa el horario general de la sección:{" "}
+                <b>
+                  {Array.isArray(section.days_of_week)
+                    ? section.days_of_week.join(", ")
+                    : section.days_of_week}{" "}
+                  · {formatTime(String(section.start_time))}–{formatTime(String(section.end_time))}
+                </b>
+                . Al agregar bloques, reemplazarán ese horario.
+              </p>
+            ) : (
+              <ul className="room-list">
+                {blocks.data.map(block => (
+                  <li key={block.meeting_id}>
+                    <span className="room-list__icon room-list__icon--day" aria-hidden="true">
+                      {block.day_of_week.slice(0, 3)}
+                    </span>
+                    <div className="room-list__name">
+                      <strong>{block.day_of_week}</strong>
+                      <small>
+                        <Clock3 size={13} /> {formatTime(block.start_time)}–
+                        {formatTime(block.end_time)}
+                      </small>
+                    </div>
+                    <span className="room-list__capacity">
+                      <DoorOpen size={14} /> {block.classroom_name || section.room}
+                    </span>
+                    <Badge tone={block.modality === "virtual" ? "info" : "neutral"}>
+                      {modLabels[block.modality]}
+                    </Badge>
+                    {editable ? (
+                      <div className="row-actions">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          title="Editar bloque"
+                          aria-label={`Editar bloque del ${block.day_of_week}`}
+                          onClick={() => start(block)}
+                        >
+                          <Pencil />
+                        </button>
+                        <button
+                          type="button"
+                          className="danger"
+                          disabled={busy}
+                          title="Eliminar bloque"
+                          aria-label={`Eliminar bloque del ${block.day_of_week}`}
+                          onClick={async () => {
+                            if (
+                              await confirmAction(
+                                `¿Eliminar el bloque del ${block.day_of_week} de ${section.code}?`,
+                              )
+                            )
+                              void change(() => api.delete(`${prefix}/${block.meeting_id}`));
+                          }}
+                        >
+                          <Trash2 />
+                        </button>
+                      </div>
+                    ) : (
+                      <span />
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
           </>
         )
@@ -313,7 +383,12 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
         <form className="resource-form" onSubmit={save} onChange={() => setDirty(true)}>
           <label className="form-field">
             <span>Día</span>
-            <select name="day_of_week" defaultValue={existing?.day_of_week} required>
+            <select
+              name="day_of_week"
+              defaultValue={existing?.day_of_week}
+              required
+              onChange={event => setSlot(current => ({ ...current, day: event.target.value }))}
+            >
               {weekDays.map(day => (
                 <option key={day}>{day}</option>
               ))}
@@ -326,6 +401,7 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
               type="time"
               required
               defaultValue={existing?.start_time.slice(0, 5)}
+              onChange={event => setSlot(current => ({ ...current, start: event.target.value }))}
             />
           </label>
           <label className="form-field">
@@ -335,11 +411,16 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
               type="time"
               required
               defaultValue={existing?.end_time.slice(0, 5)}
+              onChange={event => setSlot(current => ({ ...current, end: event.target.value }))}
             />
           </label>
           <label className="form-field">
             <span>Modalidad</span>
-            <select name="modality" defaultValue={existing?.modality}>
+            <select
+              name="modality"
+              defaultValue={existing?.modality}
+              onChange={event => setSlot(current => ({ ...current, modality: event.target.value }))}
+            >
               {Object.entries(modLabels).map(([value, label]) => (
                 <option value={value} key={value}>
                   {label}
@@ -347,18 +428,45 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
               ))}
             </select>
           </label>
-          <div className="form-field">
+          <label className="form-field">
             <span id={roomLabel}>Aula del bloque</span>
-            <LookupSelect
-              config={roomLookup}
-              labelId={roomLabel}
-              value={room}
-              onChange={value => {
-                setRoom(value === null ? null : Number(value));
+            <select
+              aria-labelledby={roomLabel}
+              value={room ?? ""}
+              disabled={slot.modality === "virtual" || !availability.ready}
+              onChange={event => {
+                setRoom(event.target.value ? Number(event.target.value) : null);
                 setDirty(true);
               }}
-            />
-          </div>
+            >
+              <option value="">Aula de la sección ({String(section.room || "Por asignar")})</option>
+              {availability.rooms.map(item => (
+                <option
+                  key={item.classroom_id}
+                  value={item.classroom_id}
+                  disabled={item.status !== "available" && item.classroom_id !== room}
+                >
+                  {item.name} · {item.capacity} plazas
+                  {item.status === "available" ? " · Disponible" : ` · ${item.detail}`}
+                </option>
+              ))}
+            </select>
+            {slot.modality === "virtual" ? (
+              <small className="room-hint">Bloque virtual: no necesita aula.</small>
+            ) : !availability.ready ? (
+              <small className="room-hint">Elige día y horario para ver las aulas libres.</small>
+            ) : roomProblem ? (
+              <small className="room-hint room-hint--warning" role="alert">
+                <AlertTriangle size={14} /> {roomProblem}. No se podrá guardar.
+              </small>
+            ) : chosen ? (
+              <small className="room-hint room-hint--ok">
+                <CheckCircle2 size={14} /> Disponible en ese horario
+              </small>
+            ) : (
+              <small className="room-hint">{freeRoomsLabel(availability.rooms)}</small>
+            )}
+          </label>
           <label className="form-field">
             <span>Enlace de clase virtual</span>
             <input
@@ -372,7 +480,9 @@ function MeetingDialog({ section, onClose }: { section: EntityRecord; onClose: (
             <Button type="button" variant="secondary" disabled={busy} onClick={close}>
               Cancelar
             </Button>
-            <Button disabled={busy}>{busy ? "Guardando…" : "Guardar bloque"}</Button>
+            <Button disabled={busy || Boolean(roomProblem)}>
+              {busy ? "Guardando…" : "Guardar bloque"}
+            </Button>
           </div>
         </form>
       )}
@@ -448,49 +558,87 @@ function RoomDialog({ onClose }: { onClose: () => void }) {
       ) : (
         !editing && (
           <>
-            {!rooms.data?.length && <p>Aún no hay aulas registradas.</p>}
-            {rooms.data?.map(room => (
-              <article className="panel" key={room.classroom_id}>
-                <strong>{room.name}</strong>
-                <p>
-                  {room.capacity} plazas · {room.active ? "Activa" : "Retirada"}
-                  {room.location ? ` · ${room.location}` : ""}
-                </p>
-                <div className="form-actions">
-                  <Button
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() => {
-                      setError("");
-                      setEditing(room);
-                    }}
-                  >
-                    Editar aula
-                  </Button>
-                  {room.active && (
-                    <Button
-                      variant="danger"
-                      disabled={busy}
-                      onClick={async () => {
-                        if (await confirmAction(`¿Retirar el aula ${room.name}?`))
-                          void change(() => api.delete(`${prefix}/${room.classroom_id}`));
-                      }}
+            <div className="room-toolbar">
+              <p className="muted">
+                {rooms.data?.filter(room => room.active).length ?? 0} activas de{" "}
+                {rooms.data?.length ?? 0} aulas
+              </p>
+              <Button
+                disabled={busy}
+                onClick={() => {
+                  setError("");
+                  setEditing("new");
+                }}
+              >
+                <Plus size={16} /> Nueva aula
+              </Button>
+            </div>
+            {!rooms.data?.length ? (
+              <EmptyState
+                icon={<DoorOpen />}
+                title="Aún no hay aulas"
+                description="Registra las aulas para asignarlas a los bloques de horario."
+              />
+            ) : (
+              <ul className="room-list">
+                {[...(rooms.data ?? [])]
+                  .sort(
+                    (x, y) =>
+                      Number(y.active) - Number(x.active) || x.name.localeCompare(y.name, "es"),
+                  )
+                  .map(room => (
+                    <li
+                      key={room.classroom_id}
+                      className={room.active ? "" : "room-list__item--retired"}
                     >
-                      Retirar aula
-                    </Button>
-                  )}
-                </div>
-              </article>
-            ))}
-            <Button
-              disabled={busy}
-              onClick={() => {
-                setError("");
-                setEditing("new");
-              }}
-            >
-              Nueva aula
-            </Button>
+                      <span className="room-list__icon" aria-hidden="true">
+                        <DoorOpen size={18} />
+                      </span>
+                      <div className="room-list__name">
+                        <strong>{room.name}</strong>
+                        <small>
+                          <MapPin size={13} /> {room.location || "Sin ubicación"}
+                        </small>
+                      </div>
+                      <span className="room-list__capacity">
+                        <Users size={14} /> {room.capacity} plazas
+                      </span>
+                      <Badge tone={room.active ? "success" : "neutral"}>
+                        {room.active ? "Activa" : "Retirada"}
+                      </Badge>
+                      <div className="row-actions">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          title="Editar aula"
+                          aria-label={`Editar ${room.name}`}
+                          onClick={() => {
+                            setError("");
+                            setEditing(room);
+                          }}
+                        >
+                          <Pencil />
+                        </button>
+                        {room.active && (
+                          <button
+                            type="button"
+                            className="danger"
+                            disabled={busy}
+                            title="Retirar aula"
+                            aria-label={`Retirar ${room.name}`}
+                            onClick={async () => {
+                              if (await confirmAction(`¿Retirar el aula ${room.name}?`))
+                                void change(() => api.delete(`${prefix}/${room.classroom_id}`));
+                            }}
+                          >
+                            <Archive />
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+            )}
           </>
         )
       )}

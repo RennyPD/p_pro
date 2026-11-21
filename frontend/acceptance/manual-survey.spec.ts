@@ -115,7 +115,7 @@ test("manual survey: admin directory searches and section selector", async ({ pa
     }
   }
   await page.goto("/sections");
-  await page.getByRole("button", { name: "Nuevo sección" }).click();
+  await page.getByRole("button", { name: "Nueva sección" }).click();
   const trigger = page.getByRole("button", { name: /Asignatura.*Buscar asignatura/ });
   await trigger.click();
   const filter = page.getByRole("searchbox", { name: "Buscar opciones" });
@@ -125,7 +125,7 @@ test("manual survey: admin directory searches and section selector", async ({ pa
   await expect(page.getByText(/Mostrando.*opciones/)).toBeVisible();
   await filter.press("Escape");
   await expect(trigger).toBeFocused();
-  await expect(page.getByRole("heading", { name: "Nuevo sección" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nueva sección" })).toBeVisible();
   await testInfo.attach("searches.json", {
     body: JSON.stringify(evidence, null, 2),
     contentType: "application/json",

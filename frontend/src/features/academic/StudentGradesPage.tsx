@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { resultTone } from "../../lib/academicResult";
 import { BookCheck } from "lucide-react";
 import { Badge, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
@@ -76,57 +77,75 @@ export function StudentGradesPage() {
         <div>
           <span className="kicker">Resultados publicados</span>
           <h1>Mis calificaciones</h1>
-          <p>
-            Consulta cada evaluación y su aporte a tu resultado. Los borradores del docente no
-            aparecen aquí.
-          </p>
+          <p>Tu resultado por asignatura y lo que aporta cada evaluación publicada.</p>
         </div>
       </header>
-      <section className="assessment-actions">
-        {query.data.courses.map(course => (
-          <article className="panel assessment-plan" key={course.enrollment_id}>
-            <span className="kicker">
-              {course.subject_code} · {course.section_code} · {course.period}
-            </span>
-            <h2>{course.subject_name}</h2>
-            <p>
-              <strong>{course.average_grade ?? "—"}</strong> / 100 ·{" "}
-              <Badge
-                tone={
-                  course.result_final
-                    ? course.result_status === "passed"
-                      ? "success"
-                      : "danger"
-                    : "info"
-                }
-              >
-                {states[course.result_status] ?? "Provisional"}
-              </Badge>
-            </p>
-            <p className="muted">
-              {course.calculation_mode === "legacy"
-                ? "Resultado histórico sin plan ponderado"
-                : `${course.completed_weight}% del plan con notas publicadas. ${course.result_final ? "Resultado definitivo." : "Todavía no es una aprobación definitiva."}`}
-            </p>
-            {query.data.grades
-              .filter(grade => grade.enrollment_id === course.enrollment_id)
-              .map(grade => (
-                <div className="assessment-template" key={grade.grade_id}>
-                  <strong>
-                    {grade.grade_type} · {grade.grade_value}/100
-                  </strong>
-                  <small>
-                    {grade.assessment_weight === null
-                      ? "Nota histórica"
-                      : `${grade.assessment_weight}% de la nota · aporta ${grade.contribution ?? 0} puntos`}
-                  </small>
+      <section className="student-grade-grid">
+        {query.data.courses.map(course => {
+          const grades = query.data.grades.filter(
+            grade => grade.enrollment_id === course.enrollment_id,
+          );
+          const tone = resultTone(course.result_final ? course.result_status : "in_progress");
+          return (
+            <article className="panel student-grade" key={course.enrollment_id}>
+              <header>
+                <div>
+                  <span className="kicker">
+                    {course.subject_code} · {course.section_code}
+                  </span>
+                  <h2>{course.subject_name}</h2>
                 </div>
-              ))}
-            {!query.data.grades.some(grade => grade.enrollment_id === course.enrollment_id) && (
-              <p className="muted">Aún no hay notas publicadas.</p>
-            )}
-          </article>
-        ))}
+                <div className={`student-grade__score student-grade__score--${tone}`}>
+                  <strong>{course.average_grade ?? "—"}</strong>
+                  <Badge tone={tone}>{states[course.result_status] ?? "Provisional"}</Badge>
+                </div>
+              </header>
+              {course.calculation_mode !== "legacy" && (
+                <div
+                  className="student-grade__bar"
+                  role="img"
+                  aria-label={`Aporte acumulado ${course.average_grade ?? 0} de 100`}
+                >
+                  {grades.map(grade => (
+                    <span
+                      key={grade.grade_id}
+                      title={`${grade.grade_type}: aporta ${grade.contribution ?? 0} puntos`}
+                      style={{ width: `${grade.contribution ?? 0}%` }}
+                    />
+                  ))}
+                </div>
+              )}
+              <small className="muted">
+                {course.calculation_mode === "legacy"
+                  ? "Resultado histórico sin plan ponderado"
+                  : course.result_final
+                    ? "Resultado definitivo"
+                    : course.completed_weight >= 100
+                      ? "Notas completas · pendiente del cierre del docente"
+                      : `${course.completed_weight}% del plan evaluado`}
+              </small>
+              {grades.length ? (
+                <ul className="student-grade__items">
+                  {grades.map(grade => (
+                    <li key={grade.grade_id}>
+                      <span>
+                        {grade.grade_type}
+                        <small>
+                          {grade.assessment_weight === null
+                            ? "Nota histórica"
+                            : `Vale ${grade.assessment_weight}% · aporta ${grade.contribution ?? 0}`}
+                        </small>
+                      </span>
+                      <b>{grade.grade_value}</b>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">Aún no hay notas publicadas.</p>
+              )}
+            </article>
+          );
+        })}
       </section>
       {!query.data.courses.length && (
         <EmptyState

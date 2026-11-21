@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
 from random import Random
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
@@ -55,6 +56,7 @@ from app.models import (
     User,
 )
 from app.security import hash_password
+from app.services.permission_catalog import grant_system_defaults
 
 PASSWORDS = {
     "admin": "NexoAdmin2026!",
@@ -298,37 +300,8 @@ def seed_institution(db: Session) -> dict[str, int]:
     }
     db.add_all(roles.values())
     db.flush()
-    permission_specs = {
-        "academic.manage": "Gestionar operación académica",
-        "grades.manage": "Registrar y cerrar calificaciones",
-        "finance.manage": "Gestionar cuentas y caja",
-        "reports.view": "Consultar reportes institucionales",
-        "records.own": "Consultar expediente vinculado",
-        "communications.manage": "Publicar comunicaciones",
-        "access.manage": "Gestionar usuarios, roles y permisos",
-        "operations.manage": "Gestionar agenda, tareas y procesos institucionales",
-    }
-    permissions = {
-        slug: Permission(slug=slug, description=description)
-        for slug, description in permission_specs.items()
-    }
-    db.add_all(permissions.values())
-    db.flush()
-    grants = {
-        "admin": set(permissions),
-        "teacher": {
-            "grades.manage",
-            "communications.manage",
-            "operations.manage",
-        },
-        "student": {"records.own"},
-        "guardian": {"records.own"},
-    }
-    db.add_all(
-        RolePermission(role_id=roles[role].role_id, permission_id=permissions[slug].permission_id)
-        for role, slugs in grants.items()
-        for slug in slugs
-    )
+    for role in roles.values():
+        grant_system_defaults(db, role)
     db.add(
         InstitutionSettings(
             settings_id=1,
@@ -463,7 +436,8 @@ def seed_institution(db: Session) -> dict[str, int]:
                 end_time=time(start.hour + 1, 30),
                 capacity=40,
                 minimum_capacity=8,
-                room=classrooms[subject_index % len(classrooms)].name,
+                # Same classroom as its meetings below (global index), so no double booking.
+                room=classrooms[len(all_sections) % len(classrooms)].name,
                 modality=("hybrid" if subject_index == 3 else "in_person"),
                 status="active",
                 period_name="2026-2027",
@@ -723,7 +697,10 @@ def seed_institution(db: Session) -> dict[str, int]:
             section_id=section.section_id,
             title=f"Actividad práctica {index + 1}",
             instructions="Desarrolla el caso y presenta conclusiones justificadas.",
-            due_at=datetime(2026, 10, 5 + index, 23, 59),
+            # Deadlines are stored in UTC: 11:59 p. m. in the institution's time zone.
+            due_at=datetime(2026, 10, 5 + index, 23, 59, tzinfo=ZoneInfo("America/Santo_Domingo"))
+            .astimezone(UTC)
+            .replace(tzinfo=None),
             max_score=100,
             assessment_id=assessments_by_section[section.section_id][0].assessment_id,
             created_by=admin_user.user_id,

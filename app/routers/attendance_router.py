@@ -25,13 +25,13 @@ from app.services.attendance_workflow import change, day_record, snapshot, valid
 from app.services.business_time import business_date
 
 router = APIRouter(prefix="/attendances", tags=["attendances"])
-attendance_manager = require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
+attendance_manager = require_permissions("attendance.manage")
 
 
 def require_attendance_writer(db, user, enrollment_id):
     enrollment = ensure_enrollment_access(db, user, enrollment_id)
     assigned = user.teacher_id is not None and user.teacher_id == enrollment.section.teacher_id
-    if not assigned and not has_scope(user, "academic.manage", "grades.manage"):
+    if not assigned and not has_scope(user, "attendance.manage"):
         raise HTTPException(403, "Solo el docente asignado o administración registra asistencia")
     return enrollment
 

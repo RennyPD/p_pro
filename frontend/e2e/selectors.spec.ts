@@ -32,7 +32,10 @@ for (const viewport of [
         if (url.pathname === "/auth/login") data = { access_token: "test-only", user };
         if (url.pathname === "/auth/me") data = user;
         if (url.pathname === "/access/me")
-          data = { permissions: ["academic.manage", "reports.view"] };
+          data = {
+            permissions: ["programs.manage", "sections.view", "sections.manage", "reports.view"],
+            scope: "institution",
+          };
         if (url.pathname === "/dashboard/summary") data = { alerts: [], metrics: [] };
         if (url.pathname === "/subjects/") {
           const skip = Number(url.searchParams.get("skip") || 0);
@@ -51,7 +54,7 @@ for (const viewport of [
       await expect(page.getByRole("link", { name: "Control institucional" })).toBeAttached();
       if (viewport.width < 768) await page.getByRole("button", { name: "Abrir menú" }).click();
       await page.getByRole("link", { name: "Secciones", exact: true }).click();
-      await page.getByRole("button", { name: "Nuevo sección" }).click();
+      await page.getByRole("button", { name: "Nueva sección" }).click();
       await page.getByRole("button", { name: /Asignatura.*Buscar asignatura/ }).click();
       await expect(page.getByText(`Mostrando 1–8 de ${count} opciones`)).toBeVisible();
       if (count === 17) {

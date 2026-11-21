@@ -14,7 +14,7 @@ from app.services.business_time import INSTITUTION_TIME_ZONE
 router = APIRouter(
     prefix="/audit",
     tags=["audit"],
-    dependencies=[Depends(require_permissions("reports.view", fallback_roles=("admin",)))],
+    dependencies=[Depends(require_permissions("audit.view"))],
 )
 
 

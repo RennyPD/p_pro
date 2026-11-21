@@ -221,6 +221,10 @@ class ApprovalOut(ApprovalCreate, OrmModel):
     resolution_notes: str
     created_at: datetime
     resolved_at: datetime | None
+    resource_label: str = ""
+    resource_path: str = ""
+    requested_by_name: str = ""
+    resolved_by_name: str = ""
 
 
 class StudentDocumentCreate(BaseModel):

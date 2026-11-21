@@ -8,12 +8,14 @@ from sqlalchemy.orm import Session
 
 from app.auth import (
     ACADEMIC_SCOPE,
+    calendar_audience,
     ensure_section_access,
     ensure_student_academic_access,
     get_current_user,
+    has_permission,
     has_scope,
     require_permissions,
-    require_roles,
+    require_personal,
 )
 from app.db.Session import get_db
 from app.models.attendance_model import Attendance
@@ -22,6 +24,7 @@ from app.models.community_model import StudentGuardian
 from app.models.configuration_model import AcademicPeriod
 from app.models.enrollment_model import Enrollment
 from app.models.finance_model import StudentAccount
+from app.models.grade_model import Grade
 from app.models.operations_model import (
     AdmissionApplication,
     AlertIntervention,
@@ -73,10 +76,13 @@ from app.services.student_service import create_student_service
 
 router = APIRouter(prefix="/operations", tags=["institutional operations"])
 router.include_router(assignment_routes)
-operations_manager = require_permissions("operations.manage", fallback_roles=("admin", "teacher"))
-operations_admin = require_permissions(
-    "operations.manage", fallback_roles=("admin",), institutional=True
-)
+calendar_manager = require_permissions("calendar.manage")
+plans_manager = require_permissions("tasks.manage")
+cases_manager = require_permissions("cases.manage")
+cases_admin = require_permissions("cases.manage", institutional=True)
+admissions_manager = require_permissions("admissions.manage", institutional=True)
+approvals_manager = require_permissions("approvals.manage", institutional=True)
+documents_manager = require_permissions("students.manage", institutional=True)
 
 
 def student_scope_ids(db: Session, user: User) -> list[int] | None:
@@ -105,7 +111,7 @@ def student_scope_ids(db: Session, user: User) -> list[int] | None:
 @router.get("/calendar", response_model=list[CalendarEventOut])
 def calendar(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     query = db.query(CalendarEvent)
-    role = user.role.name.casefold()
+    role = calendar_audience(user)
     if not has_scope(user, *ACADEMIC_SCOPE):
         query = query.filter(
             ((CalendarEvent.audience.in_(["all", role])) & CalendarEvent.section_id.is_(None))
@@ -121,9 +127,9 @@ def calendar(db: Session = Depends(get_db), user: User = Depends(get_current_use
 def create_event(
     data: CalendarEventCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(calendar_manager),
 ):
-    if not has_scope(user, "academic.manage", "operations.manage"):
+    if not has_scope(user, "calendar.manage"):
         if data.audience != "section":
             raise HTTPException(403, "Solo puedes crear eventos para tus secciones")
         ensure_section_access(db, user, data.section_id or 0)
@@ -145,12 +151,12 @@ def edit_event(
     event_id: int,
     data: CalendarEventCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(calendar_manager),
 ):
     item = db.get(CalendarEvent, event_id)
     if not item:
         raise HTTPException(404, "Evento no disponible")
-    if not has_scope(user, "academic.manage", "operations.manage"):
+    if not has_scope(user, "calendar.manage"):
         if item.audience != "section" or data.audience != "section":
             raise HTTPException(403, "Solo puedes editar eventos de tus secciones")
         ensure_section_access(db, user, item.section_id)
@@ -170,7 +176,7 @@ def edit_event(
 def lesson_plans(
     section_id: int | None = None,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(plans_manager),
 ):
     query = db.query(LessonPlan)
     if not has_scope(user, *ACADEMIC_SCOPE):
@@ -184,7 +190,7 @@ def lesson_plans(
 def create_lesson_plan(
     data: LessonPlanCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(plans_manager),
 ):
     lock_governance(db)
     section = ensure_section_access(db, user, data.section_id)
@@ -210,7 +216,7 @@ def writable_lesson_plan(db, user, plan_id):
     if item is None:
         raise HTTPException(404, "No se encontró el plan de clase")
     section = ensure_section_access(db, user, item.section_id)
-    if not has_scope(user, "academic.manage") and item.teacher_id != user.teacher_id:
+    if not has_scope(user, "tasks.manage") and item.teacher_id != user.teacher_id:
         raise HTTPException(403, "El plan pertenece a otro docente")
     if section.status in {"closed", "cancelled"} or item.status != "planned":
         raise HTTPException(409, "Solo se puede cambiar un plan programado en una sección abierta")
@@ -222,7 +228,7 @@ def edit_lesson_plan(
     plan_id: int,
     data: LessonPlanCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(plans_manager),
 ):
     lock_governance(db)
     item = writable_lesson_plan(db, user, plan_id)
@@ -240,7 +246,7 @@ def finish_lesson_plan(
     plan_id: int,
     data: LessonPlanResolve,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(plans_manager),
 ):
     lock_governance(db)
     item = writable_lesson_plan(db, user, plan_id)
@@ -268,7 +274,7 @@ def alerts(db: Session = Depends(get_db), user: User = Depends(get_current_user)
 
 @router.get("/alert-assignees")
 def alert_assignees(
-    student_id: int, db: Session = Depends(get_db), user: User = Depends(operations_manager)
+    student_id: int, db: Session = Depends(get_db), user: User = Depends(cases_manager)
 ):
     ensure_student_academic_access(db, user, student_id)
     result = []
@@ -297,7 +303,7 @@ def alert_assignees(
 def create_alert(
     data: AlertCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(cases_manager),
 ):
     lock_governance(db)
     ensure_student_academic_access(db, user, data.student_id)
@@ -317,7 +323,7 @@ def assign_alert(
     alert_id: int,
     data: AlertAssignment,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(cases_manager),
 ):
     lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
@@ -328,8 +334,8 @@ def assign_alert(
         raise HTTPException(409, "Solo se asignan casos abiertos")
     if data.assigned_to is not None:
         assignee = db.get(User, data.assigned_to)
-        if assignee is None or assignee.role.name.casefold() not in {"admin", "teacher"}:
-            raise HTTPException(422, "El responsable debe ser un administrador o docente")
+        if assignee is None or not has_permission(assignee, "cases.manage"):
+            raise HTTPException(422, "El responsable debe tener permiso para gestionar casos")
         if assignee.teacher_id:
             teacher = db.get(Teacher, assignee.teacher_id)
             if not teacher or not teacher.active:
@@ -379,7 +385,7 @@ def add_alert_intervention(
     alert_id: int,
     data: AlertInterventionCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(cases_manager),
 ):
     lock_governance(db)
     alert = db.get(EarlyAlert, alert_id)
@@ -399,8 +405,8 @@ def add_alert_intervention(
     return item
 
 
-@router.post("/alerts/generate", dependencies=[Depends(operations_admin)])
-def generate_alerts(db: Session = Depends(get_db), user: User = Depends(operations_admin)):
+@router.post("/alerts/generate", dependencies=[Depends(cases_admin)])
+def generate_alerts(db: Session = Depends(get_db), user: User = Depends(cases_admin)):
     lock_governance(db)
     created = 0
     for student in db.query(Student).filter(Student.active.is_(True)).all():
@@ -470,7 +476,7 @@ def resolve_alert(
     alert_id: int,
     data: AlertResolve | None = None,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(cases_manager),
 ):
     lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
@@ -500,7 +506,7 @@ def resolve_alert(
 def reopen_alert(
     alert_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_manager),
+    user: User = Depends(cases_manager),
 ):
     lock_governance(db)
     item = db.get(EarlyAlert, alert_id)
@@ -534,7 +540,7 @@ def reopen_alert(
 
 @router.get("/guardian/overview")
 def guardian_overview(
-    db: Session = Depends(get_db), user: User = Depends(require_roles("guardian"))
+    db: Session = Depends(get_db), user: User = Depends(require_personal("records.own", "linked"))
 ):
     ids = student_scope_ids(db, user) or []
     active_period = db.query(AcademicPeriod).filter_by(active=True).first()
@@ -597,7 +603,7 @@ def guardian_overview(
 
 
 @router.get(
-    "/admissions", response_model=list[AdmissionOut], dependencies=[Depends(operations_admin)]
+    "/admissions", response_model=list[AdmissionOut], dependencies=[Depends(admissions_manager)]
 )
 def admissions(db: Session = Depends(get_db)):
     items = db.query(AdmissionApplication).order_by(AdmissionApplication.created_at.desc()).all()
@@ -611,16 +617,16 @@ def admission_out(db, item):
     return value
 
 
-@router.get("/admissions/{application_id}/history", dependencies=[Depends(operations_admin)])
+@router.get("/admissions/{application_id}/history", dependencies=[Depends(admissions_manager)])
 def admission_history(application_id: int, db: Session = Depends(get_db)):
     if not db.get(AdmissionApplication, application_id):
         raise HTTPException(404, "Solicitud no encontrada")
     return governance_history(db, f"admission:{application_id}")
 
 
-@router.post("/admissions", response_model=AdmissionOut, dependencies=[Depends(operations_admin)])
+@router.post("/admissions", response_model=AdmissionOut, dependencies=[Depends(admissions_manager)])
 def create_admission(
-    data: AdmissionCreate, db: Session = Depends(get_db), user: User = Depends(operations_admin)
+    data: AdmissionCreate, db: Session = Depends(get_db), user: User = Depends(admissions_manager)
 ):
     lock_governance(db)
     if not db.get(Career, data.career_id):
@@ -643,13 +649,13 @@ def create_admission(
 @router.patch(
     "/admissions/{application_id}",
     response_model=AdmissionOut,
-    dependencies=[Depends(operations_admin)],
+    dependencies=[Depends(admissions_manager)],
 )
 def update_admission(
     application_id: int,
     data: AdmissionUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_admin),
+    user: User = Depends(admissions_manager),
 ):
     lock_governance(db)
     item = db.get(AdmissionApplication, application_id)
@@ -689,10 +695,10 @@ def update_admission(
 
 @router.post(
     "/admissions/{application_id}/enroll",
-    dependencies=[Depends(operations_admin)],
+    dependencies=[Depends(admissions_manager)],
 )
 def enroll_admission(
-    application_id: int, db: Session = Depends(get_db), user: User = Depends(operations_admin)
+    application_id: int, db: Session = Depends(get_db), user: User = Depends(admissions_manager)
 ):
     lock_governance(db)
     item = db.get(AdmissionApplication, application_id)
@@ -736,20 +742,73 @@ def enroll_admission(
 
 
 @router.get(
-    "/approvals", response_model=list[ApprovalOut], dependencies=[Depends(operations_admin)]
+    "/approvals", response_model=list[ApprovalOut], dependencies=[Depends(approvals_manager)]
 )
 def approvals(db: Session = Depends(get_db)):
-    return db.query(ApprovalRequest).order_by(ApprovalRequest.created_at.desc()).all()
+    items = db.query(ApprovalRequest).order_by(ApprovalRequest.created_at.desc()).all()
+    return [describe_approval(db, item) for item in items]
+
+
+def _student_label(student) -> str:
+    return f"{student.first_name} {student.last_name} · {student.enrollment_number}"
+
+
+def approval_resource(db: Session, item: ApprovalRequest) -> tuple[str, str]:
+    """Human description of what a request is about (never a bare id) and where to open it."""
+    if item.resource_type == "student" and (student := db.get(Student, item.resource_id)):
+        return f"Expediente de {_student_label(student)}", f"/students/{student.student_id}"
+    if item.resource_type == "section" and (section := db.get(Section, item.resource_id)):
+        return (
+            f"Sección {section.code} · {section.subject.description}",
+            f"/sections/{section.section_id}",
+        )
+    if item.resource_type == "submission" and (submission := db.get(Submission, item.resource_id)):
+        task = db.get(Assignment, submission.assignment_id)
+        student = db.get(Student, submission.student_id)
+        title = task.title if task else "tarea"
+        label = f"Entrega de {title}" + (f" · {_student_label(student)}" if student else "")
+        return label, "/operations"
+    if item.resource_type == "grade" and (grade := db.get(Grade, item.resource_id)):
+        enrollment = grade.enrollment
+        return (
+            f"Nota de {grade.grade_type} · {enrollment.section.code} · "
+            f"{_student_label(enrollment.student)}",
+            f"/assessments?section={enrollment.section_id}",
+        )
+    if item.resource_type == "attendance" and (record := db.get(Attendance, item.resource_id)):
+        enrollment = db.get(Enrollment, record.enrollment_id)
+        if enrollment:
+            return (
+                f"Asistencia del {record.date:%d/%m/%Y} · {enrollment.section.code} · "
+                f"{_student_label(enrollment.student)}",
+                f"/sections/{enrollment.section_id}",
+            )
+    return "Registro eliminado o no disponible", ""
+
+
+def describe_approval(db: Session, item: ApprovalRequest) -> ApprovalOut:
+    requester = db.get(User, item.requested_by)
+    resolver = db.get(User, item.resolved_by) if item.resolved_by else None
+    label, path = approval_resource(db, item)
+    return ApprovalOut.model_validate(item).model_copy(
+        update={
+            "resource_label": label,
+            "resource_path": path,
+            "requested_by_name": requester.username if requester else "",
+            "resolved_by_name": resolver.username if resolver else "",
+        }
+    )
 
 
 @router.get("/approvals/mine", response_model=list[ApprovalOut])
 def my_approvals(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return (
+    items = (
         db.query(ApprovalRequest)
         .filter_by(requested_by=user.user_id)
         .order_by(ApprovalRequest.created_at.desc(), ApprovalRequest.approval_request_id.desc())
         .all()
     )
+    return [describe_approval(db, item) for item in items]
 
 
 def ensure_approval_resource(db, user, data):
@@ -799,7 +858,7 @@ def request_approval(
     )
     db.commit()
     db.refresh(item)
-    return item
+    return describe_approval(db, item)
 
 
 @router.patch("/approvals/{request_id}", response_model=ApprovalOut)
@@ -807,7 +866,7 @@ def resolve_approval(
     request_id: int,
     data: ApprovalResolve,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_admin),
+    user: User = Depends(approvals_manager),
 ):
     lock_governance(db)
     item = db.get(ApprovalRequest, request_id)
@@ -824,7 +883,7 @@ def resolve_approval(
     record(db, user, "approval.resolved", f"approval:{request_id}", f"pending → {data.status}")
     db.commit()
     db.refresh(item)
-    return item
+    return describe_approval(db, item)
 
 
 @router.get("/students/{student_id}/documents", response_model=list[StudentDocumentOut])
@@ -845,7 +904,7 @@ def upload_document(
     student_id: int,
     data: StudentDocumentCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(operations_admin),
+    user: User = Depends(documents_manager),
 ):
     if db.get(Student, student_id) is None:
         raise HTTPException(404, "El expediente del estudiante ya no está disponible")
@@ -916,7 +975,7 @@ def download_document(
 
 @router.get(
     "/analytics/summary",
-    dependencies=[Depends(require_permissions("reports.view", fallback_roles=("admin",)))],
+    dependencies=[Depends(require_permissions("reports.view"))],
 )
 def analytics(period: str | None = None, db: Session = Depends(get_db)):
     students = db.query(Student).count()
@@ -950,7 +1009,7 @@ def percentage(numerator: int | float, denominator: int | float) -> float:
 
 @router.get(
     "/analytics/academic",
-    dependencies=[Depends(require_permissions("reports.view", fallback_roles=("admin",)))],
+    dependencies=[Depends(require_permissions("reports.view"))],
 )
 def academic_analytics(period: str | None = None, db: Session = Depends(get_db)):
     if period and not db.query(AcademicPeriod).filter_by(name=period).first():
@@ -967,6 +1026,7 @@ def academic_analytics(period: str | None = None, db: Session = Depends(get_db))
     def metrics(enrollments):
         calculations = [academic_result(db, e) for e in enrollments]
         finals = [r for r in calculations if r.final and r.value is not None]
+        provisionals = [r for r in calculations if not r.final and r.value is not None]
         ids = [e.enrollment_id for e in enrollments]
         attendance = (
             db.query(Attendance).filter(Attendance.enrollment_id.in_(ids)).all() if ids else []
@@ -976,6 +1036,12 @@ def academic_analytics(period: str | None = None, db: Session = Depends(get_db))
             if finals
             else None,
             "grade_count": len(finals),
+            "provisional_average_grade": round(
+                sum(r.value for r in provisionals) / len(provisionals), 2
+            )
+            if provisionals
+            else None,
+            "provisional_grade_count": len(provisionals),
             "attendance_count": len(attendance),
             "attendance_percentage": percentage(sum(a.present for a in attendance), len(attendance))
             if attendance

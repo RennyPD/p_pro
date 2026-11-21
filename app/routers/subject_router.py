@@ -9,6 +9,7 @@ from app.pagination import paginate_and_filter
 from app.routers.curriculum_router import course_out
 from app.schemas.subject_schema import (
     SubjectCreate,
+    SubjectListItem,
     SubjectOut,
     SubjectOverview,
     SubjectProgramOut,
@@ -23,7 +24,7 @@ from app.services.subject_service import (
 )
 
 router = APIRouter(prefix="/subjects", tags=["subjects"])
-subject_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+subject_manager = require_permissions("programs.manage")
 
 
 @router.post("/", response_model=SubjectOut, dependencies=[Depends(subject_manager)])
@@ -31,7 +32,7 @@ def create_subject(subject_data: SubjectCreate, db: Session = Depends(get_db)):
     return create_subject_service(db, subject_data)
 
 
-@router.get("/", response_model=list[SubjectOut], dependencies=[Depends(get_current_user)])
+@router.get("/", response_model=list[SubjectListItem], dependencies=[Depends(get_current_user)])
 def get_subjects(
     q: str | None = None,
     career_id: int | None = Query(default=None, ge=1),
@@ -39,9 +40,31 @@ def get_subjects(
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    return paginate_and_filter(
+    subjects = paginate_and_filter(
         get_subjects_service(db, career_id), skip, limit, q, ("code", "description")
     )
+    ids = [subject.subject_id for subject in subjects]
+    courses = (
+        db.query(CurriculumCourse).filter(CurriculumCourse.subject_id.in_(ids)).all() if ids else []
+    )
+    sections = db.query(Section.subject_id).filter(Section.subject_id.in_(ids)).all() if ids else []
+    rows = []
+    for subject in subjects:
+        own = [
+            course
+            for course in courses
+            if course.subject_id == subject.subject_id
+            and course.curriculum_version == course.career.curriculum_version
+        ]
+        rows.append(
+            SubjectListItem(
+                **SubjectOut.model_validate(subject).model_dump(),
+                career_codes=sorted({course.career.code for course in own}),
+                credits=own[0].credits if own else None,
+                section_count=sum(row.subject_id == subject.subject_id for row in sections),
+            )
+        )
+    return rows
 
 
 @router.get("/{subject_id}", response_model=SubjectOut, dependencies=[Depends(get_current_user)])

@@ -1,5 +1,8 @@
 import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { DateInput } from "../../components/DateInput";
+import { formatDateTime } from "../../lib/format";
+import { provisionalReason } from "../../lib/academicResult";
 import { BookCheck, History, Lock, Plus, Save, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -8,6 +11,7 @@ import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./assessments.css";
+import { useAccess } from "../../lib/permissions";
 
 type Section = {
   section_id: number;
@@ -151,6 +155,8 @@ export function AssessmentsPage() {
 
 function SectionBook({ section }: { section: Section }) {
   const user = useAuthStore(state => state.user);
+  const access = useAccess();
+  const canReopen = access.institution && access.can("grades.manage");
   const client = useQueryClient();
   const [tab, setTab] = useState("book");
   const [values, setValues] = useState<Record<string, string>>({});
@@ -345,7 +351,10 @@ function SectionBook({ section }: { section: Section }) {
         section_id: section.section_id,
         due_date: date || null,
       }),
-    onSuccess: refresh,
+    onSuccess: () => {
+      refresh();
+      toast.success("Componente agregado a la sección");
+    },
     onError: error => toast.error(apiMessage(error)),
   });
   const saveComponent = useMutation({
@@ -381,6 +390,18 @@ function SectionBook({ section }: { section: Section }) {
     0,
   );
   const hasReason = reason.trim().length >= 2;
+  const remaining = Math.max(0, 100 - configured);
+  const weightTooHigh = weight !== "" && Number(weight) > remaining + 0.001;
+  const distributionHint = dirty
+    ? "Guarda o descarta primero las notas sin guardar del Libro de notas."
+    : !Object.keys(weights).length
+      ? "Cambia al menos un porcentaje para guardar."
+      : Math.abs(proposed - 100) > 0.001
+        ? "El total debe sumar 100 %; ahora suma " + proposed.toFixed(2) + " %."
+        : !hasReason
+          ? "Escribe el motivo del cambio para guardar."
+          : "";
+  const focusReason = () => document.getElementById("assessment-reason")?.focus();
   return (
     <div data-unsaved-grades={dirty || Object.keys(weights).length > 0}>
       <div className="assessment-context">
@@ -418,6 +439,7 @@ function SectionBook({ section }: { section: Section }) {
       <label className="form-field assessment-reason">
         <span>Motivo del registro, corrección o reapertura</span>
         <input
+          id="assessment-reason"
           value={reason}
           onChange={event => setReason(event.target.value)}
           placeholder="Ej. Revisión del examen y corrección del puntaje"
@@ -426,10 +448,15 @@ function SectionBook({ section }: { section: Section }) {
       </label>
       {tab === "book" && (
         <>
-          <p className="muted">
-            Vacío significa pendiente; 0 es una nota válida. Los borradores no afectan resultados
-            oficiales. Guarda cada componente antes de publicarlo.
-          </p>
+          <div className="grade-legend" aria-hidden="true">
+            <span className="grade-state grade-state--published">Publicada</span>
+            <span className="grade-state grade-state--draft">Borrador</span>
+            <span className="grade-state grade-state--dirty">Sin guardar</span>
+            <span className="grade-state grade-state--pending">Pendiente</span>
+            <small>
+              Vacío = pendiente · 0 es una nota válida · los borradores no cuentan en el resultado.
+            </small>
+          </div>
           {!items.length ? (
             <EmptyState
               icon={<BookCheck />}
@@ -453,7 +480,7 @@ function SectionBook({ section }: { section: Section }) {
                         </th>
                       ))}
                       <th>
-                        Resultado publicado<small>Ponderado sobre 100</small>
+                        Resultado<small>Ponderado sobre 100</small>
                       </th>
                     </tr>
                   </thead>
@@ -474,8 +501,15 @@ function SectionBook({ section }: { section: Section }) {
                             const state = key in values ? "dirty" : (grade?.status ?? "pending");
                             return (
                               <td key={item.assessment_id}>
-                                <div className="assessment-grade-input">
+                                <div
+                                  className={`assessment-grade-input assessment-grade-input--${state}`}
+                                >
                                   <input
+                                    title={
+                                      grade?.status === "published"
+                                        ? `Aporta ${((grade.grade_value * item.weight) / 100).toFixed(2)} puntos`
+                                        : undefined
+                                    }
                                     aria-label={
                                       item.name +
                                       " de " +
@@ -537,25 +571,11 @@ function SectionBook({ section }: { section: Section }) {
                                     </button>
                                   )}
                                 </div>
-                                <Badge
-                                  tone={
-                                    state === "published"
-                                      ? "success"
-                                      : state === "dirty" || state === "draft"
-                                        ? "warning"
-                                        : "neutral"
-                                  }
-                                >
+                                <span className={`grade-state grade-state--${state}`}>
                                   {state === "dirty"
                                     ? "Sin guardar"
                                     : (labels[state] ?? "Pendiente")}
-                                </Badge>
-                                {grade?.status === "published" && (
-                                  <small>
-                                    Aporta {((grade.grade_value * item.weight) / 100).toFixed(2)}{" "}
-                                    puntos
-                                  </small>
-                                )}
+                                </span>
                               </td>
                             );
                           })}
@@ -564,8 +584,9 @@ function SectionBook({ section }: { section: Section }) {
                               {result?.completed_weight ? result.weighted_grade.toFixed(2) : "—"}
                             </strong>
                             <small>
-                              {result?.final ? labels[result.status] : "Provisional"} ·{" "}
-                              {result?.completed_weight ?? 0}% calificado
+                              {result?.final
+                                ? `Definitivo · ${labels[result.status]}`
+                                : `Provisional · ${provisionalReason(result?.completed_weight ?? 0)}`}
                             </small>
                           </td>
                         </tr>
@@ -635,7 +656,7 @@ function SectionBook({ section }: { section: Section }) {
                           >
                             <Lock size={16} /> Cerrar
                           </Button>
-                        ) : user?.role_name === "admin" ? (
+                        ) : canReopen ? (
                           <Button
                             variant="secondary"
                             disabled={!hasReason || reopen.isPending}
@@ -694,18 +715,22 @@ function SectionBook({ section }: { section: Section }) {
             <div className="form-actions">
               <strong>Total propuesto: {proposed.toFixed(2)}%</strong>
               <Button
-                disabled={
-                  !Object.keys(weights).length ||
-                  Math.abs(proposed - 100) > 0.001 ||
-                  !hasReason ||
-                  distribute.isPending ||
-                  dirty
-                }
+                disabled={Boolean(distributionHint) || distribute.isPending}
                 onClick={() => distribute.mutate()}
               >
                 Guardar distribución
               </Button>
             </div>
+            {distributionHint && (
+              <p className="muted assessment-hint" role="status">
+                {distributionHint}{" "}
+                {!dirty && Object.keys(weights).length > 0 && !hasReason && (
+                  <Button type="button" variant="secondary" onClick={focusReason}>
+                    Escribir motivo
+                  </Button>
+                )}
+              </p>
+            )}
           </section>
           <div className="assessment-plan-grid">
             <form
@@ -737,15 +762,27 @@ function SectionBook({ section }: { section: Section }) {
                   max="100"
                   step=".01"
                   value={weight}
+                  aria-describedby="assessment-weight-hint"
                   onChange={event => setWeight(event.target.value)}
                 />
               </label>
+              <p
+                id="assessment-weight-hint"
+                className={weightTooHigh ? "form-error" : "muted"}
+                role={weightTooHigh ? "alert" : undefined}
+              >
+                {weightTooHigh
+                  ? "Supera el disponible: quedan " + remaining.toFixed(2) + " % por configurar."
+                  : "Disponible: " + remaining.toFixed(2) + " %."}
+              </p>
               <label className="form-field">
                 <span>Fecha límite</span>
-                <input type="date" value={date} onChange={event => setDate(event.target.value)} />
+                <DateInput value={date} onValueChange={event => setDate(event)} />
               </label>
               <div className="form-actions">
-                <Button disabled={create.isPending || configured >= 100}>Crear componente</Button>
+                <Button disabled={create.isPending || configured >= 100 || weightTooHigh}>
+                  Crear componente
+                </Button>
                 <Button
                   type="button"
                   variant="secondary"
@@ -863,7 +900,7 @@ function SectionBook({ section }: { section: Section }) {
                   }[item.action] ?? item.action}
                 </strong>
                 <small>
-                  {new Date(item.created_at + "Z").toLocaleString()} · {item.actor}
+                  {formatDateTime(item.created_at)} · {item.actor}
                 </small>
                 <p>{item.detail}</p>
               </article>
@@ -921,12 +958,7 @@ function AssessmentEditor({ item, refresh }: { item: Assessment; refresh: () => 
       </label>
       <label className="form-field">
         <span>Fecha límite</span>
-        <input
-          type="date"
-          disabled={item.closed}
-          value={date}
-          onChange={event => setDate(event.target.value)}
-        />
+        <DateInput disabled={item.closed} value={date} onValueChange={event => setDate(event)} />
       </label>
       <Button disabled={item.closed || update.isPending}>Guardar datos</Button>
     </form>
@@ -979,7 +1011,7 @@ function GradeHistory({
               {change.new_value}
             </strong>
             <small>
-              {change.changed_by_name} · {new Date(change.changed_at + "Z").toLocaleString()}
+              {change.changed_by_name} · {formatDateTime(change.changed_at)}
             </small>
             <p>{change.reason}</p>
             <small>

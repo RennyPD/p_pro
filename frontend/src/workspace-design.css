@@ -86,8 +86,10 @@
   font-weight: 650;
   line-height: 1.35;
   max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: var(--surface-sunken);
   color: var(--muted);
 }
@@ -200,8 +202,10 @@ textarea::placeholder {
 .lookup-popover {
   max-width: 100%;
 }
+/* Above the sticky modal actions (z-index 4) so an open list is never covered. */
 .lookup-field:has(.lookup-popover) {
-  z-index: 3;
+  position: relative;
+  z-index: 6;
 }
 .resource-toolbar {
   flex-wrap: wrap;
@@ -1010,4 +1014,719 @@ textarea::placeholder {
 .page select[multiple] {
   background-image: none;
   padding-right: 0.8rem;
+}
+.approval-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.approval-head h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+.page > article.panel + article.panel {
+  margin-top: 0.8rem;
+}
+.document-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.document-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.document-list li > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.document-list small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.audit-filters {
+  display: grid;
+  grid-template-columns: 1.3fr 1.3fr 1fr 1fr auto;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+.audit-filters .form-field {
+  margin: 0;
+}
+.audit-filters > .button {
+  height: 46px;
+}
+.pagination {
+  align-items: center;
+}
+.pagination__page {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+@media (max-width: 900px) {
+  .audit-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .audit-filters > .button {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 760px) {
+  .resource-toolbar {
+    align-items: stretch;
+  }
+  .resource-toolbar .search-box {
+    flex: none;
+    width: 100%;
+  }
+  .resource-toolbar > .button {
+    align-self: flex-start;
+  }
+}
+/* Only a modal's own form keeps its actions visible; cards listed inside a modal do not. */
+.modal form > .form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin-bottom: -1.25rem;
+  padding-bottom: 1.25rem;
+  background: var(--surface);
+}
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--blue);
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+.session-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+.session-list li {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.session-list span {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+.session-list small {
+  color: var(--muted);
+}
+.account-subheading {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  font-size: 1.15rem;
+}
+/* Keep the chevron on every single select even when a page overrides 'background'. */
+.main-surface .page select:not([multiple]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  padding-right: 2.5rem;
+  appearance: none;
+}
+.date-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 150px;
+}
+.date-input > input[type="text"] {
+  width: 100%;
+  padding-right: 2.6rem !important;
+  font-variant-numeric: tabular-nums;
+}
+.date-input__picker {
+  position: absolute;
+  right: 0.35rem;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+.date-input__picker:hover:not(:disabled) {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+.date-input__native {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+  padding: 0;
+}
+.date-input--invalid > input[type="text"] {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.pager > div {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.pager__page {
+  white-space: nowrap;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.attention-list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.attention-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+.attention-item:hover {
+  background: var(--surface-muted);
+}
+.attention-item > svg:first-child {
+  flex-shrink: 0;
+  width: 18px;
+  color: var(--blue-strong);
+}
+.attention-item > span {
+  flex: 1;
+  display: grid;
+  gap: 0.15rem;
+}
+.attention-item small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.attention-item--warning {
+  border-left-color: var(--warning-line);
+}
+.attention-item--info {
+  border-left-color: var(--blue);
+}
+.attention-item--neutral {
+  border-left-color: var(--line-dark);
+}
+.all-clear {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--success);
+  font-weight: 600;
+}
+.all-clear svg {
+  width: 18px;
+}
+.career-bars {
+  display: grid;
+  gap: 1.1rem;
+  margin-top: 0.5rem;
+}
+.career-bar {
+  display: grid;
+  gap: 0.35rem;
+}
+.career-bar__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.86rem;
+}
+.career-bar__head span {
+  color: var(--muted);
+}
+.career-bar__track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.career-bar__track span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--blue);
+}
+.career-bar small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.timeline-item {
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+}
+.day-panel > .text-link,
+.panel > .text-link {
+  margin-top: 1rem;
+}
+.sidebar-nav {
+  gap: 0.1rem;
+}
+.sidebar-nav a {
+  padding: 0.52rem 0.8rem;
+  font-size: 0.86rem;
+}
+.nav-caption {
+  padding: 0.85rem 0.8rem 0.3rem;
+}
+.workspace-switch {
+  margin: 1.2rem 0 0.4rem;
+}
+
+/* Classrooms list (Secciones → Aulas). */
+.room-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.room-toolbar p {
+  margin: 0;
+}
+
+.room-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.room-list li {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.room-list li:last-child {
+  border-bottom: 0;
+}
+
+.room-list li:hover {
+  background: var(--surface-muted);
+}
+
+.room-list__icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.room-list__name {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.room-list__name small,
+.room-list__capacity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.room-list__capacity {
+  white-space: nowrap;
+}
+
+.room-list__item--retired .room-list__icon {
+  color: var(--subtle);
+  background: var(--surface-sunken);
+}
+
+.room-list__item--retired strong {
+  color: var(--muted);
+}
+
+@media (max-width: 560px) {
+  .room-list li {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+  }
+
+  .room-list__capacity,
+  .room-list li > .badge {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .room-list li > .row-actions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+/* Segmented view switch (e.g. Mis solicitudes / Bandeja institucional). */
+.view-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.2rem;
+}
+
+.view-tabs button {
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.view-tabs button[aria-pressed="true"] {
+  border-color: var(--blue-line);
+  background: var(--blue-soft);
+  color: var(--blue-strong);
+}
+
+/* A button row placed directly on a page is a toolbar, not a form footer. */
+.page > .form-actions {
+  margin: 0 0 1.2rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* Panel title on the left, its actions grouped on the right. */
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.section-heading h2 {
+  margin: 0;
+}
+
+.section-heading__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+textarea {
+  font: inherit;
+}
+
+.room-list__icon--day {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.schedule-fallback {
+  padding: 0.9rem 1rem;
+  border: 1px dashed var(--line-dark);
+  border-radius: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Classroom availability hint under the section room field. */
+.room-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.form-field small.room-hint {
+  color: var(--muted);
+}
+
+.form-field small.room-hint--warning {
+  color: var(--danger);
+}
+
+.form-field small.room-hint--ok {
+  color: var(--success);
+}
+
+/* The room field carries availability messages: give it the full row. */
+.resource-form .form-field:has(.room-hint) {
+  grid-column: 1 / -1;
+}
+
+/* Approval requests */
+.approval-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.approval-card {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.approval-card p {
+  margin: 0;
+}
+
+.approval-reason {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  border-left: 3px solid var(--line-dark);
+  border-radius: 0 8px 8px 0;
+  background: var(--surface-muted);
+}
+
+.approval-decision {
+  padding: 0.55rem 0.8rem;
+  border-radius: 9px;
+  font-size: 0.88rem;
+}
+
+.approval-decision--approved {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.approval-decision--rejected {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.approval-actions .text-link {
+  margin-right: auto;
+}
+
+.approval-actions:empty {
+  display: none;
+}
+
+/* SearchSelect: one field that searches and chooses. */
+.search-select {
+  position: relative;
+}
+
+.search-select__control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 46px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--subtle);
+}
+
+.search-select__control:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
+.search-select__control.is-disabled {
+  background: var(--surface-sunken);
+}
+
+.search-select__control input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--ink);
+}
+
+.search-select__control input::placeholder {
+  color: var(--muted);
+}
+
+.search-select__clear {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.search-select__list {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 260px;
+  margin: 0;
+  padding: 0.35rem;
+  overflow: auto;
+  list-style: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 18px 45px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+.search-select__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 8px;
+  color: var(--ink-soft);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.search-select__list li > span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.search-select__list li small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.search-select__list li.is-active,
+.search-select__list li[aria-selected="true"] {
+  background: var(--blue-soft);
+}
+
+.search-select__list li svg {
+  color: var(--blue);
+}
+
+.search-select__list .search-select__empty {
+  color: var(--muted);
+  cursor: default;
+}
+
+.approval-head h2 {
+  margin-top: 0.25rem;
+}
+
+/* Student transcript metrics: equal cards, top-aligned. */
+.transcript-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.transcript-metrics article {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.transcript-metrics span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.transcript-metrics strong {
+  font:
+    800 1.8rem "Manrope",
+    sans-serif;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.transcript-metrics .transcript-metrics__text {
+  font-size: 1.15rem;
+}
+
+.transcript-metrics small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.table-panel:has(table) {
+  min-height: 0;
+}
+
+@media (max-width: 760px) {
+  .transcript-metrics {
+    grid-template-columns: 1fr;
+  }
 }

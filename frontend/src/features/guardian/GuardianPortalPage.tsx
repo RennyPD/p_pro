@@ -1,5 +1,8 @@
 import { RequestApproval } from "../operations/ApprovalsPage";
 import { DocumentDownload } from "../../components/DocumentDownload";
+import { formatDate, formatMoney, formatTime, todayIso } from "../../lib/format";
+import { describeAverage, isLowAttendance } from "../../lib/academicResult";
+
 import { scheduleBlocks, type ScheduleBlock } from "../../lib/schedule";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -67,13 +70,8 @@ const modalities: Record<string, string> = {
   virtual: "Virtual",
   hybrid: "Híbrida",
 };
-const money = (value: number) =>
-  new Intl.NumberFormat("es-DO", { style: "currency", currency: "DOP" }).format(value);
-const time = (value: string) =>
-  new Date(`2000-01-01T${value}`).toLocaleTimeString("es-DO", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+const money = formatMoney;
+const time = (value: string) => formatTime(value);
 
 export function GuardianPortalPage() {
   const query = useQuery<StudentOverview[]>({
@@ -108,6 +106,13 @@ export function GuardianPortalPage() {
       </div>
     );
   const student = query.data.find(item => item.student_id === selectedId) ?? query.data[0];
+  const average = describeAverage({
+    finalAverage: student.average_grade,
+    finalCount: student.final_grade_count,
+    provisionalAverage: student.provisional_average_grade,
+    provisionalCount: student.provisional_grade_count,
+  });
+  const today = todayIso();
 
   return (
     <div className="page guardian-page">
@@ -117,21 +122,28 @@ export function GuardianPortalPage() {
           <h1>Seguimiento académico</h1>
           <p>Información esencial para acompañar el progreso del estudiante.</p>
         </div>
-        {query.data.length > 1 && (
-          <label className="student-switch">
-            <span>Estudiante</span>
-            <select
-              value={student.student_id}
-              onChange={event => setSelectedId(Number(event.target.value))}
-            >
-              {query.data.map(item => (
-                <option key={item.student_id} value={item.student_id}>
-                  {item.student_name} · {item.enrollment_number}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <div className="guardian-actions">
+          {query.data.length > 1 && (
+            <label className="student-switch">
+              <span>Estudiante</span>
+              <select
+                value={student.student_id}
+                onChange={event => setSelectedId(Number(event.target.value))}
+              >
+                {query.data.map(item => (
+                  <option key={item.student_id} value={item.student_id}>
+                    {item.student_name} · {item.enrollment_number}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <RequestApproval
+            resource="student"
+            id={student.student_id}
+            label={`${student.student_name} · ${student.enrollment_number}`}
+          />
+        </div>
       </header>
       <section className="guardian-hero">
         <div>
@@ -148,53 +160,47 @@ export function GuardianPortalPage() {
           {student.active ? "Activo" : "Inactivo"}
         </span>
       </section>
-      <RequestApproval
-        resource="student"
-        id={student.student_id}
-        label={`${student.student_name} · ${student.enrollment_number}`}
-      />
       <GuardianDocuments student={student} />
       <section className="guardian-metrics">
         <article>
-          <GraduationCap />
-          <span>Promedio definitivo</span>
-          <strong>{student.average_grade ?? "Sin datos"}</strong>
+          <span>
+            <GraduationCap />
+            {average.kind === "provisional" ? "Promedio provisional" : "Promedio"}
+          </span>
+          <strong>{average.value}</strong>
           <small>
-            {student.final_grade_count ?? 0} resultados ·{" "}
-            {student.metrics_period ?? "Sin período vigente"}
+            {average.note} · {student.metrics_period ?? "Sin período vigente"}
           </small>
         </article>
         <article>
-          <GraduationCap />
-          <span>Promedio provisional</span>
-          <strong>{student.provisional_average_grade ?? "Sin datos"}</strong>
-          <small>
-            {student.provisional_grade_count ?? 0} resultados ·{" "}
-            {student.metrics_period ?? "Sin período vigente"}
-          </small>
-        </article>
-        <article>
-          <CalendarDays />
-          <span>Asistencia</span>
-          <strong>
+          <span>
+            <CalendarDays />
+            Asistencia
+          </span>
+          <strong className={isLowAttendance(student.attendance_percentage) ? "is-low" : ""}>
             {student.attendance_percentage === null
               ? "Sin datos"
               : `${student.attendance_percentage}%`}
           </strong>
+          <small>{student.attendance_count ?? 0} clases registradas</small>
+        </article>
+        <article>
+          <span>
+            <AlertTriangle />
+            Alertas abiertas
+          </span>
+          <strong>{student.alerts.length}</strong>
           <small>
-            {student.attendance_count ?? 0} registros ·{" "}
-            {student.metrics_period ?? "Sin período vigente"}
+            {student.alerts.length ? "Requieren acompañamiento" : "Sin situaciones abiertas"}
           </small>
         </article>
         <article>
-          <AlertTriangle />
-          <span>Alertas abiertas</span>
-          <strong>{student.alerts.length}</strong>
-        </article>
-        <article>
-          <Wallet />
-          <span>Balance</span>
+          <span>
+            <Wallet />
+            Balance pendiente
+          </span>
           <strong>{money(student.balance)}</strong>
+          <small>{student.balance > 0 ? "Consulta con caja institucional" : "Al día"}</small>
         </article>
       </section>
       <div className="guardian-grid">
@@ -220,10 +226,8 @@ export function GuardianPortalPage() {
                   <div>
                     {scheduleBlocks(item).map((block, index) => (
                       <p key={index}>
-                        {block.day_of_week}
-                        <br />
-                        {time(block.start_time)}–{time(block.end_time)} · {block.room} ·{" "}
-                        {modalities[block.modality] ?? block.modality}
+                        <b>{block.day_of_week}</b> {time(block.start_time)}–{time(block.end_time)} ·{" "}
+                        {block.room}
                       </p>
                     ))}
                   </div>
@@ -252,9 +256,11 @@ export function GuardianPortalPage() {
                   </div>
                   <p>{alert.reason}</p>
                   {alert.follow_up_date && (
-                    <small>
-                      Seguimiento:{" "}
-                      {new Date(`${alert.follow_up_date}T12:00:00`).toLocaleDateString("es-DO")}
+                    <small className={alert.follow_up_date < today ? "is-overdue" : ""}>
+                      {alert.follow_up_date < today
+                        ? "Seguimiento vencido desde el"
+                        : "Próximo seguimiento:"}{" "}
+                      {formatDate(alert.follow_up_date)}
                     </small>
                   )}
                 </article>

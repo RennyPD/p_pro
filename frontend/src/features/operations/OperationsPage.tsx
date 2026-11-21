@@ -1,7 +1,8 @@
 import { confirmAction } from "../../lib/confirm";
 import { DocumentDownload } from "../../components/DocumentDownload";
+import { formatDate, formatDateTime } from "../../lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ClipboardList } from "lucide-react";
+import { CalendarClock, CalendarDays, ClipboardList, Info, Target } from "lucide-react";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./operations.css";
 import { TaskCard, type TaskTone } from "./TaskCard";
+import { useAccess } from "../../lib/permissions";
 
 type Section = { section_id: number; code: string; subject_name: string; period_name: string };
 type Submission = {
@@ -103,7 +105,9 @@ const tone = (t: Task): TaskTone => {
 
 export function OperationsPage() {
   const user = useAuthStore(s => s.user);
-  const manager = user?.role_name === "admin" || user?.role_name === "teacher";
+  const access = useAccess();
+  const manager =
+    (access.institution || access.teaching) && access.canAny("tasks.manage", "calendar.manage");
   const client = useQueryClient();
   const [tab, setTab] = useState("tasks"),
     [section, setSection] = useState(""),
@@ -235,7 +239,7 @@ export function OperationsPage() {
         >
           Agenda académica
         </Button>
-        {user?.role_name === "admin" && (
+        {access.institution && access.canAny("reports.view", "cases.manage") && (
           <Link to="/institutional-control">Seguimiento académico →</Link>
         )}
       </div>
@@ -399,7 +403,7 @@ export function OperationsPage() {
                 .sort((a, b) => date(a.starts_at).getTime() - date(b.starts_at).getTime())
                 .map(e => (
                   <article key={e.id}>
-                    <time>{date(e.starts_at).toLocaleDateString("es-DO")}</time>
+                    <time>{formatDate(e.starts_at)}</time>
                     {eventButton(e)}
                   </article>
                 ))}
@@ -441,7 +445,7 @@ export function OperationsPage() {
         <TaskDetail
           task={task}
           manager={manager}
-          student={user?.role_name === "student"}
+          student={access.student}
           userId={user?.user_id}
           onClose={() => setSelected(null)}
           onSaved={refresh}
@@ -452,7 +456,7 @@ export function OperationsPage() {
           event={eventEditor}
           sections={sections.data ?? []}
           manager={manager}
-          admin={user?.role_name === "admin"}
+          admin={access.institution && access.can("calendar.manage")}
           onClose={() => setEventEditor(null)}
           onSaved={refresh}
         />
@@ -460,7 +464,7 @@ export function OperationsPage() {
       {info && (
         <Modal title={info.title} onClose={() => setInfo(null)}>
           <p>
-            {info.subject_name} · {date(info.starts_at).toLocaleDateString("es-DO")}
+            {info.subject_name} · {formatDate(info.starts_at)}
           </p>
           <p>Fecha programada de evaluación. No equivale a una entrega de tarea.</p>
           <Link to={manager ? `/assessments?section=${info.section_id}` : "/my-grades"}>
@@ -727,44 +731,56 @@ function TaskDetail({
       description={`${task.subject_name} · ${task.section_code} · ${task.teacher_name}`}
       onClose={onClose}
     >
-      <div className="operations-detail">
-        <Badge>{state(task)}</Badge>
-        <p className="preserve-lines">{task.instructions}</p>
-        <p>
-          Vence: {date(task.due_at).toLocaleString("es-DO")} · Máximo: {task.max_score} puntos
-        </p>
-        <p>
-          {task.allow_late ? "Acepta entregas tardías." : "No admite entregas después del plazo."}{" "}
-          {task.allow_resubmit ? "Permite reenvíos antes de calificar." : "Una sola entrega."}
-        </p>
+      <div className="operations-detail task-detail">
+        <div className="task-facts">
+          <Badge tone={task.submission?.score != null ? "success" : "info"}>{state(task)}</Badge>
+          <span>
+            <CalendarClock size={15} /> Vence {formatDateTime(task.due_at)}
+          </span>
+          <span>
+            <Target size={15} /> {task.max_score} puntos
+          </span>
+          <span title={task.allow_late ? "Acepta entregas tardías" : "No admite entregas tardías"}>
+            {task.allow_late ? "Admite tardías" : "Sin entregas tardías"}
+          </span>
+          {task.allow_resubmit && <span>Reenvío antes de calificar</span>}
+        </div>
+        <p className="preserve-lines task-instructions">{task.instructions}</p>
         {student && (
-          <section>
+          <section className="task-mine">
             <h3>Mi entrega</h3>
             {task.submission && (
               <>
-                <p>
-                  {labels[task.submission.status]} ·{" "}
-                  {date(task.submission.submitted_at).toLocaleString("es-DO")}
-                  {date(task.submission.submitted_at) > date(task.due_at) ? " · Tardía" : ""} ·{" "}
-                  {task.submission.attempts} intento(s)
-                </p>
-                <p className="preserve-lines">{task.submission.content}</p>
                 {task.submission.score !== null && (
-                  <p>
-                    Resultado de la tarea:{" "}
+                  <div className="task-result">
                     <strong>
-                      {task.submission.score}/{task.max_score}
+                      {task.submission.score}
+                      <small>/{task.max_score}</small>
                     </strong>
-                    <br />
-                    Devolución: {task.submission.feedback || "Sin comentario"}
-                  </p>
+                    <div>
+                      <span>Resultado de la tarea</span>
+                      <p>{task.submission.feedback || "Sin comentario del docente"}</p>
+                    </div>
+                  </div>
                 )}
-                <Button
-                  variant="ghost"
-                  onClick={() => setAttemptId(task.submission!.submission_id)}
-                >
-                  Ver intentos
-                </Button>
+                <p className="task-meta">
+                  {labels[task.submission.status]} el {formatDateTime(task.submission.submitted_at)}
+                  {date(task.submission.submitted_at) > date(task.due_at) && (
+                    <Badge tone="warning">Tardía</Badge>
+                  )}
+                  <button
+                    type="button"
+                    className="text-link"
+                    onClick={() => setAttemptId(task.submission!.submission_id)}
+                  >
+                    {task.submission.attempts > 1
+                      ? `Ver ${task.submission.attempts} intentos`
+                      : "Ver intento"}
+                  </button>
+                </p>
+                <blockquote className="preserve-lines task-content">
+                  {task.submission.content}
+                </blockquote>
               </>
             )}
             {canSend ? (
@@ -798,12 +814,12 @@ function TaskDetail({
                 </Button>
               </form>
             ) : (
-              <p>No se admiten nuevas entregas en este estado.</p>
+              !task.submission && <p className="muted">El plazo de entrega terminó.</p>
             )}
             {task.assessment_id && (
-              <p>
-                El resultado de la tarea no es todavía una nota académica publicada. Consulta tus
-                calificaciones cuando el docente la publique.
+              <p className="task-note">
+                <Info size={15} /> Cuenta para la evaluación del curso cuando el docente publique la
+                nota en Mis notas.
               </p>
             )}
           </section>
@@ -868,7 +884,7 @@ function TaskDetail({
             {revisions.data?.map((r, i) => (
               <article className="attempt-card" key={r.revision_id}>
                 <strong>
-                  Intento {i + 1} · {date(r.submitted_at).toLocaleString("es-DO")}
+                  Intento {i + 1} · {formatDateTime(r.submitted_at)}
                 </strong>
                 <p className="preserve-lines">{r.content}</p>
                 {r.filename && (
@@ -931,7 +947,7 @@ function SubmissionReview({
       {open && item && (
         <>
           <p>
-            {date(item.submitted_at).toLocaleString("es-DO")}
+            {formatDateTime(item.submitted_at)}
             {date(item.submitted_at) > date(task.due_at) ? " · Entrega tardía" : ""}
           </p>
           <p className="preserve-lines">{item.content}</p>

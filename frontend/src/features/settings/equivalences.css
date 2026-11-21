@@ -216,3 +216,65 @@
     gap: 0.6rem;
   }
 }
+.equivalences-page .form-field {
+  align-self: start;
+  align-content: start;
+}
+
+/* Create form in three numbered steps. */
+.equivalence-step {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.equivalence-step legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.4rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.equivalence-step legend span {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue-soft);
+  color: var(--blue-strong);
+  font-size: 0.75rem;
+}
+
+.equivalence-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 0.8rem;
+}
+
+.equivalence-pair__arrow {
+  width: 22px;
+  margin-bottom: 0.8rem;
+  color: var(--blue);
+}
+
+.equivalence-hint {
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 760px) {
+  .equivalence-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .equivalence-pair__arrow {
+    transform: rotate(90deg);
+    margin: 0 auto;
+  }
+}

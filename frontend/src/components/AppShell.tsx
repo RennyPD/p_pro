@@ -1,109 +1,186 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowLeftRight,
+  BarChart3,
   Bell,
   BookOpen,
+  CalendarCheck,
   CalendarDays,
-  ChevronDown,
   ClipboardCheck,
   FileText,
   GraduationCap,
+  KeyRound,
   LayoutDashboard,
+  Library,
   LogOut,
   Menu,
+  NotebookPen,
   Settings2,
   Users,
   Wallet,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { isCustomRole, useModuleViews } from "../lib/moduleViews";
+import { useModuleViews } from "../lib/moduleViews";
 import { api } from "../lib/api";
+import { useAccess } from "../lib/permissions";
 import { useAuthStore } from "../store/auth";
-import type { Role } from "../types";
 
-const adminNav = [
-  { to: "/", label: "Vista general", icon: LayoutDashboard },
-  { to: "/students", label: "Estudiantes", icon: GraduationCap },
-  { to: "/teachers", label: "Docentes", icon: Users },
-  { to: "/careers", label: "Carreras", icon: GraduationCap },
-  { to: "/subjects", label: "Asignaturas", icon: BookOpen },
-  { to: "/sections", label: "Secciones", icon: CalendarDays },
-  { to: "/assessments", label: "Evaluaciones", icon: BookOpen },
-  { to: "/operations", label: "Agenda y tareas", icon: CalendarDays },
-  { to: "/grades", label: "Calificaciones", icon: BookOpen },
-  { to: "/attendances", label: "Asistencia", icon: ClipboardCheck },
-  { to: "/equivalences", label: "Equivalencias", icon: BookOpen },
-  { to: "/finance", label: "Finanzas", icon: Wallet },
-  { to: "/communications", label: "Comunicaciones", icon: Bell },
-  { to: "/institutional-control", label: "Control institucional", icon: FileText },
-  { to: "/settings", label: "Configuración", icon: Settings2 },
-];
-const teacherNav = [
-  { to: "/", label: "Mi jornada", icon: LayoutDashboard },
-  { to: "/my-schedule", label: "Mi horario", icon: CalendarDays },
-  { to: "/sections", label: "Mis secciones", icon: CalendarDays },
-  { to: "/students", label: "Mis estudiantes", icon: Users },
-  { to: "/assessments", label: "Evaluaciones", icon: BookOpen },
-  { to: "/operations", label: "Agenda y tareas", icon: CalendarDays },
-  { to: "/grades", label: "Calificaciones", icon: BookOpen },
-  { to: "/attendances", label: "Asistencia", icon: ClipboardCheck },
-  { to: "/communications", label: "Comunicaciones", icon: Bell },
-];
-const studentNav = [
-  { to: "/", label: "Mi resumen", icon: LayoutDashboard },
-  { to: "/my-catalog", label: "Elegir asignaturas", icon: BookOpen },
-  { to: "/my-schedule", label: "Mi horario", icon: CalendarDays },
-  { to: "/operations", label: "Agenda y tareas", icon: CalendarDays },
-  { to: "/my-grades", label: "Mis notas", icon: BookOpen },
-  { to: "/my-attendance", label: "Mi asistencia", icon: ClipboardCheck },
-  { to: "/my-progress", label: "Mi progreso", icon: GraduationCap },
-  { to: "/my-graduation", label: "Mi graduación", icon: GraduationCap },
-  { to: "/my-transcript", label: "Mi expediente", icon: FileText },
-  { to: "/my-finance", label: "Mi cuenta", icon: Wallet },
-  { to: "/communications", label: "Comunicaciones", icon: Bell },
-];
-const guardianNav = [
-  { to: "/guardian", label: "Seguimiento familiar", icon: Users },
-  { to: "/operations", label: "Agenda y tareas", icon: CalendarDays },
-  { to: "/communications", label: "Comunicaciones", icon: Bell },
-];
-const approvalsNav = { to: "/approvals", label: "Mis solicitudes", icon: FileText };
-const accountNav = { to: "/account", label: "Mi seguridad", icon: Settings2 };
-const navPermissions: Record<string, string> = {
-  "/institutional-control": "reports.view",
-  "/finance": "finance.manage",
-  "/grades": "grades.manage",
-  "/attendances": "grades.manage",
-  "/students": "academic.manage",
-  "/teachers": "academic.manage",
-  "/careers": "academic.manage",
-  "/subjects": "academic.manage",
-  "/sections": "academic.manage",
-  "/assessments": "grades.manage",
-  "/equivalences": "academic.manage",
-  "/roles": "access.manage",
-  "/users": "access.manage",
+type Access = ReturnType<typeof useAccess>;
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  group?: string;
+  /** Visible when this returns true: permissions and scope, never the role name. */
+  show?: (access: Access) => boolean;
 };
-const legacyPermissions: Record<Role, string[]> = {
-  admin: [
-    "academic.manage",
-    "grades.manage",
-    "finance.manage",
-    "reports.view",
-    "communications.manage",
-    "access.manage",
-    "operations.manage",
-  ],
-  teacher: ["grades.manage", "communications.manage", "operations.manage"],
-  student: ["records.own"],
-  guardian: ["records.own"],
-};
-const roleLabels: Record<Role, string> = {
-  admin: "Administración",
-  teacher: "Docente",
-  student: "Estudiante",
-  guardian: "Tutor",
+const staff = (a: Access) => a.institution || a.teaching;
+const own = (a: Access) => a.student && a.can("records.own");
+
+/** One menu for every role: each entry declares the permission it needs. */
+const NAV: NavItem[] = [
+  { to: "/", label: "Inicio", icon: LayoutDashboard, show: a => !a.guardian },
+  {
+    to: "/guardian",
+    label: "Seguimiento familiar",
+    icon: Users,
+    show: a => a.guardian && a.can("records.own"),
+  },
+  {
+    to: "/my-catalog",
+    label: "Elegir asignaturas",
+    icon: BookOpen,
+    group: "Mis estudios",
+    show: a => a.student && a.can("selection.own"),
+  },
+  { to: "/my-schedule", label: "Mi horario", icon: CalendarDays, group: "Mis estudios", show: own },
+  { to: "/my-grades", label: "Mis notas", icon: BarChart3, group: "Mis estudios", show: own },
+  {
+    to: "/my-attendance",
+    label: "Mi asistencia",
+    icon: ClipboardCheck,
+    group: "Mis estudios",
+    show: own,
+  },
+  {
+    to: "/my-progress",
+    label: "Mi progreso",
+    icon: GraduationCap,
+    group: "Trayectoria",
+    show: own,
+  },
+  { to: "/my-graduation", label: "Mi graduación", icon: Library, group: "Trayectoria", show: own },
+  { to: "/my-transcript", label: "Mi expediente", icon: FileText, group: "Trayectoria", show: own },
+  { to: "/my-finance", label: "Mi cuenta", icon: Wallet, group: "Trayectoria", show: own },
+  {
+    to: "/my-schedule",
+    label: "Mi horario",
+    icon: CalendarDays,
+    group: "Académico",
+    show: a => a.teaching,
+  },
+  {
+    to: "/students",
+    label: "Estudiantes",
+    icon: GraduationCap,
+    group: "Académico",
+    show: a => staff(a) && a.canAny("students.view", "students.manage"),
+  },
+  {
+    to: "/teachers",
+    label: "Docentes",
+    icon: Users,
+    group: "Académico",
+    show: a => a.institution && a.canAny("teachers.view", "teachers.manage"),
+  },
+  {
+    to: "/careers",
+    label: "Carreras",
+    icon: Library,
+    group: "Académico",
+    show: a => a.institution && a.can("programs.manage"),
+  },
+  {
+    to: "/subjects",
+    label: "Asignaturas",
+    icon: BookOpen,
+    group: "Académico",
+    show: a => a.institution && a.can("programs.manage"),
+  },
+  {
+    to: "/sections",
+    label: "Secciones",
+    icon: CalendarDays,
+    group: "Académico",
+    show: a => staff(a) && a.canAny("sections.view", "sections.manage"),
+  },
+  {
+    to: "/equivalences",
+    label: "Equivalencias",
+    icon: ArrowLeftRight,
+    group: "Académico",
+    show: a => a.institution && a.can("equivalences.manage"),
+  },
+  {
+    to: "/assessments",
+    label: "Evaluaciones",
+    icon: NotebookPen,
+    group: "Seguimiento",
+    show: a => staff(a) && a.can("grades.manage"),
+  },
+  {
+    to: "/grades",
+    label: "Calificaciones",
+    icon: BarChart3,
+    group: "Seguimiento",
+    show: a => staff(a) && a.canAny("grades.view", "grades.manage"),
+  },
+  {
+    to: "/attendances",
+    label: "Asistencia",
+    icon: ClipboardCheck,
+    group: "Seguimiento",
+    show: a => staff(a) && a.canAny("attendance.view", "attendance.manage"),
+  },
+  { to: "/operations", label: "Agenda y tareas", icon: CalendarCheck, group: "Seguimiento" },
+  {
+    to: "/finance",
+    label: "Finanzas",
+    icon: Wallet,
+    group: "Institución",
+    show: a => a.institution && a.can("finance.view"),
+  },
+  { to: "/communications", label: "Comunicaciones", icon: Bell, group: "Institución" },
+  {
+    to: "/institutional-control",
+    label: "Control institucional",
+    icon: FileText,
+    group: "Institución",
+    show: a => a.institution && a.canAny("reports.view", "cases.manage", "admissions.manage"),
+  },
+  {
+    to: "/settings",
+    label: "Configuración",
+    icon: Settings2,
+    group: "Institución",
+    show: a =>
+      a.institution &&
+      a.canAny("settings.manage", "users.manage", "roles.manage", "audit.view", "students.manage"),
+  },
+];
+const ACCOUNT_NAV: NavItem[] = [
+  { to: "/approvals", label: "Mis solicitudes", icon: FileText, group: "Mi cuenta" },
+  { to: "/account", label: "Mi seguridad", icon: KeyRound, group: "Mi cuenta" },
+];
+
+/** "Instituto Técnico Horizonte" → "IH" (skips short connector words). */
+const initials = (name: string) => {
+  const words = name.split(/\s+/).filter(word => word.length > 3);
+  return (
+    words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? "N").slice(0, 2)
+  ).toUpperCase();
 };
 
 export function AppShell() {
@@ -111,56 +188,41 @@ export function AppShell() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const custom = isCustomRole(user?.role_name);
+  const access = useAccess();
   const modules = useModuleViews();
-  const permissionsQuery = useQuery<{ permissions: string[]; configured?: boolean }>({
-    queryKey: ["my-permissions", user?.user_id],
-    queryFn: () => api.get("/access/me").then(response => response.data),
-    enabled: Boolean(user) && !custom,
-  });
   const institution = useQuery<{ institution_name: string }>({
     queryKey: ["institution-settings", user?.user_id],
     queryFn: () => api.get("/configuration/institution").then(r => r.data),
-    enabled: Boolean(user) && !custom,
+    enabled: Boolean(user),
   });
   const periods = useQuery<{ name: string; active: boolean }[]>({
     queryKey: ["periods", "shell", user?.user_id],
     queryFn: () => api.get("/periods/", { params: { active: true, limit: 1 } }).then(r => r.data),
-    enabled: Boolean(user) && !custom,
+    enabled: Boolean(user),
   });
   if (!user) return null;
-  const baseNav =
-    user.role_name === "admin"
-      ? adminNav
-      : user.role_name === "teacher"
-        ? teacherNav
-        : user.role_name === "guardian"
-          ? guardianNav
-          : studentNav;
-  const configuredPermissions =
-    permissionsQuery.data?.configured === false
-      ? legacyPermissions[user.role_name]
-      : (permissionsQuery.data?.permissions ?? legacyPermissions[user.role_name]);
-  const nav = custom
+  const labels: Record<string, string> = access.teaching
+    ? { "/": "Mi jornada", "/sections": "Mis secciones", "/students": "Mis estudiantes" }
+    : access.student
+      ? { "/": "Mi resumen" }
+      : access.institution
+        ? { "/": "Vista general" }
+        : {};
+  const nav: NavItem[] = access.ready
     ? [
-        { to: "/", label: "Módulos de consulta", icon: LayoutDashboard },
+        ...NAV.filter(item => !item.show || item.show(access)).map(item => ({
+          ...item,
+          label: labels[item.to] ?? item.label,
+        })),
         ...(modules.data ?? []).map(item => ({
           to: `/modules/${item.key}`,
           label: item.label,
           icon: BookOpen,
+          group: "Consulta",
         })),
-        accountNav,
+        ...ACCOUNT_NAV,
       ]
-    : [
-        ...baseNav.filter(
-          item =>
-            (user.role_name === "teacher" && ["/sections", "/students"].includes(item.to)) ||
-            !navPermissions[item.to] ||
-            configuredPermissions.includes(navPermissions[item.to]),
-        ),
-        approvalsNav,
-        accountNav,
-      ];
+    : ACCOUNT_NAV;
   async function logout() {
     try {
       await api.post("/auth/logout");
@@ -188,41 +250,43 @@ export function AppShell() {
           </button>
         </div>
         <div className="workspace-switch">
-          <span className="workspace-mark">PA</span>
+          <span className="workspace-mark" aria-hidden="true">
+            {initials(institution.data?.institution_name || "Portal académico")}
+          </span>
           <div>
             <strong title={institution.data?.institution_name}>
               {institution.data?.institution_name || "Portal académico"}
             </strong>
-            {!custom && (
-              <small>
-                {periods.data?.find(p => p.active)?.name
-                  ? `Período vigente · ${periods.data[0].name}`
-                  : "Sin período vigente"}
-              </small>
-            )}
+            <small>
+              {periods.data?.find(p => p.active)?.name
+                ? `Período vigente · ${periods.data[0].name}`
+                : "Sin período vigente"}
+            </small>
           </div>
-          <ChevronDown size={16} />
         </div>
         <nav className="sidebar-nav" aria-label="Navegación principal">
-          <span className="nav-caption">Espacio de trabajo</span>
-          {nav.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/"}
-              onClick={() => setOpen(false)}
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              <Icon size={19} />
-              <span>{label}</span>
-            </NavLink>
+          {nav.map(({ to, label, icon: Icon, group }, index) => (
+            <Fragment key={to}>
+              {group !== nav[index - 1]?.group && group && (
+                <span className="nav-caption">{group}</span>
+              )}
+              <NavLink
+                to={to}
+                end={to === "/"}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                <Icon size={18} />
+                <span>{label}</span>
+              </NavLink>
+            </Fragment>
           ))}
         </nav>
         <div className="sidebar__profile">
           <span className="avatar">{user.username.slice(0, 2).toUpperCase()}</span>
           <div>
             <strong>{user.username}</strong>
-            <small>{roleLabels[user.role_name] ?? "Rol personalizado"}</small>
+            <small>{access.roleTitle ?? ""}</small>
           </div>
           <button onClick={logout} title="Cerrar sesión" aria-label="Cerrar sesión">
             <LogOut size={18} />

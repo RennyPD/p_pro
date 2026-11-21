@@ -18,6 +18,13 @@ class ClassroomOut(ClassroomCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ClassroomAvailability(ClassroomOut):
+    """A classroom and whether it can host a section at a given time."""
+
+    status: str  # available | busy | small | retired
+    detail: str = ""
+
+
 class MeetingCreate(BaseModel):
     section_id: int
     classroom_id: int | None = None

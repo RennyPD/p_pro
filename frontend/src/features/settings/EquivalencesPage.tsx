@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRightLeft } from "lucide-react";
+import { SearchSelect } from "../../components/SearchSelect";
+import { formatDateTime } from "../../lib/format";
+import { ArrowRight, ArrowRightLeft } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
@@ -103,8 +105,6 @@ export function EquivalencesPage() {
   const [notes, setNotes] = useState("");
   const [reason, setReason] = useState("");
   const [active, setActive] = useState(true);
-  const [sourceSearch, setSourceSearch] = useState("");
-  const [targetSearch, setTargetSearch] = useState("");
   const [search, setSearch] = useState("");
   const [filterCareer, setFilterCareer] = useState("");
   const [filterState, setFilterState] = useState("");
@@ -237,17 +237,20 @@ export function EquivalencesPage() {
           </p>
         </div>
       </header>
-      <aside className="panel equivalence-notice">
-        Son reglas generales para todos los estudiantes de la carrera y versión activa. No son
-        solicitudes individuales ni convalidaciones de estudios externos.
-      </aside>
+      <details className="context-help">
+        <summary>¿Qué es una regla de equivalencia?</summary>
+        <p>
+          Es una regla general para todos los estudiantes de la carrera y versión del pensum. No es
+          una solicitud individual ni una convalidación de estudios externos.
+        </p>
+      </details>
       {loadError && (
         <p className="form-error" role="alert">
           {apiMessage(loadError)}
         </p>
       )}
       <details className="panel equivalence-create" open>
-        <summary>Registrar una regla</summary>
+        <summary>Registrar una regla nueva</summary>
         <form
           className="resource-form"
           onChange={() => setPreview(undefined)}
@@ -257,139 +260,132 @@ export function EquivalencesPage() {
             else create.mutate();
           }}
         >
-          <div className="equivalence-fields">
-            <label className="form-field">
-              <span>Carrera destino</span>
-              <select
-                required
-                disabled={busy}
-                value={career}
-                onChange={e => {
-                  setCareer(e.target.value);
-                  setVersion("");
-                  setTarget("");
-                }}
-              >
-                <option value="">Selecciona una carrera</option>
-                {careers.data?.map(c => (
-                  <option key={c.career_id} value={c.career_id}>
-                    {c.code} · {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="form-field">
-              <span>Versión del pensum destino</span>
-              <select
-                required
-                disabled={busy || !context.data?.versions.length || context.isFetching}
-                value={version}
-                onChange={e => {
-                  setVersion(e.target.value);
-                  setTarget("");
-                }}
-              >
-                <option value="">Selecciona una versión</option>
-                {context.data?.versions.map(v => (
-                  <option key={v} value={v}>
-                    {v}
-                    {v === context.data?.active_version ? " · Activa" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div>
+          <fieldset className="equivalence-step">
+            <legend>
+              <span>1</span> Plan que recibe la equivalencia
+            </legend>
+            <div className="equivalence-fields">
               <label className="form-field">
-                <span>Buscar asignatura de origen</span>
-                <input
-                  disabled={busy}
-                  value={sourceSearch}
-                  onChange={e => setSourceSearch(e.target.value)}
-                  placeholder="Código o nombre"
-                />
-              </label>
-              <label className="form-field">
-                <span>Asignatura aprobada de origen</span>
+                <span>Carrera destino</span>
                 <select
                   required
                   disabled={busy}
-                  value={source}
-                  onChange={e => setSource(e.target.value)}
+                  value={career}
+                  onChange={e => {
+                    setCareer(e.target.value);
+                    setVersion("");
+                    setTarget("");
+                  }}
                 >
-                  <option value="">Selecciona</option>
-                  {subjects.data
-                    ?.filter(
-                      s =>
-                        s.subject_id !== Number(target) &&
-                        (s.subject_id === Number(source) ||
-                          `${s.code} ${s.description}`
-                            .toLowerCase()
-                            .includes(sourceSearch.toLowerCase())),
-                    )
-                    .map(s => (
-                      <option key={s.subject_id} value={s.subject_id}>
-                        {s.code} · {s.description}
-                      </option>
-                    ))}
+                  <option value="">Selecciona una carrera</option>
+                  {careers.data?.map(c => (
+                    <option key={c.career_id} value={c.career_id}>
+                      {c.code} · {c.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="form-field">
+                <span>Versión del pensum destino</span>
+                <select
+                  required
+                  disabled={busy || !context.data?.versions.length || context.isFetching}
+                  value={version}
+                  onChange={e => {
+                    setVersion(e.target.value);
+                    setTarget("");
+                  }}
+                >
+                  <option value="">Selecciona una versión</option>
+                  {context.data?.versions.map(v => (
+                    <option key={v} value={v}>
+                      {v}
+                      {v === context.data?.active_version ? " · Activa" : ""}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
-            <div>
+          </fieldset>
+          <fieldset className="equivalence-step">
+            <legend>
+              <span>2</span> Equivalencia
+            </legend>
+            <div className="equivalence-pair">
+              <SearchSelect
+                label="Asignatura aprobada de origen"
+                required
+                disabled={busy}
+                value={source}
+                onChange={value => {
+                  setSource(value);
+                  setPreview(undefined);
+                }}
+                placeholder="Busca por código o nombre"
+                options={(subjects.data ?? [])
+                  .filter(s => s.subject_id !== Number(target))
+                  .map(s => ({
+                    value: String(s.subject_id),
+                    label: `${s.code} · ${s.description}`,
+                  }))}
+              />
+              <ArrowRight className="equivalence-pair__arrow" aria-hidden="true" />
+              <SearchSelect
+                label="Asignatura que se reconocerá"
+                required
+                disabled={busy || !version || context.isFetching}
+                value={target}
+                onChange={value => {
+                  setTarget(value);
+                  setPreview(undefined);
+                }}
+                placeholder={
+                  version ? "Busca en el pensum elegido" : "Elige primero carrera y versión"
+                }
+                emptyText="No hay asignaturas de este pensum con ese texto"
+                options={(context.data?.courses ?? [])
+                  .filter(c => c.version === version && c.subject_id !== Number(source))
+                  .map(c => ({
+                    value: String(c.subject_id),
+                    label: `${c.code} · ${c.name}`,
+                    hint: `${c.credits} créditos`,
+                  }))}
+              />
+            </div>
+            <p className="muted equivalence-hint">
+              Quien aprobó la asignatura de origen tendrá reconocida la de destino. No es recíproco.
+            </p>
+          </fieldset>
+          <fieldset className="equivalence-step">
+            <legend>
+              <span>3</span> Justificación
+            </legend>
+            <div className="equivalence-fields">
               <label className="form-field">
-                <span>Buscar asignatura destino</span>
+                <span>Motivo del registro</span>
                 <input
+                  required
+                  minLength={2}
+                  maxLength={250}
                   disabled={busy}
-                  value={targetSearch}
-                  onChange={e => setTargetSearch(e.target.value)}
-                  placeholder="Solo asignaturas del pensum seleccionado"
+                  value={reason}
+                  placeholder="Ej. Acuerdo del comité académico del 10/11"
+                  onChange={e => setReason(e.target.value)}
                 />
               </label>
               <label className="form-field">
-                <span>Asignatura que se reconocerá</span>
-                <select
-                  required
-                  disabled={busy || !version || context.isFetching}
-                  value={target}
-                  onChange={e => setTarget(e.target.value)}
-                >
-                  <option value="">Selecciona</option>
-                  {context.data?.courses
-                    .filter(
-                      c =>
-                        c.version === version &&
-                        c.subject_id !== Number(source) &&
-                        (c.subject_id === Number(target) ||
-                          `${c.code} ${c.name}`.toLowerCase().includes(targetSearch.toLowerCase())),
-                    )
-                    .map(c => (
-                      <option key={c.subject_id} value={c.subject_id}>
-                        {c.code} · {c.name} · {c.credits} créditos
-                      </option>
-                    ))}
-                </select>
+                <span>Observaciones</span>
+                <textarea
+                  disabled={busy}
+                  maxLength={2000}
+                  rows={3}
+                  placeholder="Opcional: detalles para quien consulte la regla"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                />
               </label>
             </div>
-            <label className="form-field">
-              <span>Observaciones</span>
-              <textarea
-                disabled={busy}
-                maxLength={2000}
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-              />
-            </label>
-            <label className="form-field">
-              <span>Motivo del registro</span>
-              <input
-                required
-                minLength={2}
-                maxLength={250}
-                disabled={busy}
-                value={reason}
-                onChange={e => setReason(e.target.value)}
-              />
-            </label>
-          </div>
+          </fieldset>
           <label className="equivalence-check">
             <input
               disabled={busy}
@@ -491,8 +487,8 @@ export function EquivalencesPage() {
                 >
                   Gestionar regla
                 </Button>
-                <Button variant="ghost" onClick={() => setHistoryId(r.course_equivalence_id)}>
-                  Historial
+                <Button variant="secondary" onClick={() => setHistoryId(r.course_equivalence_id)}>
+                  Ver historial
                 </Button>
               </footer>
             </article>
@@ -601,11 +597,7 @@ export function EquivalencesPage() {
                     }[h.action] || h.action}{" "}
                     · {h.actor}
                   </strong>
-                  <time>
-                    {new Date(
-                      h.created_at + (h.created_at.endsWith("Z") ? "" : "Z"),
-                    ).toLocaleString()}
-                  </time>
+                  <time>{formatDateTime(h.created_at)}</time>
                   <p>{h.detail}</p>
                 </article>
               ))}

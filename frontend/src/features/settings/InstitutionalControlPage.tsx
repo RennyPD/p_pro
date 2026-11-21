@@ -1,5 +1,7 @@
 import { confirmAction } from "../../lib/confirm";
 import { useId, useState, type FormEvent } from "react";
+import { DateInput } from "../../components/DateInput";
+import { formatDateTime, formatMoney } from "../../lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Users, UserCheck, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -12,6 +14,7 @@ import { useAuthStore } from "../../store/auth";
 import "./institutional-control.css";
 import { AdmissionCreateModal } from "./AdmissionCreateModal";
 import "./alert-history.css";
+import { describeAverage } from "../../lib/academicResult";
 
 const alertLabels: Record<string, string> = {
   academic: "Académica",
@@ -32,6 +35,18 @@ const admissionNames: Record<string, string> = {
   accepted: "Aceptada",
   rejected: "Rechazada",
   enrolled: "Matriculada",
+};
+const admissionTones: Record<string, "neutral" | "info" | "success" | "danger" | "warning"> = {
+  submitted: "neutral",
+  review: "warning",
+  accepted: "info",
+  rejected: "danger",
+  enrolled: "success",
+};
+const transitionLabels: Record<string, string> = {
+  review: "Pasar a revisión",
+  accepted: "Aceptar",
+  submitted: "Volver a recibida",
 };
 const transitions: Record<string, string[]> = {
   submitted: ["review", "rejected"],
@@ -59,10 +74,30 @@ const studentLookup = {
   labelKeys: ["enrollment_number", "first_name", "last_name"],
   placeholder: "Buscar estudiante",
 };
+type GradeMetric = {
+  average_grade: number | null;
+  grade_count: number;
+  provisional_average_grade?: number | null;
+  provisional_grade_count?: number;
+};
+function AverageMetric({ r }: { r: GradeMetric }) {
+  const average = describeAverage({
+    finalAverage: r.average_grade,
+    finalCount: r.grade_count,
+    provisionalAverage: r.provisional_average_grade,
+    provisionalCount: r.provisional_grade_count,
+  });
+  return (
+    <div>
+      <dt>{average.kind === "provisional" ? "Promedio provisional" : "Promedio final"}</dt>
+      <dd>{average.value}</dd>
+      <small>{average.note}</small>
+    </div>
+  );
+}
 const metric = (value: number | null | undefined, suffix = "") =>
   value == null ? "Sin datos" : `${value}${suffix}`;
-const money = (n: number) =>
-  new Intl.NumberFormat("es-DO", { style: "currency", currency: "DOP" }).format(n || 0);
+const money = formatMoney;
 
 export function InstitutionalControlPage() {
   const uid = useAuthStore(s => s.user?.user_id);
@@ -215,7 +250,7 @@ export function InstitutionalControlPage() {
           <h1>Control institucional</h1>
           <p>Indicadores, seguimiento y admisiones, separados por tarea.</p>
         </div>
-        <Link className="text-link" to="/settings/access">
+        <Link className="text-link" to="/roles">
           Gestionar permisos en Configuración
         </Link>
       </header>
@@ -283,11 +318,9 @@ export function InstitutionalControlPage() {
                     ))}
                   </select>
                 </label>
-                <p className="muted">
-                  Los totales institucionales y financieros son globales. El filtro afecta
-                  resultados académicos y casos abiertos de estudiantes con selección en ese
-                  período.
-                </p>
+                <small className="muted">
+                  Filtra resultados académicos y casos; los totales financieros son globales.
+                </small>
                 {periods.error && <p className="form-error">{apiMessage(periods.error)}</p>}
               </section>
               <section className="risk-strip">
@@ -338,11 +371,7 @@ export function InstitutionalControlPage() {
                       </div>
                       <h3>{r.career_name}</h3>
                       <dl className="metric-pairs">
-                        <div>
-                          <dt>Promedio final</dt>
-                          <dd>{metric(r.average_grade)}</dd>
-                          <small>{r.grade_count} resultados</small>
-                        </div>
+                        <AverageMetric r={r} />
                         <div>
                           <dt>Asistencia</dt>
                           <dd>{metric(r.attendance_percentage, "%")}</dd>
@@ -387,14 +416,11 @@ export function InstitutionalControlPage() {
                         <small>{r.enrollments} selecciones</small>
                       </div>
                       <dl className="metric-pairs">
-                        <div>
-                          <dt>Promedio final</dt>
-                          <dd>{metric(r.average_grade)}</dd>
-                          <small>{r.grade_count} resultados</small>
-                        </div>
+                        <AverageMetric r={r} />
                         <div>
                           <dt>Aprobación</dt>
                           <dd>{metric(r.pass_rate, "%")}</dd>
+                          {r.pass_rate == null && <small>Requiere resultados definitivos</small>}
                         </div>
                         <div>
                           <dt>Asistencia</dt>
@@ -415,16 +441,18 @@ export function InstitutionalControlPage() {
       )}
       {tab === "alerts" && (
         <section className="panel alert-cases">
-          <div className="panel-heading">
+          <div className="panel-heading section-heading">
             <h2>Casos y seguimientos</h2>
-            <Button onClick={() => setCreatingAlert(true)}>Nuevo caso</Button>
-            <Button
-              variant="secondary"
-              disabled={generate.isPending}
-              onClick={() => generate.mutate()}
-            >
-              Revisar alertas automáticas
-            </Button>
+            <div className="section-heading__actions">
+              <Button
+                variant="secondary"
+                disabled={generate.isPending}
+                onClick={() => generate.mutate()}
+              >
+                Revisar alertas automáticas
+              </Button>
+              <Button onClick={() => setCreatingAlert(true)}>Nuevo caso</Button>
+            </div>
           </div>
           <div className="control-filters">
             <label className="form-field">
@@ -519,98 +547,136 @@ export function InstitutionalControlPage() {
             <h2>Solicitudes de admisión</h2>
             <Button onClick={() => setCreatingAdmission(true)}>Nueva solicitud</Button>
           </div>
-          <p className="muted">
-            Recibida → En revisión → Aceptada → Crear estudiante. Una solicitud matriculada no se
-            puede cambiar desde el selector.
-          </p>
-          <div className="control-filters">
-            <label className="form-field">
-              <span>Buscar solicitudes</span>
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Nombre, correo o carrera"
-              />
-            </label>
-            <label className="form-field">
-              <span>Estado de admisión</span>
-              <select value={admissionState} onChange={e => setAdmissionState(e.target.value)}>
-                <option value="">Todos</option>
-                {Object.entries(admissionNames).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="admission-pipeline" role="group" aria-label="Filtrar por estado">
+            <button
+              type="button"
+              aria-pressed={!admissionState}
+              onClick={() => setAdmissionState("")}
+            >
+              Todas <b>{admissions.data?.length ?? 0}</b>
+            </button>
+            {Object.entries(admissionNames).map(([k, v]) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={admissionState === k}
+                className={`admission-chip admission-chip--${k}`}
+                onClick={() => setAdmissionState(admissionState === k ? "" : k)}
+              >
+                {v} <b>{(admissions.data || []).filter((a: any) => a.status === k).length}</b>
+              </button>
+            ))}
           </div>
+          <label className="form-field admission-search">
+            <span className="sr-only">Buscar solicitudes</span>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por nombre, correo o carrera"
+            />
+          </label>
           {admissions.isLoading ? (
             <Spinner />
           ) : admissions.error ? (
             <p className="form-error">{apiMessage(admissions.error)}</p>
           ) : applications.length ? (
             <div className="control-result-grid">
-              {applications.map((a: any) => (
-                <article key={a.admission_application_id}>
-                  <h3>
-                    {a.first_name} {a.last_name}
-                  </h3>
-                  <p>
-                    {a.career_name} · {a.email}
-                  </p>
-                  <p>Estado: {admissionNames[a.status]}</p>
-                  {a.checklist && <p>Documentación: {a.checklist}</p>}
-                  <div className="case-actions">
-                    <label className="form-field">
-                      <span>Cambiar estado</span>
-                      <select
-                        aria-label={`Estado de ${a.first_name} ${a.last_name}, solicitud ${a.admission_application_id}`}
-                        disabled={
-                          enroll.isPending || updateAdmission.isPending || a.status === "enrolled"
-                        }
-                        value={a.status}
-                        onChange={e => {
-                          setTransition({ item: a, status: e.target.value });
-                          setReason("");
-                        }}
-                      >
-                        <option value={a.status}>{admissionNames[a.status]}</option>
-                        {(transitions[a.status] || []).map(s => (
-                          <option key={s} value={s}>
-                            {admissionNames[s]}
-                          </option>
+              {applications.map((a: any) => {
+                const busy = enroll.isPending || updateAdmission.isPending;
+                const complete =
+                  /completo/i.test(a.checklist ?? "") || !/pendiente/i.test(a.checklist ?? "");
+                const step = ["submitted", "review", "accepted", "enrolled"].indexOf(a.status);
+                const ask = (status: string) => {
+                  setTransition({ item: a, status });
+                  setReason("");
+                };
+                return (
+                  <article key={a.admission_application_id} className="admission-card">
+                    <header>
+                      <div>
+                        <h3>
+                          {a.first_name} {a.last_name}
+                        </h3>
+                        <small>
+                          {a.career_name} · {a.email}
+                        </small>
+                      </div>
+                      <Badge tone={admissionTones[a.status] ?? "neutral"}>
+                        {admissionNames[a.status]}
+                      </Badge>
+                    </header>
+                    {a.status !== "rejected" && (
+                      <ol className="admission-steps" aria-label="Avance de la solicitud">
+                        {["Recibida", "Revisión", "Aceptada", "Matriculada"].map((label, index) => (
+                          <li key={label} className={index <= step ? "is-done" : ""}>
+                            {label}
+                          </li>
                         ))}
-                      </select>
-                    </label>
-                    {a.status === "accepted" && (
-                      <Button
-                        disabled={enroll.isPending}
-                        onClick={async () => {
-                          if (
-                            await confirmAction(
-                              "¿Crear el estudiante a partir de esta solicitud aceptada?",
-                            )
-                          )
-                            enroll.mutate(a.admission_application_id);
-                        }}
+                      </ol>
+                    )}
+                    {a.checklist && (
+                      <p className={`admission-docs ${complete ? "is-complete" : ""}`}>
+                        {complete ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+                        {a.checklist}
+                      </p>
+                    )}
+                    <div className="admission-actions">
+                      <button
+                        type="button"
+                        className="text-link admission-history"
+                        onClick={() => setHistoryItem(a.admission_application_id)}
                       >
-                        Crear estudiante
-                      </Button>
-                    )}
-                    {a.student_id && (
-                      <Link className="text-link" to={`/students/${a.student_id}`}>
-                        Abrir expediente
-                      </Link>
-                    )}
-                    <Button
-                      variant="ghost"
-                      onClick={() => setHistoryItem(a.admission_application_id)}
-                    >
-                      Historial
-                    </Button>
-                  </div>
-                </article>
-              ))}
+                        Historial
+                      </button>
+                      {a.student_id && (
+                        <Link className="text-link" to={`/students/${a.student_id}`}>
+                          Abrir expediente
+                        </Link>
+                      )}
+                      {(transitions[a.status] || [])
+                        .filter(status => status === "rejected")
+                        .map(status => (
+                          <Button
+                            key={status}
+                            variant="danger"
+                            disabled={busy}
+                            onClick={() => ask(status)}
+                            aria-label={`Rechazar a ${a.first_name} ${a.last_name}`}
+                          >
+                            Rechazar
+                          </Button>
+                        ))}
+                      {(transitions[a.status] || [])
+                        .filter(status => status !== "rejected")
+                        .map(status => (
+                          <Button
+                            key={status}
+                            variant="secondary"
+                            disabled={busy}
+                            onClick={() => ask(status)}
+                          >
+                            {transitionLabels[status] ?? admissionNames[status]}
+                          </Button>
+                        ))}
+                      {a.status === "accepted" && (
+                        <Button
+                          disabled={busy}
+                          onClick={async () => {
+                            if (
+                              await confirmAction(
+                                "¿Crear el estudiante a partir de esta solicitud aceptada?",
+                              )
+                            )
+                              enroll.mutate(a.admission_application_id);
+                          }}
+                        >
+                          Crear estudiante
+                        </Button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <p className="muted">No hay solicitudes para estos filtros.</p>
@@ -678,10 +744,7 @@ export function InstitutionalControlPage() {
               admissionHistory.data.map((h: any) => (
                 <article key={h.id}>
                   <strong>
-                    {h.actor} ·{" "}
-                    {new Date(h.created_at + "Z").toLocaleString("es-DO", {
-                      timeZone: "America/Santo_Domingo",
-                    })}
+                    {h.actor} · {formatDateTime(h.created_at)}
                   </strong>
                   <p>{h.detail}</p>
                 </article>
@@ -816,12 +879,11 @@ function AlertCase({
       <div className="case-title">
         <div>
           <strong>{studentName ?? `Estudiante #${alert.student_id}`}</strong>
-          <small>
-            {alertLabels[alert.category] ?? alert.category} · prioridad{" "}
-            {severityNames[alert.severity] || alert.severity}
-          </small>
+          <small>{alertLabels[alert.category] ?? alert.category}</small>
         </div>
-        <span>{severityNames[alert.severity] || alert.severity}</span>
+        <span className={`case-severity case-severity--${alert.severity}`}>
+          {severityNames[alert.severity] || alert.severity}
+        </span>
       </div>
       <p>{alert.reason}</p>
       {alert.status === "open" ? (
@@ -844,11 +906,10 @@ function AlertCase({
             </label>
             <label>
               <span>Próximo seguimiento</span>
-              <input
+              <DateInput
                 disabled={busy}
-                type="date"
                 value={draft.follow_up_date}
-                onChange={e => update({ ...draft, follow_up_date: e.target.value })}
+                onValueChange={e => update({ ...draft, follow_up_date: e })}
               />
             </label>
           </div>
@@ -866,14 +927,18 @@ function AlertCase({
               ))}
             </select>
           </label>
-          <textarea
-            aria-label="Actuación del caso"
-            disabled={busy}
-            maxLength={5000}
-            placeholder="Describe la llamada, reunión, acuerdo o resultado"
-            value={draft.notes}
-            onChange={e => update({ ...draft, notes: e.target.value })}
-          />
+          <label className="form-field">
+            <span>Detalle de la actuación</span>
+            <textarea
+              aria-label="Actuación del caso"
+              disabled={busy}
+              maxLength={5000}
+              rows={3}
+              placeholder="Describe la llamada, reunión, acuerdo o resultado"
+              value={draft.notes}
+              onChange={e => update({ ...draft, notes: e.target.value })}
+            />
+          </label>
         </>
       ) : (
         <p className="resolution-note">
@@ -881,9 +946,13 @@ function AlertCase({
         </p>
       )}
       <div className="case-actions">
-        <Button variant="ghost" onClick={() => setShowHistory(value => !value)}>
+        <button
+          type="button"
+          className="text-link case-history-toggle"
+          onClick={() => setShowHistory(value => !value)}
+        >
           {showHistory ? "Ocultar historial" : "Ver historial"}
-        </Button>
+        </button>
         {alert.status === "open" ? (
           <>
             <Button variant="secondary" disabled={busy} onClick={() => assign(draft)}>
@@ -926,11 +995,7 @@ function AlertCase({
                   }[item.action_type as string] || item.action_type}{" "}
                   · {item.performer_name || "Registro histórico"}
                 </strong>
-                <small>
-                  {new Date(item.created_at + "Z").toLocaleString("es-DO", {
-                    timeZone: "America/Santo_Domingo",
-                  })}
-                </small>
+                <small>{formatDateTime(item.created_at)}</small>
                 <p>{item.notes}</p>
               </div>
             ))

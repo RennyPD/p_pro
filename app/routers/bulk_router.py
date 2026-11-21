@@ -18,7 +18,7 @@ from app.services.governance_workflow import lock_governance
 from app.services.student_service import create_student_service
 
 router = APIRouter(prefix="/bulk", tags=["bulk operations"])
-academic_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+academic_manager = require_permissions("students.manage")
 STUDENT_COLUMNS = ("first_name", "last_name", "email", "telephone", "address")
 
 

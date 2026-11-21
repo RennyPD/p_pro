@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { DateInput } from "../../components/DateInput";
+import { formatDate } from "../../lib/format";
 import { ArrowLeft, BookOpenCheck, ChevronRight, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -6,6 +8,23 @@ import { Badge, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./section-results.css";
+import {
+  attendanceTones,
+  isLowAttendance,
+  resultLabel,
+  resultTone,
+} from "../../lib/academicResult";
+
+/** Section progress state, shared by the badge and the "Seguimiento" filter. */
+function gradeProgress(s: Summary): {
+  label: string;
+  tone: "neutral" | "warning" | "info" | "success";
+} {
+  if (!s.student_count) return { label: "Sin estudiantes", tone: "neutral" };
+  if (s.final_student_count === s.student_count) return { label: "Definitivos", tone: "success" };
+  if ((s.ungraded_student_count ?? 0) > 0) return { label: "Notas por completar", tone: "warning" };
+  return { label: "Por cerrar evaluaciones", tone: "info" };
+}
 
 type Mode = "attendance" | "grades";
 type Summary = {
@@ -22,6 +41,9 @@ type Summary = {
   graded_student_count: number;
   final_student_count: number;
   pending_student_count: number;
+  provisional_student_count?: number;
+  ungraded_student_count?: number;
+  grade_average_final?: boolean;
   draft_grade_count: number;
   published_grade_count: number;
   closed_assessment_count: number;
@@ -86,10 +108,7 @@ const noteLabels: Record<string, string> = {
   draft: "Borrador",
   voided: "Anulada",
 };
-const displayDate = (value: string) => {
-  const parsed = new Date(value.length === 10 ? `${value}T12:00:00` : value);
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString("es-DO");
-};
+const displayDate = (value: string) => formatDate(value);
 
 export function SectionResultsPage({ mode }: { mode: Mode }) {
   const userId = useAuthStore(s => s.user?.user_id);
@@ -131,7 +150,11 @@ export function SectionResultsPage({ mode }: { mode: Mode }) {
         .toLowerCase()
         .includes(search.toLowerCase()) &&
       (status === "all" ||
-        (status === "pending" && s.pending_student_count > 0) ||
+        (status === "pending" && (s.ungraded_student_count ?? 0) > 0) ||
+        (status === "closing" &&
+          s.student_count > 0 &&
+          !(s.ungraded_student_count ?? 0) &&
+          s.final_student_count < s.student_count) ||
         (status === "draft" && s.draft_grade_count > 0) ||
         (status === "final" && s.student_count > 0 && s.final_student_count === s.student_count)),
   );
@@ -148,11 +171,11 @@ export function SectionResultsPage({ mode }: { mode: Mode }) {
           <>
             <label>
               Desde
-              <input type="date" value={start} onChange={e => setStart(e.target.value)} />
+              <DateInput value={start} onValueChange={e => setStart(e)} />
             </label>
             <label>
               Hasta
-              <input type="date" value={end} onChange={e => setEnd(e.target.value)} />
+              <DateInput value={end} onValueChange={e => setEnd(e)} />
             </label>
           </>
         )}
@@ -180,7 +203,8 @@ export function SectionResultsPage({ mode }: { mode: Mode }) {
             Seguimiento
             <select value={status} onChange={e => setStatus(e.target.value)}>
               <option value="all">Todas las secciones</option>
-              <option value="pending">Con resultados por completar</option>
+              <option value="pending">Con notas por completar</option>
+              <option value="closing">Por cerrar evaluaciones</option>
               <option value="draft">Con notas borrador</option>
               <option value="final">Todos los resultados definitivos</option>
             </select>
@@ -205,25 +229,7 @@ export function SectionResultsPage({ mode }: { mode: Mode }) {
               <span>
                 {s.subject_code} · {s.section_code}
               </span>
-              <Badge
-                tone={
-                  attendance
-                    ? "info"
-                    : !s.student_count
-                      ? "neutral"
-                      : s.pending_student_count
-                        ? "warning"
-                        : "success"
-                }
-              >
-                {attendance
-                  ? "Asistencia"
-                  : !s.student_count
-                    ? "Sin estudiantes"
-                    : s.pending_student_count
-                      ? "Por completar"
-                      : "Definitivos"}
-              </Badge>
+              {!attendance && <Badge tone={gradeProgress(s).tone}>{gradeProgress(s).label}</Badge>}
             </div>
             <h2>
               <Link to={`/section-results/${s.section_id}/${mode}`}>{s.subject_name}</Link>
@@ -241,7 +247,15 @@ export function SectionResultsPage({ mode }: { mode: Mode }) {
                       : `${s.attendance_percentage}%`
                     : (s.grade_average ?? "—")}
                 </strong>
-                <span>{attendance ? "Asistencia registrada" : "Media publicada"}</span>
+                <span>
+                  {attendance
+                    ? "Asistencia registrada"
+                    : s.grade_average == null
+                      ? "Sin notas publicadas"
+                      : s.grade_average_final
+                        ? "Media definitiva"
+                        : "Media provisional"}
+                </span>
               </div>
               <span className="roster-chip">
                 <Users size={15} />
@@ -278,16 +292,13 @@ export function SectionResultsPage({ mode }: { mode: Mode }) {
             ) : (
               <div className="card-mini-stats">
                 <span>
-                  <b>
-                    {s.final_student_count}/{s.student_count}
-                  </b>{" "}
-                  definitivos
+                  <b>{s.final_student_count}</b> definitivos
                 </span>
                 <span>
-                  <b>{s.pending_student_count}</b> pendientes
+                  <b>{s.provisional_student_count ?? 0}</b> provisionales
                 </span>
                 <span>
-                  <b>{s.draft_grade_count}</b> borradores
+                  <b>{s.ungraded_student_count ?? 0}</b> sin notas
                 </span>
               </div>
             )}
@@ -312,7 +323,9 @@ export function SectionResultsPage({ mode }: { mode: Mode }) {
                     {s.closed_assessment_count}/{s.assessment_count} evaluaciones cerradas · plan{" "}
                     {s.configured_weight}%
                   </p>
-                  <p>{s.published_grade_count} notas publicadas</p>
+                  <p>
+                    {s.published_grade_count} notas publicadas · {s.draft_grade_count} borradores
+                  </p>
                   {s.pending_student_count > 0 && (
                     <small>Incluye resultados provisionales; no equivale a aprobación.</small>
                   )}
@@ -444,11 +457,11 @@ export function SectionResultsDetailPage() {
           <>
             <label>
               Desde
-              <input type="date" value={start} onChange={e => setStart(e.target.value)} />
+              <DateInput value={start} onValueChange={e => setStart(e)} />
             </label>
             <label>
               Hasta
-              <input type="date" value={end} onChange={e => setEnd(e.target.value)} />
+              <DateInput value={end} onValueChange={e => setEnd(e)} />
             </label>
           </>
         )}
@@ -511,22 +524,34 @@ export function SectionResultsDetailPage() {
                 </small>
               </div>
               <div className="student-summary-value">
-                <b>
+                <b
+                  className={
+                    attendance
+                      ? isLowAttendance(s.attendance_percentage)
+                        ? "is-low"
+                        : "is-ok"
+                      : s.result_final
+                        ? s.result_status === "passed"
+                          ? "is-ok"
+                          : "is-low"
+                        : ""
+                  }
+                >
                   {attendance
                     ? s.attendance_percentage === null
                       ? "Sin registros"
                       : `${s.attendance_percentage}%`
                     : (s.average_grade ?? "Sin notas publicadas")}
                 </b>
-                <small>
-                  {attendance
-                    ? "promedio de asistencia"
-                    : s.result_final
-                      ? s.result_status === "passed"
-                        ? "definitivo · aprobada"
-                        : "definitivo · reprobada"
-                      : "resultado provisional"}
-                </small>
+                {attendance ? (
+                  <small>{s.attendances.length} clases registradas</small>
+                ) : s.average_grade === null ? (
+                  <small>sin notas publicadas</small>
+                ) : (
+                  <Badge tone={resultTone(s.result_final ? s.result_status : "in_progress")}>
+                    {s.result_final ? resultLabel(s.result_status) : "Provisional"}
+                  </Badge>
+                )}
               </div>
               <ChevronRight />
             </summary>
@@ -537,17 +562,7 @@ export function SectionResultsDetailPage() {
                   .map(r => (
                     <div key={r.attendance_id}>
                       <time>{displayDate(r.date)}</time>
-                      <Badge
-                        tone={
-                          r.status === "present"
-                            ? "success"
-                            : r.status === "absent"
-                              ? "danger"
-                              : r.status === "excused"
-                                ? "info"
-                                : "warning"
-                        }
-                      >
+                      <Badge tone={attendanceTones[r.status] ?? "neutral"}>
                         {attendanceLabels[r.status] ?? r.status}
                       </Badge>
                       <span>

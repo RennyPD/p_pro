@@ -10,6 +10,7 @@ from app.auth import (
     ensure_teacher_access,
     get_current_user,
     has_scope,
+    require_personal,
 )
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
@@ -44,6 +45,7 @@ from app.services.effective_schedule import effective_blocks, load_schedule
 from app.services.enrollment_service import create_enrollment_service
 from app.services.governance_workflow import lock_governance
 
+selection_user = require_personal("selection.own", "own")
 router = APIRouter(prefix="/academic", tags=["academic queries"])
 
 
@@ -66,7 +68,7 @@ def schedule_item(section: Section) -> ScheduleItem:
 
 
 @router.get("/catalog", response_model=list[CourseOffering])
-def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def course_catalog(db: Session = Depends(get_db), user: User = Depends(selection_user)):
     if user.student_id is None:
         raise HTTPException(
             status_code=403,
@@ -160,7 +162,7 @@ def course_catalog(db: Session = Depends(get_db), user: User = Depends(get_curre
 
 
 @router.get("/catalog/summary", response_model=CourseSelectionSummary)
-def course_selection_summary(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def course_selection_summary(db: Session = Depends(get_db), user: User = Depends(selection_user)):
     if user.student_id is None:
         raise HTTPException(
             status_code=403,
@@ -214,7 +216,7 @@ def course_selection_summary(db: Session = Depends(get_db), user: User = Depends
 
 
 @router.get("/catalog/cart", response_model=list[CartItemOut])
-def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def selection_cart(db: Session = Depends(get_db), user: User = Depends(selection_user)):
     if user.student_id is None:
         raise HTTPException(
             status_code=403,
@@ -244,11 +246,8 @@ def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_curre
                 section_code=item.section.code,
                 subject_code=item.section.subject.code,
                 subject_name=item.section.subject.description,
-                credits=(
-                    item.curriculum_credits
-                    if item.curriculum_credits is not None
-                    else credits.get(item.section.subject_id, 0)
-                ),
+                # Cart items are not enrollments yet: credits come from the current pensum.
+                credits=credits.get(item.section.subject_id, 0),
                 available_seats=max(item.section.capacity - occupied, 0),
                 period=period.name,
             )
@@ -258,7 +257,7 @@ def selection_cart(db: Session = Depends(get_db), user: User = Depends(get_curre
 
 @router.post("/catalog/cart/{section_id}")
 def add_to_selection_cart(
-    section_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+    section_id: int, db: Session = Depends(get_db), user: User = Depends(selection_user)
 ):
     lock_governance(db)
     if user.student_id is None:
@@ -315,7 +314,7 @@ def add_to_selection_cart(
 
 @router.delete("/catalog/cart/{section_id}")
 def remove_from_selection_cart(
-    section_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+    section_id: int, db: Session = Depends(get_db), user: User = Depends(selection_user)
 ):
     lock_governance(db)
     item = (
@@ -331,7 +330,7 @@ def remove_from_selection_cart(
 
 
 @router.post("/catalog/confirm")
-def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(selection_user)):
     if user.student_id is None:
         raise HTTPException(
             status_code=403,
@@ -426,7 +425,7 @@ def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(g
 def select_course(
     section_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(selection_user),
 ):
     if user.student_id is None:
         raise HTTPException(
@@ -453,7 +452,7 @@ def select_course(
 def withdraw_course_selection(
     section_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(selection_user),
 ):
     if user.student_id is None:
         raise HTTPException(
@@ -670,6 +669,11 @@ def section_academic_summaries(
                 graded_student_count=len(grades),
                 final_student_count=sum(result.final for result in results),
                 pending_student_count=sum(not result.final for result in results),
+                provisional_student_count=sum(
+                    result.value is not None and not result.final for result in results
+                ),
+                ungraded_student_count=sum(result.value is None for result in results),
+                grade_average_final=bool(results) and all(result.final for result in results),
                 draft_grade_count=sum(grade.status == "draft" for grade in notes),
                 published_grade_count=sum(grade.status == "published" for grade in notes),
                 closed_assessment_count=sum(item.closed for item in assessments),
@@ -696,6 +700,8 @@ def student_academic_profile(
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     summaries = []
     all_grades = []
+    final_grades = []
+    provisional_grades = []
     total_attendances = 0
     total_present = 0
     for enrollment in student.enrollments:
@@ -710,6 +716,8 @@ def student_academic_profile(
         attendances = enrollment.attendances
         present = sum(item.present for item in attendances)
         all_grades.extend(grades)
+        if result.value is not None:
+            (final_grades if result.final else provisional_grades).append(result.value)
         total_attendances += len(attendances)
         total_present += present
         summaries.append(
@@ -751,6 +759,12 @@ def student_academic_profile(
         career_id=student.career_id,
         career_name=student.career.name,
         overall_average=round(sum(all_grades) / len(all_grades), 1) if all_grades else None,
+        final_average=round(sum(final_grades) / len(final_grades), 1) if final_grades else None,
+        final_result_count=len(final_grades),
+        provisional_average=round(sum(provisional_grades) / len(provisional_grades), 1)
+        if provisional_grades
+        else None,
+        provisional_result_count=len(provisional_grades),
         overall_attendance=_percentage(total_present, total_attendances),
         enrollments=summaries,
     )

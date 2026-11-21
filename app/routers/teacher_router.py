@@ -31,7 +31,7 @@ from app.services.teacher_service import (
 )
 
 router = APIRouter(prefix="/teachers", tags=["teachers"])
-teacher_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+teacher_manager = require_permissions("teachers.manage")
 
 
 @router.post("/", response_model=TeacherOut, dependencies=[Depends(teacher_manager)])

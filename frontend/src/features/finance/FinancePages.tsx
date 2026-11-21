@@ -1,6 +1,22 @@
 import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, ReceiptText, Wallet } from "lucide-react";
+import { DateInput } from "../../components/DateInput";
+import { formatDateTime, formatMoney, todayIso } from "../../lib/format";
+import { Pager } from "../../components/Pager";
+import {
+  ArrowDownLeft,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  CalendarCog,
+  CalendarRange,
+  Download,
+  Plus,
+  SlidersHorizontal,
+  Undo2,
+  Wallet,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -8,6 +24,7 @@ import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./finance.css";
+import { useAccess } from "../../lib/permissions";
 
 type Account = {
   student_id: number;
@@ -79,8 +96,7 @@ type Closing = {
 };
 type Event = { id: number; action: string; actor: string; detail: string; created_at: string };
 type Action = { path: string; payload: unknown; method?: "put"; done?: () => void };
-const money = (value = 0) =>
-  new Intl.NumberFormat("es-DO", { style: "currency", currency: "DOP" }).format(value);
+const money = (value = 0) => formatMoney(value);
 const auditNames: Record<string, string> = {
   "account.updated": "Configuración de cuenta",
   "charge.created": "Cargo registrado",
@@ -135,16 +151,9 @@ function auditDetail(value: string) {
     return "Detalle histórico no disponible";
   }
 }
-const day = () => new Date(Date.now() - 4 * 3600000).toISOString().slice(0, 10);
-const dateLabel = (value: string) =>
-  new Date(
-    value.length === 10 ? value + "T12:00:00" : value.endsWith("Z") ? value : value + "Z",
-  ).toLocaleString("es-DO", {
-    timeZone: "America/Santo_Domingo",
-    ...(value.length === 10
-      ? { dateStyle: "medium" as const }
-      : { dateStyle: "medium" as const, timeStyle: "short" as const }),
-  });
+const day = todayIso;
+const ACCOUNTS_PAGE = 20;
+const dateLabel = (value: string) => formatDateTime(value);
 const labels: Record<string, string> = {
   charge: "Cargo",
   payment: "Abono",
@@ -210,8 +219,9 @@ async function download(path: string, name: string) {
 export function FinancePage() {
   const user = useAuthStore(s => s.user);
   const { studentId } = useParams();
+  const access = useAccess();
   const id = studentId ?? user?.student_id;
-  if (user?.role_name === "admin" && !id) return <FinanceAccounts />;
+  if (access.institution && access.can("finance.view") && !id) return <FinanceAccounts />;
   if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0)
     return (
       <div className="page">
@@ -226,7 +236,7 @@ export function FinancePage() {
     <StudentFinance
       key={String(id)}
       studentId={Number(id)}
-      canManage={user?.role_name === "admin"}
+      canManage={access.institution && access.can("finance.manage")}
     />
   );
 }
@@ -238,6 +248,8 @@ function FinanceAccounts() {
   });
   const [search, setSearch] = useState("");
   const [state, setState] = useState("");
+  const [order, setOrder] = useState("overdue");
+  const [page, setPage] = useState(0);
   if (query.isLoading)
     return (
       <div className="page">
@@ -255,16 +267,25 @@ function FinanceAccounts() {
         />
       </div>
     );
-  const rows = (query.data || []).filter(
-    a =>
-      `${a.student_name} ${a.enrollment_number}`.toLowerCase().includes(search.toLowerCase()) &&
-      (!state ||
-        (state === "overdue"
-          ? a.overdue_balance > 0
-          : state === "debt"
-            ? a.balance > 0
-            : a.balance <= 0)),
-  );
+  const rows = (query.data || [])
+    .filter(
+      a =>
+        `${a.student_name} ${a.enrollment_number}`.toLowerCase().includes(search.toLowerCase()) &&
+        (!state ||
+          (state === "overdue"
+            ? a.overdue_balance > 0
+            : state === "debt"
+              ? a.balance > 0
+              : a.balance <= 0)),
+    )
+    .sort((a, b) =>
+      order === "name"
+        ? a.student_name.localeCompare(b.student_name, "es")
+        : order === "number"
+          ? a.enrollment_number.localeCompare(b.enrollment_number)
+          : b.overdue_balance - a.overdue_balance || b.balance - a.balance,
+    );
+  const pageRows = rows.slice(page * ACCOUNTS_PAGE, (page + 1) * ACCOUNTS_PAGE);
   return (
     <div className="page finance-page">
       <header className="page-header">
@@ -275,6 +296,10 @@ function FinanceAccounts() {
             Cargos, abonos verificados y compromisos. No se procesan tarjetas ni cobros automáticos.
           </p>
         </div>
+        <Link className="button button--secondary finance-plans-link" to="/finance/plans">
+          <CalendarRange size={18} />
+          Planes de cobro
+        </Link>
       </header>
       <section className="profile-metrics">
         <FinanceMetric
@@ -296,17 +321,40 @@ function FinanceAccounts() {
             <span>Buscar estudiante</span>
             <input
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
               placeholder="Nombre o matrícula"
             />
           </label>
           <label className="form-field">
             <span>Situación de la cuenta</span>
-            <select value={state} onChange={e => setState(e.target.value)}>
+            <select
+              value={state}
+              onChange={e => {
+                setState(e.target.value);
+                setPage(0);
+              }}
+            >
               <option value="">Todas</option>
               <option value="overdue">Con vencimientos</option>
               <option value="debt">Con balance pendiente</option>
               <option value="clear">Sin deuda</option>
+            </select>
+          </label>
+          <label className="form-field">
+            <span>Ordenar por</span>
+            <select
+              value={order}
+              onChange={e => {
+                setOrder(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="overdue">Mayor deuda vencida</option>
+              <option value="name">Nombre</option>
+              <option value="number">Matrícula</option>
             </select>
           </label>
         </div>
@@ -314,7 +362,7 @@ function FinanceAccounts() {
           {rows.length} cuentas · Incluye estudiantes activos e inactivos con historial.
         </p>
         <div className="finance-accounts">
-          {rows.map(a => (
+          {pageRows.map(a => (
             <article key={a.student_id}>
               <div>
                 <strong>{a.student_name}</strong>
@@ -340,6 +388,13 @@ function FinanceAccounts() {
           ))}
         </div>
         {!rows.length && <p className="muted">No hay cuentas para estos filtros.</p>}
+        <Pager
+          page={page}
+          pageSize={ACCOUNTS_PAGE}
+          total={rows.length}
+          onPage={setPage}
+          label="cuentas"
+        />
       </section>
       <FinanceOffice />
     </div>
@@ -367,7 +422,8 @@ function FinanceOffice() {
         <section>
           <h2>Conceptos de cobro</h2>
           <p className="muted">
-            Plantillas de importes. La frecuencia es informativa; no genera cargos automáticamente.
+            Plantillas de importes. Para cobrar cada mes a un grupo, crea un plan en «Planes de
+            cobro».
           </p>
           <form
             className="finance-form"
@@ -448,12 +504,11 @@ function FinanceOffice() {
           >
             <label className="form-field">
               <span>Fecha de caja (República Dominicana)</span>
-              <input
+              <DateInput
                 required
-                type="date"
                 max={day()}
                 value={closingDate}
-                onChange={e => setClosingDate(e.target.value)}
+                onValueChange={e => setClosingDate(e)}
               />
             </label>
             <Button disabled={action.isPending} variant="secondary">
@@ -543,6 +598,7 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
   const [simAmount, setSimAmount] = useState("100");
   const [simBusy, setSimBusy] = useState(false);
   const [editingDays, setEditingDays] = useState(false);
+  const [office, setOffice] = useState(false);
   const [accountDays, setAccountDays] = useState({ cutoff_day: "15", due_day: "30" });
   if (query.isLoading)
     return (
@@ -622,24 +678,39 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
         <FinanceMetric label="Ajustes netos" value={money(data.total_adjustments)} />
         <FinanceMetric label="Balance vencido" value={money(data.overdue_balance)} />
       </section>
-      <aside className="panel finance-notice">
-        Los pagos son internos en pesos dominicanos. Una transferencia pendiente no reduce la deuda.
-        Los recibos no son comprobantes fiscales y el bloqueo financiero se gestiona por separado.
-      </aside>
-      {canManage && (
-        <Button
-          variant="secondary"
-          onClick={() => {
-            setAccountDays({ cutoff_day: String(data.cutoff_day), due_day: String(data.due_day) });
-            setEditingDays(true);
-          }}
-        >
-          Configurar días de la cuenta
-        </Button>
-      )}
-      {canManage && (
-        <details className="panel finance-office">
-          <summary>Registrar cargo, efectivo o ajuste</summary>
+      <div className="finance-toolbar">
+        <details className="context-help finance-help">
+          <summary>Cómo funcionan los pagos</summary>
+          <p>
+            Los pagos son internos y en pesos dominicanos. Una transferencia pendiente no reduce la
+            deuda hasta que caja la verifica. Los recibos no son comprobantes fiscales y el bloqueo
+            financiero se gestiona por separado.
+          </p>
+        </details>
+        {canManage && (
+          <div className="section-heading__actions">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setAccountDays({
+                  cutoff_day: String(data.cutoff_day),
+                  due_day: String(data.due_day),
+                });
+                setEditingDays(true);
+              }}
+            >
+              <CalendarCog size={16} /> Días de corte y vencimiento
+            </Button>
+            <Button aria-expanded={office} onClick={() => setOffice(open => !open)}>
+              {office ? <X size={16} /> : <Plus size={16} />}{" "}
+              {office ? "Cerrar registro" : "Registrar movimiento"}
+            </Button>
+          </div>
+        )}
+      </div>
+      {canManage && office && (
+        <section className="panel finance-office" aria-label="Registrar cargo, efectivo o ajuste">
+          <h2 className="finance-office__title">Registrar cargo, efectivo o ajuste</h2>
           <div className="finance-actions finance-actions--three">
             <form
               className="finance-form"
@@ -697,10 +768,9 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
               </label>
               <label className="form-field">
                 <span>Vencimiento del cargo</span>
-                <input
-                  type="date"
+                <DateInput
                   value={charge.due_date}
-                  onChange={e => setCharge({ ...charge, due_date: e.target.value })}
+                  onValueChange={e => setCharge({ ...charge, due_date: e })}
                 />
               </label>
               <small className="muted">Vacío: próximo día {data.due_day}, adaptado al mes.</small>
@@ -822,17 +892,16 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
               {["late_fee", "debit"].includes(adjustment.kind) && (
                 <label className="form-field">
                   <span>Vencimiento del ajuste</span>
-                  <input
-                    type="date"
+                  <DateInput
                     value={adjustment.due_date}
-                    onChange={e => setAdjustment({ ...adjustment, due_date: e.target.value })}
+                    onValueChange={e => setAdjustment({ ...adjustment, due_date: e })}
                   />
                 </label>
               )}
               <Button disabled={action.isPending}>Registrar ajuste</Button>
             </form>
           </div>
-        </details>
+        </section>
       )}
       <nav className="finance-tabs" aria-label="Vistas financieras">
         {[
@@ -850,7 +919,9 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
         <section className="panel">
           <div className="panel-heading">
             <h2>Movimientos</h2>
-            <ReceiptText />
+            <span className="muted">
+              {movements.length} {movements.length === 1 ? "movimiento" : "movimientos"}
+            </span>
           </div>
           <div className="finance-filters">
             <label className="form-field">
@@ -879,6 +950,20 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
                 className={t.status === "reversed" ? "is-reversed" : ""}
                 key={`${t.type}-${t.transaction_id}`}
               >
+                <span
+                  className={`finance-kind finance-kind--${
+                    t.direction === "credit" || t.type === "payment" ? "credit" : "debit"
+                  }`}
+                  aria-hidden="true"
+                >
+                  {t.type === "payment" ? (
+                    <ArrowDownLeft size={16} />
+                  ) : t.type === "adjustment" ? (
+                    <SlidersHorizontal size={16} />
+                  ) : (
+                    <ArrowUpRight size={16} />
+                  )}
+                </span>
                 <div>
                   <strong>{t.description}</strong>
                   <small>
@@ -899,13 +984,11 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
                   {t.direction === "credit" || t.type === "payment" ? "−" : "+"}
                   {money(t.amount)}
                 </strong>
-                <Badge tone={t.status === "reversed" ? "neutral" : "info"}>
-                  {labels[t.status || "posted"]}
-                </Badge>
+                {t.status === "reversed" && <Badge tone="neutral">{labels.reversed}</Badge>}
                 <div className="finance-row-actions">
                   {t.type === "payment" && (
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       onClick={() =>
                         download(
                           `/finance/payments/${t.transaction_id}/receipt.pdf`,
@@ -913,7 +996,7 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
                         )
                       }
                     >
-                      Recibo
+                      <Download size={15} /> Recibo
                     </Button>
                   )}
                   {canManage && t.status !== "reversed" && (
@@ -924,7 +1007,7 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
                         setReason("");
                       }}
                     >
-                      Reversar
+                      <Undo2 size={15} /> Reversar
                     </Button>
                   )}
                 </div>
@@ -1126,12 +1209,11 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
               </label>
               <label className="form-field">
                 <span>Primer vencimiento</span>
-                <input
+                <DateInput
                   required
-                  type="date"
                   min={day()}
                   value={plan.first_due_date}
-                  onChange={e => setPlan({ ...plan, first_due_date: e.target.value })}
+                  onValueChange={e => setPlan({ ...plan, first_due_date: e })}
                 />
               </label>
               <Button

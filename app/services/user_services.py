@@ -32,8 +32,13 @@ def validate_profile(db: Session, state: dict):
         raise HTTPException(422, "La cuenta admite un solo vínculo de persona")
     if linked:
         kind, model, person_id = linked[0]
-        if role.name.casefold() != kind:
-            raise HTTPException(422, "Selecciona una persona del mismo perfil que el rol")
+        allowed = {
+            "student": {"own"},
+            "guardian": {"linked"},
+            "teacher": {"sections", "institution"},
+        }
+        if (role.scope or "institution") not in allowed[kind]:
+            raise HTTPException(422, "Selecciona una persona que corresponda al ámbito del rol")
         if db.get(model, person_id) is None:
             raise HTTPException(422, "Selecciona una persona existente para esta cuenta")
 

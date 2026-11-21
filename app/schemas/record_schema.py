@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 class PeriodRecord(BaseModel):
     period: str
-    average: float
+    average: float | None
     attempted_credits: float
     earned_credits: float
     courses: int
@@ -32,7 +32,10 @@ class AcademicTranscript(BaseModel):
     enrollment_number: str
     student_name: str
     career_name: str
-    cumulative_average: float
+    cumulative_average: float | None
+    final_result_count: int = 0
+    provisional_average: float | None = None
+    provisional_result_count: int = 0
     attempted_credits: float
     earned_credits: float
     repeated_courses: int

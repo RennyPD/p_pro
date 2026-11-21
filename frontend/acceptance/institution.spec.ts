@@ -216,6 +216,8 @@ test("admin publishes a draft and can filter the resulting audit event", async (
       days_of_week: ["Domingo"],
       start_time: "23:15",
       end_time: "23:45",
+      // Publishing requires a registered classroom that is free at this time.
+      room: "Aula LAB-1",
     },
   });
   expect(draft.status()).toBe(200);
@@ -227,10 +229,10 @@ test("admin publishes a draft and can filter the resulting audit event", async (
   await page.getByRole("button", { name: "Confirmar publicación" }).click();
   await expect(page.getByRole("cell", { name: "Publicada", exact: true })).toBeVisible();
   await page.goto("/settings/audit");
-  await page.getByLabel("Acción exacta").fill("section.published");
-  await page.getByRole("button", { name: "Aplicar filtros" }).click();
+  await page.getByLabel("Acción", { exact: true }).selectOption("section.published");
+  await page.getByRole("button", { name: "Filtrar" }).click();
   await expect(
-    page.getByRole("cell", { name: "section.published", exact: true }).first(),
+    page.getByRole("cell", { name: "Sección publicada", exact: true }).first(),
   ).toBeVisible();
 });
 
@@ -319,7 +321,7 @@ test("the student can read a filed document and request approval without changin
   await page
     .locator("article")
     .filter({ hasText: reason })
-    .getByRole("button", { name: "Revisar solicitud" })
+    .getByRole("button", { name: "Aprobar" })
     .click();
   await page.getByLabel("Motivo de la decisión").fill("Revisión de aceptación QA");
   await page.getByRole("button", { name: "Registrar decisión" }).click();
@@ -327,7 +329,8 @@ test("the student can read a filed document and request approval without changin
     page
       .locator("article")
       .filter({ hasText: reason })
-      .getByText(/^Aprobada ·/),
+      .getByText("Aprobada", { exact: true })
+      .first(),
   ).toBeVisible();
   await page.goto(`/students/${user.student_id}`);
   await page.getByRole("button", { name: "Documentos", exact: true }).click();
@@ -373,6 +376,7 @@ test("student confirms a real cart without native dialogs and keeps their seat",
       description: "Aceptación",
       teacher_id: 1,
       subject_id: subject.subject_id,
+      room: "Aula LAB-1",
       days_of_week: ["Domingo"],
       start_time: "20:00",
       end_time: "21:00",
@@ -393,9 +397,8 @@ test("student confirms a real cart without native dialogs and keeps their seat",
     .getByRole("dialog", { name: "Confirmar selección académica" })
     .getByRole("button", { name: "Confirmar", exact: true })
     .click();
-  await expect(card.getByText("Tu plaza está reservada")).toBeVisible();
   await expect(card.getByText("Confirmada", { exact: true })).toBeVisible();
-  await expect(card.getByText("Sin cupos para nuevas selecciones")).toHaveCount(0);
+  await expect(card.getByText("Sin cupos", { exact: true })).toHaveCount(0);
   const selections = await (await request.get(`${base}/enrollments/`, { headers })).json();
   expect(
     selections.filter(

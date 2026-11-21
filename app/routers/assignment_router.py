@@ -11,12 +11,14 @@ from sqlalchemy.orm import Session
 
 from app.auth import (
     ACADEMIC_SCOPE,
+    calendar_audience,
     ensure_section_access,
     get_current_user,
     guardian_student_ids,
+    has_permission,
     has_scope,
     require_permissions,
-    require_roles,
+    require_personal,
 )
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
@@ -40,20 +42,13 @@ from app.services.governance_workflow import lock_governance
 router = APIRouter()
 
 
-def manager(
-    user: User = Depends(require_roles("admin", "teacher")),
-    permitted: User = Depends(
-        require_permissions("operations.manage", fallback_roles=("admin", "teacher"))
-    ),
-):
+def manager(user: User = Depends(require_permissions("tasks.manage"))):
     return user
 
 
 def grader(
     user: User = Depends(manager),
-    permitted: User = Depends(
-        require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
-    ),
+    permitted: User = Depends(require_permissions("grades.manage")),
 ):
     return user
 
@@ -82,7 +77,7 @@ def visible(db, user, assignment_id):
     query = db.query(Assignment).filter(
         Assignment.assignment_id == assignment_id, Assignment.section_id.in_(scope(db, user))
     )
-    if user.role.name not in {"admin", "teacher"}:
+    if not has_permission(user, "tasks.manage"):
         query = query.filter(Assignment.published.is_(True))
     item = query.first()
     if not item:
@@ -126,7 +121,7 @@ def task_view(db, item, user):
         "period_name": section.period_name,
         "submission": submission_view(db, own),
         "submission_count": db.query(Submission).filter_by(assignment_id=item.assignment_id).count()
-        if user.role.name in {"admin", "teacher"}
+        if has_permission(user, "tasks.manage")
         else None,
     }
 
@@ -156,7 +151,7 @@ def agenda(db: Session = Depends(get_db), user: User = Depends(get_current_user)
     if not has_scope(user, *ACADEMIC_SCOPE):
         events = events.filter(
             (
-                (CalendarEvent.audience.in_(["all", user.role.name]))
+                (CalendarEvent.audience.in_(["all", calendar_audience(user)]))
                 & CalendarEvent.section_id.is_(None)
             )
             | ((CalendarEvent.audience == "section") & CalendarEvent.section_id.in_(sections))
@@ -224,7 +219,7 @@ def tasks(
     query = db.query(Assignment).filter(Assignment.section_id.in_(scope(db, user)))
     if section_id:
         query = query.filter(Assignment.section_id == section_id)
-    if user.role.name not in {"admin", "teacher"}:
+    if not has_permission(user, "tasks.manage"):
         query = query.filter(Assignment.published.is_(True))
     return [task_view(db, item, user) for item in query.order_by(Assignment.due_at)]
 
@@ -302,7 +297,7 @@ def submit(
     assignment_id: int,
     data: SubmissionCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles("student")),
+    user: User = Depends(require_personal("records.own", "own")),
 ):
     lock_governance(db)
     task = visible(db, user, assignment_id)
@@ -451,9 +446,7 @@ def ensure_attempt_access(db, user, submission_id):
     if not item:
         raise HTTPException(404, "Entrega no disponible")
     visible(db, user, item.assignment_id)
-    if user.role.name not in {"admin", "teacher"} and (
-        user.role.name != "student" or user.student_id != item.student_id
-    ):
+    if not has_permission(user, "tasks.manage") and user.student_id != item.student_id:
         raise HTTPException(403, "Solo puedes consultar tus propios intentos")
 
 

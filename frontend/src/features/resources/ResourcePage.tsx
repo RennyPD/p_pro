@@ -1,10 +1,12 @@
 import { confirmAction } from "../../lib/confirm";
 import { isAxiosError } from "axios";
+import { DateInput } from "../../components/DateInput";
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronLeft, ChevronRight, Edit3, Eye, Plus, Search, Trash2 } from "lucide-react";
 import { Fragment, useId, useMemo, useState, type ReactNode } from "react";
-import { Controller, useForm, type Control } from "react-hook-form";
+import { Controller, useForm, type Control, type FieldValues } from "react-hook-form";
+import { ClassroomPicker } from "../../components/ClassroomPicker";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button, EmptyState, Modal, Spinner } from "../../components/ui";
@@ -13,8 +15,10 @@ import { api, apiMessage } from "../../lib/api";
 import { useDraftGuard } from "../../lib/useDraftGuard";
 import { useAuthStore } from "../../store/auth";
 import type { EntityRecord, FieldConfig, ResourceConfig } from "../../types";
+import { newLabel } from "../../lib/labels";
 import "./resource-fields.css";
 import "./resource-table.css";
+import { useAccess } from "../../lib/permissions";
 
 const identity = (row: EntityRecord, config: ResourceConfig) =>
   [
@@ -28,6 +32,22 @@ const PAGE_SIZE = 10;
 const EMPTY_ROWS: EntityRecord[] = [];
 const WEEK_DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 type FormValues = Record<string, unknown>;
+
+/** Permission that allows creating and editing each generic resource. */
+const writePermission: Record<string, string> = {
+  students: "students.manage",
+  teachers: "teachers.manage",
+  careers: "programs.manage",
+  subjects: "programs.manage",
+  curriculum: "programs.manage",
+  sections: "sections.manage",
+  enrollments: "enrollments.manage",
+  grades: "grades.manage",
+  attendances: "attendance.manage",
+  roles: "roles.manage",
+  periods: "settings.manage",
+  users: "users.manage",
+};
 
 export function ResourcePage({
   config,
@@ -48,9 +68,8 @@ export function ResourcePage({
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<EntityRecord | null | undefined>();
-  const canWrite =
-    user?.role_name === "admin" ||
-    (user?.role_name === "teacher" && ["grades", "attendances"].includes(config.key));
+  const access = useAccess();
+  const canWrite = access.can(writePermission[config.key] ?? "settings.manage");
   const {
     data: result,
     isLoading,
@@ -85,14 +104,16 @@ export function ResourcePage({
     },
     onError: e => toast.error(apiMessage(e)),
   });
-  const hasWorkspace = ["students", "sections", "careers", "subjects"].includes(config.key);
+  const hasWorkspace = ["sections", "careers", "subjects"].includes(config.key);
   const columns = useMemo(
     () => [
       ...config.columns.map(c => ({
         accessorKey: c.key,
         header: c.label,
         cell: ({ row, getValue }: { row: { original: EntityRecord }; getValue: () => unknown }) =>
-          c.render ? c.render(getValue() as never, row.original) : display(getValue()),
+          c.render
+            ? c.render(getValue() as never, row.original)
+            : display(optionLabel(config, c.key, getValue())),
       })),
       ...(canWrite || hasWorkspace
         ? [
@@ -118,18 +139,20 @@ export function ResourcePage({
                       <Edit3 />
                     </button>
                   )}
-                  {canWrite && config.allowDelete !== false && (
-                    <button
-                      className="danger"
-                      onClick={async () =>
-                        (await confirmAction(`¿Eliminar este ${config.singular}?`)) &&
-                        remove.mutate(row.original)
-                      }
-                      aria-label={`Eliminar ${config.singular} ${identity(row.original, config)}`}
-                    >
-                      <Trash2 />
-                    </button>
-                  )}
+                  {canWrite &&
+                    config.allowDelete !== false &&
+                    (config.canDelete?.(row.original) ?? true) && (
+                      <button
+                        className="danger"
+                        onClick={async () =>
+                          (await confirmAction(`¿Eliminar este ${config.singular}?`)) &&
+                          remove.mutate(row.original)
+                        }
+                        aria-label={`Eliminar ${config.singular} ${identity(row.original, config)}`}
+                      >
+                        <Trash2 />
+                      </button>
+                    )}
                 </div>
               ),
             },
@@ -147,7 +170,7 @@ export function ResourcePage({
     <div className="page">
       <header className="page-header">
         <div>
-          <span className="kicker">Gestión académica</span>
+          <span className="kicker">{config.kicker ?? "Gestión académica"}</span>
           <h1>{config.title}</h1>
           <details className="header-help">
             <summary>Acerca de esta vista</summary>
@@ -156,7 +179,7 @@ export function ResourcePage({
         </div>
         {canWrite && (
           <Button onClick={() => setEditing(null)}>
-            <Plus size={18} /> Nuevo {config.singular}
+            <Plus size={18} /> {newLabel(config.singular)}
           </Button>
         )}
       </header>
@@ -367,7 +390,7 @@ export function ResourceForm({
   };
   return (
     <Modal
-      title={record ? `Editar ${config.singular}` : `Nuevo ${config.singular}`}
+      title={record ? `Editar ${config.singular}` : `${newLabel(config.singular)}`}
       onClose={close}
     >
       <form
@@ -386,7 +409,7 @@ export function ResourceForm({
               <h3 className="form-section-heading">{field.section}</h3>
             )}
             <FormField field={field} control={control} register={register} />
-            {errors[field.name]?.message && (
+            {field.type !== "classroom" && errors[field.name]?.message && (
               <small className="form-error">{errors[field.name]?.message}</small>
             )}
           </Fragment>
@@ -439,6 +462,14 @@ function FormField({
         <span>{field.label}</span>
       </label>
     );
+  if (field.type === "classroom")
+    return (
+      <ClassroomPicker
+        name={field.name}
+        label={field.label}
+        control={control as unknown as Control<FieldValues>}
+      />
+    );
   if (field.type === "lookup" && field.lookup)
     return (
       <div className="form-field">
@@ -476,6 +507,28 @@ function FormField({
           )}
         />
       </fieldset>
+    );
+  if (field.type === "date")
+    return (
+      <div className="form-field">
+        <span id={hintId}>
+          <FieldLabel field={field} />
+        </span>
+        <Controller
+          name={field.name}
+          control={control}
+          rules={{ required: field.required }}
+          render={({ field: input }) => (
+            <DateInput
+              aria-labelledby={hintId}
+              required={field.required}
+              value={input.value == null ? "" : String(input.value)}
+              onValueChange={input.onChange}
+              onBlur={input.onBlur}
+            />
+          )}
+        />
+      </div>
     );
   if (field.type === "select")
     return (
@@ -554,6 +607,14 @@ function normalizeDays(value: unknown) {
       .map(day => day.trim())
       .filter(Boolean);
   return [];
+}
+/** Shows the human label of select fields (e.g. "Obligatoria" instead of "required"). */
+function optionLabel(config: ResourceConfig, key: string, value: unknown) {
+  return (
+    config.fields
+      .find(field => field.name === key)
+      ?.options?.find(option => String(option.value) === String(value))?.label ?? value
+  );
 }
 function display(value: unknown) {
   if (value === null || value === undefined || value === "")

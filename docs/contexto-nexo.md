@@ -12,7 +12,7 @@ Sistema de gestión académica de una sola institución, muy orientado a univers
 - **Asistencia,** tareas y entregas (PDF/PNG/JPEG hasta 5 MiB), planes de clase, agenda.
 - **Finanzas:** conceptos de cobro, cargos, pagos idempotentes, reversos auditados, planes de pago, transferencias con comprobante, cierre de caja.
 - **Comunidad:** portal de tutores (padres), alertas tempranas, casos institucionales, aprobaciones, admisiones, comunicaciones.
-- **Plataforma:** usuarios, roles y permisos configurables, módulos por rol personalizado, 2FA (TOTP), sesiones revocables, auditoría, importación masiva con prevalidación, PDF (boletines, constancias, expedientes), exportes CSV.
+- **Plataforma:** usuarios, roles creados por la institución con permisos granulares (unos 30, de consulta y gestión por módulo; catálogo en `app/permissions.py`) y ámbito de datos por rol (institución, sus secciones, su expediente, estudiantes vinculados), módulos de consulta por cuenta, 2FA (TOTP), sesiones revocables, auditoría, importación masiva con prevalidación, PDF (boletines, constancias, expedientes), exportes CSV.
 
 ### Arquitectura
 - `app/models` (SQLAlchemy), `app/schemas` (Pydantic), `app/routers`, `app/services`, `app/repositories`, `alembic/`.

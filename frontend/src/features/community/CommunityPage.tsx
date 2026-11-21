@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDateTime } from "../../lib/format";
 import { Bell, Check, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -6,6 +7,7 @@ import { Badge, Button, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./community.css";
+import { useAccess } from "../../lib/permissions";
 
 type Notification = {
   notification_id: number;
@@ -35,10 +37,7 @@ const audiences: Record<string, string> = {
   section: "Estudiantes de una sección",
   section_guardians: "Tutores de una sección",
 };
-const dateLabel = (value: string) =>
-  new Date(value.endsWith("Z") ? value : value + "Z").toLocaleString("es-DO", {
-    timeZone: "America/Santo_Domingo",
-  });
+const dateLabel = (value: string) => formatDateTime(value);
 const operationKey = () =>
   globalThis.crypto?.randomUUID?.() ||
   `notice-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -46,8 +45,9 @@ const operationKey = () =>
 export function CommunityPage() {
   const user = useAuthStore(s => s.user);
   const client = useQueryClient();
-  const canPublish = user?.role_name === "admin" || user?.role_name === "teacher";
-  const admin = user?.role_name === "admin";
+  const access = useAccess();
+  const canPublish = access.can("communications.manage") && (access.institution || access.teaching);
+  const admin = canPublish && access.institution;
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState(admin ? "all" : "section");

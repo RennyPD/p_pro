@@ -1,55 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen } from "lucide-react";
 import { useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { Button, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
-import { isCustomRole, useModuleViews } from "../../lib/moduleViews";
+import { useModuleViews } from "../../lib/moduleViews";
 import { useAuthStore } from "../../store/auth";
 
 const pageSize = 25;
 
-export function CustomModuleHome() {
-  const modules = useModuleViews();
-  return (
-    <div className="page">
-      <header className="page-header">
-        <h1>Módulos de consulta</h1>
-      </header>
-      {modules.isPending ? (
-        <Spinner />
-      ) : modules.isError ? (
-        <p role="alert">
-          {apiMessage(modules.error)}{" "}
-          <Button onClick={() => void modules.refetch()}>Reintentar</Button>
-        </p>
-      ) : modules.data.length ? (
-        <ul>
-          {modules.data.map(item => (
-            <li key={item.key}>
-              <Link to={`/modules/${item.key}`}>{item.label}</Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState
-          icon={<BookOpen />}
-          title="Sin módulos asignados"
-          description="Solicita acceso a la administración si necesitas consultar un módulo."
-        />
-      )}
-    </div>
-  );
-}
-
 export function CustomModuleRoute() {
-  const role = useAuthStore(state => state.user?.role_name);
   const { module } = useParams();
-  return isCustomRole(role) && module ? (
-    <CustomModulePage key={module} module={module} />
-  ) : (
-    <Navigate to="/" replace />
-  );
+  return module ? <CustomModulePage key={module} module={module} /> : <Navigate to="/" replace />;
 }
 
 function CustomModulePage({ module }: { module: string }) {

@@ -25,9 +25,10 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 0.7rem;
-  background: var(--surface);
+  background-color: var(--surface);
   color: var(--ink);
   font: inherit;
+  font-weight: 400;
   max-width: 100%;
 }
 .operations-toolbar select {
@@ -203,4 +204,124 @@
   .operations-tabs a {
     margin-left: 0;
   }
+}
+.operations-toolbar select {
+  padding-right: 2.5rem;
+}
+
+/* Task detail (student view) */
+.task-detail {
+  display: grid;
+  gap: 1rem;
+}
+
+.task-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.task-facts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.task-detail p {
+  margin: 0;
+}
+
+.task-instructions {
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.task-mine {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.task-mine h3 {
+  margin: 0;
+}
+
+.task-result {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: var(--success-soft);
+}
+
+.task-result > strong {
+  color: var(--success);
+  font:
+    800 2rem "Manrope",
+    sans-serif;
+  line-height: 1;
+}
+
+.task-result > strong small {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.task-result span {
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.task-result p {
+  color: var(--ink-soft);
+}
+
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.task-meta .text-link {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.task-content {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-left: 3px solid var(--line-dark);
+  border-radius: 0 8px 8px 0;
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+}
+
+.task-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.task-note svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
 }

@@ -87,10 +87,14 @@ Para validar el frontend:
 ```powershell
 npm run typecheck
 npm run lint
+npm run format:check   # npm run format para aplicar el estilo
 npm run test
 npm run build
 npm run e2e
+npm run e2e:acceptance  # levanta su propio backend; requiere Python en el PATH
 ```
+
+Fechas, horas y montos se muestran siempre en español dominicano y en la zona horaria de la institución (`src/lib/format.ts`). La API guarda las fechas con hora en UTC.
 
 ## Autenticación y roles
 
@@ -116,7 +120,7 @@ El directorio permite buscar por nombre completo, matrícula, correo o documento
 
 La migración `20261010_0024` incorpora campos opcionales de documento de identidad, nacimiento, nacionalidad, fecha de ingreso, centro de procedencia y contacto de emergencia. Los registros anteriores se conservan. El cargador institucional incluye información ficticia para estos campos.
 
-Los promedios del expediente se calculan con las notas registradas y pueden incluir evaluaciones en proceso. La auditoría de graduación y la cuenta financiera se consultan desde sus accesos específicos.
+Los resultados tienen tres estados: **sin notas**, **provisional** (hay notas publicadas pero el plan no está completo o sus evaluaciones no se han cerrado) y **definitivo** (todas las evaluaciones publicadas y cerradas). El promedio acumulado y la condición académica solo usan resultados definitivos; mientras no existan, se muestra el promedio provisional identificado como tal. La auditoría de graduación y la cuenta financiera se consultan desde sus accesos específicos.
 
 ### Expediente docente
 

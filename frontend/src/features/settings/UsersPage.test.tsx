@@ -90,3 +90,22 @@ it("does nothing when the deactivation is not confirmed", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Desactivar la cuenta de elena" }));
   expect(post).not.toHaveBeenCalled();
 });
+
+it("renders every row action as a titled icon button so none overlaps its neighbours", async () => {
+  vi.spyOn(api, "get").mockImplementation(
+    async path =>
+      ({
+        data: String(path).startsWith("/users") ? accounts : [],
+        headers: {},
+      }) as never,
+  );
+  renderPage();
+  const deactivate = await screen.findByRole("button", { name: "Desactivar la cuenta de elena" });
+  const actions = deactivate.closest(".row-actions");
+  expect(actions).not.toBeNull();
+  for (const button of Array.from(actions!.querySelectorAll("button"))) {
+    expect(button.querySelector("svg")).not.toBeNull();
+    expect(button.textContent?.trim()).toBe("");
+    expect(button.getAttribute("aria-label")).toBeTruthy();
+  }
+});

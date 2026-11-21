@@ -30,7 +30,7 @@ from app.services.academic_grading import academic_result, audit_event, ensure_g
 from app.services.governance_workflow import lock_governance
 
 router = APIRouter(prefix="/assessments", tags=["weighted assessments"])
-assessment_manager = require_permissions("grades.manage", fallback_roles=("admin", "teacher"))
+assessment_manager = require_permissions("grades.manage")
 
 
 @router.get("/templates", response_model=list[AssessmentTemplateOut])
@@ -78,6 +78,14 @@ def apply_assessment_template(
         due_date=data.due_date,
     )
     db.add(item)
+    db.flush()
+    audit_event(
+        db,
+        user.user_id,
+        "assessment.created",
+        f"assessment:{item.assessment_id}",
+        f"{item.name}; peso={item.weight}%; plantilla={template.name}",
+    )
     db.commit()
     db.refresh(item)
     return item
@@ -223,7 +231,7 @@ def reopen_assessment(
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
         raise HTTPException(status_code=404, detail="Evaluación no encontrada")
-    if not has_scope(user, "academic.manage"):
+    if not has_scope(user, "grades.view", "sections.manage"):
         raise HTTPException(403, "Solo la administración académica puede reabrir una evaluación")
     ensure_grading_open(db, assessment.section, allow_closed_section=True)
     if assessment.section.status == "closed":
@@ -327,7 +335,7 @@ def update_distribution(
 def can_use_plan(db: Session, user: User, template: AssessmentTemplate):
     owner = db.get(User, template.owner_id)
     return template.owner_id == user.user_id or (
-        owner is not None and has_scope(owner, "academic.manage")
+        owner is not None and has_scope(owner, "grades.view", "sections.manage")
     )
 
 

@@ -1,4 +1,11 @@
 import { CurriculumAssignmentPanel } from "./CurriculumAssignmentPanel";
+import { formatDate } from "../../lib/format";
+import {
+  describeAverage,
+  isLowAttendance,
+  resultLabel,
+  resultTone,
+} from "../../lib/academicResult";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -18,7 +25,6 @@ import { Link, useParams } from "react-router-dom";
 import { DocumentDownload } from "../../components/DocumentDownload";
 import { Badge, Button, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
-import { useAuthStore } from "../../store/auth";
 import type { EntityRecord } from "../../types";
 import { ResourceForm } from "../resources/ResourcePage";
 import { CareerChangeDialog, GuardianDialog, StudentDocuments } from "./StudentDossierActions";
@@ -26,6 +32,7 @@ import { RequestApproval } from "../operations/ApprovalsPage";
 import { studentConfig } from "./student-config";
 import "./academic-pages.css";
 import "./students.css";
+import { useAccess } from "../../lib/permissions";
 
 type Enrollment = {
   enrollment_id: number;
@@ -36,6 +43,8 @@ type Enrollment = {
   period: string;
   state: string;
   average_grade: number | null;
+  result_final?: boolean;
+  result_status?: string;
   attendance_percentage: number | null;
 };
 type Dossier = {
@@ -60,6 +69,10 @@ type Dossier = {
   emergency_contact_phone: string | null;
   emergency_contact_relationship: string | null;
   overall_average: number | null;
+  final_average?: number | null;
+  final_result_count?: number;
+  provisional_average?: number | null;
+  provisional_result_count?: number;
   overall_attendance: number | null;
   enrollments: Enrollment[];
 };
@@ -100,14 +113,13 @@ const tabs = [
   { key: "documents", label: "Documentos" },
 ] as const;
 type Tab = (typeof tabs)[number]["key"];
-const dateLabel = (value: string | null) =>
-  value
-    ? new Intl.DateTimeFormat("es", { dateStyle: "medium" }).format(new Date(`${value}T12:00:00`))
-    : "Sin registrar";
+const dateLabel = (value: string | null) => formatDate(value, "Sin registrar");
 
 export function StudentDossierPage() {
+  const access = useAccess();
+  const institutionView = access.institution;
+  const canManageStudent = access.institution && access.can("students.manage");
   const { studentId } = useParams();
-  const user = useAuthStore(state => state.user);
   const [tab, setTab] = useState<Tab>("overview");
   const [period, setPeriod] = useState("");
   const [editing, setEditing] = useState(false);
@@ -122,7 +134,7 @@ export function StudentDossierPage() {
     queryKey: ["student-transcript", studentId],
     queryFn: () =>
       api.get(`/records/students/${studentId}/transcript`).then(response => response.data),
-    enabled: tab === "academic" && user?.role_name === "admin",
+    enabled: tab === "academic" && institutionView,
   });
   const guardians = useQuery<Guardian[]>({
     queryKey: ["student-guardians", studentId],
@@ -160,6 +172,12 @@ export function StudentDossierPage() {
     student.emergency_contact_relationship,
   ];
   const completed = details.filter(Boolean).length;
+  const average = describeAverage({
+    finalAverage: student.final_average,
+    finalCount: student.final_result_count,
+    provisionalAverage: student.provisional_average,
+    provisionalCount: student.provisional_result_count,
+  });
   return (
     <div className="page student-dossier">
       <Link className="back-link" to="/students">
@@ -186,16 +204,29 @@ export function StudentDossierPage() {
             </div>
           </div>
         </div>
-        {user?.role_name === "admin" && (
-          <Button variant="secondary" onClick={() => setEditing(true)}>
-            <Edit3 size={16} /> Editar expediente
-          </Button>
-        )}
+        <div className="dossier-actions">
+          <RequestApproval
+            resource="student"
+            id={student.student_id}
+            label={`${student.first_name} ${student.last_name} · ${student.enrollment_number}`}
+          />
+          {canManageStudent && (
+            <>
+              <Button variant="secondary" onClick={() => setTransferring(true)}>
+                Trasladar carrera
+              </Button>
+              <Button variant="secondary" onClick={() => setEditing(true)}>
+                <Edit3 size={16} /> Editar expediente
+              </Button>
+            </>
+          )}
+        </div>
       </header>
       <section className="dossier-metrics">
         <Metric
-          label="Promedio de notas registradas"
-          value={student.overall_average ?? "Sin notas"}
+          label={average.kind === "provisional" ? "Promedio provisional" : "Promedio definitivo"}
+          value={average.value}
+          note={average.note}
           icon={<BookOpen />}
         />
         <Metric
@@ -246,10 +277,12 @@ export function StudentDossierPage() {
                 </span>
               </div>
               <progress max={details.length} value={completed} />
-              <small>
-                Completa la identificación, el ingreso y el contacto de emergencia desde Editar
-                expediente.
-              </small>
+              {completed < details.length && (
+                <small>
+                  Completa la identificación, el ingreso y el contacto de emergencia desde Editar
+                  expediente.
+                </small>
+              )}
             </div>
           </section>
           <div className="dossier-side">
@@ -286,7 +319,7 @@ export function StudentDossierPage() {
                 </span>
                 <ArrowUpRight />
               </button>
-              {user?.role_name === "admin" && (
+              {institutionView && (
                 <Link className="dossier-shortcut" to={`/students/${studentId}/graduation`}>
                   <GraduationCap />
                   <span>
@@ -295,7 +328,7 @@ export function StudentDossierPage() {
                   <ArrowUpRight />
                 </Link>
               )}
-              {user?.role_name === "admin" && (
+              {institutionView && access.can("finance.view") && (
                 <Link className="dossier-shortcut" to={`/finance/${studentId}`}>
                   <Wallet />
                   <span>
@@ -356,11 +389,12 @@ export function StudentDossierPage() {
             <div>
               <span className="kicker">Trayectoria académica</span>
               <h2>
-                {user?.role_name === "teacher"
-                  ? "Asignaturas de mis secciones"
-                  : "Historial de asignaturas"}
+                {access.teaching ? "Asignaturas de mis secciones" : "Historial de asignaturas"}
               </h2>
-              <p>Promedios de las notas registradas; pueden incluir evaluaciones aún en proceso.</p>
+              <p>
+                Resultado con notas publicadas: provisional hasta que el docente cierre las
+                evaluaciones.
+              </p>
             </div>
             <select
               aria-label="Filtrar historial por período"
@@ -373,7 +407,7 @@ export function StudentDossierPage() {
               ))}
             </select>
           </div>
-          {user?.role_name === "admin" && (
+          {institutionView && (
             <div className="form-actions">
               <DocumentDownload
                 path={`/documents/students/${studentId}/transcript.pdf`}
@@ -421,7 +455,7 @@ export function StudentDossierPage() {
                   <th>Asignatura</th>
                   <th>Período</th>
                   <th>Estado</th>
-                  <th>Promedio</th>
+                  <th>Resultado</th>
                   <th>Asistencia</th>
                   <th>Sección</th>
                 </tr>
@@ -441,8 +475,23 @@ export function StudentDossierPage() {
                         {states[item.state] ?? item.state}
                       </Badge>
                     </td>
-                    <td>{item.average_grade ?? "—"}</td>
                     <td>
+                      {item.average_grade === null ? (
+                        <span className="muted">Sin notas</span>
+                      ) : (
+                        <span className="dossier-result">
+                          <b>{item.average_grade}</b>
+                          <Badge
+                            tone={resultTone(
+                              item.result_final ? item.result_status : "in_progress",
+                            )}
+                          >
+                            {item.result_final ? resultLabel(item.result_status) : "Provisional"}
+                          </Badge>
+                        </span>
+                      )}
+                    </td>
+                    <td className={isLowAttendance(item.attendance_percentage) ? "is-low" : ""}>
                       {item.attendance_percentage === null ? "—" : `${item.attendance_percentage}%`}
                     </td>
                     <td>
@@ -468,7 +517,7 @@ export function StudentDossierPage() {
           )}
         </section>
       )}
-      {tab === "academic" && user?.role_name === "admin" && studentId && (
+      {tab === "academic" && canManageStudent && studentId && (
         <CurriculumAssignmentPanel studentId={studentId} />
       )}
       {tab === "support" && (
@@ -488,9 +537,7 @@ export function StudentDossierPage() {
             <span className="kicker">Red de apoyo</span>
             <div className="panel-heading">
               <h2>Tutores vinculados</h2>
-              {user?.role_name === "admin" && (
-                <Button onClick={() => setLinking(true)}>Vincular tutor</Button>
-              )}
+              {canManageStudent && <Button onClick={() => setLinking(true)}>Vincular tutor</Button>}
             </div>
             {guardians.isLoading ? (
               <Spinner />
@@ -524,17 +571,7 @@ export function StudentDossierPage() {
         </div>
       )}
       {tab === "documents" && studentId && (
-        <StudentDocuments studentId={studentId} canUpload={user?.role_name === "admin"} />
-      )}
-      <RequestApproval
-        resource="student"
-        id={student.student_id}
-        label={`${student.first_name} ${student.last_name} · ${student.enrollment_number}`}
-      />
-      {user?.role_name === "admin" && (
-        <Button variant="secondary" onClick={() => setTransferring(true)}>
-          Trasladar carrera
-        </Button>
+        <StudentDocuments studentId={studentId} canUpload={canManageStudent} />
       )}
       {transferring && studentId && (
         <CareerChangeDialog
@@ -552,7 +589,16 @@ export function StudentDossierPage() {
           record={
             Object.fromEntries(
               Object.entries(student).filter(
-                ([key]) => !["enrollments", "overall_average", "overall_attendance"].includes(key),
+                ([key]) =>
+                  ![
+                    "enrollments",
+                    "overall_average",
+                    "overall_attendance",
+                    "final_average",
+                    "final_result_count",
+                    "provisional_average",
+                    "provisional_result_count",
+                  ].includes(key),
               ),
             ) as EntityRecord
           }
@@ -579,10 +625,12 @@ function Metric({
   label,
   value,
   icon,
+  note,
 }: {
   label: string;
   value: number | string;
   icon: React.ReactNode;
+  note?: string;
 }) {
   return (
     <article>
@@ -591,6 +639,7 @@ function Metric({
         <small>{label}</small>
       </div>
       <strong>{value}</strong>
+      {note && <small className="metric-note">{note}</small>}
     </article>
   );
 }

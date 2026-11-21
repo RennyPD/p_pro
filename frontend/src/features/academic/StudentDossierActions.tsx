@@ -1,5 +1,6 @@
 import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DateInput } from "../../components/DateInput";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { DocumentDownload } from "../../components/DocumentDownload";
@@ -18,6 +19,17 @@ const guardianLookup: LookupConfig = {
   placeholder: "Buscar tutor",
 };
 const limit = 5 * 1024 * 1024;
+const documentTypes: Record<string, string> = {
+  identification: "Documento de identidad",
+  transcript: "Récord de notas",
+  birth_certificate: "Acta de nacimiento",
+  photo: "Fotografía",
+  medical: "Certificado médico",
+  diploma: "Título de bachillerato",
+  certificate: "Certificado",
+};
+/** Seeded/legacy documents use English codes; manual uploads already carry a readable type. */
+const documentTypeLabel = (type: string) => documentTypes[type] ?? type;
 type StudentDocument = {
   student_document_id: number;
   filename: string;
@@ -351,15 +363,21 @@ export function StudentDocuments({
           {apiMessage(documents.error)}
         </p>
       ) : documents.data?.length ? (
-        <ul>
+        <ul className="document-list">
           {documents.data.map(document => (
             <li key={document.student_document_id}>
-              <strong>{document.filename}</strong> · {document.document_type}
-              {document.expires_on ? ` · vence el ${document.expires_on}` : ""}
+              <div>
+                <strong>{documentTypeLabel(document.document_type)}</strong>
+                <small>
+                  {document.filename}
+                  {document.expires_on ? ` · vence el ${document.expires_on}` : ""}
+                </small>
+              </div>
               <DocumentDownload
                 path={`/operations/documents/${document.student_document_id}/download`}
                 filename={document.filename}
-                label={`Descargar ${document.filename}`}
+                label="Descargar"
+                accessibleLabel={`Descargar ${document.filename}`}
               />
             </li>
           ))}
@@ -381,7 +399,7 @@ export function StudentDocuments({
             </label>
             <label className="form-field">
               <span>Vencimiento, si aplica</span>
-              <input name="expires_on" type="date" />
+              <DateInput name="expires_on" />
             </label>
             <label className="form-field">
               <span>Archivo PDF, PNG o JPEG de hasta 5 MB</span>

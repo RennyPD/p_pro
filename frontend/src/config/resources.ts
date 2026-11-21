@@ -1,4 +1,5 @@
 import type { LookupConfig, ResourceConfig } from "../types";
+import { formatDate, formatTime } from "../lib/format";
 
 const yesNo = (value: unknown) => (value ? "Activo" : "Inactivo");
 const lookup = (
@@ -31,6 +32,12 @@ const pluralTerm = (type: string, count: number) =>
     semester: "semestres",
     annual: "años",
   })[type] ?? (count === 1 ? "período" : "períodos");
+/** "Lunes, Miércoles" → "Lun, Mié" so schedules fit in one line. */
+const shortDays = (value: unknown) =>
+  (Array.isArray(value) ? value : String(value ?? "").split(","))
+    .map(day => String(day).trim().slice(0, 3))
+    .filter(Boolean)
+    .join(", ");
 const labelModality = (value: string) =>
   ({ in_person: "Presencial", virtual: "Virtual", hybrid: "Híbrida" })[value] ?? value;
 const labelAttendance = (value: string) =>
@@ -48,13 +55,6 @@ const labelPeriodStatus = (value: string) =>
     active: "Docencia activa",
     closed: "Cerrado",
   })[value] ?? value;
-const formatTime = (value: string) => {
-  const [hour, minute] = value.split(":").map(Number);
-  if (Number.isNaN(hour)) return value;
-  return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(
-    new Date(2000, 0, 1, hour, minute),
-  );
-};
 
 export const resources: Record<string, ResourceConfig> = {
   students: {
@@ -201,6 +201,13 @@ export const resources: Record<string, ResourceConfig> = {
     columns: [
       { key: "code", label: "Código" },
       { key: "description", label: "Asignatura" },
+      {
+        key: "career_codes",
+        label: "Carreras",
+        render: v => (Array.isArray(v) && v.length ? v.join(", ") : "Asignatura libre"),
+      },
+      { key: "credits", label: "Créditos", render: v => v ?? "—" },
+      { key: "section_count", label: "Secciones", render: v => Number(v) || "Sin oferta" },
     ],
     fields: [
       { name: "code", label: "Código", required: true },
@@ -222,20 +229,16 @@ export const resources: Record<string, ResourceConfig> = {
         label: "Asignatura",
         render: (_, r) => `${r.subject_code} · ${r.subject_name}`,
       },
+      {
+        key: "start_time",
+        label: "Horario",
+        render: (_, r) =>
+          `${shortDays(r.days_of_week)} · ${formatTime(String(r.start_time))}–${formatTime(String(r.end_time))}`,
+      },
       { key: "teacher_name", label: "Docente" },
       { key: "room", label: "Aula" },
       { key: "capacity", label: "Cupo" },
       { key: "modality", label: "Modalidad", render: v => labelModality(String(v)) },
-      {
-        key: "days_of_week",
-        label: "Días",
-        render: v => (Array.isArray(v) ? v.join(", ") : String(v)),
-      },
-      {
-        key: "start_time",
-        label: "Horario",
-        render: (_, r) => `${formatTime(String(r.start_time))} – ${formatTime(String(r.end_time))}`,
-      },
     ],
     fields: [
       { name: "code", label: "Código", required: true },
@@ -267,7 +270,6 @@ export const resources: Record<string, ResourceConfig> = {
         ),
       },
       { name: "capacity", label: "Capacidad", type: "number", required: true },
-      { name: "room", label: "Aula", required: true },
       {
         name: "modality",
         label: "Modalidad",
@@ -282,6 +284,7 @@ export const resources: Record<string, ResourceConfig> = {
       { name: "days_of_week", label: "Días de clase", type: "days", required: true },
       { name: "start_time", label: "Inicio", type: "time", required: true },
       { name: "end_time", label: "Fin", type: "time", required: true },
+      { name: "room", label: "Aula", type: "classroom" },
     ],
   },
   enrollments: {
@@ -391,7 +394,7 @@ export const resources: Record<string, ResourceConfig> = {
       { key: "student_name", label: "Estudiante" },
       { key: "subject_name", label: "Asignatura" },
       { key: "section_code", label: "Sección" },
-      { key: "date", label: "Fecha", render: v => new Date(String(v)).toLocaleDateString() },
+      { key: "date", label: "Fecha", render: v => formatDate(String(v)) },
       { key: "status", label: "Estado", render: v => labelAttendance(String(v)) },
       { key: "note", label: "Observación" },
     ],
@@ -429,6 +432,8 @@ export const resources: Record<string, ResourceConfig> = {
   },
   roles: {
     key: "roles",
+    kicker: "Configuración · Seguridad",
+    canDelete: row => !["admin", "teacher", "student", "guardian"].includes(String(row.name)),
     title: "Roles",
     singular: "rol",
     description: "Perfiles de acceso y responsabilidades del sistema.",
@@ -437,17 +442,31 @@ export const resources: Record<string, ResourceConfig> = {
     searchPlaceholder: "Buscar rol",
     columns: [
       { key: "role_title", label: "Rol" },
-      { key: "name", label: "Código fijo" },
       { key: "description", label: "Descripción" },
+      {
+        key: "name",
+        label: "Tipo",
+        render: value =>
+          ["admin", "teacher", "student", "guardian"].includes(String(value))
+            ? "Del sistema"
+            : "Personalizado",
+      },
     ],
     fields: [
-      { name: "name", label: "Código fijo", required: true },
-      { name: "label", label: "Etiqueta visible" },
+      {
+        name: "name",
+        label: "Identificador interno (sin espacios)",
+        required: true,
+        placeholder: "Ej. coordinacion",
+      },
+      { name: "label", label: "Nombre visible" },
       { name: "description", label: "Descripción", required: true },
     ],
   },
   periods: {
     key: "periods",
+    kicker: "Configuración · Calendario académico",
+    canDelete: row => row.status === "planning" && !row.active,
     title: "Períodos académicos",
     singular: "período",
     description: "Cuatrimestres, semestres u otros ciclos con fechas operativas claras.",
@@ -504,6 +523,7 @@ export const resources: Record<string, ResourceConfig> = {
   },
   curriculum: {
     key: "curriculum",
+    kicker: "Configuración · Plan de estudios",
     title: "Pensum académico",
     singular: "materia del pensum",
     description:

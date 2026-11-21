@@ -1,5 +1,6 @@
 import { confirmAction } from "../../lib/confirm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDateTime } from "../../lib/format";
 import { Building2, Hash, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -261,10 +262,7 @@ export function InstitutionSettingsPage() {
           history.data.map(h => (
             <article key={h.id}>
               <strong>
-                {h.actor} ·{" "}
-                {new Date(h.created_at + "Z").toLocaleString("es-DO", {
-                  timeZone: "America/Santo_Domingo",
-                })}
+                {h.actor} · {formatDateTime(h.created_at)}
               </strong>
               <p>{h.detail}</p>
             </article>

@@ -1,7 +1,10 @@
+from datetime import time
+from types import SimpleNamespace
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
-from app.auth import ensure_section_access, get_current_user, require_permissions, require_roles
+from app.auth import ensure_section_access, get_current_user, require_permissions
 from app.db.Session import get_db
 from app.enums.dayEnum import DAY_ORDER, canonical_day
 from app.models.scheduling_model import Classroom, SectionMeeting
@@ -9,18 +12,28 @@ from app.models.section_model import Section
 from app.models.user_model import User
 from app.pagination import page_query
 from app.schemas.scheduling_schema import (
+    ClassroomAvailability,
     ClassroomCreate,
     ClassroomOut,
     MeetingCreate,
     MeetingOut,
     ScheduleBlock,
 )
-from app.services.effective_schedule import legacy_blocks, meeting_block, validate_schedule
+from app.services.effective_schedule import (
+    ROOM_UNASSIGNED,
+    legacy_blocks,
+    meeting_block,
+    room_conflict,
+    validate_schedule,
+)
 from app.services.governance_workflow import lock_governance, record
 
 router = APIRouter(prefix="/scheduling", tags=["scheduling"])
-scheduling_manager = require_roles("admin", "teacher")
-classroom_manager = require_permissions("academic.manage", fallback_roles=("admin",))
+# Editing schedule blocks is a grant, not a role: institutions decide whether
+# coordinators or teachers may do it. Scope still applies (own sections unless
+# the account has institution-wide academic scope).
+scheduling_manager = require_permissions("schedule.manage")
+classroom_manager = require_permissions("classrooms.manage")
 
 
 def meeting_out(meeting: SectionMeeting) -> MeetingOut:
@@ -35,6 +48,59 @@ def meeting_out(meeting: SectionMeeting) -> MeetingOut:
         modality=meeting.modality,
         virtual_url=meeting.virtual_url,
     )
+
+
+@router.get("/classrooms/availability", response_model=list[ClassroomAvailability])
+def classroom_availability(
+    days: str = Query(..., description="Días separados por coma, p. ej. Lunes,Miércoles"),
+    start_time: time = Query(...),
+    end_time: time = Query(...),
+    capacity: int = Query(1, ge=1, le=1000),
+    period_name: str = "",
+    section_id: int | None = None,
+    db: Session = Depends(get_db),
+    _user: User = Depends(classroom_manager),
+):
+    """Every classroom with whether it can host a section at this time (drafts reserve too)."""
+    if start_time >= end_time:
+        raise HTTPException(422, "La hora final debe ser posterior a la hora de inicio")
+    current = db.get(Section, section_id) if section_id else None
+    section = SimpleNamespace(
+        section_id=section_id,
+        period_name=period_name,
+        enrollments=current.enrollments if current else [],
+        days_of_week=days,
+        start_time=start_time,
+        end_time=end_time,
+        room="",
+        modality="in_person",
+    )
+    result = []
+    for room in db.query(Classroom).order_by(Classroom.name):
+        base = ClassroomOut.model_validate(room).model_dump()
+        if not room.active:
+            result.append(ClassroomAvailability(**base, status="retired", detail="Aula retirada"))
+            continue
+        if room.capacity < capacity:
+            result.append(
+                ClassroomAvailability(**base, status="small", detail=f"Solo {room.capacity} plazas")
+            )
+            continue
+        blocks = [block.model_copy(update={"room": room.name}) for block in legacy_blocks(section)]
+        conflict = room_conflict(db, section, blocks)
+        if conflict:
+            other, block, existing = conflict
+            result.append(
+                ClassroomAvailability(
+                    **base,
+                    status="busy",
+                    detail=f"Ocupada por {other.code} el {block.day_of_week} "
+                    f"{existing.start_time:%H:%M}–{existing.end_time:%H:%M}",
+                )
+            )
+        else:
+            result.append(ClassroomAvailability(**base, status="available"))
+    return result
 
 
 @router.get("/classrooms", response_model=list[ClassroomOut])
@@ -168,6 +234,18 @@ def save_meeting(db, user, data, existing=None):
         )
     )
     validate_schedule(db, section, blocks)
+    # Open drafts reserve rooms too (validate_schedule only sees published sections).
+    block = blocks[-1]
+    if block.modality != "virtual" and block.room.strip().casefold() not in ROOM_UNASSIGNED:
+        conflict = room_conflict(db, section, [block])
+        if conflict:
+            other, _, held = conflict
+            raise HTTPException(
+                409,
+                f"El aula {block.room} está ocupada el {block.day_of_week} de "
+                f"{held.start_time:%H:%M} a {held.end_time:%H:%M} por la sección {other.code}. "
+                "Elige otra aula u horario",
+            )
     meeting = existing if existing is not None else SectionMeeting()
     for key, value in data.model_dump().items():
         setattr(meeting, key, value)

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { formatTime } from "../../lib/format";
 import { CalendarDays, List, Rows3 } from "lucide-react";
 import { useState } from "react";
 import { Button, EmptyState, Spinner } from "../../components/ui";
@@ -6,6 +7,7 @@ import { api, apiMessage } from "../../lib/api";
 import { scheduleBlocks, weekDays, type ScheduleTimes } from "../../lib/schedule";
 import { useAuthStore } from "../../store/auth";
 import "./schedule.css";
+import { useAccess } from "../../lib/permissions";
 
 type ScheduledSection = ScheduleTimes & {
   section_id: number;
@@ -14,12 +16,6 @@ type ScheduledSection = ScheduleTimes & {
   teacher_name: string;
 };
 type Period = { period_id: number; name: string; active: boolean };
-
-function formatTime(value: string, clock12: boolean) {
-  const [hour, minute] = value.split(":").map(Number);
-  if (!clock12) return value.slice(0, 5);
-  return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${hour >= 12 ? "p. m." : "a. m."}`;
-}
 
 function modality(value: string) {
   return value === "virtual" ? "Virtual" : value === "hybrid" ? "Híbrida" : "Presencial";
@@ -30,10 +26,10 @@ export function SchedulePage() {
   const [view, setView] = useState<"list" | "week">("week");
   const [clock12, setClock12] = useState(true);
   const [period, setPeriod] = useState("");
-  const path =
-    user?.role_name === "student"
-      ? `/academic/students/${user.student_id}/schedule`
-      : `/academic/teachers/${user?.teacher_id}/schedule`;
+  const access = useAccess();
+  const path = access.student
+    ? `/academic/students/${user?.student_id}/schedule`
+    : `/academic/teachers/${user?.teacher_id}/schedule`;
   const periods = useQuery({
     queryKey: ["periods", "schedule", user?.user_id],
     queryFn: () => api.get<Period[]>("/periods/").then(response => response.data),
@@ -60,6 +56,10 @@ export function SchedulePage() {
         a.start_time.localeCompare(b.start_time),
     );
   const active = periods.data?.find(candidate => candidate.active);
+  // Weekends only appear when there are classes, so the grid fits without horizontal scroll.
+  const visibleDays = weekDays.filter(
+    (day, index) => index < 5 || items.some(item => item.day_of_week === day),
+  );
   return (
     <div className="page">
       <header className="page-header">
@@ -130,8 +130,11 @@ export function SchedulePage() {
           ))}
         </section>
       ) : (
-        <section className="week-grid">
-          {weekDays.map(day => (
+        <section
+          className="week-grid"
+          style={{ "--week-days": visibleDays.length } as React.CSSProperties}
+        >
+          {visibleDays.map(day => (
             <div className="week-day" key={day}>
               <header>{day}</header>
               {items

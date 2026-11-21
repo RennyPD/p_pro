@@ -93,12 +93,22 @@
 .case-title small {
   color: var(--muted);
 }
-.case-title > span {
+.case-severity {
   height: max-content;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.55rem;
   border-radius: 999px;
-  font-size: 0.68rem;
-  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--surface-sunken);
+  color: var(--muted);
+}
+.case-severity--medium {
+  background: var(--warning-soft);
+  color: var(--warning-strong);
+}
+.case-severity--high,
+.case-severity--critical {
   background: var(--danger-soft);
   color: var(--danger);
 }
@@ -131,8 +141,22 @@
 .case-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-top: 0.6rem;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+.case-history-toggle {
+  margin-right: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.case-grid .form-field {
+  margin: 0.6rem 0 0;
 }
 .admission-list,
 .permission-list {
@@ -294,4 +318,127 @@
 .institutional-page .case-grid > article {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* Admissions: status chips double as filters with counts. */
+.admission-pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.admission-pipeline button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admission-pipeline button b {
+  color: var(--ink);
+}
+
+.admission-pipeline button[aria-pressed="true"] {
+  border-color: var(--blue-line);
+  background: var(--blue-soft);
+  color: var(--blue-strong);
+}
+
+.admission-search {
+  max-width: 520px;
+  margin: 0 0 0.5rem;
+}
+
+.admission-card {
+  display: grid;
+  gap: 0.8rem;
+  align-content: start;
+}
+
+.admission-card > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admission-card h3 {
+  margin: 0;
+}
+
+.admission-card header small {
+  color: var(--muted);
+}
+
+.admission-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.72rem;
+  color: var(--subtle);
+}
+
+.admission-steps li {
+  padding-top: 0.45rem;
+  border-top: 4px solid var(--surface-sunken);
+}
+
+.admission-steps li.is-done {
+  border-top-color: var(--blue);
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.control-result-grid .admission-docs {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 9px;
+  background: var(--warning-soft);
+  color: var(--warning-strong);
+}
+
+.control-result-grid .admission-docs.is-complete {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.admission-docs svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.admission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.admission-history {
+  margin-right: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.admission-card > header > .badge {
+  align-self: flex-start;
 }

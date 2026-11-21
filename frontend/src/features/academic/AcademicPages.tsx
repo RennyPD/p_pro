@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, CheckCircle2, GraduationCap } from "lucide-react";
-import { EmptyState, Spinner } from "../../components/ui";
+import { Badge, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./academic-pages.css";
@@ -11,10 +11,10 @@ type QueryShape = { data?: Record<string, any>[]; isLoading: boolean; error: unk
 export { StudentGradesPage as MyGradesPage } from "./StudentGradesPage";
 export function MySchedulePage() {
   const user = useAuthStore(s => s.user);
-  const path =
-    user?.role_name === "student"
-      ? `/academic/students/${user.student_id}/schedule`
-      : `/academic/teachers/${user?.teacher_id}/schedule`;
+  const access = useAccess();
+  const path = access.student
+    ? `/academic/students/${user?.student_id}/schedule`
+    : `/academic/teachers/${user?.teacher_id}/schedule`;
   const query = useQuery({
     queryKey: ["my-schedule", path],
     queryFn: () => api.get(path).then(r => r.data),
@@ -99,15 +99,15 @@ export function MyProgressPage() {
                   {course.prerequisite_code ? ` · Requiere ${course.prerequisite_code}` : ""}
                 </small>
               </div>
-              <b>
-                {course.recognition_type === "equivalence"
-                  ? "Reconocida por equivalencia · sin nota"
-                  : course.status === "completed"
-                    ? `Aprobada · ${course.final_average}`
-                    : course.status === "in_progress"
-                      ? "Cursando"
-                      : "Pendiente"}
-              </b>
+              {course.recognition_type === "equivalence" ? (
+                <Badge tone="neutral">Reconocida por equivalencia</Badge>
+              ) : course.status === "completed" ? (
+                <Badge tone="success">Aprobada · {course.final_average}</Badge>
+              ) : course.status === "in_progress" ? (
+                <Badge tone="info">Cursando</Badge>
+              ) : (
+                <Badge tone="neutral">Pendiente</Badge>
+              )}
             </article>
           ))}
         </div>
@@ -182,3 +182,4 @@ export {
   AttendanceWorkspacePage as SectionWorkspacePage,
   StudentAttendancePage as MyAttendancePage,
 } from "./AttendancePages";
+import { useAccess } from "../../lib/permissions";

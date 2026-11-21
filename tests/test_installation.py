@@ -69,6 +69,10 @@ def test_initial_admin_and_account_validation_on_migrated_database(migrated_engi
             assert response.status_code == 422
             assert response.json()["detail"][0]["loc"] == ["body", "password"]
             assert (
+                response.json()["detail"][0]["msg"]
+                == "Omite este campo si deseas conservar su valor"
+            )
+            assert (
                 client.patch(
                     f"/users/{user_id}", headers=headers, json={"student_id": 23}
                 ).status_code
@@ -247,3 +251,52 @@ def test_account_migrations_preserve_legacy_mfa_and_academic_financial_rows(migr
         assert user.mfa_enabled and user.mfa_secret == "FACTORFICTICIO"
         assert user.mfa_pending_secret is None
         assert summary(db.get(StudentAccount, account_id)).balance == 325.50
+
+
+def test_schedule_permission_migration_skips_teacher_role(migrated_engine):
+    cfg = Config("alembic.ini")
+    command.downgrade(cfg, "20261118_0044")
+    with migrated_engine.begin() as db:
+        assert (
+            db.execute(
+                text("SELECT COUNT(*) FROM permissions WHERE slug = 'schedule.manage'")
+            ).scalar()
+            == 0
+        )
+        for name in ("teacher", "coordinacion-qa", "consulta-qa"):
+            db.execute(
+                text(
+                    "INSERT INTO roles (name, description) SELECT :name, :name "
+                    "WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = :name)"
+                ),
+                {"name": name},
+            )
+        # Legacy databases still grant academic.manage to teacher (migration 0014).
+        db.execute(
+            text(
+                "INSERT INTO role_permissions (role_id, permission_id) "
+                "SELECT roles.role_id, permissions.permission_id FROM roles, permissions "
+                "WHERE roles.name IN ('teacher', 'coordinacion-qa') "
+                "AND permissions.slug = 'academic.manage' "
+                "AND NOT EXISTS (SELECT 1 FROM role_permissions rp "
+                "WHERE rp.role_id = roles.role_id "
+                "AND rp.permission_id = permissions.permission_id)"
+            )
+        )
+    command.upgrade(cfg, "head")
+    command.upgrade(cfg, "head")
+    with migrated_engine.connect() as db:
+        holders = {
+            row[0]
+            for row in db.execute(
+                text(
+                    "SELECT roles.name FROM roles "
+                    "JOIN role_permissions rp ON rp.role_id = roles.role_id "
+                    "JOIN permissions p ON p.permission_id = rp.permission_id "
+                    "WHERE p.slug = 'schedule.manage'"
+                )
+            )
+        }
+    assert "coordinacion-qa" in holders
+    assert "teacher" not in holders
+    assert "consulta-qa" not in holders

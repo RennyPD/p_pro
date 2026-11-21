@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
@@ -116,15 +116,18 @@ it("limits destination to the selected plan and requires impact before creation"
   await waitFor(() =>
     expect(screen.getByLabelText("Versión del pensum destino")).toHaveValue("2026"),
   );
+  // Destination only offers subjects of the chosen plan (MAT), searched in the same field.
+  fireEvent.focus(screen.getByRole("combobox", { name: "Asignatura que se reconocerá" }));
   expect(
-    screen.getByLabelText("Asignatura que se reconocerá").querySelectorAll("option"),
-  ).toHaveLength(2);
-  fireEvent.change(screen.getByLabelText("Asignatura aprobada de origen"), {
-    target: { value: "1" },
-  });
-  fireEvent.change(screen.getByLabelText("Asignatura que se reconocerá"), {
-    target: { value: "2" },
-  });
+    within(screen.getByRole("listbox", { name: "Asignatura que se reconocerá" })).getAllByRole(
+      "option",
+    ),
+  ).toHaveLength(1);
+  fireEvent.mouseDown(screen.getByRole("option", { name: /MAT · Matemática/ }));
+  const origin = screen.getByRole("combobox", { name: "Asignatura aprobada de origen" });
+  fireEvent.focus(origin);
+  fireEvent.change(origin, { target: { value: "prog" } });
+  fireEvent.mouseDown(screen.getByRole("option", { name: "PROG · Programación" }));
   fireEvent.change(screen.getByLabelText("Motivo del registro"), {
     target: { value: "Comité académico" },
   });
@@ -156,7 +159,7 @@ it("keeps state changes gated by impact and displays actor history", async () =>
     }),
   );
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-  fireEvent.click(screen.getByRole("button", { name: "Historial" }));
+  fireEvent.click(screen.getByRole("button", { name: "Ver historial" }));
   expect(await screen.findByText("Registro · admin")).toBeInTheDocument();
   expect(screen.getByText("Creada por comité")).toBeInTheDocument();
 });

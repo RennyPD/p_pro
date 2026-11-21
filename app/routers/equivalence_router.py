@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.auth import get_current_user, require_permissions, require_roles
+from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.career_model import Career
 from app.models.curriculum_model import CurriculumCourse
@@ -20,10 +20,7 @@ from app.services.academic_recognition import current_courses, recognize
 router = APIRouter()
 
 
-def manager(
-    user: User = Depends(require_roles("admin")),
-    permitted: User = Depends(require_permissions("academic.manage", fallback_roles=("admin",))),
-):
+def manager(user: User = Depends(require_permissions("equivalences.manage"))):
     return user
 
 

@@ -3,7 +3,13 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
-from app.auth import account_is_active, ensure_role_within_actor, require_permissions
+from app.auth import (
+    account_is_active,
+    ensure_role_within_actor,
+    has_permission,
+    require_permissions,
+    role_permission_slugs,
+)
 from app.db.Session import get_db
 from app.models.role_model import Role
 from app.models.user_model import User
@@ -20,7 +26,7 @@ from app.services.user_services import (
 from app.services.write_locks import lock_access
 
 router = APIRouter(prefix="/users", tags=["users"])
-access_manager = require_permissions("access.manage", fallback_roles=("admin",))
+access_manager = require_permissions("users.manage")
 
 
 @router.post("/", response_model=UserOut)
@@ -185,19 +191,20 @@ def ensure_other_manager(db, user_id, new_role=None):
             return False
 
     target = db.get(User, user_id)
-    if (
-        target
-        and target.role_name == "admin"
-        and new_role != target.role_id
-        and (
-            db.query(User.user_id)
-            .join(User.role)
-            .filter(User.user_id != user_id, User.active.is_(True), Role.name.ilike("admin"))
-            .first()
-            is None
+    if target is None or not capable(target):
+        return
+    if new_role is not None and new_role != target.role_id:
+        new = db.get(Role, new_role)
+        keeps = new is not None and {"users.manage", "roles.manage"} <= role_permission_slugs(
+            db, new.role_id
         )
-    ):
-        raise HTTPException(409, "Debe conservarse al menos una cuenta con el rol Administración")
+        if keeps and new.scope == "institution":
+            return
+    others = db.query(User).filter(User.user_id != user_id, User.active.is_(True)).all()
+    if not any(capable(other) and has_permission(other, "roles.manage") for other in others):
+        raise HTTPException(
+            409, "Debe conservarse al menos una cuenta activa que gestione usuarios y roles"
+        )
     if not target or not capable(target) or new_role == target.role_id:
         return
     if not any(capable(u) for u in db.query(User).filter(User.user_id != user_id)):
