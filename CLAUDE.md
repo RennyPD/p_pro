@@ -15,7 +15,7 @@ El dueño del producto escribe en español. Responde en español; código, nombr
 ## Comandos
 Backend, desde la raíz:
 ```
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.lock
 alembic upgrade head
 uvicorn main:app --reload
 python -m scripts.seed_demo
