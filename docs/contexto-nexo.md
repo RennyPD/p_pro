@@ -29,7 +29,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 | Id | Hallazgo | Fase |
 |---|---|---|
 | A1 | Vínculo tutor–estudiante sin permisos ni auditoría (privacidad de menores) | 2 |
-| A2 | Unas 50 escrituras sin auditoría: bloqueos y estado del estudiante, usuarios, edición de roles, inscripciones, importación | 1 |
+| A2 | ✅ Cerrado (21/11): toda ruta de escritura registra auditoría; `tests/test_route_audit.py` lo vigila | — |
 | M1 | ✅ Cerrado en `master` (20/11): permisos granulares por ruta y menú por permisos | — |
 | M2 | Unas 37 escrituras sin bloqueo (asistencia, estudiantes, secciones…) | 1 |
 | M3 | Paginación en memoria en 7 listados | 1 |
@@ -52,7 +52,7 @@ Cada fase se cierra con pruebas de regresión, capturas antes/después en lo vis
 
 ### Fase 1: cimientos de confianza (M)
 Lo que hace falta para que cualquier cliente confíe en los datos. Base para todo lo demás.
-1. **Auditoría completa (A2):** `record(...)` en todas las escrituras sensibles y una prueba que falle si una ruta de escritura nueva no registra nada. Añadir inscripciones, bloqueos y vínculos de tutor a la regla 11.
+1. ✅ **Auditoría completa (A2), 21/11/2026:** `record(...)` en todas las rutas de escritura, en la misma transacción que el cambio (los repositorios hacen `flush()`); `tests/test_route_audit.py` falla si una ruta nueva no registra nada y `tests/test_write_audit.py` comprueba actor y detalle en los casos críticos. Regla 11 ampliada. La medición real eran unas 45 rutas: asistencia, autenticación, finanzas y notas ya tenían su propio historial.
 2. **Unificar las vistas de módulo con los permisos (B4).** M1 ya está cerrado en `master`.
 3. **Bloqueos (M2):** asistencia, estudiantes, secciones y vínculos bajo el bloqueo de su dominio.
 4. **Paginación en la base (M3)** en los 7 listados.

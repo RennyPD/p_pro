@@ -53,7 +53,7 @@ Antes de dar una tarea por terminada, corre como mínimo pytest y ruff (backend)
 8. **Concurrencia.** Las escrituras críticas usan `lock_governance` / `lock_finance`. No añadas escrituras de notas, inscripciones o finanzas sin bloqueo.
 9. **Tipos del API generados.** En el frontend usa `ApiSchema<"Nombre">` (`src/lib/apiTypes.ts`) en vez de escribir a mano los tipos de las respuestas.
 10. **Código legible.** El backend se formatea con Ruff. En el frontend, nada de JSX ni CSS compactado en una línea. Usa los tokens CSS (`--ink`, `--muted`, etc.), no colores escritos a mano.
-11. **Auditoría.** Los cambios sensibles (notas, finanzas, usuarios, permisos, períodos) se registran con `record(...)`.
+11. **Auditoría.** Toda ruta de escritura registra quién cambió qué con `record(...)` (`app/services/audit_log.py`), en la misma transacción que el cambio: notas, finanzas, usuarios, permisos, períodos, inscripciones, asistencia, bloqueos y estado del estudiante y vínculos de tutor. `tests/test_route_audit.py` falla si una ruta nueva no registra nada; las excepciones (vistas previas, borradores propios) van justificadas en su lista `UNAUDITED`. Los repositorios hacen `flush()`, no `commit()`: el servicio registra y confirma.
 12. **Sin secretos en el repo.** Nada de `.env`, bases de datos ni `__pycache__` versionados.
 
 ## Forma de trabajar
