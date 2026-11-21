@@ -24,9 +24,13 @@ router = APIRouter(prefix="/sections", tags=["sections"])
 section_manager = require_permissions("sections.manage")
 
 
-@router.post("/", response_model=SectionOut, dependencies=[Depends(section_manager)])
-def create_section(section_data: SectionCreate, db: Session = Depends(get_db)):
-    return create_section_service(db, section_data)
+@router.post("/", response_model=SectionOut)
+def create_section(
+    section_data: SectionCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(section_manager),
+):
+    return create_section_service(db, section_data, user)
 
 
 @router.get("/", response_model=list[SectionOut])
@@ -69,6 +73,8 @@ def update_section(
     return update_section_service(db, section_id, section_data, actor)
 
 
-@router.delete("/{section_id}", dependencies=[Depends(section_manager)])
-def delete_section(section_id: int, db: Session = Depends(get_db)):
-    return delete_section_service(db, section_id)
+@router.delete("/{section_id}")
+def delete_section(
+    section_id: int, db: Session = Depends(get_db), user: User = Depends(section_manager)
+):
+    return delete_section_service(db, section_id, user)

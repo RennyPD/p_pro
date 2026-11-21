@@ -28,7 +28,7 @@ from app.services.effective_schedule import (
 from app.services.governance_workflow import lock_governance, record
 
 
-def create_section_service(db: Session, section_data: SectionCreate):
+def create_section_service(db: Session, section_data: SectionCreate, actor):
     lock_governance(db)
     validate_period(db, section_data.period_name)
     validate_people(db, section_data.subject_id, section_data.teacher_id)
@@ -48,7 +48,17 @@ def create_section_service(db: Session, section_data: SectionCreate):
         # A section created as published must not double-book teachers either.
         validate_schedule(db, proposed, legacy_blocks(proposed))
 
-    return create_section(db, section_data)
+    section = create_section(db, section_data)
+    record(
+        db,
+        actor,
+        "section.created",
+        f"section:{section.section_id}",
+        f"{section.code}; asignatura {section.subject_id}; período {section.period_name}",
+    )
+    db.commit()
+    db.refresh(section)
+    return section
 
 
 def get_sections_service(db: Session):
@@ -128,7 +138,7 @@ def update_section_service(db: Session, section_id: int, section_data: SectionUp
             counts[item.period] = counts.get(item.period, 0) + 1
     if any(count > capacity for count in counts.values()):
         raise HTTPException(409, "El cupo no puede ser menor que las selecciones confirmadas")
-    if actor is not None and schedule_changed:
+    if schedule_changed:
         record(
             db,
             actor,
@@ -136,11 +146,21 @@ def update_section_service(db: Session, section_id: int, section_data: SectionUp
             f"section:{section_id}",
             "Cambios de oferta: " + ", ".join(sorted(changes.keys() & schedule_fields)),
         )
+    elif changes:
+        record(
+            db,
+            actor,
+            "section.updated",
+            f"section:{section_id}",
+            "Campos: " + ", ".join(sorted(changes)),
+        )
     section = update_section(db, section_id, section_data)
 
     if not section:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada")
 
+    db.commit()
+    db.refresh(section)
     return section
 
 
@@ -276,11 +296,16 @@ def validate_period(db, name):
         raise HTTPException(409, "El período académico no existe")
 
 
-def delete_section_service(db: Session, section_id: int):
+def delete_section_service(db: Session, section_id: int, actor):
 
+    current = get_section_by_id(db, section_id)
+    code = current.code if current else ""
     section = delete_section(db, section_id)
 
     if not section:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada")
+
+    record(db, actor, "section.deleted", f"section:{section_id}", code)
+    db.commit()
 
     return {"Message": "Section removed"}

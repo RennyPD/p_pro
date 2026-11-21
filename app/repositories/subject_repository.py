@@ -9,8 +9,7 @@ def create_subject(db: Session, subject_data: SubjectCreate):
     subject = Subject(**subject_data.model_dump())
 
     db.add(subject)
-    db.commit()
-    db.refresh(subject)
+    db.flush()
 
     return subject
 
@@ -35,8 +34,7 @@ def update_subject(db: Session, subject_id: int, subject_data: SubjectUpdate):
     for key, value in update_data.items():
         setattr(subject, key, value)
 
-    db.commit()
-    db.refresh(subject)
+    db.flush()
 
     return subject
 
@@ -49,6 +47,6 @@ def delete_subject(db: Session, subject_id: int):
         return None
 
     db.delete(subject)
-    db.commit()
+    db.flush()
 
     return True

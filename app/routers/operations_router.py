@@ -141,6 +141,14 @@ def create_event(
         values["section_id"] = None
     item = CalendarEvent(**values, created_by=user.user_id)
     db.add(item)
+    db.flush()
+    record(
+        db,
+        user,
+        "calendar.event.created",
+        f"calendar_event:{item.calendar_event_id}",
+        f"{item.title}; audiencia {item.audience}",
+    )
     db.commit()
     db.refresh(item)
     return item
@@ -167,6 +175,13 @@ def edit_event(
         setattr(item, key, utc(value) if key in {"starts_at", "ends_at"} else value)
     if data.audience != "section":
         item.section_id = None
+    record(
+        db,
+        user,
+        "calendar.event.updated",
+        f"calendar_event:{event_id}",
+        f"{item.title}; audiencia {item.audience}",
+    )
     db.commit()
     db.refresh(item)
     return item
@@ -400,6 +415,13 @@ def add_alert_intervention(
         **data.model_dump(),
     )
     db.add(item)
+    record(
+        db,
+        user,
+        "alert.intervention.added",
+        f"student:{alert.student_id}",
+        f"Alerta {alert_id}",
+    )
     db.commit()
     db.refresh(item)
     return item

@@ -5,6 +5,7 @@ from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.curriculum_model import CurriculumCourse
 from app.models.section_model import Section
+from app.models.user_model import User
 from app.pagination import paginate_and_filter
 from app.routers.curriculum_router import course_out
 from app.schemas.subject_schema import (
@@ -27,9 +28,13 @@ router = APIRouter(prefix="/subjects", tags=["subjects"])
 subject_manager = require_permissions("programs.manage")
 
 
-@router.post("/", response_model=SubjectOut, dependencies=[Depends(subject_manager)])
-def create_subject(subject_data: SubjectCreate, db: Session = Depends(get_db)):
-    return create_subject_service(db, subject_data)
+@router.post("/", response_model=SubjectOut)
+def create_subject(
+    subject_data: SubjectCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(subject_manager),
+):
+    return create_subject_service(db, subject_data, user)
 
 
 @router.get("/", response_model=list[SubjectListItem], dependencies=[Depends(get_current_user)])
@@ -104,11 +109,18 @@ def subject_overview(subject_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.patch("/{subject_id}", response_model=SubjectOut, dependencies=[Depends(subject_manager)])
-def update_subject(subject_id: int, subject_data: SubjectUpdate, db: Session = Depends(get_db)):
-    return update_subject_service(db, subject_id, subject_data)
+@router.patch("/{subject_id}", response_model=SubjectOut)
+def update_subject(
+    subject_id: int,
+    subject_data: SubjectUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(subject_manager),
+):
+    return update_subject_service(db, subject_id, subject_data, user)
 
 
-@router.delete("/{subject_id}", dependencies=[Depends(subject_manager)])
-def delete_subject(subject_id: int, db: Session = Depends(get_db)):
-    return delete_subject_service(db, subject_id)
+@router.delete("/{subject_id}")
+def delete_subject(
+    subject_id: int, db: Session = Depends(get_db), user: User = Depends(subject_manager)
+):
+    return delete_subject_service(db, subject_id, user)

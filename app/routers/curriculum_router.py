@@ -23,6 +23,8 @@ from app.schemas.curriculum_schema import (
 )
 from app.services.academic_grading import academic_result
 from app.services.academic_recognition import current_courses, recognize
+from app.services.audit_log import changes as audit_changes
+from app.services.audit_log import snapshot
 from app.services.governance_workflow import lock_governance, record
 
 router = APIRouter(prefix="/curriculum", tags=["curriculum"])
@@ -158,10 +160,19 @@ def course_out(course: CurriculumCourse) -> CurriculumCourseOut:
     )
 
 
-@router.post(
-    "/courses", response_model=CurriculumCourseOut, dependencies=[Depends(curriculum_manager)]
-)
-def add_curriculum_course(data: CurriculumCourseCreate, db: Session = Depends(get_db)):
+def course_label(course: CurriculumCourse) -> str:
+    return (
+        f"Carrera {course.career_id}; versión {course.curriculum_version}; "
+        f"asignatura {course.subject_id}"
+    )
+
+
+@router.post("/courses", response_model=CurriculumCourseOut)
+def add_curriculum_course(
+    data: CurriculumCourseCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(curriculum_manager),
+):
     lock_governance(db)
     validate_curriculum_course(db, data.model_dump())
     if (
@@ -179,6 +190,14 @@ def add_curriculum_course(data: CurriculumCourseCreate, db: Session = Depends(ge
         )
     course = CurriculumCourse(**data.model_dump())
     db.add(course)
+    db.flush()
+    record(
+        db,
+        user,
+        "curriculum.course.added",
+        f"curriculum_course:{course.curriculum_course_id}",
+        course_label(course),
+    )
     db.commit()
     db.refresh(course)
     return course_out(course)
@@ -217,13 +236,12 @@ def list_curriculum_courses(
     return [course_out(item) for item in rows]
 
 
-@router.patch(
-    "/courses/{course_id}",
-    response_model=CurriculumCourseOut,
-    dependencies=[Depends(curriculum_manager)],
-)
+@router.patch("/courses/{course_id}", response_model=CurriculumCourseOut)
 def update_curriculum_course(
-    course_id: int, data: CurriculumCourseUpdate, db: Session = Depends(get_db)
+    course_id: int,
+    data: CurriculumCourseUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(curriculum_manager),
 ):
     lock_governance(db)
     course = db.get(CurriculumCourse, course_id)
@@ -238,8 +256,16 @@ def update_curriculum_course(
         course.curriculum_version,
     ):
         ensure_assigned_version_remains(db, course)
+    before = snapshot(course, sorted(changes))
     for key, value in changes.items():
         setattr(course, key, value)
+    record(
+        db,
+        user,
+        "curriculum.course.updated",
+        f"curriculum_course:{course_id}",
+        audit_changes(before, snapshot(course, sorted(changes))),
+    )
     db.commit()
     db.refresh(course)
     return course_out(course)
@@ -319,13 +345,22 @@ def validate_curriculum_course(db: Session, values: dict, *, course_id: int | No
         prerequisite = edges.get(prerequisite)
 
 
-@router.delete("/courses/{course_id}", dependencies=[Depends(curriculum_manager)])
-def delete_curriculum_course(course_id: int, db: Session = Depends(get_db)):
+@router.delete("/courses/{course_id}")
+def delete_curriculum_course(
+    course_id: int, db: Session = Depends(get_db), user: User = Depends(curriculum_manager)
+):
     lock_governance(db)
     course = db.get(CurriculumCourse, course_id)
     if course is None:
         raise HTTPException(status_code=404, detail="Asignatura del plan de estudios no encontrada")
     ensure_assigned_version_remains(db, course)
+    record(
+        db,
+        user,
+        "curriculum.course.removed",
+        f"curriculum_course:{course_id}",
+        course_label(course),
+    )
     db.delete(course)
     db.commit()
     return {"message": "Asignatura retirada del plan de estudios"}

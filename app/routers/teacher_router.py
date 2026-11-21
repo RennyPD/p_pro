@@ -34,9 +34,13 @@ router = APIRouter(prefix="/teachers", tags=["teachers"])
 teacher_manager = require_permissions("teachers.manage")
 
 
-@router.post("/", response_model=TeacherOut, dependencies=[Depends(teacher_manager)])
-def create_teacher(teacher_data: TeacherCreate, db: Session = Depends(get_db)):
-    return create_teacher_service(db, teacher_data)
+@router.post("/", response_model=TeacherOut)
+def create_teacher(
+    teacher_data: TeacherCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(teacher_manager),
+):
+    return create_teacher_service(db, teacher_data, user)
 
 
 @router.get("/", response_model=list[TeacherOut], dependencies=[Depends(get_current_user)])
@@ -186,11 +190,18 @@ def get_teacher_by_id(
     return get_teacher_by_id_service(db, teacher_id)
 
 
-@router.patch("/{teacher_id}", response_model=TeacherOut, dependencies=[Depends(teacher_manager)])
-def update_teacher(teacher_id: int, teacher_data: TeacherUpdate, db: Session = Depends(get_db)):
-    return update_teacher_service(db, teacher_id, teacher_data)
+@router.patch("/{teacher_id}", response_model=TeacherOut)
+def update_teacher(
+    teacher_id: int,
+    teacher_data: TeacherUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(teacher_manager),
+):
+    return update_teacher_service(db, teacher_id, teacher_data, user)
 
 
-@router.delete("/{teacher_id}", dependencies=[Depends(teacher_manager)])
-def delete_teacher(teacher_id: int, db: Session = Depends(get_db)):
-    return delete_teacher_service(db, teacher_id)
+@router.delete("/{teacher_id}")
+def delete_teacher(
+    teacher_id: int, db: Session = Depends(get_db), user: User = Depends(teacher_manager)
+):
+    return delete_teacher_service(db, teacher_id, user)

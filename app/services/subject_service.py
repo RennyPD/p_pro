@@ -13,13 +13,24 @@ from app.repositories.subject_repository import (
     update_subject,
 )
 from app.schemas.subject_schema import SubjectCreate, SubjectUpdate
+from app.services.audit_log import changes, record, snapshot
 
 
-def create_subject_service(db: Session, subject_data: SubjectCreate):
+def create_subject_service(db: Session, subject_data: SubjectCreate, actor):
 
     ensure_unique_code(db, subject_data.code)
 
-    return create_subject(db, subject_data)
+    subject = create_subject(db, subject_data)
+    record(
+        db,
+        actor,
+        "subject.created",
+        f"subject:{subject.subject_id}",
+        f"{subject.code} {subject.description}",
+    )
+    db.commit()
+    db.refresh(subject)
+    return subject
 
 
 def get_subjects_service(db: Session, career_id: int | None = None):
@@ -45,8 +56,9 @@ def get_subject_by_id_service(db: Session, subject_id: int):
     return subject
 
 
-def update_subject_service(db: Session, subject_id: int, subject_data: SubjectUpdate):
-    get_subject_by_id_service(db, subject_id)
+def update_subject_service(db: Session, subject_id: int, subject_data: SubjectUpdate, actor):
+    fields = sorted(subject_data.model_fields_set)
+    before = snapshot(get_subject_by_id_service(db, subject_id), fields)
     if subject_data.code is not None:
         ensure_unique_code(db, subject_data.code, subject_id)
     subject = update_subject(db, subject_id, subject_data)
@@ -56,11 +68,21 @@ def update_subject_service(db: Session, subject_id: int, subject_data: SubjectUp
             status_code=status.HTTP_404_NOT_FOUND, detail="Asignatura no encontrada"
         )
 
+    record(
+        db,
+        actor,
+        "subject.updated",
+        f"subject:{subject_id}",
+        changes(before, snapshot(subject, fields)),
+    )
+    db.commit()
+    db.refresh(subject)
     return subject
 
 
-def delete_subject_service(db: Session, subject_id: int):
-    get_subject_by_id_service(db, subject_id)
+def delete_subject_service(db: Session, subject_id: int, actor):
+    current = get_subject_by_id_service(db, subject_id)
+    summary = f"{current.code} {current.description}"
     linked_plan = (
         db.query(CurriculumCourse)
         .filter(
@@ -84,6 +106,8 @@ def delete_subject_service(db: Session, subject_id: int):
             status_code=status.HTTP_404_NOT_FOUND, detail="Asignatura no encontrada"
         )
 
+    record(db, actor, "subject.deleted", f"subject:{subject_id}", summary)
+    db.commit()
     return {"message": "Asignatura eliminada"}
 
 

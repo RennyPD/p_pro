@@ -13,8 +13,7 @@ def create_section(db: Session, section_data: SectionCreate):
 
     section = Section(**data)
     db.add(section)
-    db.commit()
-    db.refresh(section)
+    db.flush()
     return section
 
 
@@ -40,8 +39,7 @@ def update_section(db: Session, section_id: int, section_data: SectionUpdate):
             value = ", ".join([d.value for d in value])
         setattr(section, key, value)
 
-    db.commit()
-    db.refresh(section)
+    db.flush()
 
     return section
 
@@ -54,6 +52,6 @@ def delete_section(db: Session, section_id: int):
         return None
 
     db.delete(section)
-    db.commit()
+    db.flush()
 
     return True

@@ -11,14 +11,21 @@ from app.repositories.career_repository import (
     update_career,
 )
 from app.schemas.career_schema import CareerCreate, CareerUpdate
+from app.services.audit_log import changes, record, snapshot
 from app.services.governance_workflow import lock_governance
 
 
-def create_career_service(db: Session, data: CareerCreate):
+def create_career_service(db: Session, data: CareerCreate, actor):
     if not data.code:
         highest_id = db.query(func.max(Career.career_id)).scalar() or 0
         data = data.model_copy(update={"code": f"CAR-{highest_id + 1:03d}"})
-    return create_career(db, data)
+    career = create_career(db, data)
+    record(
+        db, actor, "career.created", f"career:{career.career_id}", f"{career.code} {career.name}"
+    )
+    db.commit()
+    db.refresh(career)
+    return career
 
 
 def get_careers_service(db: Session):
@@ -32,15 +39,29 @@ def get_career_service(db: Session, career_id: int):
     return career
 
 
-def update_career_service(db: Session, career_id: int, data: CareerUpdate):
+def update_career_service(db: Session, career_id: int, data: CareerUpdate, actor):
     lock_governance(db)
+    fields = sorted(data.model_fields_set)
+    before = snapshot(get_career_service(db, career_id), fields)
     career = update_career(db, career_id, data)
     if career is None:
         raise HTTPException(status_code=404, detail="Carrera no encontrada")
+    record(
+        db,
+        actor,
+        "career.updated",
+        f"career:{career_id}",
+        changes(before, snapshot(career, fields)),
+    )
+    db.commit()
+    db.refresh(career)
     return career
 
 
-def delete_career_service(db: Session, career_id: int):
-    if not delete_career(db, career_id):
-        raise HTTPException(status_code=404, detail="Carrera no encontrada")
+def delete_career_service(db: Session, career_id: int, actor):
+    career = get_career_service(db, career_id)
+    summary = f"{career.code} {career.name}"
+    delete_career(db, career_id)
+    record(db, actor, "career.deleted", f"career:{career_id}", summary)
+    db.commit()
     return {"message": "Carrera eliminada"}

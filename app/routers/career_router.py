@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
+from app.models.user_model import User
 from app.pagination import paginate_and_filter
 from app.schemas.career_schema import CareerCreate, CareerOut, CareerUpdate
 from app.services.career_service import (
@@ -17,9 +18,11 @@ router = APIRouter(prefix="/careers", tags=["careers"])
 career_manager = require_permissions("programs.manage")
 
 
-@router.post("/", response_model=CareerOut, dependencies=[Depends(career_manager)])
-def create_career(data: CareerCreate, db: Session = Depends(get_db)):
-    return create_career_service(db, data)
+@router.post("/", response_model=CareerOut)
+def create_career(
+    data: CareerCreate, db: Session = Depends(get_db), user: User = Depends(career_manager)
+):
+    return create_career_service(db, data, user)
 
 
 @router.get("/", response_model=list[CareerOut], dependencies=[Depends(get_current_user)])
@@ -97,11 +100,18 @@ def get_career(career_id: int, db: Session = Depends(get_db)):
     return get_career_service(db, career_id)
 
 
-@router.patch("/{career_id}", response_model=CareerOut, dependencies=[Depends(career_manager)])
-def update_career(career_id: int, data: CareerUpdate, db: Session = Depends(get_db)):
-    return update_career_service(db, career_id, data)
+@router.patch("/{career_id}", response_model=CareerOut)
+def update_career(
+    career_id: int,
+    data: CareerUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(career_manager),
+):
+    return update_career_service(db, career_id, data, user)
 
 
-@router.delete("/{career_id}", dependencies=[Depends(career_manager)])
-def delete_career(career_id: int, db: Session = Depends(get_db)):
-    return delete_career_service(db, career_id)
+@router.delete("/{career_id}")
+def delete_career(
+    career_id: int, db: Session = Depends(get_db), user: User = Depends(career_manager)
+):
+    return delete_career_service(db, career_id, user)

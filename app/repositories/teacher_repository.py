@@ -9,8 +9,7 @@ def create_teacher(db: Session, teacher_data: TeacherCreate):
     teacher = Teacher(**teacher_data.model_dump())
 
     db.add(teacher)
-    db.commit()
-    db.refresh(teacher)
+    db.flush()
 
     return teacher
 
@@ -35,8 +34,7 @@ def update_teacher(db: Session, teacher_id: int, teacher_data: TeacherUpdate):
     for key, value in update_data.items():
         setattr(teacher, key, value)
 
-    db.commit()
-    db.refresh(teacher)
+    db.flush()
 
     return teacher
 
@@ -50,6 +48,6 @@ def delete_teacher(db: Session, teacher_id: int):
 
     teacher.active = False
 
-    db.commit()
+    db.flush()
 
     return teacher

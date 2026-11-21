@@ -11,7 +11,7 @@ from app.auth import account_is_active, ensure_account_active, get_current_user
 from app.db.database import settings
 from app.db.Session import get_db
 from app.models.role_model import Role
-from app.models.security_model import AuditLog, RefreshToken
+from app.models.security_model import RefreshToken
 from app.models.user_model import User
 from app.repositories.user_repository import create_user
 from app.schemas.auth_schema import (
@@ -33,6 +33,7 @@ from app.security import (
     verify_password,
 )
 from app.services.account_sessions import lock_account, revoke_account_sessions
+from app.services.audit_log import audit_event
 from app.services.login_throttle import ensure_not_blocked, record_failure, record_success
 from app.services.permission_catalog import grant_system_defaults
 
@@ -40,15 +41,7 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
 def audit(db: Session, action: str, resource: str, user_id: int | None = None, detail: str = ""):
-    db.add(
-        AuditLog(
-            user_id=user_id,
-            action=action,
-            resource=resource,
-            detail=detail,
-            created_at=datetime.now(UTC).replace(tzinfo=None),
-        )
-    )
+    audit_event(db, user_id, action, resource, detail)
 
 
 def issue_session(db: Session, response: Response, user: User) -> TokenOut:

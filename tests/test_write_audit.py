@@ -336,3 +336,129 @@ def test_guardian_creation_and_links_are_audited(demo):
         f"student:{student_id}",
         f"Tutor {guardian_id}; parentesco Madre",
     )
+
+
+# Lote 5: catálogo académico y operaciones.
+
+
+def test_catalog_changes_are_audited(demo):
+    client, sessions, tokens = demo
+    admin = tokens["admin"]
+
+    career = client.post(
+        "/careers/",
+        headers=admin,
+        json={"code": "AUD-CAR", "name": "Carrera auditada", "description": "Prueba"},
+    )
+    assert career.status_code == 200, career.text
+    career_id = career.json()["career_id"]
+    assert (
+        client.patch(
+            f"/careers/{career_id}", headers=admin, json={"name": "Renombrada"}
+        ).status_code
+        == 200
+    )
+
+    subject = client.post(
+        "/subjects/", headers=admin, json={"code": "AUD-ASG", "description": "Auditable"}
+    )
+    assert subject.status_code == 200, subject.text
+    subject_id = subject.json()["subject_id"]
+    course = client.post(
+        "/curriculum/courses",
+        headers=admin,
+        json={
+            "career_id": career_id,
+            "subject_id": subject_id,
+            "term_number": 1,
+            "credits": 3,
+            "curriculum_version": "2026",
+        },
+    )
+    assert course.status_code == 200, course.text
+    course_id = course.json()["curriculum_course_id"]
+    assert client.delete(f"/curriculum/courses/{course_id}", headers=admin).status_code == 200
+    assert client.delete(f"/subjects/{subject_id}", headers=admin).status_code == 200
+    assert client.delete(f"/careers/{career_id}", headers=admin).status_code == 200
+
+    teacher = client.post(
+        "/teachers/",
+        headers=admin,
+        json={
+            "first_name": "Iris",
+            "last_name": "Docente",
+            "specialty": "Historia",
+            "email": "iris.docente@example.com",
+            "telephone": "8095550100",
+            "address": "Calle 5",
+        },
+    )
+    assert teacher.status_code == 200, teacher.text
+    teacher_id = teacher.json()["teacher_id"]
+    assert (
+        client.patch(
+            f"/teachers/{teacher_id}", headers=admin, json={"specialty": "Geografía"}
+        ).status_code
+        == 200
+    )
+
+    event = client.post(
+        "/operations/calendar",
+        headers=admin,
+        json={
+            "title": "Jornada auditada",
+            "starts_at": "2026-12-01T12:00:00Z",
+            "ends_at": "2026-12-01T14:00:00Z",
+        },
+    )
+    assert event.status_code == 200, event.text
+
+    expected = {
+        "career.created": f"career:{career_id}",
+        "career.updated": f"career:{career_id}",
+        "career.deleted": f"career:{career_id}",
+        "subject.created": f"subject:{subject_id}",
+        "subject.deleted": f"subject:{subject_id}",
+        "curriculum.course.added": f"curriculum_course:{course_id}",
+        "curriculum.course.removed": f"curriculum_course:{course_id}",
+        "teacher.created": f"teacher:{teacher_id}",
+        "teacher.updated": f"teacher:{teacher_id}",
+        "calendar.event.created": f"calendar_event:{event.json()['calendar_event_id']}",
+    }
+    for action, resource in expected.items():
+        assert [e[0] for e in entries(sessions, action, resource)] == ["demo.admin"], action
+    assert "name: Carrera auditada → Renombrada" in entries(sessions, "career.updated")[0][2]
+    assert "specialty: Historia → Geografía" in entries(sessions, "teacher.updated")[0][2]
+
+
+def test_section_create_edit_and_delete_are_audited(demo):
+    client, sessions, tokens = demo
+    with sessions() as db:
+        from app.models import Section
+
+        source = db.query(Section).filter_by(code="PROG-101-A").one()
+        values = {"teacher_id": source.teacher_id, "subject_id": source.subject_id}
+    created = client.post(
+        "/sections/",
+        headers=tokens["admin"],
+        json={
+            **values,
+            "code": "AUD-SEC",
+            "description": "Sección auditada",
+            "days_of_week": ["Sábado"],
+            "start_time": "20:00:00",
+            "end_time": "21:00:00",
+            "status": "draft",
+        },
+    )
+    assert created.status_code == 200, created.text
+    section_id = created.json()["section_id"]
+    edited = client.patch(
+        f"/sections/{section_id}", headers=tokens["admin"], json={"description": "Otra"}
+    )
+    assert edited.status_code == 200, edited.text
+    assert client.delete(f"/sections/{section_id}", headers=tokens["admin"]).status_code == 200
+
+    resource = f"section:{section_id}"
+    for action in ("section.created", "section.updated", "section.deleted"):
+        assert [e[0] for e in entries(sessions, action, resource)] == ["demo.admin"], action

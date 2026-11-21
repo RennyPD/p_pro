@@ -7,8 +7,7 @@ from app.schemas.career_schema import CareerCreate, CareerUpdate
 def create_career(db: Session, data: CareerCreate) -> Career:
     career = Career(**data.model_dump(exclude_none=True))
     db.add(career)
-    db.commit()
-    db.refresh(career)
+    db.flush()
     return career
 
 
@@ -26,8 +25,7 @@ def update_career(db: Session, career_id: int, data: CareerUpdate) -> Career | N
         return None
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(career, key, value)
-    db.commit()
-    db.refresh(career)
+    db.flush()
     return career
 
 
@@ -36,5 +34,5 @@ def delete_career(db: Session, career_id: int) -> bool:
     if career is None:
         return False
     db.delete(career)
-    db.commit()
+    db.flush()
     return True
