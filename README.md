@@ -244,18 +244,39 @@ los tokens de acceso y renovación anteriores de la cuenta. El cierre
 individual revoca la renovación de esa sesión y deja expirar su token
 de acceso.
 
-## Restauración SQLite
+## Copias de seguridad y restauración
 
-Crea una copia con `python -B -m scripts.backup_database`. Para comprobar
-una restauración usa un archivo nuevo distinto del original.
+`python -B -m scripts.backup_database` crea una copia de la base configurada en
+`DATABASE_URL` dentro de `backups/` (o de `--output-dir`):
+
+- **SQLite:** copia en línea `school-<fecha>.db`, verificada con `integrity_check` y
+  `foreign_key_check`.
+- **PostgreSQL:** `pg_dump` en formato personalizado, `nexo-<fecha>.dump`. Requiere
+  el cliente de PostgreSQL 16 (`pg_dump`, `pg_restore`) en el `PATH`. Se comprueba que
+  el archivo se puede leer y contiene el esquema de Nexo.
+
+La restauración **nunca sobrescribe datos**: el destino es un archivo nuevo (SQLite)
+o una base de PostgreSQL vacía, y se niega si ya tiene tablas.
 
 ```powershell
 python -B -m scripts.backup_database --restore backups/respaldo-qa.db --destination backups/restauracion-qa.db
 ```
 
-El comando comprueba la integridad y las claves foráneas. Para inspeccionar
-la restauración con Alembic o levantar una API de prueba, configura
-`DATABASE_URL` con el archivo restaurado en una sesión dedicada.
+```bash
+createdb nexo_restaurada
+python -B -m scripts.backup_database --restore backups/nexo-20261121-020000-000000Z.dump --destination postgresql+psycopg://usuario:clave@servidor/nexo_restaurada --verify-against "$DATABASE_URL"
+```
+
+`pg_restore` corre en una sola transacción: si algo falla, la base de destino queda
+vacía. `--verify-against` compara las filas de cada tabla con la base de origen.
+Para pasar a producción la base restaurada, apunta `DATABASE_URL` a ella después de
+revisarla; no restaures encima de la base en uso.
+
+Recomendación de operación: una copia diaria programada (cron o tarea del
+servidor), conservada fuera del servidor de base de datos, y una prueba de
+restauración mensual en una base temporal. CI ejecuta la prueba de copia y
+restauración contra PostgreSQL 16 en cada cambio
+(`tests/test_backup_database.py`).
 
 ## Migraciones
 
