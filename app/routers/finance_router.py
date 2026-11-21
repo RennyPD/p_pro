@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.auth import (
     FINANCE_SCOPE,
+    ensure_own_finance_visible,
     ensure_student_access,
     get_current_user,
     has_scope,
@@ -85,8 +86,9 @@ get_or_create_account = get_account
 build_summary = summary
 
 
-def accessible(user, student_id):
+def accessible(db, user, student_id):
     ensure_student_access(user, student_id, FINANCE_SCOPE)
+    ensure_own_finance_visible(db, user, student_id)
 
 
 def result(db, account):
@@ -141,7 +143,7 @@ def list_accounts(db: Session = Depends(get_db)):
 def student_finance(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    accessible(user, student_id)
+    accessible(db, user, student_id)
     return summary(get_account(db, student_id))
 
 
@@ -364,7 +366,7 @@ def create_payment_plan(
 def list_plans(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    accessible(user, student_id)
+    accessible(db, user, student_id)
     account = get_account(db, student_id)
     return [
         plan_summary(account, p)
@@ -416,7 +418,7 @@ def submit_transfer(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    accessible(user, student_id)
+    accessible(db, user, student_id)
     if not settings.finance_transfer_instructions.strip():
         raise HTTPException(409, "La institución aún no configuró sus instrucciones bancarias")
     account = writable_account(db, student_id)
@@ -473,7 +475,7 @@ def submit_transfer(
 def transfers(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    accessible(user, student_id)
+    accessible(db, user, student_id)
     get_account(db, student_id)
     return [
         transfer_out(t)
@@ -488,7 +490,7 @@ def proof(identifier: int, db: Session = Depends(get_db), user: User = Depends(g
     item = db.get(TransferRequest, identifier)
     if not item:
         raise HTTPException(404, "Comprobante no encontrado")
-    accessible(user, item.student_id)
+    accessible(db, user, item.student_id)
     ext = {"application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpg"}[item.proof_type]
     return Response(
         item.proof,
@@ -552,7 +554,7 @@ def receipt(identifier: int, db: Session = Depends(get_db), user: User = Depends
     if not item:
         raise HTTPException(404, "Pago no encontrado")
     account = db.get(StudentAccount, item.student_account_id)
-    accessible(user, account.student_id)
+    accessible(db, user, account.student_id)
     lines = [
         "RECIBO INTERNO - NO ES COMPROBANTE FISCAL",
         f"Recibo: {item.receipt_number or 'Legado sin numeración'}",

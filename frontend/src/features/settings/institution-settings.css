@@ -95,3 +95,19 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.settings-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.settings-toggle input {
+  margin-top: 0.2rem;
+}
+.settings-toggle span {
+  display: grid;
+  gap: 0.15rem;
+}
+.settings-toggle small {
+  color: var(--muted);
+}

@@ -212,3 +212,51 @@ def test_guardian_detail_is_limited_to_linked_students_and_guardian_accounts(fam
         assert staff.status_code == 403, area
         own = client.get(f"/guardian/students/{student_id}/{area}", headers=tokens["estudiante"])
         assert own.status_code == 403, area
+
+
+# Decisión 2: el estudiante ve sus finanzas según la institución.
+
+
+def test_student_finance_visibility_is_configured_per_institution(family):
+    client, sessions, tokens, tutor, _, _ = family
+    with sessions() as db:
+        own = db.query(User).filter_by(username="demo.estudiante").one().student_id
+    admin, student = tokens["admin"], tokens["estudiante"]
+    current = client.get("/configuration/institution", headers=admin).json()
+    assert current["students_view_finance"] is True
+    assert client.get(f"/finance/students/{own}", headers=student).status_code == 200
+
+    settings = {
+        key: current[key]
+        for key in (
+            "institution_name",
+            "enrollment_prefix",
+            "enrollment_digits",
+            "passing_grade",
+            "max_credits_per_period",
+        )
+    }
+    hidden = client.put(
+        "/configuration/institution",
+        headers=admin,
+        json={**settings, "students_view_finance": False, "reason": "Política escolar"},
+    )
+    assert hidden.status_code == 200, hidden.text
+    assert hidden.json()["students_view_finance"] is False
+    assert client.get(f"/finance/students/{own}", headers=student).status_code == 403
+    statement = client.get(f"/documents/students/{own}/statement.pdf", headers=student)
+    assert statement.status_code == 403
+    # Staff with finance scope are not affected.
+    assert client.get(f"/finance/students/{own}", headers=admin).status_code == 200
+    [(actor, _, detail)] = [
+        e for e in entries(sessions, "configuration.updated") if "students_view_finance" in e[2]
+    ]
+    assert actor == "demo.admin" and "True → False" in detail
+
+    # An older client that omits the field keeps the saved value.
+    kept = client.put(
+        "/configuration/institution",
+        headers=admin,
+        json={**settings, "reason": "Cambio de nombre"},
+    )
+    assert kept.json()["students_view_finance"] is False

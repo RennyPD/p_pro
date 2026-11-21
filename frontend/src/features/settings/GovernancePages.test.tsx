@@ -195,3 +195,39 @@ it("previews configuration impact and clears the preview when a field changes", 
   fireEvent.change(grade, { target: { value: "90" } });
   expect(screen.queryByText("Revisión antes de guardar")).not.toBeInTheDocument();
 });
+it("lets the institution decide whether students see their own finances", async () => {
+  const settings = {
+    settings_id: 1,
+    institution_name: "Colegio",
+    enrollment_prefix: "EST",
+    enrollment_digits: 4,
+    passing_grade: 70,
+    max_credits_per_period: 24,
+    students_view_finance: true,
+    revision: 3,
+    next_enrollment_number: 1,
+    enrollment_preview: "EST-2026-0001",
+  };
+  vi.spyOn(api, "get").mockImplementation(
+    async path => ({ data: String(path).endsWith("/history") ? [] : settings }) as never,
+  );
+  const post = vi.spyOn(api, "post").mockResolvedValue({
+    data: { revision: 3, existing_selections_preserved: 0, policy: "", changes: [] },
+  } as never);
+  renderPage(<InstitutionSettingsPage />);
+  const toggle = await screen.findByRole("checkbox", {
+    name: /El estudiante ve sus finanzas en su portal/,
+  });
+  await waitFor(() => expect(toggle).toBeChecked());
+  fireEvent.click(toggle);
+  fireEvent.change(screen.getByLabelText("Motivo del cambio institucional"), {
+    target: { value: "Política escolar" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Revisar impacto" }));
+  await waitFor(() =>
+    expect(post).toHaveBeenCalledWith(
+      "/configuration/institution/preview",
+      expect.objectContaining({ students_view_finance: false, expected_revision: 3 }),
+    ),
+  );
+});

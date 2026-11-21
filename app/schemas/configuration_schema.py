@@ -97,6 +97,7 @@ class InstitutionSettingsBase(BaseModel):
     enrollment_digits: int = Field(ge=3, le=10)
     passing_grade: float = Field(ge=0, le=100)
     max_credits_per_period: int = Field(default=24, ge=1, le=60)
+    students_view_finance: bool = True
 
     @model_validator(mode="after")
     def clean_name(self):
@@ -107,6 +108,8 @@ class InstitutionSettingsBase(BaseModel):
 
 
 class InstitutionSettingsUpdate(InstitutionSettingsBase):
+    # Optional on update: an older client that omits it keeps the saved value.
+    students_view_finance: bool | None = None
     reason: str = Field(
         default="Actualización de configuración institucional", min_length=3, max_length=250
     )

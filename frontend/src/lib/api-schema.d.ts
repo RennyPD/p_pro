@@ -5909,6 +5909,11 @@ export interface components {
       revision: number;
       /** Settings Id */
       settings_id: number;
+      /**
+       * Students View Finance
+       * @default true
+       */
+      students_view_finance: boolean;
     };
     /** InstitutionSettingsUpdate */
     InstitutionSettingsUpdate: {
@@ -5932,6 +5937,8 @@ export interface components {
        * @default Actualización de configuración institucional
        */
       reason: string;
+      /** Students View Finance */
+      students_view_finance?: boolean | null;
     };
     /** LessonPlanCreate */
     LessonPlanCreate: {

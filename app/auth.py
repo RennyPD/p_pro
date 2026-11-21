@@ -325,6 +325,23 @@ def ensure_student_access(
     raise HTTPException(status_code=403, detail="Solo puedes consultar tu propio expediente")
 
 
+def ensure_own_finance_visible(db: Session, user: User, student_id: int) -> None:
+    """A student reads their own account only if the institution allows it.
+
+    Staff with finance scope and linked guardians are not affected (decision
+    of 21/11/2026, configurable in institution settings).
+    """
+    if user.student_id != student_id or has_scope(user, *FINANCE_SCOPE):
+        return
+    from app.models.configuration_model import InstitutionSettings
+
+    settings = db.get(InstitutionSettings, 1)
+    if settings is not None and not settings.students_view_finance:
+        raise HTTPException(
+            403, "La institución no muestra las finanzas en el portal del estudiante"
+        )
+
+
 def ensure_student_document_access(
     db: Session,
     user: User,

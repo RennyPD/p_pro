@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import (
     FINANCE_SCOPE,
+    ensure_own_finance_visible,
     ensure_section_access,
     ensure_student_document_access,
     get_current_user,
@@ -73,6 +74,7 @@ def statement_pdf(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
     ensure_student_document_access(db, user, student_id, FINANCE_SCOPE, area="finance")
+    ensure_own_finance_visible(db, user, student_id)
     summary = build_summary(get_or_create_account(db, student_id))
     lines = [
         f"Estudiante: {summary.student_name}",

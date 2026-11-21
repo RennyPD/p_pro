@@ -41,6 +41,7 @@ def get_or_create_settings(db, write=False):
             next_enrollment_number=1,
             passing_grade=70,
             max_credits_per_period=24,
+            students_view_finance=True,
             revision=0,
         )
         if write:
@@ -76,7 +77,7 @@ def settings_preview(data: InstitutionSettingsUpdate, db: Session = Depends(get_
         "changes": [
             {"field": k, "before": getattr(current, k), "after": getattr(data, k)}
             for k in InstitutionSettingsBase.model_fields
-            if getattr(current, k) != getattr(data, k)
+            if getattr(data, k) is not None and getattr(current, k) != getattr(data, k)
         ],
         "existing_selections_preserved": db.query(Enrollment).count(),
         "policy": "La nota aprobatoria se conserva por selección existente. La nueva nota y el límite de créditos se aplican a nuevas selecciones; no se retiran materias existentes.",
@@ -98,6 +99,8 @@ def update_institution_settings(
     )
     for key in InstitutionSettingsBase.model_fields:
         before, after = getattr(settings, key), getattr(data, key)
+        if after is None:
+            continue
         if before != after:
             record(
                 db,

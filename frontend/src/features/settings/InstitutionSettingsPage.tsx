@@ -16,6 +16,7 @@ type SettingsForm = {
   enrollment_digits: number;
   passing_grade: number;
   max_credits_per_period: number;
+  students_view_finance: boolean;
 };
 type Settings = SettingsForm & {
   settings_id: number;
@@ -36,6 +37,7 @@ const names: Record<string, string> = {
   enrollment_digits: "Dígitos de matrícula",
   passing_grade: "Nota aprobatoria para nuevas selecciones",
   max_credits_per_period: "Máximo de créditos",
+  students_view_finance: "El estudiante ve sus finanzas",
 };
 const fields = (s: Settings): SettingsForm => ({
   institution_name: s.institution_name,
@@ -43,6 +45,7 @@ const fields = (s: Settings): SettingsForm => ({
   enrollment_digits: s.enrollment_digits,
   passing_grade: s.passing_grade,
   max_credits_per_period: s.max_credits_per_period,
+  students_view_finance: s.students_view_finance ?? true,
 });
 export function InstitutionSettingsPage() {
   const uid = useAuthStore(s => s.user?.user_id);
@@ -188,6 +191,16 @@ export function InstitutionSettingsPage() {
               max={60}
               {...register("max_credits_per_period", { required: true })}
             />
+          </label>
+          <label className="settings-toggle settings-wide">
+            <input disabled={busy} type="checkbox" {...register("students_view_finance")} />
+            <span>
+              <b>El estudiante ve sus finanzas en su portal</b>
+              <small>
+                Recomendado en universidades. En escuelas suele desactivarse: el tutor sigue viendo
+                el balance según los accesos de su vínculo.
+              </small>
+            </span>
           </label>
           <div className="enrollment-preview settings-wide">
             <Hash />

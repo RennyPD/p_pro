@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Integer, String, Text
+from sqlalchemy import Boolean, Date, Integer, String, Text, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -35,6 +35,12 @@ class InstitutionSettings(Base):
     next_enrollment_number: Mapped[int] = mapped_column(Integer, default=1)
     passing_grade: Mapped[float] = mapped_column(default=70.0)
     max_credits_per_period: Mapped[int] = mapped_column(Integer, default=24)
+    # Whether students see their own account in their portal (product decision
+    # 21/11/2026: configurable per institution; usually no in schools, yes in
+    # universities). Staff and linked guardians are not affected.
+    students_view_finance: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=true()
+    )
     revision: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 

@@ -28,7 +28,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 
 | Id | Hallazgo | Fase |
 |---|---|---|
-| A1 | Vínculo tutor–estudiante sin permisos ni auditoría (privacidad de menores) | 2 |
+| A1 | ✅ Cerrado (21/11): permisos por vínculo (académico, asistencia, tareas, finanzas, responsable de pago), edición y baja auditadas | — |
 | A2 | ✅ Cerrado (21/11): toda ruta de escritura registra auditoría; `tests/test_route_audit.py` lo vigila | — |
 | M1 | ✅ Cerrado en `master` (20/11): permisos granulares por ruta y menú por permisos | — |
 | M2 | ✅ Cerrado (21/11): toda ruta de escritura toma el bloqueo de su dominio; `tests/test_route_locks.py` | — |
@@ -37,7 +37,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 | M5 | ✅ Cerrado (21/11): copia y restauración de PostgreSQL verificadas en CI | — |
 | M6 | Sin correo: recuperación de contraseña, invitaciones, avisos | 2 |
 | M7 | Finanzas incompletas para escuelas (los planes de cobro ya existen) | 2 (vista y pagos) y 3 (facturación) |
-| M8 | Portales de tutor y estudiante densos y sin desglose en móvil | 2 |
+| M8 | Portal del tutor ✅ (21/11): pestañas por hijo y por área, móvil primero. Pendiente: «Mi cuenta» del estudiante | 2 |
 | M9 | Pruebas del frontend escasas; componentes de más de 1.000 líneas | continuo |
 | B3, B4, B8 | ✅ Cerrados (21/11): cobertura de auditoría, panel y permisos al 94–100 %; módulos de consulta por permisos; código muerto de notas eliminado | — |
 | B1, B2, B5–B7 | Tipos a mano, build pesado, períodos por nombre, bloqueo académico único, límites solo en login | según fase |
@@ -63,9 +63,9 @@ Lo que hace falta para que cualquier cliente confíe en los datos. Base para tod
 ### Fase 2: familias, pagos y experiencia (L)
 Lo que se ve y lo que piden las familias. Funciona con los datos actuales.
 1. **Sistema visual:** componentes reutilizables (tarjeta, indicador, chip, estado, avatar, pestañas, progreso) y criterio de «menos texto»; móvil primero en portales. ✅ Primer caso: tarjeta de tareas.
-2. **Vínculo tutor–estudiante con permisos (A1):** responsable de pago, ve notas, ve asistencia, ve finanzas; auditado. Por defecto ve lo académico y lo financiero solo si es responsable de pago (pendiente de confirmar).
-3. **Portal del tutor detallado (M8):** vista familiar y pestañas por hijo con notas por asignatura y evaluación, asistencia por día y materia, tareas, horario, alertas, comunicados y documentos.
-4. **Módulo de pagos para estudiante y tutor (M7, M8):** balance, próximo vencimiento, cuotas, movimientos, recibos y reporte de transferencia; total familiar con desglose por hijo y concepto, y una transferencia para varios hijos. Si el estudiante menor ve sus finanzas lo decide cada institución (por defecto: no en escuelas, sí en universidades; pendiente de confirmar).
+2. ✅ **Vínculo tutor–estudiante con permisos (A1), 21/11/2026:** migración `20261121_0049`. Por defecto el tutor ve todo de sus estudiantes vinculados (asistencia, notas, balance, tareas y desempeño); administración restringe áreas de un vínculo concreto y marca al responsable de pago desde la ficha del estudiante. `PATCH`/`DELETE /community/guardian-links/{id}` con bloqueo y auditoría; `ensure_guardian_view` aplica las áreas en el resumen, el detalle, los documentos, las tareas y las alertas.
+3. ✅ **Portal del tutor detallado (M8), 21/11/2026:** endpoints `/guardian/students/{id}/attendance|grades|tasks|finance|performance` y portal con pestañas por hijo y por área (Resumen, Asistencia, Notas, Tareas, Pagos, Desempeño). Capturas antes y después en `docs/capturas/portal-tutor/`. Pendiente: comunicados dentro del portal.
+4. **Módulo de pagos para estudiante y tutor (M7, M8):** balance, próximo vencimiento, cuotas, movimientos, recibos y reporte de transferencia; total familiar con desglose por hijo y concepto, y una transferencia para varios hijos. Si el estudiante ve sus finanzas lo decide cada institución: ajuste `students_view_finance` en Configuración (migración `20261121_0050`), activo por defecto hasta que exista el tipo de institución (Fase 3), que lo apagará por defecto en escuelas.
 5. **Correo electrónico (M6):** recuperación de contraseña, invitaciones y avisos (comunicados, vencimientos, notas publicadas) con un proveedor configurable.
 6. **Rediseño de pantallas clave** con el sistema visual: panel principal, «Mi cuenta», finanzas de administración; dividir los componentes de más de 1.000 líneas (M9) y migrar sus tipos a `ApiSchema` (B1).
 
@@ -88,7 +88,7 @@ Lo que se ve y lo que piden las familias. Funciona con los datos actuales.
 ### Fase 5: lanzamiento (M)
 Landing page, demo pública, términos de uso, política de privacidad conforme a la Ley 172-13 con atención a datos de menores, documentación para clientes y soporte.
 
-### Decisiones pendientes del dueño del producto
-1. Visibilidad por defecto del tutor (propuesta: académico sí, financiero solo si es responsable de pago).
-2. ¿El estudiante menor ve sus finanzas? (propuesta: configurable; no en escuelas, sí en universidades).
-3. Proveedor de correo y de comprobantes fiscales.
+### Decisiones del dueño del producto
+1. ✅ (21/11/2026) El tutor ve por defecto el detalle de asistencia, notas, balance, tareas y desempeño de sus estudiantes vinculados: un monitoreo directo. La institución puede restringir un vínculo concreto.
+2. ✅ (21/11/2026) Si el estudiante ve sus finanzas lo decide cada institución (no en escuelas, sí en universidades).
+3. Pendiente: proveedor de correo y de comprobantes fiscales.

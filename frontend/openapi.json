@@ -6782,6 +6782,11 @@
           "settings_id": {
             "title": "Settings Id",
             "type": "integer"
+          },
+          "students_view_finance": {
+            "default": true,
+            "title": "Students View Finance",
+            "type": "boolean"
           }
         },
         "required": [
@@ -6848,6 +6853,17 @@
             "minLength": 3,
             "title": "Reason",
             "type": "string"
+          },
+          "students_view_finance": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Students View Finance"
           }
         },
         "required": [

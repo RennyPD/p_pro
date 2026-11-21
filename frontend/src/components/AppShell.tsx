@@ -190,7 +190,7 @@ export function AppShell() {
   const queryClient = useQueryClient();
   const access = useAccess();
   const modules = useModuleViews();
-  const institution = useQuery<{ institution_name: string }>({
+  const institution = useQuery<{ institution_name: string; students_view_finance?: boolean }>({
     queryKey: ["institution-settings", user?.user_id],
     queryFn: () => api.get("/configuration/institution").then(r => r.data),
     enabled: Boolean(user),
@@ -210,10 +210,14 @@ export function AppShell() {
         : {};
   const nav: NavItem[] = access.ready
     ? [
-        ...NAV.filter(item => !item.show || item.show(access)).map(item => ({
-          ...item,
-          label: labels[item.to] ?? item.label,
-        })),
+        ...NAV.filter(item => !item.show || item.show(access))
+          .filter(
+            item => item.to !== "/my-finance" || institution.data?.students_view_finance !== false,
+          )
+          .map(item => ({
+            ...item,
+            label: labels[item.to] ?? item.label,
+          })),
         ...(modules.data ?? []).map(item => ({
           to: `/modules/${item.key}`,
           label: item.label,
