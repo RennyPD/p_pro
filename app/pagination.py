@@ -1,12 +1,13 @@
-def paginate_and_filter(items, skip: int, limit: int, query: str | None, fields: tuple[str, ...]):
-    if query:
-        needle = query.casefold()
-        items = [
-            item
-            for item in items
-            if any(needle in str(getattr(item, field, "")).casefold() for field in fields)
-        ]
-    return items[skip : skip + limit]
+"""Listing helpers that filter and paginate in the database (audit M3)."""
+
+from sqlalchemy import or_
+
+
+def search(query, text: str | None, *columns):
+    """Case-insensitive ``contains`` over any of ``columns``; no-op without text."""
+    if text and (term := text.strip()):
+        query = query.filter(or_(*(column.icontains(term, autoescape=True) for column in columns)))
+    return query
 
 
 def page_query(query, response, skip: int, limit: int | None):

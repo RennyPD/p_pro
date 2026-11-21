@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.auth import (
@@ -9,15 +9,16 @@ from app.auth import (
     require_permissions,
 )
 from app.db.Session import get_db
+from app.models.section_model import Section
+from app.models.subject_model import Subject
 from app.models.user_model import User
-from app.pagination import paginate_and_filter
+from app.pagination import page_query, search
 from app.schemas.section_schema import SectionCreate, SectionOut, SectionUpdate
 from app.services.governance_workflow import lock_governance
 from app.services.section_service import (
     create_section_service,
     delete_section_service,
     get_section_by_id_service,
-    get_sections_service,
     update_section_service,
 )
 
@@ -36,22 +37,28 @@ def create_section(
 
 @router.get("/", response_model=list[SectionOut])
 def get_sections(
+    response: Response,
     q: str | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    sections = get_sections_service(db)
+    query = db.query(Section)
     if not has_scope(user, *ACADEMIC_SCOPE):
         if user.teacher_id is None:
-            sections = []
-        else:
-            sections = [item for item in sections if item.teacher_id == user.teacher_id]
-    sections.sort(key=lambda item: item.section_id)
-    return paginate_and_filter(
-        sections, skip, limit, q, ("code", "description", "subject_code", "subject_name")
-    )
+            return []
+        query = query.filter(Section.teacher_id == user.teacher_id)
+    if q and q.strip():
+        query = search(
+            query.outerjoin(Section.subject),
+            q,
+            Section.code,
+            Section.description,
+            Subject.code,
+            Subject.description,
+        )
+    return page_query(query.order_by(Section.section_id), response, skip, limit)
 
 
 @router.get("/{section_id}", response_model=SectionOut)

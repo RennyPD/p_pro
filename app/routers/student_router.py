@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.auth import (
@@ -13,7 +13,7 @@ from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
 from app.models.student_model import Student
 from app.models.user_model import User
-from app.pagination import paginate_and_filter
+from app.pagination import page_query, search
 from app.schemas.student_schema import StudentCreate, StudentOut, StudentUpdate
 from app.services.governance_workflow import lock_governance
 from app.services.student_service import (
@@ -38,6 +38,7 @@ def create_student(
 
 @router.get("/", response_model=list[StudentOut], dependencies=[Depends(get_current_user)])
 def get_students(
+    response: Response,
     q: str | None = None,
     career_id: int | None = None,
     active: bool | None = None,
@@ -58,31 +59,32 @@ def get_students(
         query = query.filter(Student.financial_hold.is_(True))
     elif hold == "clear":
         query = query.filter(Student.academic_hold.is_(False), Student.financial_hold.is_(False))
-    if has_scope(user, *DIRECTORY_SCOPE):
-        return paginate_and_filter(
-            query.order_by(Student.last_name, Student.first_name).all(),
-            skip,
-            limit,
-            q,
-            ("full_name", "email", "enrollment_number", "document_number"),
-        )
-    if user.student_id is not None:
-        query = query.filter(Student.student_id == user.student_id)
-    elif user.teacher_id is not None:
-        query = (
-            query.join(Student.enrollments)
-            .join(Enrollment.section)
-            .filter(Section.teacher_id == user.teacher_id)
-            .distinct()
-        )
-    else:
-        return []
-    return paginate_and_filter(
-        query.order_by(Student.last_name, Student.first_name).all(),
+    if not has_scope(user, *DIRECTORY_SCOPE):
+        if user.student_id is not None:
+            query = query.filter(Student.student_id == user.student_id)
+        elif user.teacher_id is not None:
+            query = query.filter(
+                Student.student_id.in_(
+                    db.query(Enrollment.student_id)
+                    .join(Enrollment.section)
+                    .filter(Section.teacher_id == user.teacher_id)
+                )
+            )
+        else:
+            return []
+    query = search(
+        query,
+        q,
+        Student.first_name + " " + Student.last_name,
+        Student.email,
+        Student.enrollment_number,
+        Student.document_number,
+    )
+    return page_query(
+        query.order_by(Student.last_name, Student.first_name, Student.student_id),
+        response,
         skip,
         limit,
-        q,
-        ("full_name", "email", "enrollment_number", "document_number"),
     )
 
 

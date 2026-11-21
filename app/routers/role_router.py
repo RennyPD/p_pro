@@ -1,17 +1,17 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.auth import require_permissions, role_permission_slugs
 from app.db.Session import get_db
+from app.models.role_model import Role
 from app.models.user_model import User
-from app.pagination import paginate_and_filter
+from app.pagination import page_query, search
 from app.schemas.role_schema import RoleCreate, RoleOut, RoleUpdate
 from app.services.governance_workflow import record
 from app.services.role_service import (
     create_role_service,
     delete_role_service,
     get_role_by_id_service,
-    get_roles_service,
     update_role_service,
 )
 
@@ -40,14 +40,14 @@ def create_role(
 
 @router.get("/", response_model=list[RoleOut], dependencies=[Depends(access_manager)])
 def get_roles(
+    response: Response,
     q: str | None = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    roles = paginate_and_filter(
-        get_roles_service(db), skip, limit, q, ("name", "label", "description")
-    )
+    query = search(db.query(Role), q, Role.name, Role.label, Role.description)
+    roles = page_query(query.order_by(Role.role_id), response, skip, limit)
     return [role_out(db, role) for role in roles]
 
 

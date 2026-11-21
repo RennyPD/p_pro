@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
+from app.models.career_model import Career
 from app.models.user_model import User
-from app.pagination import paginate_and_filter
+from app.pagination import page_query, search
 from app.schemas.career_schema import CareerCreate, CareerOut, CareerUpdate
 from app.services.career_service import (
     create_career_service,
@@ -29,6 +30,7 @@ def create_career(
 
 @router.get("/", response_model=list[CareerOut], dependencies=[Depends(get_current_user)])
 def list_careers(
+    response: Response,
     q: str | None = None,
     academic_level: str | None = None,
     status: str | None = None,
@@ -38,18 +40,19 @@ def list_careers(
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    items = get_careers_service(db)
-    for field, value in (
-        ("academic_level", academic_level),
-        ("status", status),
-        ("modality", modality),
-        ("faculty", faculty),
+    query = db.query(Career)
+    for column, value in (
+        (Career.academic_level, academic_level),
+        (Career.status, status),
+        (Career.modality, modality),
+        (Career.faculty, faculty),
     ):
         if value is not None:
-            items = [item for item in items if getattr(item, field) == value]
-    return paginate_and_filter(
-        items, skip, limit, q, ("code", "name", "description", "degree_title", "faculty")
+            query = query.filter(column == value)
+    query = search(
+        query, q, Career.code, Career.name, Career.description, Career.degree_title, Career.faculty
     )
+    return page_query(query.order_by(Career.career_id), response, skip, limit)
 
 
 @router.get("/catalog-options", dependencies=[Depends(career_manager)])

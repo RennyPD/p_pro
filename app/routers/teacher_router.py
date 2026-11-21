@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import (
@@ -13,7 +13,7 @@ from app.models.configuration_model import AcademicPeriod
 from app.models.section_model import Section
 from app.models.teacher_model import Teacher
 from app.models.user_model import User
-from app.pagination import paginate_and_filter
+from app.pagination import page_query, search
 from app.schemas.teacher_schema import (
     TeacherCreate,
     TeacherMeeting,
@@ -47,6 +47,7 @@ def create_teacher(
 
 @router.get("/", response_model=list[TeacherOut], dependencies=[Depends(get_current_user)])
 def get_teachers(
+    response: Response,
     q: str | None = None,
     department: str | None = None,
     active: bool | None = None,
@@ -67,12 +68,21 @@ def get_teachers(
         if user.teacher_id is None:
             return []
         query = query.filter(Teacher.teacher_id == user.teacher_id)
-    return paginate_and_filter(
-        query.order_by(Teacher.last_name, Teacher.first_name).all(),
+    query = search(
+        query,
+        q,
+        Teacher.first_name + " " + Teacher.last_name,
+        Teacher.email,
+        Teacher.specialty,
+        Teacher.department,
+        Teacher.employee_code,
+        Teacher.document_number,
+    )
+    return page_query(
+        query.order_by(Teacher.last_name, Teacher.first_name, Teacher.teacher_id),
+        response,
         skip,
         limit,
-        q,
-        ("full_name", "email", "specialty", "department", "employee_code", "document_number"),
     )
 
 

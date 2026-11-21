@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.curriculum_model import CurriculumCourse
 from app.models.section_model import Section
+from app.models.subject_model import Subject
 from app.models.user_model import User
-from app.pagination import paginate_and_filter
+from app.pagination import page_query, search
 from app.routers.curriculum_router import course_out
 from app.schemas.subject_schema import (
     SubjectCreate,
@@ -21,7 +22,6 @@ from app.services.subject_service import (
     create_subject_service,
     delete_subject_service,
     get_subject_by_id_service,
-    get_subjects_service,
     update_subject_service,
 )
 
@@ -41,15 +41,24 @@ def create_subject(
 
 @router.get("/", response_model=list[SubjectListItem], dependencies=[Depends(get_current_user)])
 def get_subjects(
+    response: Response,
     q: str | None = None,
     career_id: int | None = Query(default=None, ge=1),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    subjects = paginate_and_filter(
-        get_subjects_service(db, career_id), skip, limit, q, ("code", "description")
-    )
+    query = db.query(Subject)
+    if career_id is not None:
+        query = query.filter(
+            Subject.subject_id.in_(
+                db.query(CurriculumCourse.subject_id).filter(
+                    CurriculumCourse.career_id == career_id
+                )
+            )
+        )
+    query = search(query, q, Subject.code, Subject.description)
+    subjects = page_query(query.order_by(Subject.subject_id), response, skip, limit)
     ids = [subject.subject_id for subject in subjects]
     courses = (
         db.query(CurriculumCourse).filter(CurriculumCourse.subject_id.in_(ids)).all() if ids else []
