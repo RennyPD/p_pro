@@ -26,6 +26,8 @@ SCOPE_CHECKED = {
     ("POST", "/auth/sessions/revoke-all"): "own sessions",
     ("POST", "/auth/change-password"): "own password",
     ("GET", "/auth/me"): "own account",
+    ("GET", "/auth/email-preferences"): "own email preferences",
+    ("PUT", "/auth/email-preferences"): "own email preferences",
     ("POST", "/auth/mfa/setup"): "own second factor",
     ("DELETE", "/auth/mfa/setup"): "own second factor",
     ("POST", "/auth/mfa/enable"): "own second factor",

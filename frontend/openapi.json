@@ -4639,6 +4639,27 @@
         "title": "DistributionUpdate",
         "type": "object"
       },
+      "EmailPreferences": {
+        "properties": {
+          "email_announcements": {
+            "default": true,
+            "title": "Email Announcements",
+            "type": "boolean"
+          },
+          "email_due_reminders": {
+            "default": true,
+            "title": "Email Due Reminders",
+            "type": "boolean"
+          },
+          "email_grades": {
+            "default": true,
+            "title": "Email Grades",
+            "type": "boolean"
+          }
+        },
+        "title": "EmailPreferences",
+        "type": "object"
+      },
       "EnrollmentCreate": {
         "properties": {
           "enrollment_date": {
@@ -15248,6 +15269,77 @@
           }
         ],
         "summary": "Change Password",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/auth/email-preferences": {
+      "get": {
+        "operationId": "email_preferences_auth_email_preferences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailPreferences"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Email Preferences",
+        "tags": [
+          "authentication"
+        ]
+      },
+      "put": {
+        "description": "Turn email notices on or off; security emails are always sent.",
+        "operationId": "update_email_preferences_auth_email_preferences_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailPreferences"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailPreferences"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Email Preferences",
         "tags": [
           "authentication"
         ]

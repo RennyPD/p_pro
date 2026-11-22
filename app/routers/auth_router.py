@@ -35,7 +35,7 @@ from app.schemas.auth_schema import (
     PasswordResetRequest,
     TokenOut,
 )
-from app.schemas.user_schema import UserCreate, UserOut
+from app.schemas.user_schema import EmailPreferences, UserCreate, UserOut
 from app.security import (
     create_access_token,
     create_refresh_token,
@@ -456,3 +456,26 @@ def confirm_password_reset(data: PasswordResetConfirm, db: Session = Depends(get
         user.user_id,
     )
     db.commit()
+
+
+@router.get("/email-preferences", response_model=EmailPreferences)
+def email_preferences(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.put("/email-preferences", response_model=EmailPreferences)
+def update_email_preferences(
+    data: EmailPreferences,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Turn email notices on or off; security emails are always sent."""
+    user = lock_account(db, current_user)
+    changed = []
+    for key, value in data.model_dump().items():
+        if getattr(user, key) != value:
+            changed.append(f"{key}: {'sí' if value else 'no'}")
+            setattr(user, key, value)
+    audit(db, "email.preferences.updated", "user", user.user_id, "; ".join(changed))
+    db.commit()
+    return user

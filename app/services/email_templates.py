@@ -31,6 +31,11 @@ def app_link(path: str) -> str:
     return settings.app_url.rstrip("/") + path
 
 
+def optional_link(label: str, path: str) -> tuple[str, str] | None:
+    """Button for notices: omitted (never an error) when APP_URL is not configured."""
+    return (label, settings.app_url.rstrip("/") + path) if settings.app_url else None
+
+
 def render(
     db: Session,
     subject: str,
@@ -90,4 +95,69 @@ def invitation(db: Session, name: str, username: str, token: str) -> Email:
             "Para entrar, elige tu contraseña. El enlace vence en 72 horas.",
         ],
         action=("Activar mi cuenta", app_link(f"/activar?token={token}")),
+    )
+
+
+PREFERENCES_FOOTER = (
+    "Recibes este aviso porque está activado en tu cuenta. Puedes desactivarlo en "
+    "Nexo, en «Mi seguridad» > «Avisos por correo»."
+)
+
+
+def announcement(db: Session, name: str, title: str, body: str) -> Email:
+    return render(
+        db,
+        title,
+        f"Hola, {name}:",
+        [line for line in body.splitlines() if line.strip()] or [body],
+        action=optional_link("Abrir Nexo", "/"),
+        footer=PREFERENCES_FOOTER,
+    )
+
+
+def grades_published(
+    db: Session,
+    name: str,
+    student: str,
+    subject: str,
+    assessment: str,
+    value: float,
+    own: bool,
+) -> Email:
+    whose = "Tienes" if own else f"{student} tiene"
+    return render(
+        db,
+        f"Nota publicada: {subject}",
+        f"Hola, {name}:",
+        [
+            f"{whose} una nota nueva en {subject}.",
+            f"{assessment}: {value:g}",
+        ],
+        action=optional_link("Ver las notas", "/my-grades" if own else "/guardian"),
+        footer=PREFERENCES_FOOTER,
+    )
+
+
+def due_reminder(
+    db: Session,
+    name: str,
+    student: str,
+    concept: str,
+    amount: str,
+    due: str,
+    phase: str,
+    own: bool,
+) -> Email:
+    whose = "tu cuenta" if own else f"la cuenta de {student}"
+    if phase == "before":
+        subject, first = "Pago próximo a vencer", f"El {due} vence un pago de {whose}."
+    else:
+        subject, first = "Pago vencido", f"Un pago de {whose} venció el {due} y sigue pendiente."
+    return render(
+        db,
+        subject,
+        f"Hola, {name}:",
+        [first, f"{concept}: {amount}", "Si ya pagaste, ignora este aviso."],
+        action=optional_link("Ver la cuenta", "/my-finance" if own else "/guardian"),
+        footer=PREFERENCES_FOOTER,
     )

@@ -282,3 +282,149 @@ def test_invited_account_activates_from_the_email(mailer):
     assert login(client, "invitada", "Clave-invitada-2026").status_code == 200
     assert entries(sessions, "user.invitation.sent")[0][0] == "demo.admin"
     assert client.post(f"/users/{user}/invitation", headers=tokens["docente"]).status_code == 403
+
+
+# Paso 3: avisos por correo y preferencias.
+
+from test_guardian_links import family  # noqa: E402, F401
+from test_payments_module import add_charges  # noqa: E402
+
+
+def emails(sessions, category):
+    with sessions() as db:
+        return sorted(
+            (e.to_address, e.status) for e in db.query(EmailOutbox).filter_by(category=category)
+        )
+
+
+def address(sessions, username):
+    with sessions() as db:
+        return db.query(User).filter_by(username=username).one().email
+
+
+def test_preferences_are_read_and_saved_with_audit(demo):  # noqa: F811
+    client, sessions, tokens = demo
+    headers = tokens["estudiante"]
+    assert client.get("/auth/email-preferences", headers=headers).json() == {
+        "email_announcements": True,
+        "email_grades": True,
+        "email_due_reminders": True,
+    }
+    saved = client.put(
+        "/auth/email-preferences",
+        headers=headers,
+        json={"email_announcements": False, "email_grades": True, "email_due_reminders": True},
+    )
+    assert saved.status_code == 200 and saved.json()["email_announcements"] is False
+    with sessions() as db:
+        from app.models.security_model import AuditLog
+
+        entry = db.query(AuditLog).filter_by(action="email.preferences.updated").one()
+    assert "email_announcements: no" in entry.detail
+
+
+def test_announcements_reach_recipients_who_accept_them(demo):  # noqa: F811
+    client, sessions, tokens = demo
+    student = address(sessions, "demo.estudiante")
+    published = client.post(
+        "/community/announcements",
+        headers=tokens["admin"],
+        json={
+            "title": "Feria científica",
+            "body": "El viernes no hay clases.",
+            "audience": "student",
+        },
+    )
+    assert published.status_code == 200, published.text
+    assert (student, "sent") in emails(sessions, "announcement")  # no APP_URL needed
+
+    client.put(
+        "/auth/email-preferences",
+        headers=tokens["estudiante"],
+        json={"email_announcements": False, "email_grades": True, "email_due_reminders": True},
+    )
+    again = client.post(
+        "/community/announcements",
+        headers=tokens["admin"],
+        json={"title": "Simulacro", "body": "Simulacro de evacuación.", "audience": "student"},
+    )
+    assert again.status_code == 200
+    assert [e for e in emails(sessions, "announcement") if e[0] == student] == [(student, "sent")]
+
+
+def test_published_grades_reach_the_student_and_guardians_allowed_to_see_them(family):  # noqa: F811
+    from app.models import Assessment, Enrollment, Grade
+    from app.services.business_time import business_date
+
+    client, sessions, tokens, tutor, link_id, student_id = family
+    with sessions() as db:
+        enrollment = (
+            db.query(Enrollment)
+            .filter_by(student_id=student_id, state="enrolled")
+            .order_by(Enrollment.enrollment_id)
+            .first()
+        )
+        assessment = Assessment(
+            section_id=enrollment.section_id, name="Quiz de correo", weight=5, closed=False
+        )
+        db.add(assessment)
+        db.flush()
+        db.add(
+            Grade(
+                enrollment_id=enrollment.enrollment_id,
+                assessment_id=assessment.assessment_id,
+                grade_value=91,
+                grade_type="Quiz de correo",
+                date_recorded=business_date(),
+                status="draft",
+            )
+        )
+        db.commit()
+        assessment_id = assessment.assessment_id
+        own = db.query(User).filter_by(student_id=student_id).first()
+        tutor_email = db.query(User).filter_by(username="tutor.01").one().email
+    client.patch(
+        f"/community/guardian-links/{link_id}",
+        headers=tokens["admin"],
+        json={"can_view_academic": False},
+    )
+    published = client.post(f"/grades/assessments/{assessment_id}/publish", headers=tokens["admin"])
+    assert published.status_code == 200, published.text
+    recipients = [e[0] for e in emails(sessions, "grades")]
+    assert tutor_email not in recipients  # link without access to grades
+    assert own is not None and own.email in recipients
+
+
+def test_due_reminders_go_once_before_and_after_and_respect_access(family):  # noqa: F811
+    from datetime import timedelta
+
+    from app.models import InstitutionSettings
+    from app.services.business_time import business_date
+    from app.services.email_notices import queue_due_reminders
+
+    client, sessions, tokens, tutor, link_id, student_id = family
+    add_charges(sessions, student_id, ("300.00", 2), ("200.00", -1), ("100.00", 20))
+    tutor_email = address(sessions, "tutor.01")
+    with sessions() as db:
+        first = queue_due_reminders(db, business_date())
+        db.commit()
+        second = queue_due_reminders(db, business_date())
+        db.commit()
+        rows = db.query(EmailOutbox).filter_by(category="due_reminder", to_address=tutor_email)
+        subjects = sorted(e.subject.split(" · ")[0] for e in rows)
+    assert first >= 2 and second == 0  # never repeated
+    assert subjects == ["Pago próximo a vencer", "Pago vencido"]
+
+    with sessions() as db:
+        settings = db.get(InstitutionSettings, 1) or InstitutionSettings(settings_id=1)
+        settings.students_view_finance = False
+        db.merge(settings)
+        db.commit()
+    client.patch(
+        f"/community/guardian-links/{link_id}",
+        headers=tokens["admin"],
+        json={"can_view_finance": False},
+    )
+    add_charges(sessions, student_id, ("50.00", 3))
+    with sessions() as db:
+        assert queue_due_reminders(db, business_date() + timedelta(days=0)) == 0

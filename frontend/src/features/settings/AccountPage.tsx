@@ -8,6 +8,7 @@ import { z } from "zod";
 import { Button } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
+import { EmailPreferencesCard } from "./EmailPreferencesCard";
 
 const schema = z
   .object({
@@ -148,6 +149,7 @@ export function AccountPage() {
             </Button>
           </form>
         </section>
+        <EmailPreferencesCard />
         <section className="account-card">
           <span className="account-icon">
             <ShieldCheck />

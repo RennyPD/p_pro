@@ -29,6 +29,11 @@ class User(Base):
     mfa_last_step: Mapped[int | None] = mapped_column(nullable=True)
     session_version: Mapped[int] = mapped_column(default=0, server_default="0")
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    # Email notices the person accepts (audit M6). Security emails (password
+    # reset, invitations) are always sent.
+    email_announcements: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    email_grades: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    email_due_reminders: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
 
     role: Mapped["Role"] = relationship("Role", back_populates="users")
     student: Mapped["Student | None"] = relationship("Student")

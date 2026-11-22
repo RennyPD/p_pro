@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from sqlalchemy import false
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,8 @@ from app.schemas.grade_schema import (
     GradeUpdate,
 )
 from app.services.academic_grading import ensure_grading_open, record_change, write_grade
+from app.services.email_notices import notify_grades_published
+from app.services.email_service import deliver_after_commit
 from app.services.governance_workflow import lock_governance
 from app.services.grade_service import get_grade_by_id_service
 
@@ -135,7 +137,10 @@ def get_grades(
 
 @router.post("/assessments/{assessment_id}/publish")
 def publish_assessment_grades(
-    assessment_id: int, db: Session = Depends(get_db), user: User = Depends(grade_manager)
+    assessment_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user: User = Depends(grade_manager),
 ):
     lock_governance(db)
     assessment = db.get(Assessment, assessment_id)
@@ -166,7 +171,9 @@ def publish_assessment_grades(
             "draft",
             "published",
         )
+    notify_grades_published(db, assessment, grades)
     db.commit()
+    deliver_after_commit(background_tasks, db)
     return {"published": len(grades)}
 
 

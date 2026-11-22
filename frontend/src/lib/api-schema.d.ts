@@ -715,6 +715,27 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/auth/email-preferences": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Email Preferences */
+    get: operations["email_preferences_auth_email_preferences_get"];
+    /**
+     * Update Email Preferences
+     * @description Turn email notices on or off; security emails are always sent.
+     */
+    put: operations["update_email_preferences_auth_email_preferences_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/auth/login": {
     parameters: {
       query?: never;
@@ -5272,6 +5293,24 @@ export interface components {
       /** Reason */
       reason: string;
     };
+    /** EmailPreferences */
+    EmailPreferences: {
+      /**
+       * Email Announcements
+       * @default true
+       */
+      email_announcements: boolean;
+      /**
+       * Email Due Reminders
+       * @default true
+       */
+      email_due_reminders: boolean;
+      /**
+       * Email Grades
+       * @default true
+       */
+      email_grades: boolean;
+    };
     /** EnrollmentCreate */
     EnrollmentCreate: {
       /** Enrollment Date */
@@ -9618,6 +9657,59 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  email_preferences_auth_email_preferences_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmailPreferences"];
+        };
+      };
+    };
+  };
+  update_email_preferences_auth_email_preferences_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EmailPreferences"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmailPreferences"];
+        };
       };
       /** @description Validation Error */
       422: {

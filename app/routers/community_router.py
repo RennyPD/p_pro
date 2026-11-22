@@ -1,7 +1,7 @@
 import hashlib
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -33,6 +33,8 @@ from app.schemas.community_schema import (
 )
 from app.services.audit_log import changes as audit_changes
 from app.services.audit_log import snapshot
+from app.services.email_notices import notify_announcement
+from app.services.email_service import deliver_after_commit
 from app.services.governance_workflow import lock_governance, record
 
 router = APIRouter(prefix="/community", tags=["community"])
@@ -372,6 +374,7 @@ def preview_announcement(
 @router.post("/announcements", response_model=AnnouncementOut)
 def create_announcement(
     data: AnnouncementCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: User = Depends(communications_manager),
 ):
@@ -411,7 +414,9 @@ def create_announcement(
         f"announcement:{item.announcement_id}",
         f"Audiencia {data.audience}; sección {data.section_id}; destinatarios {len(targets)}",
     )
+    notify_announcement(db, item, targets)
     db.commit()
+    deliver_after_commit(background_tasks, db)
     return announcement_out(db, item)
 
 

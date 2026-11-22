@@ -61,5 +61,12 @@ class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EmailPreferences(BaseModel):
+    email_announcements: bool = True
+    email_grades: bool = True
+    email_due_reminders: bool = True
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserPasswordReset(BaseModel):
     password: str = Field(min_length=10)
