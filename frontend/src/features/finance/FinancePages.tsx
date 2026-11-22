@@ -24,6 +24,9 @@ import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./finance.css";
+import { MyAccountPage } from "../payments/MyAccountPage";
+import { TransferInbox } from "../payments/TransferInbox";
+import type { ApiSchema } from "../../lib/apiTypes";
 import { useAccess } from "../../lib/permissions";
 
 type Account = {
@@ -55,17 +58,7 @@ type Summary = Account & {
   total_adjustments?: number;
   transactions: Transaction[];
 };
-type Transfer = {
-  transfer_request_id: number;
-  amount: number;
-  reference: string;
-  bank: string;
-  note: string;
-  status: string;
-  submitted_at: string;
-  review_reason?: string;
-  payment_id?: number;
-};
+type Transfer = ApiSchema<"TransferOut">;
 type Plan = {
   payment_plan_id: number;
   name: string;
@@ -222,6 +215,8 @@ export function FinancePage() {
   const access = useAccess();
   const id = studentId ?? user?.student_id;
   if (access.institution && access.can("finance.view") && !id) return <FinanceAccounts />;
+  // A student's own account: the shared, mobile-first view (payments module).
+  if (!studentId && user?.student_id) return <MyAccountPage />;
   if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0)
     return (
       <div className="page">
@@ -315,6 +310,7 @@ function FinanceAccounts() {
           value={String(query.data?.filter(a => a.balance > 0).length || 0)}
         />
       </section>
+      <TransferInbox />
       <section className="panel">
         <div className="finance-filters">
           <label className="form-field">
@@ -1107,6 +1103,12 @@ function StudentFinance({ studentId, canManage }: { studentId: number; canManage
                 <strong>
                   {t.reference} · {money(t.amount)}
                 </strong>
+                {t.batch_id && (
+                  <Badge tone="info">
+                    Pago familiar de {money(t.batch_total ?? 0)} · {t.batch_size} estudiantes · se
+                    revisa completo
+                  </Badge>
+                )}
                 <small>
                   {t.bank} · {dateLabel(t.submitted_at)} · {t.note}
                 </small>

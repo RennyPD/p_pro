@@ -1,0 +1,162 @@
+/* Pagos de estudiantes y familias: mobile first (Fase 2, M7/M8). */
+
+.payments-page {
+  display: grid;
+  gap: 0.9rem;
+  max-width: 920px;
+}
+.payments-header h1 {
+  margin: 0.15rem 0 0;
+  font-size: 1.45rem;
+}
+
+.payments-account {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.payments-lead {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+}
+.payments-lead > div:first-child {
+  display: grid;
+  gap: 0.1rem;
+}
+.payments-lead > div:first-child strong {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+.payments-lead small {
+  color: var(--muted);
+}
+
+.payments-next {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  background: var(--surface-muted);
+}
+.payments-next > svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--blue);
+}
+.payments-next > div {
+  display: grid;
+}
+.payments-next span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.payments-action {
+  justify-self: stretch;
+}
+
+.payments-section {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.9rem 1rem;
+}
+.payments-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 1rem;
+}
+.payments-section h2 svg {
+  width: 18px;
+  height: 18px;
+  color: var(--blue);
+}
+.payments-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.payments-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.payments-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--line);
+}
+.payments-list li:first-child {
+  border-top: 0;
+}
+.payments-list li > div:first-child {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.payments-list small {
+  color: var(--muted);
+}
+.payments-list b {
+  white-space: nowrap;
+}
+
+.payments-figure {
+  display: grid;
+  flex: none;
+  justify-items: end;
+  gap: 0.2rem;
+}
+
+.payments-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.payments-form .payments-wide,
+.payments-shares {
+  grid-column: 1 / -1;
+}
+.payments-shares {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.payments-shares legend {
+  margin-bottom: 0.3rem;
+  font-weight: 700;
+}
+.payments-suggest {
+  align-content: end;
+}
+.payments-suggest small {
+  color: var(--muted);
+}
+
+.is-low {
+  color: var(--danger-strong);
+}
+
+@media (min-width: 720px) {
+  .payments-lead {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+  .payments-action {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}

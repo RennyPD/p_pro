@@ -6,6 +6,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   UserRound,
+  Users,
   Wallet,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -13,11 +14,12 @@ import { EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import type { ApiSchema } from "../../lib/apiTypes";
 import { GuardianAttendance } from "./GuardianAttendance";
-import { GuardianFinance } from "./GuardianFinance";
 import { GuardianGrades } from "./GuardianGrades";
 import { GuardianPerformance } from "./GuardianPerformance";
 import { GuardianSummary } from "./GuardianSummary";
 import { GuardianTasks } from "./GuardianTasks";
+import { AccountView } from "../payments/AccountView";
+import { FamilyPayments } from "../payments/FamilyPayments";
 import "./guardian-portal.css";
 
 export type StudentOverview = ApiSchema<"GuardianStudentOverview">;
@@ -49,6 +51,7 @@ export function GuardianPortalPage() {
   });
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [tab, setTab] = useState<TabKey>("summary");
+  const [familyView, setFamilyView] = useState(false);
   if (query.isLoading)
     return (
       <div className="page">
@@ -78,6 +81,8 @@ export function GuardianPortalPage() {
   const students = query.data;
   const student = students.find(item => item.student_id === selectedId) ?? students[0];
   const tabs = TABS.filter(item => !item.area || student.permissions[item.area]);
+  const payers = students.filter(item => item.permissions.finance);
+  const showFamily = familyView && payers.length > 1;
   const current = tabs.some(item => item.key === tab) ? tab : "summary";
 
   return (
@@ -90,7 +95,7 @@ export function GuardianPortalPage() {
       {students.length > 1 && (
         <div className="guardian-children" role="tablist" aria-label="Estudiantes vinculados">
           {students.map(item => {
-            const active = item.student_id === student.student_id;
+            const active = !showFamily && item.student_id === student.student_id;
             return (
               <button
                 key={item.student_id}
@@ -98,7 +103,10 @@ export function GuardianPortalPage() {
                 role="tab"
                 aria-selected={active}
                 className={active ? "is-active" : undefined}
-                onClick={() => setSelectedId(item.student_id)}
+                onClick={() => {
+                  setSelectedId(item.student_id);
+                  setFamilyView(false);
+                }}
               >
                 <span className="guardian-initials" aria-hidden="true">
                   {initials(item.student_name)}
@@ -107,60 +115,80 @@ export function GuardianPortalPage() {
               </button>
             );
           })}
+          {payers.length > 1 && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={showFamily}
+              className={showFamily ? "is-active" : undefined}
+              onClick={() => setFamilyView(true)}
+            >
+              <span className="guardian-initials" aria-hidden="true">
+                <Users size={16} />
+              </span>
+              <span>Pagos de la familia</span>
+            </button>
+          )}
         </div>
       )}
 
-      <section className="guardian-hero" aria-label="Estudiante seleccionado">
-        <span className="guardian-initials guardian-initials--large" aria-hidden="true">
-          {initials(student.student_name)}
-        </span>
-        <div>
-          <h2>{student.student_name}</h2>
-          <p>
-            {student.enrollment_number} · {student.career_name}
-          </p>
-        </div>
-        <span className={student.active ? "status-active" : "status-inactive"}>
-          {student.active ? "Activo" : "Inactivo"}
-        </span>
-      </section>
+      {showFamily ? (
+        <FamilyPayments />
+      ) : (
+        <>
+          <section className="guardian-hero" aria-label="Estudiante seleccionado">
+            <span className="guardian-initials guardian-initials--large" aria-hidden="true">
+              {initials(student.student_name)}
+            </span>
+            <div>
+              <h2>{student.student_name}</h2>
+              <p>
+                {student.enrollment_number} · {student.career_name}
+              </p>
+            </div>
+            <span className={student.active ? "status-active" : "status-inactive"}>
+              {student.active ? "Activo" : "Inactivo"}
+            </span>
+          </section>
 
-      <nav className="guardian-tabs" role="tablist" aria-label="Información del estudiante">
-        {tabs.map(item => (
-          <button
-            key={item.key}
-            type="button"
-            role="tab"
-            id={`guardian-tab-${item.key}`}
-            aria-selected={current === item.key}
-            aria-controls="guardian-panel"
-            className={current === item.key ? "is-active" : undefined}
-            onClick={() => setTab(item.key)}
+          <nav className="guardian-tabs" role="tablist" aria-label="Información del estudiante">
+            {tabs.map(item => (
+              <button
+                key={item.key}
+                type="button"
+                role="tab"
+                id={`guardian-tab-${item.key}`}
+                aria-selected={current === item.key}
+                aria-controls="guardian-panel"
+                className={current === item.key ? "is-active" : undefined}
+                onClick={() => setTab(item.key)}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div
+            id="guardian-panel"
+            role="tabpanel"
+            aria-labelledby={`guardian-tab-${current}`}
+            className="guardian-panel"
           >
-            {item.icon}
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      <div
-        id="guardian-panel"
-        role="tabpanel"
-        aria-labelledby={`guardian-tab-${current}`}
-        className="guardian-panel"
-      >
-        {current === "summary" && <GuardianSummary student={student} onOpen={setTab} />}
-        {current === "attendance" && <GuardianAttendance studentId={student.student_id} />}
-        {current === "grades" && <GuardianGrades studentId={student.student_id} />}
-        {current === "tasks" && <GuardianTasks studentId={student.student_id} />}
-        {current === "finance" && (
-          <GuardianFinance
-            studentId={student.student_id}
-            enrollmentNumber={student.enrollment_number}
-          />
-        )}
-        {current === "performance" && <GuardianPerformance studentId={student.student_id} />}
-      </div>
+            {current === "summary" && <GuardianSummary student={student} onOpen={setTab} />}
+            {current === "attendance" && <GuardianAttendance studentId={student.student_id} />}
+            {current === "grades" && <GuardianGrades studentId={student.student_id} />}
+            {current === "tasks" && <GuardianTasks studentId={student.student_id} />}
+            {current === "finance" && (
+              <AccountView
+                studentId={student.student_id}
+                statementPath={`/guardian/students/${student.student_id}/statement`}
+              />
+            )}
+            {current === "performance" && <GuardianPerformance studentId={student.student_id} />}
+          </div>
+        </>
+      )}
     </div>
   );
 }

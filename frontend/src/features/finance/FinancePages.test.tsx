@@ -114,19 +114,14 @@ function setup(admin = false, accounts = false) {
   );
   return post;
 }
-it("shows adjustments and hides administrative posting and simulation from students", async () => {
+it("sends students to their own account view without administrative actions", async () => {
   setup();
-  expect(await screen.findByRole("heading", { name: "Daniel Santos" })).toBeInTheDocument();
-  expect(screen.getByText("Balance pendiente")).toBeInTheDocument();
-  expect(screen.getByText("Matrícula")).toBeInTheDocument();
-  expect(screen.getByText("Beca académica")).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Mi cuenta" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Registrar efectivo" })).not.toBeInTheDocument();
   expect(screen.queryByText("Simulador de pagos · sin dinero real")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Transferencias" }));
-  expect(await screen.findByText("BANCO-1 · RD$500.00")).toBeInTheDocument();
-  expect(screen.getByText(/No realices transferencias hasta recibirlas/)).toBeInTheDocument();
-  expect(screen.getByText("Pendiente")).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Revisar ingreso" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Transferencias por revisar" }),
+  ).not.toBeInTheDocument();
 });
 it("filters student accounts and leaves actions directly visible", async () => {
   setup(true, true);
