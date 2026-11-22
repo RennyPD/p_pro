@@ -84,6 +84,7 @@ SCOPE_CHECKED = {
     ("GET", "/scheduling/sections/{section_id}/meetings"): "ensure_section_access",
     ("GET", "/finance/students/{student_id}"): "ensure_student_access (finance scope)",
     ("GET", "/finance/students/{student_id}/payment-plans"): "ensure_student_access",
+    ("GET", "/finance/students/{student_id}/statement"): "own account or finance scope",
     ("POST", "/finance/students/{student_id}/transfers"): "own account or finance scope",
     ("GET", "/finance/students/{student_id}/transfers"): "own account or finance scope",
     ("GET", "/finance/transfers/{identifier}/proof"): "own account or finance scope",
