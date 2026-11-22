@@ -473,6 +473,96 @@
         "title": "AcademicTranscript",
         "type": "object"
       },
+      "AccountStatement": {
+        "properties": {
+          "balance": {
+            "title": "Balance",
+            "type": "number"
+          },
+          "concepts": {
+            "items": {
+              "$ref": "#/components/schemas/StatementConcept"
+            },
+            "title": "Concepts",
+            "type": "array"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "next_due_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due Amount"
+          },
+          "next_due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due Date"
+          },
+          "obligations": {
+            "items": {
+              "$ref": "#/components/schemas/StatementObligation"
+            },
+            "title": "Obligations",
+            "type": "array"
+          },
+          "overdue_balance": {
+            "title": "Overdue Balance",
+            "type": "number"
+          },
+          "payment_plans": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentPlanStatus"
+            },
+            "title": "Payment Plans",
+            "type": "array"
+          },
+          "payments": {
+            "items": {
+              "$ref": "#/components/schemas/StatementPayment"
+            },
+            "title": "Payments",
+            "type": "array"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "student_name",
+          "enrollment_number",
+          "balance",
+          "overdue_balance",
+          "next_due_date",
+          "next_due_amount",
+          "obligations",
+          "concepts",
+          "payments",
+          "payment_plans"
+        ],
+        "title": "AccountStatement",
+        "type": "object"
+      },
       "AccountUpdate": {
         "properties": {
           "cutoff_day": {
@@ -7349,6 +7439,50 @@
         "title": "PaymentPlanCreate",
         "type": "object"
       },
+      "PaymentPlanStatus": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "installments": {
+            "items": {
+              "$ref": "#/components/schemas/PlanInstallment"
+            },
+            "title": "Installments",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "payment_plan_id": {
+            "title": "Payment Plan Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "payment_plan_id",
+          "name",
+          "active",
+          "created_at",
+          "installments"
+        ],
+        "title": "PaymentPlanStatus",
+        "type": "object"
+      },
       "PeriodRecord": {
         "properties": {
           "attempted_credits": {
@@ -7439,6 +7573,45 @@
           "weight"
         ],
         "title": "PlanComponent",
+        "type": "object"
+      },
+      "PlanInstallment": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "due_date": {
+            "format": "date",
+            "title": "Due Date",
+            "type": "string"
+          },
+          "installment_id": {
+            "title": "Installment Id",
+            "type": "integer"
+          },
+          "paid_amount": {
+            "title": "Paid Amount",
+            "type": "number"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "number"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "installment_id",
+          "due_date",
+          "amount",
+          "paid_amount",
+          "remaining",
+          "status"
+        ],
+        "title": "PlanInstallment",
         "type": "object"
       },
       "PlanTemplateCreate": {
@@ -8669,6 +8842,135 @@
           "outcome"
         ],
         "title": "SimulationCreate",
+        "type": "object"
+      },
+      "StatementConcept": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "concept": {
+            "title": "Concept",
+            "type": "string"
+          },
+          "paid_amount": {
+            "title": "Paid Amount",
+            "type": "number"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "number"
+          }
+        },
+        "required": [
+          "concept",
+          "amount",
+          "paid_amount",
+          "remaining"
+        ],
+        "title": "StatementConcept",
+        "type": "object"
+      },
+      "StatementObligation": {
+        "description": "A charge or debit adjustment and how much of it is already covered.",
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "concept": {
+            "title": "Concept",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "due_date": {
+            "format": "date",
+            "title": "Due Date",
+            "type": "string"
+          },
+          "obligation_id": {
+            "title": "Obligation Id",
+            "type": "integer"
+          },
+          "paid_amount": {
+            "title": "Paid Amount",
+            "type": "number"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "number"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "obligation_id",
+          "concept",
+          "description",
+          "due_date",
+          "amount",
+          "paid_amount",
+          "remaining",
+          "status"
+        ],
+        "title": "StatementObligation",
+        "type": "object"
+      },
+      "StatementPayment": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "paid_at": {
+            "format": "date-time",
+            "title": "Paid At",
+            "type": "string"
+          },
+          "payment_id": {
+            "title": "Payment Id",
+            "type": "integer"
+          },
+          "receipt_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Number"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "payment_id",
+          "amount",
+          "reference",
+          "method",
+          "paid_at",
+          "receipt_number"
+        ],
+        "title": "StatementPayment",
         "type": "object"
       },
       "StudentAcademicProfile": {
@@ -18018,6 +18320,54 @@
         ]
       }
     },
+    "/finance/students/{student_id}/statement": {
+      "get": {
+        "description": "Installments with their paid part and status, concepts and receipts.",
+        "operationId": "student_statement_finance_students__student_id__statement_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountStatement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Student Statement",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/finance/students/{student_id}/transactions/{kind}/{identifier}/reverse": {
       "post": {
         "operationId": "reverse_finance_students__student_id__transactions__kind___identifier__reverse_post",
@@ -19618,6 +19968,53 @@
           }
         ],
         "summary": "Performance",
+        "tags": [
+          "guardian portal"
+        ]
+      }
+    },
+    "/guardian/students/{student_id}/statement": {
+      "get": {
+        "operationId": "statement_guardian_students__student_id__statement_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountStatement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Statement",
         "tags": [
           "guardian portal"
         ]

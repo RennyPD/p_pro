@@ -34,6 +34,7 @@ from app.models.finance_model import (
 from app.models.student_model import Student
 from app.models.user_model import User
 from app.schemas.finance_schema import (
+    AccountStatement,
     AccountUpdate,
     AdjustmentCreate,
     BillingConceptCreate,
@@ -56,6 +57,7 @@ from app.schemas.finance_schema import (
     TransferReview,
 )
 from app.services import billing_plans
+from app.services.account_statement import account_statement
 from app.services.business_time import INSTITUTION_TIME_ZONE, business_day_utc_range
 from app.services.finance_workflow import (
     CREDIT_KINDS,
@@ -360,6 +362,15 @@ def create_payment_plan(
     )
     db.commit()
     return {"payment_plan_id": plan.payment_plan_id, "installments": data.installments}
+
+
+@router.get("/students/{student_id}/statement", response_model=AccountStatement)
+def student_statement(
+    student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    """Installments with their paid part and status, concepts and receipts."""
+    accessible(db, user, student_id)
+    return account_statement(db, get_account(db, student_id))
 
 
 @router.get("/students/{student_id}/payment-plans")

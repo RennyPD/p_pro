@@ -1794,6 +1794,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/finance/students/{student_id}/statement": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Student Statement
+     * @description Installments with their paid part and status, concepts and receipts.
+     */
+    get: operations["student_statement_finance_students__student_id__statement_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/finance/students/{student_id}/transactions/{kind}/{identifier}/reverse": {
     parameters: {
       query?: never;
@@ -2188,6 +2208,23 @@ export interface paths {
      * @description Averages per period (oldest first) and open follow-up alerts.
      */
     get: operations["performance_guardian_students__student_id__performance_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/guardian/students/{student_id}/statement": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Statement */
+    get: operations["statement_guardian_students__student_id__statement_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -3606,6 +3643,31 @@ export interface components {
        * @default 0
        */
       unverified_credit_courses: number;
+    };
+    /** AccountStatement */
+    AccountStatement: {
+      /** Balance */
+      balance: number;
+      /** Concepts */
+      concepts: components["schemas"]["StatementConcept"][];
+      /** Enrollment Number */
+      enrollment_number: string;
+      /** Next Due Amount */
+      next_due_amount: number | null;
+      /** Next Due Date */
+      next_due_date: string | null;
+      /** Obligations */
+      obligations: components["schemas"]["StatementObligation"][];
+      /** Overdue Balance */
+      overdue_balance: number;
+      /** Payment Plans */
+      payment_plans: components["schemas"]["PaymentPlanStatus"][];
+      /** Payments */
+      payments: components["schemas"]["StatementPayment"][];
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
     };
     /** AccountUpdate */
     AccountUpdate: {
@@ -6142,6 +6204,19 @@ export interface components {
       /** Name */
       name: string;
     };
+    /** PaymentPlanStatus */
+    PaymentPlanStatus: {
+      /** Active */
+      active: boolean;
+      /** Created At */
+      created_at: string | null;
+      /** Installments */
+      installments: components["schemas"]["PlanInstallment"][];
+      /** Name */
+      name: string;
+      /** Payment Plan Id */
+      payment_plan_id: number;
+    };
     /** PeriodRecord */
     PeriodRecord: {
       /** Attempted Credits */
@@ -6170,6 +6245,24 @@ export interface components {
       name: string;
       /** Weight */
       weight: number;
+    };
+    /** PlanInstallment */
+    PlanInstallment: {
+      /** Amount */
+      amount: number;
+      /**
+       * Due Date
+       * Format: date
+       */
+      due_date: string;
+      /** Installment Id */
+      installment_id: number;
+      /** Paid Amount */
+      paid_amount: number;
+      /** Remaining */
+      remaining: number;
+      /** Status */
+      status: string;
     };
     /** PlanTemplateCreate */
     PlanTemplateCreate: {
@@ -6706,6 +6799,62 @@ export interface components {
       amount: number | string;
       /** Outcome */
       outcome: string;
+    };
+    /** StatementConcept */
+    StatementConcept: {
+      /** Amount */
+      amount: number;
+      /** Concept */
+      concept: string;
+      /** Paid Amount */
+      paid_amount: number;
+      /** Remaining */
+      remaining: number;
+    };
+    /**
+     * StatementObligation
+     * @description A charge or debit adjustment and how much of it is already covered.
+     */
+    StatementObligation: {
+      /** Amount */
+      amount: number;
+      /** Concept */
+      concept: string;
+      /** Description */
+      description: string;
+      /**
+       * Due Date
+       * Format: date
+       */
+      due_date: string;
+      /** Obligation Id */
+      obligation_id: number;
+      /** Paid Amount */
+      paid_amount: number;
+      /** Remaining */
+      remaining: number;
+      /** Status */
+      status: string;
+      /** Type */
+      type: string;
+    };
+    /** StatementPayment */
+    StatementPayment: {
+      /** Amount */
+      amount: number;
+      /** Method */
+      method: string;
+      /**
+       * Paid At
+       * Format: date-time
+       */
+      paid_at: string;
+      /** Payment Id */
+      payment_id: number;
+      /** Receipt Number */
+      receipt_number: string | null;
+      /** Reference */
+      reference: string;
     };
     /** StudentAcademicProfile */
     StudentAcademicProfile: {
@@ -11537,6 +11686,37 @@ export interface operations {
       };
     };
   };
+  student_statement_finance_students__student_id__statement_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccountStatement"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   reverse_finance_students__student_id__transactions__kind___identifier__reverse_post: {
     parameters: {
       query?: never;
@@ -12448,6 +12628,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["GuardianPerformance"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  statement_guardian_students__student_id__statement_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AccountStatement"];
         };
       };
       /** @description Validation Error */

@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, Field, StringConstraints
+from pydantic import AfterValidator, BaseModel, Field, PlainSerializer, StringConstraints
 
 
 def validate_money(value: Decimal) -> Decimal:
@@ -14,6 +14,8 @@ def validate_money(value: Decimal) -> Decimal:
 
 
 Money = Annotated[Decimal, AfterValidator(validate_money)]
+# Output amounts: exact Decimal in Python, a JSON number for the interface.
+Amount = Annotated[Decimal, PlainSerializer(float, return_type=float, when_used="json")]
 Reason = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=250)]
 Reference = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=100)]
 
@@ -213,3 +215,64 @@ class BillingRunOut(BaseModel):
     reason: str
     created_by: int
     created_at: datetime
+
+
+class StatementObligation(BaseModel):
+    """A charge or debit adjustment and how much of it is already covered."""
+
+    type: str  # charge | adjustment
+    obligation_id: int
+    concept: str
+    description: str
+    due_date: date
+    amount: Amount
+    paid_amount: Amount
+    remaining: Amount
+    status: str  # paid | partial | pending | overdue
+
+
+class StatementConcept(BaseModel):
+    concept: str
+    amount: Amount
+    paid_amount: Amount
+    remaining: Amount
+
+
+class StatementPayment(BaseModel):
+    payment_id: int
+    amount: Amount
+    reference: str
+    method: str
+    paid_at: datetime
+    receipt_number: str | None
+
+
+class PlanInstallment(BaseModel):
+    installment_id: int
+    due_date: date
+    amount: Amount
+    paid_amount: Amount
+    remaining: Amount
+    status: str
+
+
+class PaymentPlanStatus(BaseModel):
+    payment_plan_id: int
+    name: str
+    active: bool
+    created_at: datetime | None
+    installments: list[PlanInstallment]
+
+
+class AccountStatement(BaseModel):
+    student_id: int
+    student_name: str
+    enrollment_number: str
+    balance: Amount
+    overdue_balance: Amount
+    next_due_date: date | None
+    next_due_amount: Amount | None
+    obligations: list[StatementObligation]
+    concepts: list[StatementConcept]
+    payments: list[StatementPayment]
+    payment_plans: list[PaymentPlanStatus]

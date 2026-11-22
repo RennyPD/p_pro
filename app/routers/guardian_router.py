@@ -22,6 +22,7 @@ from app.models.subject_model import Subject
 from app.models.user_model import User
 from app.pagination import page_query
 from app.schemas.academic_schema import AttendanceCourseSummary, RosterAttendanceItem
+from app.schemas.finance_schema import AccountStatement
 from app.schemas.guardian_schema import (
     GuardianAlert,
     GuardianAssessment,
@@ -35,6 +36,7 @@ from app.schemas.guardian_schema import (
 )
 from app.services.academic_grading import academic_result
 from app.services.academic_metrics import summarize_results
+from app.services.account_statement import account_statement
 from app.services.finance_workflow import get_account, summary, upcoming_due
 
 router = APIRouter(prefix="/guardian", tags=["guardian portal"])
@@ -273,6 +275,12 @@ def finance(student_id: int, db: Session = Depends(get_db), user: User = Depends
         next_due_amount=float(amount) if amount is not None else None,
         financial_responsible=link.financial_responsible,
     )
+
+
+@router.get("/students/{student_id}/statement", response_model=AccountStatement)
+def statement(student_id: int, db: Session = Depends(get_db), user: User = Depends(guardian)):
+    ensure_guardian_view(db, user, student_id, "finance")
+    return account_statement(db, get_account(db, student_id))
 
 
 @router.get("/students/{student_id}/performance", response_model=GuardianPerformance)
