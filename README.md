@@ -278,6 +278,37 @@ restauración mensual en una base temporal. CI ejecuta la prueba de copia y
 restauración contra PostgreSQL 16 en cada cambio
 (`tests/test_backup_database.py`).
 
+## Correo electrónico
+
+Nexo envía cinco tipos de correo: recuperación de contraseña, invitación a una
+cuenta nueva, comunicados, notas publicadas y recordatorios de vencimiento. Los
+dos primeros son de seguridad y siempre se envían. Los avisos se pueden
+desactivar en «Mi seguridad» > «Avisos por correo».
+
+Cada correo se guarda en la tabla `email_outbox` dentro de la misma transacción
+que lo origina y se envía justo después de responder. Programa dos tareas en el
+servidor (cron o el programador de tareas):
+
+```bash
+# Cada 5 minutos: reintenta los envíos fallidos (máximo 5 intentos con espera creciente).
+*/5 * * * * cd /srv/nexo && python -m scripts.send_emails
+# Cada día a las 7:00 (America/Santo_Domingo): recordatorios 3 días antes y 1 día después del vencimiento.
+0 7 * * * cd /srv/nexo && python -m scripts.send_due_reminders
+```
+
+Ningún recordatorio se repite aunque la tarea corra dos veces o se salte un día.
+
+**En desarrollo** deja `EMAIL_BACKEND=console`: no sale ningún correo y el log
+muestra destinatario y asunto. Para ver el contenido, consulta `email_outbox`
+(`body_text` incluye el enlace de recuperación). Para probar un SMTP real sin
+enviar a nadie, usa un buzón de pruebas como Mailpit (`SMTP_HOST=localhost`,
+`SMTP_PORT=1025`, `SMTP_SECURITY=none`).
+
+**Proveedor:** cualquiera con SMTP. Para República Dominicana, Amazon SES es el
+más económico con mucho volumen; Brevo es más sencillo y tiene 300 correos
+diarios gratis. Verifica el dominio del remitente (SPF y DKIM) antes de enviar
+a familias.
+
 ## Migraciones
 
 Alembic está configurado para leer la misma `DATABASE_URL` de la aplicación.
@@ -319,6 +350,11 @@ Otras variables de producción:
 | `BOOTSTRAP_TOKEN` | Obligatoria para crear el primer administrador con `POST /auth/bootstrap` en producción; se envía en la cabecera `X-Bootstrap-Token`. Sin ella, la ruta está deshabilitada en producción. |
 | `FORWARDED_ALLOW_IPS` | IP del proxy inverso de confianza. uvicorn corre con `--proxy-headers`, así el límite de intentos de login usa la IP real del cliente. |
 | `LOG_LEVEL` | Nivel de los logs JSON en stdout (`INFO` por defecto). Cada respuesta lleva `X-Request-ID`. |
+| `APP_URL` | Dirección pública del frontend (HTTPS en producción). Hace falta para los enlaces de recuperación de contraseña e invitación; sin ella esos correos se rechazan en lugar de salir con enlaces rotos. Los avisos salen sin botón. |
+| `EMAIL_BACKEND` | `console` (por defecto: solo escribe destinatario y asunto en el log) o `smtp`. |
+| `EMAIL_FROM` | Remitente, por ejemplo `Instituto Horizonte <no-reply@horizonte.edu.do>`. El dominio debe estar verificado en el proveedor (SPF y DKIM). |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` | Servidor SMTP del proveedor (Amazon SES, Brevo, Google Workspace, Resend…). La contraseña va en el gestor de secretos, nunca en el repositorio. |
+| `SMTP_SECURITY` | `starttls` (puerto 587, por defecto), `ssl` (puerto 465) o `none` (solo pruebas locales). |
 
 La cadena completa de migraciones requiere una conexión a la base. Las revisiones
 históricas inspeccionan el esquema y los datos durante el upgrade, por lo que

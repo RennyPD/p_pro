@@ -35,7 +35,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 | M3 | ✅ Cerrado (21/11): los listados filtran y paginan en SQL (`search`, `page_query`) | — |
 | M4 | Archivos dentro de la base (5 columnas binarias) | 4 |
 | M5 | ✅ Cerrado (21/11): copia y restauración de PostgreSQL verificadas en CI | — |
-| M6 | Sin correo: recuperación de contraseña, invitaciones, avisos | 2 |
+| M6 | ✅ Cerrado (22/11): recuperación de contraseña, invitaciones y avisos por correo con bandeja de salida y SMTP configurable | — |
 | M7 | Vista y pagos ✅ (22/11): estado de cuenta por cuotas, pagos familiares. Pendiente: facturación escolar, mora automática, cajero y supervisor separados | 3 |
 | M8 | ✅ Cerrado (22/11): portal del tutor por hijo y por área, y «Mi cuenta» del estudiante rehecha, móvil primero | — |
 | M9 | Pruebas del frontend escasas; componentes de más de 1.000 líneas | continuo |
@@ -66,7 +66,7 @@ Lo que se ve y lo que piden las familias. Funciona con los datos actuales.
 2. ✅ **Vínculo tutor–estudiante con permisos (A1), 21/11/2026:** migración `20261121_0049`. Por defecto el tutor ve todo de sus estudiantes vinculados (asistencia, notas, balance, tareas y desempeño); administración restringe áreas de un vínculo concreto y marca al responsable de pago desde la ficha del estudiante. `PATCH`/`DELETE /community/guardian-links/{id}` con bloqueo y auditoría; `ensure_guardian_view` aplica las áreas en el resumen, el detalle, los documentos, las tareas y las alertas.
 3. ✅ **Portal del tutor detallado (M8), 21/11/2026:** endpoints `/guardian/students/{id}/attendance|grades|tasks|finance|performance` y portal con pestañas por hijo y por área (Resumen, Asistencia, Notas, Tareas, Pagos, Desempeño). Capturas antes y después en `docs/capturas/portal-tutor/`. Pendiente: comunicados dentro del portal.
 4. ✅ **Módulo de pagos para estudiante y tutor (M7, M8), 22/11/2026:** `account_statement` reparte los pagos entre las cuotas, de la más antigua a la más reciente, con la misma regla del saldo vencido; el tutor con acceso a finanzas reporta transferencias y descarga recibos (cualquier tutor con ese acceso, decisión del 22/11); «Pagos de la familia» con total, desglose por hijo y por concepto, y una transferencia repartida entre varios hijos (migración `20261122_0051`, reparto sugerido pagando primero lo que vence antes, ajustable; caja revisa el lote completo). Componente `AccountView` compartido; bandeja de caja con los lotes agrupados. Capturas en `docs/capturas/pagos/`. Alcance original: balance, próximo vencimiento, cuotas, movimientos, recibos y reporte de transferencia; total familiar con desglose por hijo y concepto, y una transferencia para varios hijos. Si el estudiante ve sus finanzas lo decide cada institución: ajuste `students_view_finance` en Configuración (migración `20261121_0050`), activo por defecto hasta que exista el tipo de institución (Fase 3), que lo apagará por defecto en escuelas.
-5. **Correo electrónico (M6):** recuperación de contraseña, invitaciones y avisos (comunicados, vencimientos, notas publicadas) con un proveedor configurable.
+5. ✅ **Correo electrónico (M6), 22/11/2026:** bandeja `email_outbox` en la misma transacción y envío después del commit; `EMAIL_BACKEND` `console` o `smtp` (cualquier proveedor); recuperación de contraseña (30 min) e invitaciones (72 h) con enlaces de un solo uso guardados con hash; avisos de comunicados, notas publicadas (uno por publicación y estudiante) y vencimientos (3 días antes y 1 después, comando diario) que respetan los accesos del vínculo y las preferencias de cada cuenta. Migraciones `20261122_0052` y `0053`. Operación en el README.
 6. **Rediseño de pantallas clave** con el sistema visual: panel principal, «Mi cuenta», finanzas de administración; dividir los componentes de más de 1.000 líneas (M9) y migrar sus tipos a `ApiSchema` (B1).
 
 ### Fase 3: modelo escolar (L)
@@ -91,4 +91,4 @@ Landing page, demo pública, términos de uso, política de privacidad conforme 
 ### Decisiones del dueño del producto
 1. ✅ (21/11/2026) El tutor ve por defecto el detalle de asistencia, notas, balance, tareas y desempeño de sus estudiantes vinculados: un monitoreo directo. La institución puede restringir un vínculo concreto.
 2. ✅ (21/11/2026) Si el estudiante ve sus finanzas lo decide cada institución (no en escuelas, sí en universidades).
-3. Pendiente: proveedor de correo y de comprobantes fiscales.
+3. Correo: el código funciona con cualquier proveedor SMTP; se elige al desplegar (recomendación: Amazon SES o Brevo). Pendiente: proveedor de comprobantes fiscales.
