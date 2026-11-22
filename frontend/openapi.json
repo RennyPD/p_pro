@@ -7693,6 +7693,42 @@
         "title": "OperationReason",
         "type": "object"
       },
+      "PasswordResetConfirm": {
+        "properties": {
+          "new_password": {
+            "minLength": 10,
+            "title": "New Password",
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "new_password"
+        ],
+        "title": "PasswordResetConfirm",
+        "type": "object"
+      },
+      "PasswordResetRequest": {
+        "properties": {
+          "identifier": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier"
+        ],
+        "title": "PasswordResetRequest",
+        "type": "object"
+      },
       "PaymentCreate": {
         "properties": {
           "amount": {
@@ -12150,10 +12186,22 @@
             ],
             "title": "Guardian Id"
           },
+          "invite": {
+            "default": false,
+            "title": "Invite",
+            "type": "boolean"
+          },
           "password": {
-            "minLength": 8,
-            "title": "Password",
-            "type": "string"
+            "anyOf": [
+              {
+                "minLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
           },
           "role_id": {
             "title": "Role Id",
@@ -12191,7 +12239,6 @@
         "required": [
           "username",
           "email",
-          "password",
           "role_id"
         ],
         "title": "UserCreate",
@@ -15429,6 +15476,81 @@
           }
         ],
         "summary": "Setup Mfa",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/auth/password-reset/confirm": {
+      "post": {
+        "description": "Set a new password from a reset or invitation link; every session is closed.",
+        "operationId": "confirm_password_reset_auth_password_reset_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirm Password Reset",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/auth/password-reset/request": {
+      "post": {
+        "description": "Email a reset link. The answer is the same whether or not the account exists.",
+        "operationId": "request_password_reset_auth_password_reset_request_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Password Reset",
         "tags": [
           "authentication"
         ]
@@ -26079,6 +26201,52 @@
           }
         ],
         "summary": "Deactivate User",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/users/{user_id}/invitation": {
+      "post": {
+        "description": "Send a new activation link; earlier links stop working.",
+        "operationId": "resend_invitation_users__user_id__invitation_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Resend Invitation",
         "tags": [
           "users"
         ]

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
@@ -16,11 +16,13 @@ from app.models.user_model import User
 from app.pagination import page_query
 from app.schemas.user_schema import UserCreate, UserOut, UserPasswordReset, UserUpdate
 from app.services.account_sessions import lock_account, revoke_account_sessions
+from app.services.email_service import deliver_after_commit
 from app.services.governance_workflow import record
 from app.services.user_services import (
     create_user_service,
     delete_user_service,
     get_user_by_id_service,
+    send_invitation,
     update_user_service,
 )
 from app.services.write_locks import lock_access
@@ -31,11 +33,33 @@ access_manager = require_permissions("users.manage")
 
 @router.post("/", response_model=UserOut)
 def create_user(
-    user_data: UserCreate, db: Session = Depends(get_db), actor: User = Depends(access_manager)
+    user_data: UserCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    actor: User = Depends(access_manager),
 ):
     lock_access(db)
     ensure_role_within_actor(db, actor, user_data.role_id)
-    return create_user_service(db, user_data, actor)
+    user = create_user_service(db, user_data, actor)
+    deliver_after_commit(background_tasks, db)
+    return user
+
+
+@router.post("/{user_id}/invitation", status_code=202)
+def resend_invitation(
+    user_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    actor: User = Depends(access_manager),
+):
+    """Send a new activation link; earlier links stop working."""
+    lock_access(db)
+    target = managed_target(db, actor, user_id)
+    send_invitation(db, target)
+    record(db, actor, "user.invitation.sent", f"user:{user_id}", target.email)
+    db.commit()
+    deliver_after_commit(background_tasks, db)
+    return {"message": f"Invitación enviada a {target.email}"}
 
 
 @router.get("/", response_model=list[UserOut], dependencies=[Depends(access_manager)])

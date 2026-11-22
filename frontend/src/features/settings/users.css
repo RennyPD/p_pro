@@ -1,0 +1,16 @@
+.users-invite {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.users-invite input {
+  margin-top: 0.2rem;
+}
+.users-invite span {
+  display: grid;
+  gap: 0.15rem;
+}
+.users-invite small {
+  color: var(--muted);
+}

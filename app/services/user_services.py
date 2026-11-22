@@ -14,6 +14,9 @@ from app.repositories.user_repository import (
 )
 from app.schemas.user_schema import UserCreate, UserUpdate
 from app.services.audit_log import record
+from app.services.email_service import queue_email
+from app.services.email_templates import invitation
+from app.services.one_time_tokens import issue_token
 
 
 def validate_profile(db: Session, state: dict):
@@ -60,11 +63,33 @@ def create_user_service(db: Session, user_data: UserCreate, actor):
         actor,
         "user.created",
         f"user:{user.user_id}",
-        f"{user.username}; rol {user.role_id}",
+        f"{user.username}; rol {user.role_id}"
+        + ("; invitación enviada" if user_data.invite else ""),
     )
+    if user_data.invite:
+        send_invitation(db, user)
     db.commit()
     db.refresh(user)
     return user
+
+
+def send_invitation(db: Session, user) -> None:
+    """Queue the «Activa tu cuenta» email with a 72-hour single-use link."""
+    from app.routers.dashboard_router import display_name
+
+    if not user.email:
+        raise HTTPException(422, "La cuenta necesita un correo para recibir la invitación")
+    token = issue_token(db, user.user_id, "invite")
+    message = invitation(db, display_name(db, user), user.username, token)
+    queue_email(
+        db,
+        user.email,
+        message.subject,
+        message.text,
+        message.html,
+        category="security",
+        user_id=user.user_id,
+    )
 
 
 def get_users_service(db: Session):

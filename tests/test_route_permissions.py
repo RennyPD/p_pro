@@ -20,6 +20,8 @@ SCOPE_CHECKED = {
     ("POST", "/auth/login"): "sign-in",
     ("POST", "/auth/refresh"): "session renewal",
     ("POST", "/auth/logout"): "sign-out",
+    ("POST", "/auth/password-reset/request"): "public, same answer for every account",
+    ("POST", "/auth/password-reset/confirm"): "public, authorized by the emailed link",
     ("GET", "/auth/sessions"): "own sessions",
     ("POST", "/auth/sessions/revoke-all"): "own sessions",
     ("POST", "/auth/change-password"): "own password",

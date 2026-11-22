@@ -37,3 +37,12 @@ class MfaEnableRequest(MfaCodeRequest):
 
 class MfaDisableRequest(MfaCodeRequest):
     current_password: str = Field(min_length=8)
+
+
+class PasswordResetRequest(BaseModel):
+    identifier: str = Field(min_length=1, max_length=255)
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+    new_password: str = Field(min_length=10)

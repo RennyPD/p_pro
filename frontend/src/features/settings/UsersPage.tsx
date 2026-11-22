@@ -1,4 +1,4 @@
-import { KeyRound, UserCheck, UserX } from "lucide-react";
+import { KeyRound, Mail, UserCheck, UserX } from "lucide-react";
 import { confirmAction } from "../../lib/confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
@@ -10,6 +10,7 @@ import { api, apiMessage } from "../../lib/api";
 import { useDraftGuard } from "../../lib/useDraftGuard";
 import type { EntityRecord, LookupConfig, ResourceConfig } from "../../types";
 import { ResourcePage } from "../resources/ResourcePage";
+import "./users.css";
 
 const roleNames: Record<string, string> = {
   admin: "Administración",
@@ -88,12 +89,44 @@ export function UsersPage() {
             >
               <KeyRound />
             </button>
+            <InvitationButton account={row} />
             <AccountStatusButton account={row} />
           </>
         )}
       />
       {reset && <UserEditor record={reset} passwordReset onClose={() => setReset(null)} />}
     </>
+  );
+}
+
+function InvitationButton({ account }: { account: EntityRecord }) {
+  const [busy, setBusy] = useState(false);
+  const username = String(account.username);
+
+  async function resend() {
+    const question = `¿Enviar a ${username} un nuevo enlace para elegir su contraseña? Los enlaces anteriores dejarán de funcionar.`;
+    if (busy || !(await confirmAction(question))) return;
+    setBusy(true);
+    try {
+      const response = await api.post<{ message: string }>(`/users/${account.user_id}/invitation`);
+      toast.success(response.data.message);
+    } catch (error) {
+      toast.error(apiMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={() => void resend()}
+      aria-label={`Reenviar invitación a ${username}`}
+      title="Reenviar invitación"
+    >
+      <Mail />
+    </button>
   );
 }
 
@@ -149,6 +182,8 @@ function UserEditor({
   const [username, setUsername] = useState(String(record?.username ?? ""));
   const [email, setEmail] = useState(String(record?.email ?? ""));
   const [password, setPassword] = useState("");
+  // New accounts: send an activation link by default instead of typing a password.
+  const [invite, setInvite] = useState(!record && !passwordReset);
   const [role, setRole] = useState(Number(record?.role_id ?? 0));
   const [person, setPerson] = useState(
     Number(record?.student_id ?? record?.teacher_id ?? record?.guardian_id ?? 0),
@@ -163,7 +198,7 @@ function UserEditor({
   });
   const roleCode = selectedRole.data?.name?.toLowerCase() ?? "";
   const profile = profiles[roleCode as keyof typeof profiles];
-  const takesPassword = passwordReset || !record;
+  const takesPassword = passwordReset || (!record && !invite);
   useDraftGuard(touched, busy);
 
   async function close() {
@@ -191,11 +226,19 @@ function UserEditor({
         };
         const payload = { username: username.trim(), email: email.trim(), role_id: role, ...links };
         if (record) await api.patch(`/users/${record.user_id}`, payload);
-        else await api.post("/users/", { ...payload, password });
+        else
+          await api.post(
+            "/users/",
+            invite ? { ...payload, invite: true } : { ...payload, password },
+          );
       }
       await client.invalidateQueries({ queryKey: ["users"] });
       toast.success(
-        passwordReset ? "Contraseña restablecida y sesiones revocadas" : "Cuenta guardada",
+        passwordReset
+          ? "Contraseña restablecida y sesiones revocadas"
+          : !record && invite
+            ? `Cuenta creada. Enviamos la invitación a ${email.trim()}`
+            : "Cuenta guardada",
       );
       onClose();
     } catch (failure) {
@@ -274,6 +317,19 @@ function UserEditor({
               </div>
             )}
           </>
+        )}
+        {!record && !passwordReset && (
+          <label className="form-field users-invite">
+            <input
+              type="checkbox"
+              checked={invite}
+              onChange={event => setInvite(event.target.checked)}
+            />
+            <span>
+              <b>Enviar invitación por correo</b>
+              <small>La persona recibe un enlace y elige su contraseña (vence en 72 horas)</small>
+            </span>
+          </label>
         )}
         {takesPassword && (
           <label className="form-field">

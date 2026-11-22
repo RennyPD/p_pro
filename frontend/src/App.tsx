@@ -25,6 +25,7 @@ import {
   SectionResultsPage,
 } from "./features/academic/SectionResultsPages";
 import { LoginPage } from "./features/auth/LoginPage";
+import { ChoosePasswordPage, ForgotPasswordPage } from "./features/auth/PasswordPages";
 import { CommunityPage } from "./features/community/CommunityPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { ApprovalsPage } from "./features/operations/ApprovalsPage";
@@ -152,6 +153,9 @@ export default function App() {
       <Routes>
         <Route element={<SessionGate />}>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/recuperar" element={<ForgotPasswordPage />} />
+          <Route path="/restablecer" element={<ChoosePasswordPage mode="reset" />} />
+          <Route path="/activar" element={<ChoosePasswordPage mode="activate" />} />
           <Route element={<Protected />}>
             <Route index element={<Home />} />
             <Route path="modules/:module" element={<CustomModuleRoute />} />

@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, GraduationCap, ShieldCheck, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
@@ -123,7 +123,7 @@ export function LoginPage() {
             {isSubmitting ? "Verificando…" : "Entrar a Nexo"}
           </Button>
           <p className="auth-help">
-            ¿No puedes ingresar? Contacta al administrador de tu institución.
+            <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>
           </p>
         </form>
       </section>

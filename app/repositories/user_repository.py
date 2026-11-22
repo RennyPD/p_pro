@@ -1,3 +1,5 @@
+import secrets
+
 from sqlalchemy.orm import Session
 
 from app.models.security_model import AuditLog, RefreshToken
@@ -9,8 +11,9 @@ from app.services.account_sessions import lock_account, revoke_account_sessions
 
 def create_user(db: Session, user_data: UserCreate) -> User:
 
-    data = user_data.model_dump()
-    data["password"] = hash_password(data["password"])
+    data = user_data.model_dump(exclude={"invite"})
+    # An invited account has no usable password until the person activates it.
+    data["password"] = hash_password(data["password"] or secrets.token_urlsafe(32))
     new_user = User(**data)
 
     db.add(new_user)

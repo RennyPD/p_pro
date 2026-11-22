@@ -818,6 +818,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/auth/password-reset/confirm": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm Password Reset
+     * @description Set a new password from a reset or invitation link; every session is closed.
+     */
+    post: operations["confirm_password_reset_auth_password_reset_confirm_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/auth/password-reset/request": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Request Password Reset
+     * @description Email a reset link. The answer is the same whether or not the account exists.
+     */
+    post: operations["request_password_reset_auth_password_reset_request_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/auth/refresh": {
     parameters: {
       query?: never;
@@ -3521,6 +3561,26 @@ export interface paths {
     put?: never;
     /** Deactivate User */
     post: operations["deactivate_user_users__user_id__deactivate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/users/{user_id}/invitation": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Resend Invitation
+     * @description Send a new activation link; earlier links stop working.
+     */
+    post: operations["resend_invitation_users__user_id__invitation_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -6367,6 +6427,18 @@ export interface components {
       /** Reason */
       reason: string;
     };
+    /** PasswordResetConfirm */
+    PasswordResetConfirm: {
+      /** New Password */
+      new_password: string;
+      /** Token */
+      token: string;
+    };
+    /** PasswordResetRequest */
+    PasswordResetRequest: {
+      /** Identifier */
+      identifier: string;
+    };
     /** PaymentCreate */
     PaymentCreate: {
       /** Amount */
@@ -7924,8 +7996,13 @@ export interface components {
       email: string;
       /** Guardian Id */
       guardian_id?: number | null;
+      /**
+       * Invite
+       * @default false
+       */
+      invite: boolean;
       /** Password */
-      password: string;
+      password?: string | null;
       /** Role Id */
       role_id: number;
       /** Student Id */
@@ -9732,6 +9809,70 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  confirm_password_reset_auth_password_reset_confirm_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordResetConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  request_password_reset_auth_password_reset_request_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordResetRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };
@@ -16188,6 +16329,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["UserOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  resend_invitation_users__user_id__invitation_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        user_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

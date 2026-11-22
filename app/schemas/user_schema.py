@@ -14,11 +14,17 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
+    # With an invitation the person chooses the password from the emailed link.
+    password: Optional[str] = Field(default=None, min_length=8)
+    invite: bool = False
+
     @model_validator(mode="after")
     def validate_profile_link(self):
         links = [self.student_id, self.teacher_id, self.guardian_id]
         if sum(item is not None for item in links) > 1:
             raise ValueError("Una cuenta solo puede vincularse a una persona")
+        if not self.invite and not self.password:
+            raise ValueError("Escribe una contraseña o envía una invitación por correo")
         return self
 
 

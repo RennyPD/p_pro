@@ -3,8 +3,18 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
-from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response, status
-from sqlalchemy import or_, text
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Cookie,
+    Depends,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
 from app.auth import account_is_active, ensure_account_active, get_current_user
@@ -14,12 +24,15 @@ from app.models.role_model import Role
 from app.models.security_model import RefreshToken
 from app.models.user_model import User
 from app.repositories.user_repository import create_user
+from app.routers.dashboard_router import display_name
 from app.schemas.auth_schema import (
     BootstrapRequest,
     ChangePasswordRequest,
     LoginRequest,
     MfaDisableRequest,
     MfaEnableRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
     TokenOut,
 )
 from app.schemas.user_schema import UserCreate, UserOut
@@ -34,7 +47,10 @@ from app.security import (
 )
 from app.services.account_sessions import lock_account, revoke_account_sessions
 from app.services.audit_log import audit_event
+from app.services.email_service import deliver_after_commit, queue_email
+from app.services.email_templates import app_link, password_reset
 from app.services.login_throttle import ensure_not_blocked, record_failure, record_success
+from app.services.one_time_tokens import INVALID_LINK, consume_token, issue_token
 from app.services.permission_catalog import grant_system_defaults
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -373,4 +389,70 @@ def disable_mfa(
     current_user.mfa_secret = None
     revoke_account_sessions(db, current_user)
     audit(db, "mfa.disabled", "authentication", current_user.user_id)
+    db.commit()
+
+
+RESET_ACCEPTED = (
+    "Si la cuenta existe y tiene correo, enviamos un enlace para restablecer la contraseña"
+)
+
+
+@router.post("/password-reset/request", status_code=202)
+def request_password_reset(
+    data: PasswordResetRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Email a reset link. The answer is the same whether or not the account exists."""
+    app_link("/")  # Same answer for every account when links cannot be built.
+    ip, identifier = client_ip(request), data.identifier.strip()
+    # Separate counter from sign-in: "reset:" keeps login attempts independent.
+    ensure_not_blocked(db, ip, f"reset:{identifier}")
+    record_failure(db, ip, f"reset:{identifier}")
+    user = (
+        db.query(User)
+        .filter(
+            or_(
+                func.lower(User.username) == identifier.casefold(),
+                func.lower(User.email) == identifier.casefold(),
+            )
+        )
+        .first()
+    )
+    if user is not None and user.email and account_is_active(user):
+        user = lock_account(db, user)
+        token = issue_token(db, user.user_id, "reset")
+        message = password_reset(db, display_name(db, user), token)
+        queue_email(
+            db,
+            user.email,
+            message.subject,
+            message.text,
+            message.html,
+            category="security",
+            user_id=user.user_id,
+        )
+        audit(db, "password.reset.requested", "user", user.user_id)
+    db.commit()
+    deliver_after_commit(background_tasks, db)
+    return {"message": RESET_ACCEPTED}
+
+
+@router.post("/password-reset/confirm", status_code=204)
+def confirm_password_reset(data: PasswordResetConfirm, db: Session = Depends(get_db)):
+    """Set a new password from a reset or invitation link; every session is closed."""
+    token = consume_token(db, data.token, ("reset", "invite"))
+    user = db.get(User, token.user_id)
+    if user is None or not account_is_active(user):
+        raise HTTPException(400, INVALID_LINK)
+    user = lock_account(db, user)
+    user.password = hash_password(data.new_password)
+    revoke_account_sessions(db, user)
+    audit(
+        db,
+        "account.activated" if token.purpose == "invite" else "password.reset.completed",
+        "user",
+        user.user_id,
+    )
     db.commit()
