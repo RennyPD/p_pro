@@ -19,6 +19,17 @@ class Settings(BaseSettings):
     finance_simulator_enabled: bool = True
     # Required in production to create the first administrator via /auth/bootstrap.
     bootstrap_token: str | None = None
+    # Email (audit M6). "console" only logs (development and tests); "smtp" sends
+    # through any provider (Amazon SES, Brevo, Google Workspace, Resend...).
+    email_backend: Literal["console", "smtp"] = "console"
+    email_from: str = "Nexo <no-reply@localhost>"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_security: Literal["starttls", "ssl", "none"] = "starttls"
+    # Public address of the interface, used to build links in emails.
+    app_url: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
 
@@ -46,6 +57,10 @@ class Settings(BaseSettings):
                 raise ValueError("CORS_ORIGINS requiere orígenes HTTPS explícitos")
         if self.cors_origin_regex is not None:
             raise ValueError("Usa CORS_ORIGINS para definir los orígenes de producción")
+        if self.email_backend == "smtp" and not self.smtp_host:
+            raise ValueError("Configura SMTP_HOST para enviar correo por SMTP")
+        if self.app_url and urlsplit(self.app_url).scheme != "https":
+            raise ValueError("APP_URL debe usar HTTPS en producción")
         return self
 
     @property

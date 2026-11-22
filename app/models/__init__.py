@@ -5,6 +5,7 @@ from .career_model import Career
 from .community_model import Announcement, Guardian, Notification, StudentGuardian
 from .configuration_model import AcademicPeriod, InstitutionSettings, WriteLock
 from .curriculum_model import CurriculumCourse
+from .email_model import EmailOutbox, OneTimeToken
 from .enrollment_model import CourseSelectionCart, Enrollment
 from .finance_model import (
     BillingConcept,
