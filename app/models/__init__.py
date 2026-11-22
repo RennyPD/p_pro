@@ -19,6 +19,7 @@ from .finance_model import (
     Payment,
     PaymentPlan,
     StudentAccount,
+    TransferBatch,
     TransferRequest,
 )
 from .governance_model import CourseEquivalence, StudentCareerHistory

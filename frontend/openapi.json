@@ -5039,6 +5039,341 @@
         "title": "EquivalenceUpdate",
         "type": "object"
       },
+      "FamilyAllocation": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "student_id",
+          "amount"
+        ],
+        "title": "FamilyAllocation",
+        "type": "object"
+      },
+      "FamilyConcept": {
+        "properties": {
+          "concept": {
+            "title": "Concept",
+            "type": "string"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "number"
+          },
+          "students": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyConceptShare"
+            },
+            "title": "Students",
+            "type": "array"
+          }
+        },
+        "required": [
+          "concept",
+          "remaining",
+          "students"
+        ],
+        "title": "FamilyConcept",
+        "type": "object"
+      },
+      "FamilyConceptShare": {
+        "properties": {
+          "remaining": {
+            "title": "Remaining",
+            "type": "number"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "student_id",
+          "remaining"
+        ],
+        "title": "FamilyConceptShare",
+        "type": "object"
+      },
+      "FamilyFinance": {
+        "properties": {
+          "concepts": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyConcept"
+            },
+            "title": "Concepts",
+            "type": "array"
+          },
+          "next_due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due Date"
+          },
+          "students": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyStudentBalance"
+            },
+            "title": "Students",
+            "type": "array"
+          },
+          "total_balance": {
+            "title": "Total Balance",
+            "type": "number"
+          },
+          "total_overdue": {
+            "title": "Total Overdue",
+            "type": "number"
+          }
+        },
+        "required": [
+          "total_balance",
+          "total_overdue",
+          "next_due_date",
+          "students",
+          "concepts"
+        ],
+        "title": "FamilyFinance",
+        "type": "object"
+      },
+      "FamilyStudentBalance": {
+        "properties": {
+          "balance": {
+            "title": "Balance",
+            "type": "number"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "financial_responsible": {
+            "title": "Financial Responsible",
+            "type": "boolean"
+          },
+          "next_due_amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due Amount"
+          },
+          "next_due_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due Date"
+          },
+          "overdue_balance": {
+            "title": "Overdue Balance",
+            "type": "number"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "student_name",
+          "enrollment_number",
+          "balance",
+          "overdue_balance",
+          "next_due_date",
+          "next_due_amount",
+          "financial_responsible"
+        ],
+        "title": "FamilyStudentBalance",
+        "type": "object"
+      },
+      "FamilySuggestion": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "student_id",
+          "amount"
+        ],
+        "title": "FamilySuggestion",
+        "type": "object"
+      },
+      "FamilyTransferCreate": {
+        "properties": {
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyAllocation"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Allocations",
+            "type": "array"
+          },
+          "bank": {
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Bank",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 250,
+            "title": "Note",
+            "type": "string"
+          },
+          "proof_base64": {
+            "maxLength": 2800000,
+            "minLength": 1,
+            "title": "Proof Base64",
+            "type": "string"
+          },
+          "reference": {
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference",
+          "bank",
+          "proof_base64",
+          "allocations"
+        ],
+        "title": "FamilyTransferCreate",
+        "type": "object"
+      },
+      "FamilyTransferOut": {
+        "properties": {
+          "bank": {
+            "title": "Bank",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "review_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Reason"
+          },
+          "shares": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyTransferShare"
+            },
+            "title": "Shares",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "submitted_at": {
+            "format": "date-time",
+            "title": "Submitted At",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "number"
+          },
+          "transfer_batch_id": {
+            "title": "Transfer Batch Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "transfer_batch_id",
+          "reference",
+          "bank",
+          "total",
+          "status",
+          "submitted_at",
+          "review_reason",
+          "shares"
+        ],
+        "title": "FamilyTransferOut",
+        "type": "object"
+      },
+      "FamilyTransferShare": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "transfer_request_id": {
+            "title": "Transfer Request Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "transfer_request_id",
+          "student_id",
+          "student_name",
+          "amount",
+          "status"
+        ],
+        "title": "FamilyTransferShare",
+        "type": "object"
+      },
       "FinalGradeOut": {
         "properties": {
           "calculation_mode": {
@@ -11489,6 +11824,276 @@
           "proof_base64"
         ],
         "title": "TransferCreate",
+        "type": "object"
+      },
+      "TransferInboxItem": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "bank": {
+            "title": "Bank",
+            "type": "string"
+          },
+          "batch_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Id"
+          },
+          "batch_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Reference"
+          },
+          "batch_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Size"
+          },
+          "batch_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Total"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "payment_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Id"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "review_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Reason"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "submitted_at": {
+            "format": "date-time",
+            "title": "Submitted At",
+            "type": "string"
+          },
+          "transfer_request_id": {
+            "title": "Transfer Request Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "transfer_request_id",
+          "student_id",
+          "reference",
+          "bank",
+          "note",
+          "status",
+          "submitted_at",
+          "reviewed_at",
+          "review_reason",
+          "payment_id",
+          "amount",
+          "student_name",
+          "enrollment_number"
+        ],
+        "title": "TransferInboxItem",
+        "type": "object"
+      },
+      "TransferOut": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "bank": {
+            "title": "Bank",
+            "type": "string"
+          },
+          "batch_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Id"
+          },
+          "batch_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Reference"
+          },
+          "batch_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Size"
+          },
+          "batch_total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Total"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "payment_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Id"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "review_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Reason"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "submitted_at": {
+            "format": "date-time",
+            "title": "Submitted At",
+            "type": "string"
+          },
+          "transfer_request_id": {
+            "title": "Transfer Request Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "transfer_request_id",
+          "student_id",
+          "reference",
+          "bank",
+          "note",
+          "status",
+          "submitted_at",
+          "reviewed_at",
+          "review_reason",
+          "payment_id",
+          "amount"
+        ],
+        "title": "TransferOut",
         "type": "object"
       },
       "TransferRequest": {
@@ -18461,7 +19066,13 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TransferOut"
+                  },
+                  "title": "Response Transfers Finance Students  Student Id  Transfers Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"
@@ -18514,7 +19125,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/TransferOut"
+                }
               }
             },
             "description": "Successful Response"
@@ -18536,6 +19149,90 @@
           }
         ],
         "summary": "Submit Transfer",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/finance/transfers": {
+      "get": {
+        "description": "Cashier's inbox: reports of every student, family batches grouped together.",
+        "operationId": "transfer_inbox_finance_transfers_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(pending|approved|rejected)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "pending",
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TransferInboxItem"
+                  },
+                  "title": "Response Transfer Inbox Finance Transfers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Transfer Inbox",
         "tags": [
           "finance"
         ]
@@ -18614,7 +19311,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/TransferOut"
+                }
               }
             },
             "description": "Successful Response"
@@ -19717,6 +20416,94 @@
         ]
       }
     },
+    "/guardian/finance": {
+      "get": {
+        "description": "Family total with the breakdown per child and per concept.",
+        "operationId": "family_finance_guardian_finance_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamilyFinance"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Family Finance",
+        "tags": [
+          "guardian portal"
+        ]
+      }
+    },
+    "/guardian/finance/allocation": {
+      "get": {
+        "operationId": "family_allocation_guardian_finance_allocation_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "amount",
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0.0,
+                  "maximum": 999999999.99,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$",
+                  "type": "string"
+                }
+              ],
+              "title": "Amount"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FamilySuggestion"
+                  },
+                  "title": "Response Family Allocation Guardian Finance Allocation Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Family Allocation",
+        "tags": [
+          "guardian portal"
+        ]
+      }
+    },
     "/guardian/students/{student_id}/attendance": {
       "get": {
         "operationId": "attendance_guardian_students__student_id__attendance_get",
@@ -20107,6 +20894,82 @@
           }
         ],
         "summary": "Tasks",
+        "tags": [
+          "guardian portal"
+        ]
+      }
+    },
+    "/guardian/transfers": {
+      "get": {
+        "description": "Family transfers that include at least one of the guardian's linked students.",
+        "operationId": "family_transfers_guardian_transfers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyTransferOut"
+                  },
+                  "title": "Response Family Transfers Guardian Transfers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Family Transfers",
+        "tags": [
+          "guardian portal"
+        ]
+      },
+      "post": {
+        "description": "One bank transfer split among several linked children.",
+        "operationId": "submit_family_transfer_guardian_transfers_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FamilyTransferCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamilyTransferOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Submit Family Transfer",
         "tags": [
           "guardian portal"
         ]

@@ -55,17 +55,57 @@ def upgrade():
                     batch.create_foreign_key(f"fk_{table}_{field}", "users", [field], ["user_id"])
             if table == "payments":
                 batch.create_unique_constraint("uq_payment_idempotency", ["idempotency_key"])
-    from app.models.finance_model import FinanceEvent, TransferRequest
-
+    # Tables as they were at this revision. Defined inline instead of taking the
+    # live models' __table__: later columns (batch_id, migration 0051) must not
+    # appear here, and their foreign keys would point to tables not created yet.
+    metadata = sa.MetaData()
+    sa.Table("users", metadata, sa.Column("user_id", sa.Integer(), primary_key=True))
+    sa.Table("students", metadata, sa.Column("student_id", sa.Integer(), primary_key=True))
+    sa.Table("payments", metadata, sa.Column("payment_id", sa.Integer(), primary_key=True))
+    transfer_requests = sa.Table(
+        "transfer_requests",
+        metadata,
+        sa.Column("transfer_request_id", sa.Integer(), primary_key=True),
+        sa.Column("student_id", sa.Integer(), sa.ForeignKey("students.student_id"), nullable=False),
+        sa.Column("amount_cents", sa.Integer(), nullable=False),
+        sa.Column("reference", sa.String(100), nullable=False, unique=True),
+        sa.Column("bank", sa.String(100), nullable=False),
+        sa.Column("note", sa.String(250), nullable=False),
+        sa.Column("proof", sa.LargeBinary(), nullable=False),
+        sa.Column("proof_type", sa.String(40), nullable=False),
+        sa.Column("status", sa.String(20), nullable=False),
+        sa.Column("submitted_by", sa.Integer(), sa.ForeignKey("users.user_id"), nullable=False),
+        sa.Column("submitted_at", sa.DateTime(), nullable=False),
+        sa.Column("reviewed_by", sa.Integer(), sa.ForeignKey("users.user_id"), nullable=True),
+        sa.Column("reviewed_at", sa.DateTime(), nullable=True),
+        sa.Column("review_reason", sa.String(250), nullable=True),
+        sa.Column(
+            "payment_id",
+            sa.Integer(),
+            sa.ForeignKey("payments.payment_id"),
+            nullable=True,
+            unique=True,
+        ),
+    )
+    finance_events = sa.Table(
+        "finance_events",
+        metadata,
+        sa.Column("finance_event_id", sa.Integer(), primary_key=True),
+        sa.Column("student_id", sa.Integer(), sa.ForeignKey("students.student_id"), nullable=True),
+        sa.Column("user_id", sa.Integer(), sa.ForeignKey("users.user_id"), nullable=False),
+        sa.Column("action", sa.String(80), nullable=False),
+        sa.Column("detail", sa.Text(), nullable=False),
+        sa.Column("created_at", sa.DateTime(), nullable=False),
+    )
     # Defined inline: the model was removed when keyed write locks replaced it.
     finance_control = sa.Table(
         "finance_control",
-        sa.MetaData(),
+        metadata,
         sa.Column("finance_control_id", sa.Integer(), primary_key=True),
         sa.Column("version", sa.Integer()),
     )
 
-    for table in (TransferRequest.__table__, FinanceEvent.__table__, finance_control):
+    for table in (transfer_requests, finance_events, finance_control):
         table.create(op.get_bind())
     op.execute(sa.text("INSERT INTO finance_control (finance_control_id, version) VALUES (1,0)"))
     # Legacy plans retain their initial paid flags; only subsequent credits enter new tracking.

@@ -1,9 +1,7 @@
-import base64
-import binascii
 from datetime import UTC, date
 from types import SimpleNamespace
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session, selectinload
 
@@ -34,6 +32,7 @@ from app.models.finance_model import (
 )
 from app.models.student_model import Student
 from app.models.user_model import User
+from app.pagination import page_query
 from app.schemas.finance_schema import (
     AccountStatement,
     AccountUpdate,
@@ -55,6 +54,8 @@ from app.schemas.finance_schema import (
     SimulationCreate,
     StudentFinanceSummary,
     TransferCreate,
+    TransferInboxItem,
+    TransferOut,
     TransferReview,
 )
 from app.services import billing_plans
@@ -67,7 +68,9 @@ from app.services.finance_workflow import (
     cents,
     check_open_day,
     credits,
+    decode_proof,
     empty_account,
+    ensure_new_reference,
     event,
     get_account,
     lock_finance,
@@ -92,9 +95,7 @@ build_summary = summary
 def accessible(db, user, student_id):
     """Own account (if the institution shows it), linked guardian allowed to see
     finances, or staff with finance scope."""
-    if user.guardian_id is not None and student_id in guardian_student_ids(
-        db, user, "finance"
-    ):
+    if user.guardian_id is not None and student_id in guardian_student_ids(db, user, "finance"):
         return
     ensure_student_access(user, student_id, FINANCE_SCOPE)
     ensure_own_finance_visible(db, user, student_id)
@@ -426,10 +427,16 @@ def transfer_out(item):
             "review_reason",
             "payment_id",
         )
-    } | {"amount": money(item.amount_cents)}
+    } | {
+        "amount": money(item.amount_cents),
+        "batch_id": item.batch_id,
+        "batch_reference": item.batch.reference if item.batch else None,
+        "batch_total": money(item.batch.total_cents) if item.batch else None,
+        "batch_size": len(item.batch.requests) if item.batch else None,
+    }
 
 
-@router.post("/students/{student_id}/transfers")
+@router.post("/students/{student_id}/transfers", response_model=TransferOut)
 def submit_transfer(
     student_id: int,
     data: TransferCreate,
@@ -442,26 +449,8 @@ def submit_transfer(
     account = writable_account(db, student_id)
     if cents(data.amount) > cents(summary(account).balance):
         raise HTTPException(422, "La transferencia supera el balance pendiente")
-    if (
-        db.query(TransferRequest).filter_by(reference=data.reference).first()
-        or db.query(Payment).filter_by(reference=data.reference).first()
-    ):
-        raise HTTPException(409, "Referencia ya registrada")
-    try:
-        proof = base64.b64decode(data.proof_base64, validate=True)
-    except (ValueError, binascii.Error):
-        raise HTTPException(422, "Comprobante inválido")
-    mime = (
-        "application/pdf"
-        if proof.startswith(b"%PDF-")
-        else "image/png"
-        if proof.startswith(b"\x89PNG\r\n\x1a\n")
-        else "image/jpeg"
-        if proof.startswith(b"\xff\xd8\xff")
-        else None
-    )
-    if not mime or len(proof) > 2 * 1024 * 1024:
-        raise HTTPException(422, "Usa PDF, PNG o JPEG de máximo 2 MB")
+    ensure_new_reference(db, data.reference)
+    proof, mime = decode_proof(data.proof_base64)
     item = TransferRequest(
         student_id=student_id,
         amount_cents=cents(data.amount),
@@ -489,7 +478,7 @@ def submit_transfer(
     return transfer_out(item)
 
 
-@router.get("/students/{student_id}/transfers")
+@router.get("/students/{student_id}/transfers", response_model=list[TransferOut])
 def transfers(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
@@ -503,15 +492,49 @@ def transfers(
     ]
 
 
+@router.get(
+    "/transfers", response_model=list[TransferInboxItem], dependencies=[Depends(finance_viewer)]
+)
+def transfer_inbox(
+    response: Response,
+    status: str | None = Query("pending", pattern="^(pending|approved|rejected)$"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """Cashier's inbox: reports of every student, family batches grouped together."""
+    query = db.query(TransferRequest, Student).join(
+        Student, Student.student_id == TransferRequest.student_id
+    )
+    if status:
+        query = query.filter(TransferRequest.status == status)
+    rows = page_query(
+        query.order_by(
+            TransferRequest.submitted_at.desc(),
+            TransferRequest.batch_id,
+            TransferRequest.transfer_request_id,
+        ),
+        response,
+        skip,
+        limit,
+    )
+    return [
+        transfer_out(item)
+        | {"student_name": student.full_name, "enrollment_number": student.enrollment_number}
+        for item, student in rows
+    ]
+
+
 @router.get("/transfers/{identifier}/proof")
 def proof(identifier: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     item = db.get(TransferRequest, identifier)
     if not item:
         raise HTTPException(404, "Comprobante no encontrado")
     accessible(db, user, item.student_id)
-    ext = {"application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpg"}[item.proof_type]
+    source = item.batch if item.proof is None and item.batch else item
+    ext = {"application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpg"}[source.proof_type]
     return Response(
-        item.proof,
+        source.proof,
         media_type=item.proof_type,
         headers={
             "Content-Disposition": f'attachment; filename="comprobante-{identifier}.{ext}"',
@@ -522,7 +545,7 @@ def proof(identifier: int, db: Session = Depends(get_db), user: User = Depends(g
     )
 
 
-@router.post("/transfers/{identifier}/review")
+@router.post("/transfers/{identifier}/review", response_model=TransferOut)
 def review_transfer(
     identifier: int,
     data: TransferReview,
@@ -535,6 +558,22 @@ def review_transfer(
         raise HTTPException(404, "Transferencia no encontrada")
     if item.status != "pending":
         raise HTTPException(409, "La solicitud ya fue revisada")
+    # A share of a family transfer is reviewed with the whole batch: one bank
+    # movement is either confirmed or not.
+    shares = [item] if item.batch is None else item.batch.requests
+    for share in shares:
+        review_share(db, share, data, user)
+    if item.batch is not None:
+        item.batch.status = item.status
+        item.batch.review_reason = data.reason
+        item.batch.reviewed_by, item.batch.reviewed_at = user.user_id, now()
+    db.commit()
+    return transfer_out(item)
+
+
+def review_share(db, item, data, user):
+    if item.status != "pending":
+        raise HTTPException(409, "Una parte del lote ya fue revisada; revisa el lote completo")
     account = get_account(db, item.student_id, write=True)
     if data.approve:
         payment = post_payment(
@@ -545,7 +584,7 @@ def review_transfer(
             ),
             user,
             method="transfer",
-            key=f"transfer:{identifier}",
+            key=f"transfer:{item.transfer_request_id}",
         )
         item.payment_id = payment.payment_id
     item.status = "approved" if data.approve else "rejected"
@@ -556,14 +595,13 @@ def review_transfer(
         item.student_id,
         "transfer.reviewed",
         {
-            "request_id": identifier,
+            "request_id": item.transfer_request_id,
+            "batch_id": item.batch_id,
             "status": item.status,
             "reason": data.reason,
             "payment_id": item.payment_id,
         },
     )
-    db.commit()
-    return transfer_out(item)
 
 
 @router.get("/payments/{identifier}/receipt.pdf")

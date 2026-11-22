@@ -1849,6 +1849,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/finance/transfers": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Transfer Inbox
+     * @description Cashier's inbox: reports of every student, family batches grouped together.
+     */
+    get: operations["transfer_inbox_finance_transfers_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/finance/transfers/{identifier}/proof": {
     parameters: {
       query?: never;
@@ -2142,6 +2162,43 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/guardian/finance": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Family Finance
+     * @description Family total with the breakdown per child and per concept.
+     */
+    get: operations["family_finance_guardian_finance_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/guardian/finance/allocation": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Family Allocation */
+    get: operations["family_allocation_guardian_finance_allocation_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/guardian/students/{student_id}/attendance": {
     parameters: {
       query?: never;
@@ -2247,6 +2304,30 @@ export interface paths {
     get: operations["tasks_guardian_students__student_id__tasks_get"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/guardian/transfers": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Family Transfers
+     * @description Family transfers that include at least one of the guardian's linked students.
+     */
+    get: operations["family_transfers_guardian_transfers_get"];
+    put?: never;
+    /**
+     * Submit Family Transfer
+     * @description One bank transfer split among several linked children.
+     */
+    post: operations["submit_family_transfer_guardian_transfers_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -5280,6 +5361,119 @@ export interface components {
       /** Reason */
       reason: string;
     };
+    /** FamilyAllocation */
+    FamilyAllocation: {
+      /** Amount */
+      amount: number | string;
+      /** Student Id */
+      student_id: number;
+    };
+    /** FamilyConcept */
+    FamilyConcept: {
+      /** Concept */
+      concept: string;
+      /** Remaining */
+      remaining: number;
+      /** Students */
+      students: components["schemas"]["FamilyConceptShare"][];
+    };
+    /** FamilyConceptShare */
+    FamilyConceptShare: {
+      /** Remaining */
+      remaining: number;
+      /** Student Id */
+      student_id: number;
+    };
+    /** FamilyFinance */
+    FamilyFinance: {
+      /** Concepts */
+      concepts: components["schemas"]["FamilyConcept"][];
+      /** Next Due Date */
+      next_due_date: string | null;
+      /** Students */
+      students: components["schemas"]["FamilyStudentBalance"][];
+      /** Total Balance */
+      total_balance: number;
+      /** Total Overdue */
+      total_overdue: number;
+    };
+    /** FamilyStudentBalance */
+    FamilyStudentBalance: {
+      /** Balance */
+      balance: number;
+      /** Enrollment Number */
+      enrollment_number: string;
+      /** Financial Responsible */
+      financial_responsible: boolean;
+      /** Next Due Amount */
+      next_due_amount: number | null;
+      /** Next Due Date */
+      next_due_date: string | null;
+      /** Overdue Balance */
+      overdue_balance: number;
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
+    };
+    /** FamilySuggestion */
+    FamilySuggestion: {
+      /** Amount */
+      amount: number;
+      /** Student Id */
+      student_id: number;
+    };
+    /** FamilyTransferCreate */
+    FamilyTransferCreate: {
+      /** Allocations */
+      allocations: components["schemas"]["FamilyAllocation"][];
+      /** Bank */
+      bank: string;
+      /**
+       * Note
+       * @default
+       */
+      note: string;
+      /** Proof Base64 */
+      proof_base64: string;
+      /** Reference */
+      reference: string;
+    };
+    /** FamilyTransferOut */
+    FamilyTransferOut: {
+      /** Bank */
+      bank: string;
+      /** Reference */
+      reference: string;
+      /** Review Reason */
+      review_reason: string | null;
+      /** Shares */
+      shares: components["schemas"]["FamilyTransferShare"][];
+      /** Status */
+      status: string;
+      /**
+       * Submitted At
+       * Format: date-time
+       */
+      submitted_at: string;
+      /** Total */
+      total: number;
+      /** Transfer Batch Id */
+      transfer_batch_id: number;
+    };
+    /** FamilyTransferShare */
+    FamilyTransferShare: {
+      /** Amount */
+      amount: number;
+      /** Status */
+      status: string;
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
+      /** Transfer Request Id */
+      transfer_request_id: number;
+    };
     /** FinalGradeOut */
     FinalGradeOut: {
       /**
@@ -7632,6 +7826,82 @@ export interface components {
       proof_base64: string;
       /** Reference */
       reference: string;
+    };
+    /** TransferInboxItem */
+    TransferInboxItem: {
+      /** Amount */
+      amount: number;
+      /** Bank */
+      bank: string;
+      /** Batch Id */
+      batch_id?: number | null;
+      /** Batch Reference */
+      batch_reference?: string | null;
+      /** Batch Size */
+      batch_size?: number | null;
+      /** Batch Total */
+      batch_total?: number | null;
+      /** Enrollment Number */
+      enrollment_number: string;
+      /** Note */
+      note: string;
+      /** Payment Id */
+      payment_id: number | null;
+      /** Reference */
+      reference: string;
+      /** Review Reason */
+      review_reason: string | null;
+      /** Reviewed At */
+      reviewed_at: string | null;
+      /** Status */
+      status: string;
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
+      /**
+       * Submitted At
+       * Format: date-time
+       */
+      submitted_at: string;
+      /** Transfer Request Id */
+      transfer_request_id: number;
+    };
+    /** TransferOut */
+    TransferOut: {
+      /** Amount */
+      amount: number;
+      /** Bank */
+      bank: string;
+      /** Batch Id */
+      batch_id?: number | null;
+      /** Batch Reference */
+      batch_reference?: string | null;
+      /** Batch Size */
+      batch_size?: number | null;
+      /** Batch Total */
+      batch_total?: number | null;
+      /** Note */
+      note: string;
+      /** Payment Id */
+      payment_id: number | null;
+      /** Reference */
+      reference: string;
+      /** Review Reason */
+      review_reason: string | null;
+      /** Reviewed At */
+      reviewed_at: string | null;
+      /** Status */
+      status: string;
+      /** Student Id */
+      student_id: number;
+      /**
+       * Submitted At
+       * Format: date-time
+       */
+      submitted_at: string;
+      /** Transfer Request Id */
+      transfer_request_id: number;
     };
     /** TransferRequest */
     TransferRequest: {
@@ -11771,7 +12041,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["TransferOut"][];
         };
       };
       /** @description Validation Error */
@@ -11806,7 +12076,40 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["TransferOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  transfer_inbox_finance_transfers_get: {
+    parameters: {
+      query?: {
+        status?: string | null;
+        skip?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TransferInboxItem"][];
         };
       };
       /** @description Validation Error */
@@ -11872,7 +12175,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["TransferOut"];
         };
       };
       /** @description Validation Error */
@@ -12511,6 +12814,57 @@ export interface operations {
       };
     };
   };
+  family_finance_guardian_finance_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FamilyFinance"];
+        };
+      };
+    };
+  };
+  family_allocation_guardian_finance_allocation_get: {
+    parameters: {
+      query: {
+        amount: number | string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FamilySuggestion"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   attendance_guardian_students__student_id__attendance_get: {
     parameters: {
       query?: {
@@ -12694,6 +13048,59 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["GuardianTask"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  family_transfers_guardian_transfers_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FamilyTransferOut"][];
+        };
+      };
+    };
+  };
+  submit_family_transfer_guardian_transfers_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FamilyTransferCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FamilyTransferOut"];
         };
       };
       /** @description Validation Error */

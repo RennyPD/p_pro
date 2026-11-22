@@ -1,5 +1,7 @@
 """Internal DOP ledger. Never contacts a bank or stores card data."""
 
+import base64
+import binascii
 import calendar
 import json
 from datetime import UTC, date, datetime
@@ -309,3 +311,35 @@ def plan_summary(account, plan):
         "created_at": plan.created_at,
         "installments": items,
     }
+
+
+def decode_proof(proof_base64: str) -> tuple[bytes, str]:
+    """Bank transfer proof: PDF, PNG or JPEG of at most 2 MB."""
+    try:
+        proof = base64.b64decode(proof_base64, validate=True)
+    except (ValueError, binascii.Error):
+        raise HTTPException(422, "Comprobante inválido") from None
+    mime = (
+        "application/pdf"
+        if proof.startswith(b"%PDF-")
+        else "image/png"
+        if proof.startswith(b"\x89PNG\r\n\x1a\n")
+        else "image/jpeg"
+        if proof.startswith(b"\xff\xd8\xff")
+        else None
+    )
+    if not mime or len(proof) > 2 * 1024 * 1024:
+        raise HTTPException(422, "Usa PDF, PNG o JPEG de máximo 2 MB")
+    return proof, mime
+
+
+def ensure_new_reference(db, reference: str) -> None:
+    """A bank reference is reported once: single transfer, family batch or payment."""
+    from app.models.finance_model import TransferBatch, TransferRequest
+
+    if (
+        db.query(TransferRequest).filter_by(reference=reference).first()
+        or db.query(TransferBatch).filter_by(reference=reference).first()
+        or db.query(Payment).filter_by(reference=reference).first()
+    ):
+        raise HTTPException(409, "Referencia ya registrada")

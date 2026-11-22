@@ -2,10 +2,10 @@
 
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.academic_schema import AttendanceCourseSummary, ScheduleBlock
-from app.schemas.finance_schema import StudentFinanceSummary
+from app.schemas.finance_schema import Amount, Money, Reference, StudentFinanceSummary
 
 
 class GuardianAttendance(BaseModel):
@@ -126,3 +126,70 @@ class GuardianStudentOverview(BaseModel):
     balance: float | None
     schedule: list[GuardianScheduleItem]
     alerts: list[GuardianAlert]
+
+
+class FamilyStudentBalance(BaseModel):
+    student_id: int
+    student_name: str
+    enrollment_number: str
+    balance: Amount
+    overdue_balance: Amount
+    next_due_date: date | None
+    next_due_amount: Amount | None
+    financial_responsible: bool
+
+
+class FamilyConceptShare(BaseModel):
+    student_id: int
+    remaining: Amount
+
+
+class FamilyConcept(BaseModel):
+    concept: str
+    remaining: Amount
+    students: list[FamilyConceptShare]
+
+
+class FamilyFinance(BaseModel):
+    total_balance: Amount
+    total_overdue: Amount
+    next_due_date: date | None
+    students: list[FamilyStudentBalance]
+    concepts: list[FamilyConcept]
+
+
+class FamilyAllocation(BaseModel):
+    student_id: int
+    amount: Money
+
+
+class FamilySuggestion(BaseModel):
+    student_id: int
+    amount: Amount
+
+
+class FamilyTransferCreate(BaseModel):
+    reference: Reference
+    bank: Reference
+    note: str = Field(default="", max_length=250)
+    proof_base64: str = Field(min_length=1, max_length=2800000)
+    allocations: list[FamilyAllocation] = Field(min_length=1, max_length=20)
+
+
+class FamilyTransferShare(BaseModel):
+    transfer_request_id: int
+    student_id: int
+    student_name: str
+    amount: Amount
+    status: str
+
+
+class FamilyTransferOut(BaseModel):
+    transfer_batch_id: int
+    reference: str
+    bank: str
+    total: Amount
+    status: str
+    submitted_at: datetime
+    review_reason: str | None
+    shares: list[FamilyTransferShare]

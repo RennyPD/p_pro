@@ -6,24 +6,37 @@ everything; the institution restricts single links from the student's record.
 """
 
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.auth import ensure_guardian_view, require_personal
+from app.db.database import settings
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
+from app.models.community_model import StudentGuardian
 from app.models.configuration_model import AcademicPeriod
 from app.models.enrollment_model import Enrollment
+from app.models.finance_model import TransferBatch, TransferRequest
 from app.models.operations_model import Assignment, EarlyAlert, Submission
 from app.models.section_model import Section
+from app.models.student_model import Student
 from app.models.subject_model import Subject
 from app.models.user_model import User
 from app.pagination import page_query
 from app.schemas.academic_schema import AttendanceCourseSummary, RosterAttendanceItem
 from app.schemas.finance_schema import AccountStatement
 from app.schemas.guardian_schema import (
+    FamilyConcept,
+    FamilyConceptShare,
+    FamilyFinance,
+    FamilyStudentBalance,
+    FamilySuggestion,
+    FamilyTransferCreate,
+    FamilyTransferOut,
+    FamilyTransferShare,
     GuardianAlert,
     GuardianAssessment,
     GuardianAttendance,
@@ -37,7 +50,18 @@ from app.schemas.guardian_schema import (
 from app.services.academic_grading import academic_result
 from app.services.academic_metrics import summarize_results
 from app.services.account_statement import account_statement
-from app.services.finance_workflow import get_account, summary, upcoming_due
+from app.services.finance_workflow import (
+    cents,
+    decode_proof,
+    ensure_new_reference,
+    event,
+    get_account,
+    lock_finance,
+    money,
+    summary,
+    upcoming_due,
+    writable_account,
+)
 
 router = APIRouter(prefix="/guardian", tags=["guardian portal"])
 guardian = require_personal("records.own", "linked")
@@ -335,3 +359,218 @@ def performance(student_id: int, db: Session = Depends(get_db), user: User = Dep
             if alert.category not in hidden
         ],
     )
+
+
+# Pagos de la familia: total, reparto sugerido y una transferencia para varios hijos.
+
+
+def finance_links(db: Session, user: User) -> list[StudentGuardian]:
+    """Links of the guardian that allow finances, in a stable order."""
+    return (
+        db.query(StudentGuardian)
+        .filter(
+            StudentGuardian.guardian_id == user.guardian_id,
+            StudentGuardian.can_view_finance.is_(True),
+        )
+        .order_by(StudentGuardian.student_id)
+        .all()
+    )
+
+
+def family_statements(db: Session, user: User):
+    return [
+        (link, account_statement(db, get_account(db, link.student_id)))
+        for link in finance_links(db, user)
+    ]
+
+
+@router.get("/finance", response_model=FamilyFinance)
+def family_finance(db: Session = Depends(get_db), user: User = Depends(guardian)):
+    """Family total with the breakdown per child and per concept."""
+    statements = family_statements(db, user)
+    concepts: dict[str, dict[int, int]] = {}
+    for _, statement in statements:
+        for concept in statement.concepts:
+            if concept.remaining:
+                shares = concepts.setdefault(concept.concept, {})
+                shares[statement.student_id] = shares.get(statement.student_id, 0) + cents(
+                    concept.remaining
+                )
+    dues = [s.next_due_date for _, s in statements if s.next_due_date]
+    return FamilyFinance(
+        total_balance=money(sum(cents(s.balance) for _, s in statements)),
+        total_overdue=money(sum(cents(s.overdue_balance) for _, s in statements)),
+        next_due_date=min(dues) if dues else None,
+        students=[
+            FamilyStudentBalance(
+                student_id=s.student_id,
+                student_name=s.student_name,
+                enrollment_number=s.enrollment_number,
+                balance=s.balance,
+                overdue_balance=s.overdue_balance,
+                next_due_date=s.next_due_date,
+                next_due_amount=s.next_due_amount,
+                financial_responsible=link.financial_responsible,
+            )
+            for link, s in statements
+        ],
+        concepts=[
+            FamilyConcept(
+                concept=name,
+                remaining=money(sum(shares.values())),
+                students=[
+                    FamilyConceptShare(student_id=student_id, remaining=money(amount))
+                    for student_id, amount in sorted(shares.items())
+                ],
+            )
+            for name, shares in sorted(concepts.items())
+        ],
+    )
+
+
+def suggest_allocation(statements, amount_cents: int) -> list[FamilySuggestion]:
+    """Pay what is due first, whichever child it belongs to (decision of 22/11/2026)."""
+    pending = sorted(
+        (o.due_date, s.student_id, o.type, o.obligation_id, cents(o.remaining))
+        for _, s in statements
+        for o in s.obligations
+        if o.remaining
+    )
+    shares: dict[int, int] = {}
+    for _, student_id, _, _, remaining in pending:
+        if amount_cents <= 0:
+            break
+        part = min(remaining, amount_cents)
+        shares[student_id] = shares.get(student_id, 0) + part
+        amount_cents -= part
+    return [
+        FamilySuggestion(student_id=student_id, amount=money(part))
+        for student_id, part in sorted(shares.items())
+    ]
+
+
+@router.get("/finance/allocation", response_model=list[FamilySuggestion])
+def family_allocation(
+    amount: Decimal = Query(gt=0, le=Decimal("999999999.99"), decimal_places=2),
+    db: Session = Depends(get_db),
+    user: User = Depends(guardian),
+):
+    statements = family_statements(db, user)
+    total = sum(cents(s.balance) for _, s in statements)
+    if cents(amount) > total:
+        raise HTTPException(422, "El monto supera el balance pendiente de la familia")
+    return suggest_allocation(statements, cents(amount))
+
+
+def batch_out(db: Session, batch: TransferBatch) -> FamilyTransferOut:
+    names = {
+        s.student_id: s.full_name
+        for s in db.query(Student).filter(
+            Student.student_id.in_([share.student_id for share in batch.requests])
+        )
+    }
+    return FamilyTransferOut(
+        transfer_batch_id=batch.transfer_batch_id,
+        reference=batch.reference,
+        bank=batch.bank,
+        total=money(batch.total_cents),
+        status=batch.status,
+        submitted_at=batch.submitted_at.replace(tzinfo=UTC),
+        review_reason=batch.review_reason,
+        shares=[
+            FamilyTransferShare(
+                transfer_request_id=share.transfer_request_id,
+                student_id=share.student_id,
+                student_name=names.get(share.student_id, ""),
+                amount=money(share.amount_cents),
+                status=share.status,
+            )
+            for share in batch.requests
+        ],
+    )
+
+
+@router.post("/transfers", response_model=FamilyTransferOut)
+def submit_family_transfer(
+    data: FamilyTransferCreate, db: Session = Depends(get_db), user: User = Depends(guardian)
+):
+    """One bank transfer split among several linked children."""
+    if not settings.finance_transfer_instructions.strip():
+        raise HTTPException(409, "La institución aún no configuró sus instrucciones bancarias")
+    lock_finance(db)
+    students = [item.student_id for item in data.allocations]
+    if len(students) != len(set(students)):
+        raise HTTPException(422, "Cada estudiante aparece una sola vez en el reparto")
+    allowed = {link.student_id for link in finance_links(db, user)}
+    if not set(students) <= allowed:
+        raise HTTPException(403, "Solo puedes repartir pagos entre tus estudiantes vinculados")
+    ensure_new_reference(db, data.reference)
+    proof, mime = decode_proof(data.proof_base64)
+    for item in data.allocations:
+        account = writable_account(db, item.student_id)
+        if cents(item.amount) > cents(summary(account).balance):
+            raise HTTPException(
+                422, "El reparto supera el balance pendiente de uno de los estudiantes"
+            )
+    batch = TransferBatch(
+        reference=data.reference,
+        bank=data.bank,
+        note=data.note,
+        total_cents=sum(cents(item.amount) for item in data.allocations),
+        proof=proof,
+        proof_type=mime,
+        status="pending",
+        submitted_by=user.user_id,
+    )
+    db.add(batch)
+    db.flush()
+    count = len(data.allocations)
+    for index, item in enumerate(data.allocations, start=1):
+        share = TransferRequest(
+            student_id=item.student_id,
+            amount_cents=cents(item.amount),
+            # Each payment needs its own reference; the bank's stays on the batch.
+            reference=f"{data.reference[:88]} ({index}/{count})",
+            bank=data.bank,
+            note=data.note,
+            proof=None,
+            proof_type=mime,
+            status="pending",
+            submitted_by=user.user_id,
+            batch_id=batch.transfer_batch_id,
+        )
+        db.add(share)
+        db.flush()
+        event(
+            db,
+            user,
+            item.student_id,
+            "transfer.submitted",
+            {
+                "request_id": share.transfer_request_id,
+                "batch_id": batch.transfer_batch_id,
+                "reference": data.reference,
+                "amount_cents": share.amount_cents,
+            },
+        )
+    db.commit()
+    db.refresh(batch)
+    return batch_out(db, batch)
+
+
+@router.get("/transfers", response_model=list[FamilyTransferOut])
+def family_transfers(db: Session = Depends(get_db), user: User = Depends(guardian)):
+    """Family transfers that include at least one of the guardian's linked students."""
+    students = [link.student_id for link in finance_links(db, user)]
+    batches = (
+        db.query(TransferBatch)
+        .filter(
+            TransferBatch.transfer_batch_id.in_(
+                db.query(TransferRequest.batch_id).filter(TransferRequest.student_id.in_(students))
+            )
+        )
+        .order_by(TransferBatch.submitted_at.desc())
+        .limit(50)
+        .all()
+    )
+    return [batch_out(db, batch) for batch in batches]

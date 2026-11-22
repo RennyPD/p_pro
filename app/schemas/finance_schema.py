@@ -276,3 +276,26 @@ class AccountStatement(BaseModel):
     concepts: list[StatementConcept]
     payments: list[StatementPayment]
     payment_plans: list[PaymentPlanStatus]
+
+
+class TransferOut(BaseModel):
+    transfer_request_id: int
+    student_id: int
+    reference: str
+    bank: str
+    note: str
+    status: str
+    submitted_at: datetime
+    reviewed_at: datetime | None
+    review_reason: str | None
+    payment_id: int | None
+    amount: Amount
+    batch_id: int | None = None
+    batch_reference: str | None = None
+    batch_total: Amount | None = None
+    batch_size: int | None = None
+
+
+class TransferInboxItem(TransferOut):
+    student_name: str
+    enrollment_number: str

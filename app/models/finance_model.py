@@ -235,14 +235,19 @@ class CashClosing(Base):
     )
 
 
-class TransferRequest(Base):
-    __tablename__ = "transfer_requests"
-    transfer_request_id: Mapped[int] = mapped_column(primary_key=True)
-    student_id: Mapped[int] = mapped_column(ForeignKey("students.student_id"))
-    amount_cents: Mapped[int] = mapped_column(Integer)
+class TransferBatch(Base):
+    """One bank transfer a guardian reports for several linked students.
+
+    Each student gets their share as a TransferRequest linked to the batch;
+    the cashier approves or rejects the whole batch at once.
+    """
+
+    __tablename__ = "transfer_batches"
+    transfer_batch_id: Mapped[int] = mapped_column(primary_key=True)
     reference: Mapped[str] = mapped_column(String(100), unique=True)
     bank: Mapped[str] = mapped_column(String(100))
     note: Mapped[str] = mapped_column(String(250), default="")
+    total_cents: Mapped[int] = mapped_column(Integer)
     proof: Mapped[bytes] = mapped_column(LargeBinary)
     proof_type: Mapped[str] = mapped_column(String(40))
     status: Mapped[str] = mapped_column(String(20), default="pending")
@@ -253,6 +258,34 @@ class TransferRequest(Base):
     reviewed_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     review_reason: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    requests: Mapped[list["TransferRequest"]] = relationship(
+        back_populates="batch", order_by="TransferRequest.transfer_request_id"
+    )
+
+
+class TransferRequest(Base):
+    __tablename__ = "transfer_requests"
+    transfer_request_id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.student_id"))
+    amount_cents: Mapped[int] = mapped_column(Integer)
+    reference: Mapped[str] = mapped_column(String(100), unique=True)
+    bank: Mapped[str] = mapped_column(String(100))
+    note: Mapped[str] = mapped_column(String(250), default="")
+    # Empty for a share of a batch: the proof is stored once on the batch.
+    proof: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    proof_type: Mapped[str] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    submitted_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+    reviewed_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    review_reason: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    batch_id: Mapped[int | None] = mapped_column(
+        ForeignKey("transfer_batches.transfer_batch_id"), nullable=True, index=True
+    )
+    batch: Mapped[TransferBatch | None] = relationship(back_populates="requests")
     payment_id: Mapped[int | None] = mapped_column(
         ForeignKey("payments.payment_id"), unique=True, nullable=True
     )
