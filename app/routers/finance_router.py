@@ -12,6 +12,7 @@ from app.auth import (
     ensure_own_finance_visible,
     ensure_student_access,
     get_current_user,
+    guardian_student_ids,
     has_scope,
     require_permissions,
 )
@@ -89,6 +90,12 @@ build_summary = summary
 
 
 def accessible(db, user, student_id):
+    """Own account (if the institution shows it), linked guardian allowed to see
+    finances, or staff with finance scope."""
+    if user.guardian_id is not None and student_id in guardian_student_ids(
+        db, user, "finance"
+    ):
+        return
     ensure_student_access(user, student_id, FINANCE_SCOPE)
     ensure_own_finance_visible(db, user, student_id)
 

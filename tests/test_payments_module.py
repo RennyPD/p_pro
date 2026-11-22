@@ -102,3 +102,78 @@ def test_statement_respects_guardian_access_and_the_institution_setting(account)
     if other is not None:
         foreign = f"/finance/students/{other.student_id}/statement"
         assert client.get(foreign, headers=tokens["estudiante"]).status_code == 403
+
+
+# Paso 2: el tutor reporta pagos y descarga recibos.
+
+PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+
+
+@pytest.fixture
+def bank(monkeypatch):
+    from app.db.database import settings
+
+    monkeypatch.setattr(settings, "finance_transfer_instructions", "Cuenta ficticia de pruebas")
+
+
+def report(client, headers, student_id, amount, reference):
+    return client.post(
+        f"/finance/students/{student_id}/transfers",
+        headers=headers,
+        json={
+            "amount": amount,
+            "reference": reference,
+            "bank": "Banco Ficticio",
+            "proof_base64": PNG,
+        },
+    )
+
+
+def test_guardian_reports_a_transfer_and_downloads_receipts(account, bank):
+    client, sessions, tokens, tutor, _, student_id = account
+    sent = report(client, tutor, student_id, "500.00", "TRF-TUTOR-1")
+    assert sent.status_code == 200, sent.text
+    listed = client.get(f"/finance/students/{student_id}/transfers", headers=tutor)
+    assert [t["reference"] for t in listed.json()] == ["TRF-TUTOR-1"]
+    request_id = sent.json()["transfer_request_id"]
+    assert client.get(f"/finance/transfers/{request_id}/proof", headers=tutor).status_code == 200
+
+    reviewed = client.post(
+        f"/finance/transfers/{request_id}/review",
+        headers=tokens["admin"],
+        json={"approve": True, "reason": "Depósito verificado"},
+    )
+    assert reviewed.status_code == 200, reviewed.text
+    statement = client.get(f"/guardian/students/{student_id}/statement", headers=tutor).json()
+    assert statement["balance"] == 1000.0
+    receipt = client.get(
+        f"/finance/payments/{statement['payments'][0]['payment_id']}/receipt.pdf", headers=tutor
+    )
+    assert receipt.status_code == 200
+    assert receipt.headers["content-type"] == "application/pdf"
+
+
+def test_guardian_without_finance_access_or_link_cannot_report(account, bank):
+    client, sessions, tokens, tutor, link_id, student_id = account
+    with sessions() as db:
+        other = Student(
+            first_name="Sin",
+            last_name="Vínculo",
+            email="sin.vinculo@example.com",
+            enrollment_number="SINV-1",
+            telephone="8095550100",
+            address="Calle 1",
+            career_id=db.get(Student, student_id).career_id,
+        )
+        db.add(other)
+        db.commit()
+        other_id = other.student_id
+    assert report(client, tutor, other_id, "10.00", "TRF-AJENO").status_code == 403
+    client.patch(
+        f"/community/guardian-links/{link_id}",
+        headers=tokens["admin"],
+        json={"can_view_finance": False},
+    )
+    assert report(client, tutor, student_id, "10.00", "TRF-SIN-ACCESO").status_code == 403
+    listed = client.get(f"/finance/students/{student_id}/transfers", headers=tutor)
+    assert listed.status_code == 403
