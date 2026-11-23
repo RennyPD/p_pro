@@ -15,6 +15,8 @@ import {
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Spinner } from "../../components/ui";
+import { Metric, MetricRow, type VisualTone } from "../../components/visual";
+import type { ApiSchema } from "../../lib/apiTypes";
 import { describeAverage } from "../../lib/academicResult";
 import { api } from "../../lib/api";
 import { formatDateTime, formatMoney, formatTime } from "../../lib/format";
@@ -22,13 +24,8 @@ import { scheduleBlocks, weekDays } from "../../lib/schedule";
 import { useAuthStore } from "../../store/auth";
 import { useAccess } from "../../lib/permissions";
 
-type Metric = { key: string; label: string; value: number | null; note: string };
-type Summary = {
-  display_name?: string;
-  active_period: string | null;
-  alerts: string[];
-  metrics: Metric[];
-};
+type Summary = ApiSchema<"DashboardSummary">;
+type SummaryMetric = ApiSchema<"DashboardMetric">;
 type SectionProgress = {
   section_id: number;
   section_code: string;
@@ -90,8 +87,15 @@ const icons: Record<string, ReactNode> = {
   average: <TrendingUp />,
   attendance: <ClipboardCheck />,
   grades: <BookOpen />,
+  attendance_today: <ClipboardCheck />,
+  drafts: <BookOpen />,
+  submissions: <ClipboardCheck />,
+  pending_tasks: <ClipboardCheck />,
+  balance: <Wallet />,
+  collected_month: <Wallet />,
+  overdue: <AlertTriangle />,
+  pending_transfers: <Wallet />,
 };
-const tones = ["blue", "violet", "amber", "green"];
 
 export function DashboardPage() {
   const { user } = useAuthStore();
@@ -131,18 +135,23 @@ export function DashboardPage() {
           ))}
         </section>
       )}
-      <section className="metric-grid">
-        {data?.metrics.map((metric, index) => (
-          <MetricCard
-            key={metric.key}
-            icon={icons[metric.key] ?? <TrendingUp />}
-            metric={metric}
-            tone={tones[index % tones.length]}
-          />
-        ))}
-      </section>
-      {access.institution && access.can("reports.view") && <AdminOverview />}
+      {data && data.metrics.length > 0 && (
+        <MetricRow label="Indicadores">
+          {data.metrics.map(metric => (
+            <Metric
+              key={metric.key}
+              label={metric.label}
+              value={metricValue(metric)}
+              note={metric.note}
+              tone={(metric.tone ?? "default") as VisualTone}
+              icon={icons[metric.key]}
+              to={metric.link ?? undefined}
+            />
+          ))}
+        </MetricRow>
+      )}
       {(access.teaching || access.student) && <PersonalDay />}
+      {access.institution && access.can("reports.view") && <AdminOverview />}
     </div>
   );
 }
@@ -484,15 +493,8 @@ function StudentPending() {
   );
 }
 
-function MetricCard({ icon, metric, tone }: { icon: ReactNode; metric: Metric; tone: string }) {
-  return (
-    <article className="metric-card">
-      <span className={`metric-icon metric-icon--${tone}`}>{icon}</span>
-      <div>
-        <small>{metric.label}</small>
-        <strong>{metric.value === null ? "Sin datos" : metric.value}</strong>
-        <span>{metric.note}</span>
-      </div>
-    </article>
-  );
+function metricValue(metric: SummaryMetric) {
+  if (metric.value === null || metric.value === undefined) return "Sin datos";
+  if (metric.format === "money") return formatMoney(metric.value);
+  return metric.key === "attendance" ? `${metric.value}%` : metric.value;
 }

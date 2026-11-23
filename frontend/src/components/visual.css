@@ -4,6 +4,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.6rem;
+  margin-bottom: 1rem;
 }
 @media (min-width: 720px) {
   .vs-metric-row {
@@ -47,11 +48,9 @@
   height: 15px;
 }
 .vs-metric__value {
-  overflow: hidden;
-  font-size: 1.3rem;
+  font-size: clamp(1.05rem, 4.6vw, 1.3rem);
   line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .vs-metric__note {
   color: var(--muted);

@@ -67,22 +67,35 @@ def test_dashboard_summary_depends_on_scope(demo):  # noqa: F811
         "teachers",
         "sections",
         "enrollments",
+        "collected_month",
+        "overdue",
+        "pending_transfers",
     }
     assert admin["display_name"] == "equipo de administración"
 
     teacher = client.get("/dashboard/summary", headers=tokens["docente"]).json()
     assert teacher["role"] == "teacher"
-    assert [m["key"] for m in teacher["metrics"]] == ["sections", "students", "grades"]
-    assert teacher["metrics"][0]["value"] >= 1
+    assert [m["key"] for m in teacher["metrics"]] == [
+        "attendance_today",
+        "drafts",
+        "submissions",
+        "students",
+    ]
+    by_key = {m["key"]: m for m in teacher["metrics"]}
+    assert by_key["students"]["value"] >= 1
+    assert all(
+        (m["link"] is None) == (m["tone"] == "success") for m in teacher["metrics"][:3]
+    )  # a link only when there is something to do
 
     student = client.get("/dashboard/summary", headers=tokens["estudiante"]).json()
     assert student["role"] == "student"
     assert [m["key"] for m in student["metrics"]] == [
-        "courses",
         "average",
-        "provisional_average",
         "attendance",
+        "pending_tasks",
+        "balance",
     ]
+    assert {m["key"]: m["format"] for m in student["metrics"]}["balance"] == "money"
 
     with sessions() as db:
         for period in db.query(AcademicPeriod).all():
@@ -150,3 +163,28 @@ def test_role_permission_editor_validates_and_records_changes(demo):  # noqa: F8
     catalog = client.get("/access/permissions", headers=admin)
     assert catalog.status_code == 200
     assert client.get("/access/scopes", headers=admin).json()[0]["value"] == "institution"
+
+
+def test_dashboard_hides_finance_without_permission_and_respects_the_setting(demo):  # noqa: F811
+    from app.models import InstitutionSettings, Permission, RolePermission
+
+    client, sessions, tokens = demo
+    with sessions() as db:
+        admin = db.query(Role).filter_by(name="admin").one()
+        finance = db.query(Permission).filter_by(slug="finance.view").first()
+        if finance is not None:
+            db.query(RolePermission).filter_by(
+                role_id=admin.role_id, permission_id=finance.permission_id
+            ).delete()
+        settings = db.get(InstitutionSettings, 1) or InstitutionSettings(settings_id=1)
+        settings.students_view_finance = False
+        db.merge(settings)
+        db.commit()
+    keys = {
+        m["key"]
+        for m in client.get("/dashboard/summary", headers=tokens["admin"]).json()["metrics"]
+    }
+    if finance is not None:
+        assert not keys & {"collected_month", "overdue", "pending_transfers"}
+    student = client.get("/dashboard/summary", headers=tokens["estudiante"]).json()
+    assert "balance" not in {m["key"] for m in student["metrics"]}

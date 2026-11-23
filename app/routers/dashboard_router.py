@@ -1,19 +1,18 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.auth import ACADEMIC_SCOPE, get_current_user, has_scope
+from app.auth import ACADEMIC_SCOPE, get_current_user, has_permission, has_scope
 from app.db.Session import get_db
 from app.models.community_model import Guardian
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.enrollment_model import Enrollment
-from app.models.grade_model import Grade
 from app.models.section_model import Section
 from app.models.student_model import Student
 from app.models.teacher_model import Teacher
 from app.models.user_model import User
 from app.schemas.dashboard_schema import DashboardMetric, DashboardSummary
 from app.services.academic_metrics import summarize_results
+from app.services.dashboard_metrics import finance_metrics, student_extra_metrics, teacher_metrics
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -48,18 +47,21 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
                 label="Estudiantes",
                 value=db.query(Student).filter(Student.active.is_(True)).count(),
                 note="Expedientes activos",
+                link="/students",
             ),
             DashboardMetric(
                 key="teachers",
                 label="Docentes",
                 value=db.query(Teacher).filter(Teacher.active.is_(True)).count(),
                 note="Equipo académico",
+                link="/teachers",
             ),
             DashboardMetric(
                 key="sections",
                 label="Secciones",
                 value=db.query(Section).count(),
                 note="Oferta registrada",
+                link="/sections",
             ),
             DashboardMetric(
                 key="enrollments",
@@ -70,6 +72,8 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
                 note=active_period.name if active_period else "Todos los períodos",
             ),
         ]
+        if has_permission(user, "finance.view"):
+            metrics += finance_metrics(db)
         settings = db.get(InstitutionSettings, 1)
         if settings is None:
             alerts.append("Completa la configuración institucional")
@@ -81,37 +85,7 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
             alerts=alerts,
         )
     if user.teacher_id is not None:
-        sections = db.query(Section).filter(Section.teacher_id == user.teacher_id)
-        student_count = (
-            db.query(func.count(func.distinct(Enrollment.student_id)))
-            .join(Section, Enrollment.section_id == Section.section_id)
-            .filter(Section.teacher_id == user.teacher_id)
-            .scalar()
-        ) or 0
-        metrics = [
-            DashboardMetric(
-                key="sections",
-                label="Mis secciones",
-                value=sections.count(),
-                note="Secciones asignadas",
-            ),
-            DashboardMetric(
-                key="students",
-                label="Mis estudiantes",
-                value=student_count,
-                note="Estudiantes distintos",
-            ),
-            DashboardMetric(
-                key="grades",
-                label="Notas registradas",
-                value=db.query(Grade)
-                .join(Enrollment)
-                .join(Section)
-                .filter(Section.teacher_id == user.teacher_id)
-                .count(),
-                note="Evaluaciones acumuladas",
-            ),
-        ]
+        metrics = teacher_metrics(db, user.teacher_id)
         return DashboardSummary(
             display_name=display_name(db, user),
             role="teacher",
@@ -127,31 +101,27 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
     ).all()
     summary = summarize_results(db, enrollments)
     period_name = active_period.name if active_period else "Todos los períodos"
+    final = summary["average_grade"] is not None
+    average = summary["average_grade"] if final else summary["provisional_average_grade"]
+    attendance = summary["attendance_percentage"]
     metrics = [
         DashboardMetric(
-            key="courses",
-            label="Asignaturas",
-            value=len(enrollments),
-            note=f"Selecciones académicas · {period_name}",
-        ),
-        DashboardMetric(
             key="average",
-            label="Promedio definitivo",
-            value=summary["average_grade"],
-            note=f"{summary['final_grade_count']} resultados finales · {period_name}",
-        ),
-        DashboardMetric(
-            key="provisional_average",
-            label="Promedio provisional",
-            value=summary["provisional_average_grade"],
-            note=f"{summary['provisional_grade_count']} resultados publicados sin cierre · {period_name}",
+            label="Promedio" if final else "Promedio provisional",
+            value=average,
+            note=f"{len(enrollments)} asignaturas · {period_name}",
+            tone="warning" if average is not None and average < 70 else "default",
+            link="/my-grades",
         ),
         DashboardMetric(
             key="attendance",
             label="Asistencia",
-            value=summary["attendance_percentage"],
-            note=f"{summary['attendance_count']} registros de asistencia · {period_name}",
+            value=attendance,
+            note=f"{summary['attendance_count']} clases registradas",
+            tone="warning" if attendance is not None and attendance < 80 else "default",
+            link="/my-attendance",
         ),
+        *student_extra_metrics(db, user.student_id),
     ]
     return DashboardSummary(
         display_name=display_name(db, user),

@@ -4519,6 +4519,11 @@
       },
       "DashboardMetric": {
         "properties": {
+          "format": {
+            "default": "number",
+            "title": "Format",
+            "type": "string"
+          },
           "key": {
             "title": "Key",
             "type": "string"
@@ -4527,8 +4532,24 @@
             "title": "Label",
             "type": "string"
           },
+          "link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link"
+          },
           "note": {
             "title": "Note",
+            "type": "string"
+          },
+          "tone": {
+            "default": "default",
+            "title": "Tone",
             "type": "string"
           },
           "value": {

@@ -59,3 +59,67 @@ describe("DashboardPage session isolation", () => {
     await waitFor(() => expect(get).toHaveBeenCalledWith("/academic/students/1/schedule"));
   });
 });
+
+describe("DashboardPage metrics", () => {
+  afterEach(() => vi.restoreAllMocks());
+  it("links only the metrics that need action and formats money", async () => {
+    const { screen } = await import("@testing-library/react");
+    vi.spyOn(api, "get").mockImplementation(
+      async url =>
+        ({
+          data:
+            url === "/dashboard/summary"
+              ? {
+                  role: "teacher",
+                  display_name: "Ana",
+                  active_period: "2026-2027",
+                  alerts: [],
+                  metrics: [
+                    {
+                      key: "drafts",
+                      label: "Notas por publicar",
+                      value: 4,
+                      note: "En borrador",
+                      tone: "warning",
+                      link: "/assessments",
+                      format: "number",
+                    },
+                    {
+                      key: "submissions",
+                      label: "Entregas por revisar",
+                      value: 0,
+                      note: "Al día",
+                      tone: "success",
+                      link: null,
+                      format: "number",
+                    },
+                    {
+                      key: "balance",
+                      label: "Mi balance",
+                      value: 1250,
+                      note: "Al día",
+                      tone: "default",
+                      link: "/my-finance",
+                      format: "money",
+                    },
+                  ],
+                }
+              : [],
+        }) as never,
+    );
+    useAuthStore.setState({ user: teacher, token: "teacher-token" });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <DashboardPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByRole("link", { name: /Notas por publicar/ })).toHaveAttribute(
+      "href",
+      "/assessments",
+    );
+    expect(screen.queryByRole("link", { name: /Entregas por revisar/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/1,250/)).toBeInTheDocument();
+  });
+});

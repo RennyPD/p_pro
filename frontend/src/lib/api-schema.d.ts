@@ -5256,12 +5256,24 @@ export interface components {
     };
     /** DashboardMetric */
     DashboardMetric: {
+      /**
+       * Format
+       * @default number
+       */
+      format: string;
       /** Key */
       key: string;
       /** Label */
       label: string;
+      /** Link */
+      link?: string | null;
       /** Note */
       note: string;
+      /**
+       * Tone
+       * @default default
+       */
+      tone: string;
       /** Value */
       value: number | null;
     };
