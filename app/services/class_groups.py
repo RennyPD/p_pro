@@ -8,7 +8,7 @@ Fase 3, block C (decisions of 23/11/2026):
    its period results) against the institution's passing grade, and confirmed
    by a person. Block D refines completivo and extraordinario.
 3. A financial hold blocks joining a group, as it blocks any enrollment, unless
-   someone with ``finance.manage`` records an exception with its reason.
+   someone with ``finance.supervise`` records an exception with its reason.
 """
 
 from dataclasses import dataclass, field
@@ -326,7 +326,7 @@ def check_holds(student: Student, actor: User, override_reason: str | None) -> s
     reason = (override_reason or "").strip()
     if not reason:
         raise HTTPException(409, f"{student.full_name} tiene un bloqueo financiero activo")
-    if not has_permission(actor, "finance.manage"):
+    if not has_permission(actor, "finance.supervise"):
         raise HTTPException(
             403, "Solo finanzas puede autorizar una excepción al bloqueo financiero"
         )
@@ -722,7 +722,7 @@ def reinscribe(
             member.student.financial_hold
             and not member.student.academic_hold
             and override_reason
-            and has_permission(actor, "finance.manage")
+            and has_permission(actor, "finance.supervise")
         ):
             blocked.append({"student_name": name, "reason": problem.capitalize()})
             continue

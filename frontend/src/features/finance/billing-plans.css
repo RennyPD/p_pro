@@ -284,3 +284,30 @@
     grid-template-columns: 1fr;
   }
 }
+.billing-school {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.billing-grades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.billing-grades legend {
+  padding: 0 0.3rem;
+  font-weight: 600;
+}
+.billing-grades label,
+.billing-sibling {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.billing-sibling {
+  margin-bottom: 0.75rem;
+}

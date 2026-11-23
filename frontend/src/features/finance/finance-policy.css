@@ -1,0 +1,40 @@
+.policy-page {
+  display: grid;
+  gap: 1rem;
+}
+.policy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.9rem;
+}
+.policy-grid .vs-section {
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+}
+.policy-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+.policy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+.policy-actions .form-field {
+  flex: 1;
+  min-width: 240px;
+}
+.policy-run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.policy-result ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+}

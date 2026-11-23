@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, CalendarRange, Wallet } from "lucide-react";
+import { ArrowRight, BarChart3, CalendarRange, Settings2, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Pager } from "../../components/Pager";
@@ -64,13 +64,24 @@ export function FinanceAccounts() {
           <span className="kicker">Control financiero · RD$</span>
           <h1>Cuentas estudiantiles</h1>
           <p>
-            Cargos, abonos verificados y compromisos. No se procesan tarjetas ni cobros automáticos.
+            Cargos, abonos verificados y compromisos. Los cobros automáticos se configuran en
+            Política.
           </p>
         </div>
-        <Link className="button button--secondary finance-plans-link" to="/finance/plans">
-          <CalendarRange size={18} />
-          Planes de cobro
-        </Link>
+        <div className="finance-header-links">
+          <Link className="button button--secondary finance-plans-link" to="/finance/plans">
+            <CalendarRange size={18} />
+            Planes de cobro
+          </Link>
+          <Link className="button button--secondary" to="/finance/reports">
+            <BarChart3 size={18} />
+            Reportes
+          </Link>
+          <Link className="button button--secondary" to="/finance/policy">
+            <Settings2 size={18} />
+            Política
+          </Link>
+        </div>
       </header>
       <section className="profile-metrics">
         <FinanceMetric

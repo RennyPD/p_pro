@@ -37,7 +37,7 @@ En el archivo local `.env`, configurar `FINANCE_TRANSFER_INSTRUCTIONS` con instr
 
 Los nuevos importes aceptan solo montos positivos, finitos y de hasta dos decimales. Los cálculos usan centavos enteros; las columnas monetarias heredadas se conservan como Float por compatibilidad, sin reescribir valores anteriores. No es una migración completa a columnas Decimal/Numeric.
 
-Balance = cargos vigentes + débitos vigentes − créditos vigentes − pagos vigentes. Los movimientos reversados se conservan visibles pero no afectan los totales. Para calcular deuda vencida, se aplican pagos/créditos a obligaciones por vencimiento más antiguo primero. El día de corte sigue siendo informativo; no genera cargos ni mora automáticamente.
+Balance = cargos vigentes + débitos vigentes − créditos vigentes − pagos vigentes. Los movimientos reversados se conservan visibles pero no afectan los totales. Para calcular deuda vencida, se aplican pagos/créditos a obligaciones por vencimiento más antiguo primero. El día de corte sigue siendo informativo; los cargos y la mora automáticos dependen de la política financiera (ver «Finanzas escolares»).
 
 Los planes cancelados nuevos congelan su cobertura al cancelarse; pagos futuros no alteran sus compromisos históricos. Los estados de cuotas nuevas se calculan desde el libro financiero, no desde una casilla editable. Planes heredados conservan sus marcas de pago iniciales.
 
@@ -52,3 +52,15 @@ No subir `.env`, `school.db`, respaldos ni comprobantes. Que Git ignore la base 
 ## Futuro pago con tarjeta
 
 La interfaz no muestra un checkout bancario ficticio. La futura pasarela deberá usar un adaptador independiente y confirmación autenticada del proveedor, validar importe/moneda/orden y evitar duplicados antes de llamar al flujo común de registro del pago. No aprobar a partir del retorno del navegador. Requiere afiliación, credenciales de pruebas y certificación del proveedor antes de habilitar producción.
+
+## Finanzas escolares (Fase 3 E, 23/11/2026)
+
+Todo lo automático arranca desactivado y se configura en **Finanzas › Política**:
+
+- **Generación programada.** `python -m scripts.run_billing` una vez al día (por ejemplo a las 6:30). Genera cada mes de los planes activos N días antes del vencimiento; con `--simulate` muestra lo que haría sin guardar nada. La pantalla de Política también permite simular y aplicar.
+- **Planes por grado.** Elige el año lectivo y marca los grados: se cobra a los estudiantes inscritos en los grupos de ese grado y año. Sin meses indicados, el plan cubre todos los meses del año lectivo.
+- **Descuento por hermanos.** La familia son los estudiantes con el mismo tutor marcado «responsable de pago» en su vínculo. El hijo con la mensualidad más alta paga completo; los demás reciben el porcentaje configurado (2.º y 3.º en adelante) en los planes marcados «aplica descuento por hermanos». Se registra como descuento ligado al cargo y puede reversarse.
+- **Mora.** Recargo fijo o porcentual, una sola vez por cuota vencida (no se acumula), después de los días de gracia.
+- **Bloqueo automático.** Tras los días de atraso configurados y con el monto mínimo vencido. Se levanta solo cuando la cuenta se pone al día y únicamente si el bloqueo fue automático.
+- **Cajero y supervisor.** El permiso `finance.collect` cobra, revisa transferencias y ve «Mi caja de hoy»; `finance.supervise` registra cargos y ajustes, reversa, cancela planes de pago, cierra caja y cambia la política. Nadie puede reversar un pago que registró. `finance.manage` incluye ambos.
+- **Reportes.** Finanzas › Reportes: morosidad por antigüedad (0–30, 31–60, 61–90 y más de 90 días), ingresos por día, método o cajero, y esperado contra cobrado por mes. Morosidad e ingresos se exportan en CSV.

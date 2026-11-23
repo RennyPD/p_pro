@@ -83,7 +83,7 @@ def writable_account(db, student_id):
 def event(db, user, student_id, action, detail):
     db.add(
         FinanceEvent(
-            user_id=user.user_id,
+            user_id=user.user_id if user is not None else None,
             student_id=student_id,
             action=action,
             detail=json.dumps(detail, ensure_ascii=False, default=str),
@@ -271,6 +271,12 @@ def post_payment(db, account, data, user, method="cash", key=None):
             "receipt": payment.receipt_number,
         },
     )
+    # A payment can bring the account up to date: lift an automatic hold (Fase 3 E).
+    from app.services.finance_automation import refresh_auto_hold
+
+    db.flush()
+    db.expire(account, ["payments"])
+    refresh_auto_hold(db, account, user)
     return payment
 
 

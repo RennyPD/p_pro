@@ -105,6 +105,19 @@ PERMISSIONS: tuple[PermissionDef, ...] = (
         "Gestionar finanzas",
         "Cargos, pagos, ajustes, transferencias y caja",
     ),
+    # Fase 3 E: separating who collects from who supervises (finance.manage holds both).
+    PermissionDef(
+        "finance.collect",
+        "Finanzas",
+        "Cobrar (caja)",
+        "Registrar pagos, revisar transferencias y ver su propia caja",
+    ),
+    PermissionDef(
+        "finance.supervise",
+        "Finanzas",
+        "Supervisar finanzas",
+        "Reversos, ajustes, descuentos, cierre de caja y política de mora",
+    ),
     PermissionDef(
         "admissions.manage", "Admisiones", "Gestionar admisiones", "Solicitudes y matrícula"
     ),
@@ -175,6 +188,8 @@ INSTITUTIONAL_PERMISSIONS = frozenset(
         "enrollments.manage",
         "finance.view",
         "finance.manage",
+        "finance.collect",
+        "finance.supervise",
         "admissions.manage",
         "approvals.manage",
         "reports.view",
@@ -209,7 +224,9 @@ LEGACY_BUNDLES: dict[str, frozenset[str]] = {
     ),
     "access.manage": frozenset({"users.manage", "roles.manage"}),
     "reports.view": frozenset({"reports.view", "audit.view"}),
-    "finance.manage": frozenset({"finance.view", "finance.manage"}),
+    "finance.manage": frozenset(
+        {"finance.view", "finance.manage", "finance.collect", "finance.supervise"}
+    ),
     "grades.manage": frozenset(
         {"grades.view", "grades.manage", "attendance.view", "attendance.manage"}
     ),

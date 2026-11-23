@@ -27,6 +27,8 @@ class Student(Base):
     active: Mapped[bool] = mapped_column(default=True)
     academic_hold: Mapped[bool] = mapped_column(default=False)
     financial_hold: Mapped[bool] = mapped_column(default=False)
+    # "auto" when the daily finance job set the hold (and may lift it), else manual.
+    financial_hold_source: Mapped[str | None] = mapped_column(String(10), nullable=True)
     career_id: Mapped[int] = mapped_column(ForeignKey("careers.career_id"))
     assigned_curriculum_version: Mapped[str | None] = mapped_column(String(30))
 

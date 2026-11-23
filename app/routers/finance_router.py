@@ -66,6 +66,7 @@ from app.schemas.finance_schema import (
 from app.services import billing_plans
 from app.services.account_statement import account_statement
 from app.services.business_time import INSTITUTION_TIME_ZONE, business_day_utc_range
+from app.services.finance_automation import apply_sibling_discounts
 from app.services.finance_workflow import (
     CREDIT_KINDS,
     add_months,
@@ -91,6 +92,9 @@ from app.services.pdf_service import simple_pdf
 
 router = APIRouter(prefix="/finance", tags=["finance"])
 finance_manager = require_permissions("finance.manage")
+# Fase 3 E: the cashier collects, the supervisor corrects and closes the day.
+finance_collector = require_permissions("finance.collect")
+finance_supervisor = require_permissions("finance.supervise")
 finance_viewer = require_permissions("finance.view")
 # Kept for document and report consumers; reads never create persisted accounts.
 get_or_create_account = get_account
@@ -167,7 +171,7 @@ def update_account(
     student_id: int,
     data: AccountUpdate,
     db: Session = Depends(get_db),
-    user: User = Depends(finance_manager),
+    user: User = Depends(finance_supervisor),
 ):
     account = writable_account(db, student_id)
     before = {"cutoff_day": account.cutoff_day, "due_day": account.due_day}
@@ -181,7 +185,7 @@ def add_charge(
     student_id: int,
     data: ChargeCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(finance_manager),
+    user: User = Depends(finance_supervisor),
 ):
     account = writable_account(db, student_id)
     item = Charge(
@@ -215,7 +219,7 @@ def add_payment(
     student_id: int,
     data: PaymentCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(finance_manager),
+    user: User = Depends(finance_collector),
 ):
     account = writable_account(db, student_id)
     if data.idempotency_key:
@@ -240,7 +244,7 @@ def add_adjustment(
     student_id: int,
     data: AdjustmentCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(finance_manager),
+    user: User = Depends(finance_supervisor),
 ):
     account = writable_account(db, student_id)
     if data.kind in CREDIT_KINDS and cents(data.amount) > cents(summary(account).balance):
@@ -283,7 +287,7 @@ def reverse(
     identifier: int,
     data: ReasonRequest,
     db: Session = Depends(get_db),
-    user: User = Depends(finance_manager),
+    user: User = Depends(finance_supervisor),
 ):
     account = writable_account(db, student_id)
     model = {"payment": Payment, "charge": Charge, "adjustment": FinancialAdjustment}.get(kind)
@@ -297,6 +301,10 @@ def reverse(
             409, "Cancela primero el plan activo para revisar el balance y rehacer sus cuotas"
         )
     if kind == "payment":
+        if item.created_by is not None and item.created_by == user.user_id:
+            raise HTTPException(
+                403, "No puedes reversar un pago que registraste; pide a otro supervisor"
+            )
         check_open_day(db)
         check_open_day(db, business_date(item.paid_at))
         item.reversed_by, item.reversed_at = user.user_id, now()
@@ -328,7 +336,7 @@ def create_payment_plan(
     student_id: int,
     data: PaymentPlanCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(finance_manager),
+    user: User = Depends(finance_supervisor),
 ):
     account = writable_account(db, student_id)
     balance = cents(summary(account).balance)
@@ -404,7 +412,7 @@ def cancel_plan(
     plan_id: int,
     data: ReasonRequest,
     db: Session = Depends(get_db),
-    user: User = Depends(finance_manager),
+    user: User = Depends(finance_supervisor),
 ):
     account = writable_account(db, student_id)
     plan = next((p for p in account.payment_plans if p.payment_plan_id == plan_id), None)
@@ -555,7 +563,7 @@ def review_transfer(
     identifier: int,
     data: TransferReview,
     db: Session = Depends(get_db),
-    user: User = Depends(finance_manager),
+    user: User = Depends(finance_collector),
 ):
     lock_finance(db)
     item = db.get(TransferRequest, identifier)
@@ -772,6 +780,9 @@ def generate_billing_cycle(
 ):
     plan = billing_plans.get_plan(db, plan_id)
     run = billing_plans.generate(db, plan, data.cycle, user, data.reason, data.idempotency_key)
+    # Families with several children get their sibling discount (Fase 3 E).
+    charged = billing_plans.charged_student_ids(db, plan, data.cycle)
+    apply_sibling_discounts(db, data.cycle, charged, user)
     db.commit()
     db.refresh(run)
     return run
@@ -803,7 +814,7 @@ def closings(db: Session = Depends(get_db)):
 def close_cash_day(
     closing_date: date,
     db: Session = Depends(get_db),
-    user: User = Depends(finance_manager),
+    user: User = Depends(finance_supervisor),
 ):
     lock_finance(db)
     if closing_date > business_date():

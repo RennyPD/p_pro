@@ -23,13 +23,20 @@ import { fetchAllOptions } from "../../lib/options";
 import { useAccess } from "../../lib/permissions";
 import { useAuthStore } from "../../store/auth";
 import { cycleLabel } from "./billingCycles";
+import { SchoolTargets } from "./SchoolTargets";
 import "./billing-plans.css";
 
 type Plan = ApiSchema<"BillingPlanOut">;
 type Preview = ApiSchema<"BillingPreview">;
 type Run = ApiSchema<"BillingRunOut">;
 type Targets = ApiSchema<"BillingPlanTargets">;
-type Career = { career_id: number; code: string; name: string };
+type Career = {
+  career_id: number;
+  code: string;
+  name: string;
+  academic_level?: string;
+  duration_terms?: number;
+};
 type Concept = { billing_concept_id: number; name: string; amount: number | string };
 
 const money = (value: number | string) => formatMoney(Number(value));
@@ -44,6 +51,14 @@ function targetSummary(value: Targets, careers: Career[]) {
     .filter(Boolean);
   const parts = [
     names.length ? names.join(", ") : "",
+    targets.grades.length
+      ? targets.grades
+          .map(
+            item =>
+              `${item.grade_number}.º ${careers.find(c => c.career_id === item.career_id)?.name ?? ""}`,
+          )
+          .join(", ")
+      : "",
     targets.student_ids.length
       ? `${targets.student_ids.length} estudiante${targets.student_ids.length === 1 ? "" : "s"}`
       : "",
@@ -57,6 +72,7 @@ function targetSummary(value: Targets, careers: Career[]) {
 function normalizeTargets(targets: Targets) {
   return {
     career_ids: targets.career_ids ?? [],
+    grades: targets.grades ?? [],
     student_ids: targets.student_ids ?? [],
     excluded_student_ids: targets.excluded_student_ids ?? [],
   };
@@ -352,6 +368,9 @@ export function PlanEditor({
   const [careerIds, setCareerIds] = useState<number[]>(initial.career_ids);
   const [studentIds, setStudentIds] = useState<number[]>(initial.student_ids);
   const [excluded, setExcluded] = useState<number[]>(initial.excluded_student_ids);
+  const [grades, setGrades] = useState(initial.grades);
+  const [yearId, setYearId] = useState<number | "">(plan?.school_year_id ?? "");
+  const [sibling, setSibling] = useState(plan?.sibling_discount ?? false);
   const concepts = useQuery({
     queryKey: ["finance-concepts", uid],
     queryFn: () => api.get<Concept[]>("/finance/billing-concepts").then(r => r.data),
@@ -359,6 +378,7 @@ export function PlanEditor({
   });
   const targets = {
     career_ids: careerIds,
+    grades,
     student_ids: studentIds,
     excluded_student_ids: excluded,
   };
@@ -371,9 +391,11 @@ export function PlanEditor({
           billing_concept_id: conceptId || null,
           amount,
           frequency,
-          start_month: start,
-          end_month: frequency === "monthly" ? end : null,
+          start_month: start || null,
+          end_month: frequency === "monthly" ? end || null : null,
           due_day: Number(dueDay),
+          school_year_id: yearId || null,
+          sibling_discount: sibling,
           targets,
         });
         return;
@@ -383,6 +405,7 @@ export function PlanEditor({
         charge_description: description.trim(),
         amount,
         due_day: Number(dueDay),
+        sibling_discount: sibling,
         ...(frequency === "monthly" && end !== plan.end_month ? { end_month: end } : {}),
       });
       await api.put(`/finance/billing-plans/${plan.billing_plan_id}/targets`, targets);
@@ -396,11 +419,15 @@ export function PlanEditor({
   });
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (frequency === "monthly" && end < start) {
+    if (frequency === "monthly" && start && end && end < start) {
       toast.error("El mes final no puede ser anterior al mes inicial");
       return;
     }
-    if (!careerIds.length && !studentIds.length) {
+    if (!yearId && (!start || (frequency === "monthly" && !end))) {
+      toast.error("Indica los meses o elige el año lectivo");
+      return;
+    }
+    if (!careerIds.length && !studentIds.length && !grades.length) {
       toast.error("Elige al menos una carrera o grado, o un estudiante");
       return;
     }
@@ -501,7 +528,7 @@ export function PlanEditor({
             <label className="form-field">
               <span>{frequency === "monthly" ? "Primer mes" : "Mes del cobro"}</span>
               <input
-                required
+                required={!yearId}
                 type="month"
                 disabled={!creating}
                 value={start}
@@ -512,7 +539,7 @@ export function PlanEditor({
               <label className="form-field">
                 <span>Último mes</span>
                 <input
-                  required
+                  required={!yearId}
                   type="month"
                   min={start || undefined}
                   value={end}
@@ -539,6 +566,27 @@ export function PlanEditor({
             Solo estudiantes activos. Quien ingrese a mitad de año se cobra desde su mes de
             admisión.
           </p>
+          <SchoolTargets
+            careers={careers}
+            yearId={yearId}
+            onYearChange={setYearId}
+            grades={grades}
+            onGradesChange={setGrades}
+            disabled={!creating}
+          />
+          {yearId !== "" && !start && (
+            <p className="muted">
+              Sin meses indicados, el plan cobra todos los meses del año lectivo.
+            </p>
+          )}
+          <label className="billing-sibling">
+            <input
+              type="checkbox"
+              checked={sibling}
+              onChange={event => setSibling(event.target.checked)}
+            />
+            Aplica descuento por hermanos (según la política de Finanzas)
+          </label>
           <div className="billing-careers" role="group" aria-label="Carreras o grados">
             {careers.map(career => (
               <label key={career.career_id}>

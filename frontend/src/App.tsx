@@ -74,6 +74,16 @@ const BillingPlansPage = lazy(() =>
     default: module.BillingPlansPage,
   })),
 );
+const FinanceReportsPage = lazy(() =>
+  import("./features/finance/FinanceReportsPage").then(module => ({
+    default: module.FinanceReportsPage,
+  })),
+);
+const FinancePolicyPage = lazy(() =>
+  import("./features/finance/FinancePolicyPage").then(module => ({
+    default: module.FinancePolicyPage,
+  })),
+);
 const OperationsPage = lazy(() =>
   import("./features/operations/OperationsPage").then(module => ({
     default: module.OperationsPage,
@@ -244,9 +254,13 @@ export default function App() {
             <Route element={<Allow when={institution("equivalences.manage")} />}>
               <Route path="equivalences" element={<EquivalencesPage />} />
             </Route>
+            <Route element={<Allow when={institution("finance.view", "reports.view")} />}>
+              <Route path="finance/reports" element={<FinanceReportsPage />} />
+            </Route>
             <Route element={<Allow when={institution("finance.view")} />}>
               <Route path="finance" element={<FinancePage />} />
               <Route path="finance/plans" element={<BillingPlansPage />} />
+              <Route path="finance/policy" element={<FinancePolicyPage />} />
               <Route path="finance/:studentId" element={<FinancePage />} />
             </Route>
             <Route

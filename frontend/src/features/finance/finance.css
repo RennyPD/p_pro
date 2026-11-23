@@ -381,3 +381,51 @@
 .finance-page > .finance-simulator {
   margin-top: 0.75rem;
 }
+.finance-header-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.finance-family {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+.finance-family header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.finance-family h2 {
+  margin: 0;
+}
+.finance-family__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.finance-family__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--line);
+}
+.finance-family__list li:first-child {
+  border-top: 0;
+}
+.finance-family__list li > div {
+  display: grid;
+}
+.finance-family__list small {
+  color: var(--muted);
+}
+.finance-family__list .is-low {
+  color: var(--danger);
+}
+.finance-family__total {
+  margin: 0;
+  text-align: right;
+}

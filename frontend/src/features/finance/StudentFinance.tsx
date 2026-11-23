@@ -9,6 +9,7 @@ import {
   ListChecks,
   Plus,
   Receipt,
+  Users,
   Wallet,
   X,
 } from "lucide-react";
@@ -31,6 +32,7 @@ import {
   type Transaction,
   type Transfer,
 } from "./financeData";
+import { FamilyTab } from "./FamilyTab";
 import { HistoryTab } from "./HistoryTab";
 import { MovementsTab } from "./MovementsTab";
 import { PaymentSimulator } from "./PaymentSimulator";
@@ -40,7 +42,7 @@ import { TransfersTab } from "./TransfersTab";
 import "./finance.css";
 
 type Statement = ApiSchema<"AccountStatement">;
-type Tab = "installments" | "movements" | "transfers" | "plans" | "history";
+type Tab = "installments" | "movements" | "transfers" | "plans" | "family" | "history";
 
 /**
  * One student's account for the finance office: what is owed and when first,
@@ -49,9 +51,14 @@ type Tab = "installments" | "movements" | "transfers" | "plans" | "history";
 export function StudentFinance({
   studentId,
   canManage,
+  canCollect = canManage,
+  canSupervise = canManage,
 }: {
   studentId: number;
+  /** Finance office access: collecting or supervising (Fase 3 E). */
   canManage: boolean;
+  canCollect?: boolean;
+  canSupervise?: boolean;
 }) {
   const uid = useAuthStore(s => s.user?.user_id);
   const base = `/finance/students/${studentId}`;
@@ -66,6 +73,11 @@ export function StudentFinance({
   const options = useQuery({
     queryKey: ["finance-options", uid],
     queryFn: () => api.get<FinanceOptions>(`/finance/options`).then(r => r.data),
+  });
+  const family = useQuery({
+    queryKey: ["finance", "family", studentId],
+    queryFn: () => api.get<ApiSchema<"FamilyAccount">>(`${base}/family`).then(r => r.data),
+    enabled: canManage,
   });
   const transfers = useQuery({
     queryKey: ["finance-transfers", uid, studentId],
@@ -110,6 +122,16 @@ export function StudentFinance({
     { key: "movements", label: "Movimientos", icon: <Receipt /> },
     { key: "transfers", label: "Transferencias", icon: <Inbox />, count: pending },
     { key: "plans", label: "Planes de pago", icon: <ClipboardList /> },
+    ...((family.data?.members?.length ?? 0) > 1
+      ? [
+          {
+            key: "family" as const,
+            label: "Familia",
+            icon: <Users />,
+            count: family.data?.members.length,
+          },
+        ]
+      : []),
     ...(canManage ? [{ key: "history" as const, label: "Auditoría", icon: <History /> }] : []),
   ];
   const closeDialogs = () => {
@@ -136,9 +158,11 @@ export function StudentFinance({
         </div>
         {canManage && (
           <div className="section-heading__actions">
-            <Button variant="secondary" onClick={() => setEditingDays(true)}>
-              <CalendarCog size={16} /> Días de la cuenta
-            </Button>
+            {canSupervise && (
+              <Button variant="secondary" onClick={() => setEditingDays(true)}>
+                <CalendarCog size={16} /> Días de la cuenta
+              </Button>
+            )}
             <Button aria-expanded={office} onClick={() => setOffice(open => !open)}>
               {office ? <X size={16} /> : <Plus size={16} />}{" "}
               {office ? "Cerrar registro" : "Registrar movimiento"}
@@ -182,7 +206,13 @@ export function StudentFinance({
       </MetricRow>
 
       {canManage && office && (
-        <RecordMovementPanel studentId={studentId} dueDay={data.due_day} balance={data.balance} />
+        <RecordMovementPanel
+          studentId={studentId}
+          dueDay={data.due_day}
+          balance={data.balance}
+          canCollect={canCollect}
+          canSupervise={canSupervise}
+        />
       )}
 
       <Tabs
@@ -204,21 +234,24 @@ export function StudentFinance({
         {tab === "movements" && (
           <MovementsTab
             transactions={data.transactions}
-            canManage={canManage}
+            canManage={canSupervise}
             onReverse={setReverse}
           />
         )}
         {tab === "transfers" && (
-          <TransfersTab transfers={transfers} canManage={canManage} onReview={setReview} />
+          <TransfersTab transfers={transfers} canManage={canCollect} onReview={setReview} />
         )}
         {tab === "plans" && (
           <PlansTab
             studentId={studentId}
             plans={plans}
             balance={data.balance}
-            canManage={canManage}
+            canManage={canSupervise}
             onCancel={setCancelPlan}
           />
+        )}
+        {tab === "family" && family.data && (
+          <FamilyTab family={family.data} studentId={studentId} />
         )}
         {tab === "history" && canManage && <HistoryTab history={history} />}
       </div>

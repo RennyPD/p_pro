@@ -37,6 +37,7 @@ from app.routers.operations_router import router as operations_router
 from app.routers.record_router import router as record_router
 from app.routers.role_router import router as role_router
 from app.routers.scheduling_router import router as scheduling_router
+from app.routers.school_finance_router import router as school_finance_router
 from app.routers.school_year_router import router as school_year_router
 from app.routers.section_router import router as section_router
 from app.routers.student_router import router as student_router
@@ -132,6 +133,7 @@ app.include_router(configuration_router)
 app.include_router(school_year_router)
 app.include_router(class_group_router)
 app.include_router(grading_scale_router)
+app.include_router(school_finance_router)
 app.include_router(community_router)
 app.include_router(curriculum_router)
 app.include_router(dashboard_router)

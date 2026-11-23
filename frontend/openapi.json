@@ -838,6 +838,209 @@
         "title": "AdmissionUpdate",
         "type": "object"
       },
+      "AgingAccount": {
+        "properties": {
+          "current": {
+            "default": 0.0,
+            "title": "Current",
+            "type": "number"
+          },
+          "d1_30": {
+            "default": 0.0,
+            "title": "D1 30",
+            "type": "number"
+          },
+          "d31_60": {
+            "default": 0.0,
+            "title": "D31 60",
+            "type": "number"
+          },
+          "d61_90": {
+            "default": 0.0,
+            "title": "D61 90",
+            "type": "number"
+          },
+          "d90_plus": {
+            "default": 0.0,
+            "title": "D90 Plus",
+            "type": "number"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family"
+          },
+          "financial_hold": {
+            "title": "Financial Hold",
+            "type": "boolean"
+          },
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "oldest_due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Due"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "total": {
+            "default": 0.0,
+            "title": "Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "student_id",
+          "student_name",
+          "enrollment_number",
+          "group",
+          "family",
+          "financial_hold",
+          "oldest_due"
+        ],
+        "title": "AgingAccount",
+        "type": "object"
+      },
+      "AgingBuckets": {
+        "properties": {
+          "current": {
+            "default": 0.0,
+            "title": "Current",
+            "type": "number"
+          },
+          "d1_30": {
+            "default": 0.0,
+            "title": "D1 30",
+            "type": "number"
+          },
+          "d31_60": {
+            "default": 0.0,
+            "title": "D31 60",
+            "type": "number"
+          },
+          "d61_90": {
+            "default": 0.0,
+            "title": "D61 90",
+            "type": "number"
+          },
+          "d90_plus": {
+            "default": 0.0,
+            "title": "D90 Plus",
+            "type": "number"
+          },
+          "total": {
+            "default": 0.0,
+            "title": "Total",
+            "type": "number"
+          }
+        },
+        "title": "AgingBuckets",
+        "type": "object"
+      },
+      "AgingGroup": {
+        "properties": {
+          "current": {
+            "default": 0.0,
+            "title": "Current",
+            "type": "number"
+          },
+          "d1_30": {
+            "default": 0.0,
+            "title": "D1 30",
+            "type": "number"
+          },
+          "d31_60": {
+            "default": 0.0,
+            "title": "D31 60",
+            "type": "number"
+          },
+          "d61_90": {
+            "default": 0.0,
+            "title": "D61 90",
+            "type": "number"
+          },
+          "d90_plus": {
+            "default": 0.0,
+            "title": "D90 Plus",
+            "type": "number"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "students": {
+            "default": 0,
+            "title": "Students",
+            "type": "integer"
+          },
+          "total": {
+            "default": 0.0,
+            "title": "Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "AgingGroup",
+        "type": "object"
+      },
+      "AgingSummary": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/AgingGroup"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
+          "students_overdue": {
+            "title": "Students Overdue",
+            "type": "integer"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/AgingBuckets"
+          }
+        },
+        "required": [
+          "as_of",
+          "totals",
+          "students_overdue",
+          "groups"
+        ],
+        "title": "AgingSummary",
+        "type": "object"
+      },
       "AlertAssignment": {
         "properties": {
           "assigned_to": {
@@ -2168,6 +2371,64 @@
         "title": "AuditLogOut",
         "type": "object"
       },
+      "AutomationRun": {
+        "properties": {
+          "billing_runs": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Billing Runs",
+            "type": "array"
+          },
+          "holds_lifted": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Holds Lifted",
+            "type": "array"
+          },
+          "holds_set": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Holds Set",
+            "type": "array"
+          },
+          "late_fees": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Late Fees",
+            "type": "array"
+          },
+          "sibling_discounts": {
+            "title": "Sibling Discounts",
+            "type": "integer"
+          },
+          "simulated": {
+            "title": "Simulated",
+            "type": "boolean"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          }
+        },
+        "required": [
+          "today",
+          "simulated",
+          "billing_runs",
+          "sibling_discounts",
+          "late_fees",
+          "holds_set",
+          "holds_lifted"
+        ],
+        "title": "AutomationRun",
+        "type": "object"
+      },
       "BandBrief": {
         "properties": {
           "label": {
@@ -2571,10 +2832,33 @@
             ],
             "title": "Period Id"
           },
+          "school_year_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "School Year Id"
+          },
+          "sibling_discount": {
+            "default": false,
+            "title": "Sibling Discount",
+            "type": "boolean"
+          },
           "start_month": {
-            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
-            "title": "Start Month",
-            "type": "string"
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Month"
           },
           "targets": {
             "$ref": "#/components/schemas/BillingPlanTargets"
@@ -2583,8 +2867,7 @@
         "required": [
           "name",
           "charge_description",
-          "amount",
-          "start_month"
+          "amount"
         ],
         "title": "BillingPlanCreate",
         "type": "object"
@@ -2671,6 +2954,22 @@
             ],
             "title": "Period Id"
           },
+          "school_year_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "School Year Id"
+          },
+          "sibling_discount": {
+            "default": false,
+            "title": "Sibling Discount",
+            "type": "boolean"
+          },
           "start_month": {
             "title": "Start Month",
             "type": "string"
@@ -2700,7 +2999,7 @@
         "type": "object"
       },
       "BillingPlanTargets": {
-        "description": "Careers (or school grades), extra students and excluded students.",
+        "description": "Careers, school grades, extra students and excluded students.",
         "properties": {
           "career_ids": {
             "items": {
@@ -2716,6 +3015,14 @@
             },
             "maxItems": 5000,
             "title": "Excluded Student Ids",
+            "type": "array"
+          },
+          "grades": {
+            "items": {
+              "$ref": "#/components/schemas/GradeTarget"
+            },
+            "maxItems": 100,
+            "title": "Grades",
             "type": "array"
           },
           "student_ids": {
@@ -2808,6 +3115,17 @@
               }
             ],
             "title": "Name"
+          },
+          "sibling_discount": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sibling Discount"
           }
         },
         "title": "BillingPlanUpdate",
@@ -4103,6 +4421,38 @@
           "created_at"
         ],
         "title": "CashClosingOut",
+        "type": "object"
+      },
+      "CashierDay": {
+        "properties": {
+          "by_method": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "By Method",
+            "type": "object"
+          },
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "payments": {
+            "title": "Payments",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "day",
+          "payments",
+          "total",
+          "by_method"
+        ],
+        "title": "CashierDay",
         "type": "object"
       },
       "ChangePasswordRequest": {
@@ -5966,6 +6316,79 @@
         "title": "EquivalenceUpdate",
         "type": "object"
       },
+      "ExpectedMonth": {
+        "properties": {
+          "by_concept": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "By Concept",
+            "type": "object"
+          },
+          "collected": {
+            "title": "Collected",
+            "type": "number"
+          },
+          "expected": {
+            "title": "Expected",
+            "type": "number"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month",
+          "expected",
+          "collected",
+          "by_concept"
+        ],
+        "title": "ExpectedMonth",
+        "type": "object"
+      },
+      "FamilyAccount": {
+        "properties": {
+          "balance": {
+            "title": "Balance",
+            "type": "number"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyMember"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "overdue_balance": {
+            "title": "Overdue Balance",
+            "type": "number"
+          },
+          "responsible": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Responsible",
+            "type": "array"
+          },
+          "statements": {
+            "items": {
+              "$ref": "#/components/schemas/AccountStatement"
+            },
+            "title": "Statements",
+            "type": "array"
+          }
+        },
+        "required": [
+          "responsible",
+          "members",
+          "balance",
+          "overdue_balance",
+          "statements"
+        ],
+        "title": "FamilyAccount",
+        "type": "object"
+      },
       "FamilyAllocation": {
         "properties": {
           "amount": {
@@ -6081,6 +6504,39 @@
           "concepts"
         ],
         "title": "FamilyFinance",
+        "type": "object"
+      },
+      "FamilyMember": {
+        "properties": {
+          "balance": {
+            "title": "Balance",
+            "type": "number"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "overdue_balance": {
+            "title": "Overdue Balance",
+            "type": "number"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "student_name",
+          "enrollment_number",
+          "balance",
+          "overdue_balance"
+        ],
+        "title": "FamilyMember",
         "type": "object"
       },
       "FamilyStudentBalance": {
@@ -6447,6 +6903,193 @@
           "simulator_enabled"
         ],
         "title": "FinanceOptions",
+        "type": "object"
+      },
+      "FinancePolicyIn": {
+        "properties": {
+          "auto_billing_enabled": {
+            "default": false,
+            "title": "Auto Billing Enabled",
+            "type": "boolean"
+          },
+          "billing_lead_days": {
+            "default": 10,
+            "maximum": 60.0,
+            "minimum": 0.0,
+            "title": "Billing Lead Days",
+            "type": "integer"
+          },
+          "grace_days": {
+            "default": 5,
+            "maximum": 90.0,
+            "minimum": 0.0,
+            "title": "Grace Days",
+            "type": "integer"
+          },
+          "hold_after_days": {
+            "default": 30,
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Hold After Days",
+            "type": "integer"
+          },
+          "hold_enabled": {
+            "default": false,
+            "title": "Hold Enabled",
+            "type": "boolean"
+          },
+          "hold_min_amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,10}|(?=[\\d.]{1,13}0*$)\\d{0,10}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Hold Min Amount"
+          },
+          "late_fee_enabled": {
+            "default": false,
+            "title": "Late Fee Enabled",
+            "type": "boolean"
+          },
+          "late_fee_kind": {
+            "default": "percent",
+            "pattern": "^(percent|fixed)$",
+            "title": "Late Fee Kind",
+            "type": "string"
+          },
+          "late_fee_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "5",
+            "title": "Late Fee Value"
+          },
+          "reason": {
+            "maxLength": 250,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "sibling_discount_enabled": {
+            "default": false,
+            "title": "Sibling Discount Enabled",
+            "type": "boolean"
+          },
+          "sibling_second_percent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "default": "10",
+            "title": "Sibling Second Percent"
+          },
+          "sibling_third_percent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "default": "15",
+            "title": "Sibling Third Percent"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "FinancePolicyIn",
+        "type": "object"
+      },
+      "FinancePolicyOut": {
+        "properties": {
+          "auto_billing_enabled": {
+            "title": "Auto Billing Enabled",
+            "type": "boolean"
+          },
+          "billing_lead_days": {
+            "title": "Billing Lead Days",
+            "type": "integer"
+          },
+          "grace_days": {
+            "title": "Grace Days",
+            "type": "integer"
+          },
+          "hold_after_days": {
+            "title": "Hold After Days",
+            "type": "integer"
+          },
+          "hold_enabled": {
+            "title": "Hold Enabled",
+            "type": "boolean"
+          },
+          "hold_min_amount": {
+            "title": "Hold Min Amount",
+            "type": "number"
+          },
+          "late_fee_enabled": {
+            "title": "Late Fee Enabled",
+            "type": "boolean"
+          },
+          "late_fee_kind": {
+            "title": "Late Fee Kind",
+            "type": "string"
+          },
+          "late_fee_value": {
+            "title": "Late Fee Value",
+            "type": "number"
+          },
+          "sibling_discount_enabled": {
+            "title": "Sibling Discount Enabled",
+            "type": "boolean"
+          },
+          "sibling_second_percent": {
+            "title": "Sibling Second Percent",
+            "type": "number"
+          },
+          "sibling_third_percent": {
+            "title": "Sibling Third Percent",
+            "type": "number"
+          }
+        },
+        "required": [
+          "late_fee_enabled",
+          "grace_days",
+          "late_fee_kind",
+          "late_fee_value",
+          "hold_enabled",
+          "hold_after_days",
+          "hold_min_amount",
+          "sibling_discount_enabled",
+          "sibling_second_percent",
+          "sibling_third_percent",
+          "auto_billing_enabled",
+          "billing_lead_days"
+        ],
+        "title": "FinancePolicyOut",
         "type": "object"
       },
       "FinanceTransaction": {
@@ -6908,6 +7551,27 @@
           "grade_id"
         ],
         "title": "GradeOut",
+        "type": "object"
+      },
+      "GradeTarget": {
+        "description": "A school grade: the members of that program's groups in the plan's year.",
+        "properties": {
+          "career_id": {
+            "title": "Career Id",
+            "type": "integer"
+          },
+          "grade_number": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Grade Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "career_id",
+          "grade_number"
+        ],
+        "title": "GradeTarget",
         "type": "object"
       },
       "GradeUpdate": {
@@ -8400,6 +9064,77 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IncomeReport": {
+        "properties": {
+          "end": {
+            "format": "date",
+            "title": "End",
+            "type": "string"
+          },
+          "group_by": {
+            "title": "Group By",
+            "type": "string"
+          },
+          "payments": {
+            "title": "Payments",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/IncomeRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "start": {
+            "format": "date",
+            "title": "Start",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "group_by",
+          "total",
+          "payments",
+          "rows"
+        ],
+        "title": "IncomeReport",
+        "type": "object"
+      },
+      "IncomeRow": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "payments": {
+            "title": "Payments",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "payments",
+          "total"
+        ],
+        "title": "IncomeRow",
         "type": "object"
       },
       "InstitutionSettingsOut": {
@@ -20910,6 +21645,89 @@
         ]
       }
     },
+    "/finance/automation/run": {
+      "post": {
+        "description": "Run the daily job now (the scheduled script does the same every morning).",
+        "operationId": "run_daily_job_finance_automation_run_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Run Daily Job",
+        "tags": [
+          "school finance"
+        ]
+      }
+    },
+    "/finance/automation/simulate": {
+      "post": {
+        "description": "What the daily job would do today; everything is rolled back.",
+        "operationId": "simulate_daily_job_finance_automation_simulate_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "day",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationRun"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Simulate Daily Job",
+        "tags": [
+          "school finance"
+        ]
+      }
+    },
     "/finance/billing-concepts": {
       "get": {
         "operationId": "billing_concepts_finance_billing_concepts_get",
@@ -21410,6 +22228,32 @@
         ]
       }
     },
+    "/finance/cashier/today": {
+      "get": {
+        "operationId": "my_cash_today_finance_cashier_today_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashierDay"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Cash Today",
+        "tags": [
+          "school finance"
+        ]
+      }
+    },
     "/finance/options": {
       "get": {
         "operationId": "options_finance_options_get",
@@ -21478,6 +22322,456 @@
         "summary": "Receipt",
         "tags": [
           "finance"
+        ]
+      }
+    },
+    "/finance/policy": {
+      "get": {
+        "operationId": "get_policy_finance_policy_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancePolicyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Policy",
+        "tags": [
+          "school finance"
+        ]
+      },
+      "put": {
+        "operationId": "update_policy_finance_policy_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinancePolicyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancePolicyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Policy",
+        "tags": [
+          "school finance"
+        ]
+      }
+    },
+    "/finance/reports/aging": {
+      "get": {
+        "operationId": "aging_report_finance_reports_aging_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgingSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Aging Report",
+        "tags": [
+          "school finance"
+        ]
+      }
+    },
+    "/finance/reports/aging/accounts": {
+      "get": {
+        "operationId": "aging_accounts_report_finance_reports_aging_accounts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "career_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Career Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgingAccount"
+                  },
+                  "title": "Response Aging Accounts Report Finance Reports Aging Accounts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Aging Accounts Report",
+        "tags": [
+          "school finance"
+        ]
+      }
+    },
+    "/finance/reports/aging/accounts.csv": {
+      "get": {
+        "operationId": "aging_accounts_csv_finance_reports_aging_accounts_csv_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "career_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Career Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Aging Accounts Csv",
+        "tags": [
+          "school finance"
+        ]
+      }
+    },
+    "/finance/reports/expected": {
+      "get": {
+        "operationId": "expected_report_finance_reports_expected_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "year",
+            "required": true,
+            "schema": {
+              "maximum": 2100,
+              "minimum": 2000,
+              "title": "Year",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ExpectedMonth"
+                  },
+                  "title": "Response Expected Report Finance Reports Expected Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Expected Report",
+        "tags": [
+          "school finance"
+        ]
+      }
+    },
+    "/finance/reports/income": {
+      "get": {
+        "operationId": "income_report_finance_reports_income_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Start",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "End",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_by",
+            "required": false,
+            "schema": {
+              "default": "day",
+              "pattern": "^(day|method|cashier)$",
+              "title": "Group By",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomeReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Income Report",
+        "tags": [
+          "school finance"
+        ]
+      }
+    },
+    "/finance/reports/income.csv": {
+      "get": {
+        "operationId": "income_csv_finance_reports_income_csv_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Start",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "End",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_by",
+            "required": false,
+            "schema": {
+              "default": "day",
+              "pattern": "^(day|method|cashier)$",
+              "title": "Group By",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Income Csv",
+        "tags": [
+          "school finance"
         ]
       }
     },
@@ -21696,6 +22990,98 @@
         "summary": "Add Charge",
         "tags": [
           "finance"
+        ]
+      }
+    },
+    "/finance/students/{student_id}/family": {
+      "get": {
+        "operationId": "student_family_finance_students__student_id__family_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamilyAccount"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Student Family",
+        "tags": [
+          "school finance"
+        ]
+      }
+    },
+    "/finance/students/{student_id}/family.pdf": {
+      "get": {
+        "operationId": "student_family_pdf_finance_students__student_id__family_pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Student Family Pdf",
+        "tags": [
+          "school finance"
         ]
       }
     },

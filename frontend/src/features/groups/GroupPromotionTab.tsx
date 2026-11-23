@@ -33,7 +33,7 @@ type Recovery = {
 export function GroupPromotionTab({ group }: { group: ClassGroupDetail }) {
   const client = useQueryClient();
   const access = useAccess();
-  const canOverride = access.can("finance.manage");
+  const canOverride = access.can("finance.supervise");
   const canGrade = access.can("grades.manage");
   const [recovery, setRecovery] = useState<Recovery | null>(null);
   const key = [...groupKey(group.class_group_id), "promotion"];

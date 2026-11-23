@@ -1719,6 +1719,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/finance/automation/run": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Run Daily Job
+     * @description Run the daily job now (the scheduled script does the same every morning).
+     */
+    post: operations["run_daily_job_finance_automation_run_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/automation/simulate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Simulate Daily Job
+     * @description What the daily job would do today; everything is rolled back.
+     */
+    post: operations["simulate_daily_job_finance_automation_simulate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/finance/billing-concepts": {
     parameters: {
       query?: never;
@@ -1861,6 +1901,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/finance/cashier/today": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** My Cash Today */
+    get: operations["my_cash_today_finance_cashier_today_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/finance/options": {
     parameters: {
       query?: never;
@@ -1887,6 +1944,126 @@ export interface paths {
     };
     /** Receipt */
     get: operations["receipt_finance_payments__identifier__receipt_pdf_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/policy": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Policy */
+    get: operations["get_policy_finance_policy_get"];
+    /** Update Policy */
+    put: operations["update_policy_finance_policy_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/reports/aging": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Aging Report */
+    get: operations["aging_report_finance_reports_aging_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/reports/aging/accounts": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Aging Accounts Report */
+    get: operations["aging_accounts_report_finance_reports_aging_accounts_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/reports/aging/accounts.csv": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Aging Accounts Csv */
+    get: operations["aging_accounts_csv_finance_reports_aging_accounts_csv_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/reports/expected": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Expected Report */
+    get: operations["expected_report_finance_reports_expected_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/reports/income": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Income Report */
+    get: operations["income_report_finance_reports_income_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/reports/income.csv": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Income Csv */
+    get: operations["income_csv_finance_reports_income_csv_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1957,6 +2134,40 @@ export interface paths {
     put?: never;
     /** Add Charge */
     post: operations["add_charge_finance_students__student_id__charges_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/students/{student_id}/family": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Student Family */
+    get: operations["student_family_finance_students__student_id__family_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/finance/students/{student_id}/family.pdf": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Student Family Pdf */
+    get: operations["student_family_pdf_finance_students__student_id__family_pdf_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -4276,6 +4487,139 @@ export interface components {
       /** Status */
       status: string;
     };
+    /** AgingAccount */
+    AgingAccount: {
+      /**
+       * Current
+       * @default 0
+       */
+      current: number;
+      /**
+       * D1 30
+       * @default 0
+       */
+      d1_30: number;
+      /**
+       * D31 60
+       * @default 0
+       */
+      d31_60: number;
+      /**
+       * D61 90
+       * @default 0
+       */
+      d61_90: number;
+      /**
+       * D90 Plus
+       * @default 0
+       */
+      d90_plus: number;
+      /** Enrollment Number */
+      enrollment_number: string;
+      /** Family */
+      family: string | null;
+      /** Financial Hold */
+      financial_hold: boolean;
+      /** Group */
+      group: string;
+      /** Oldest Due */
+      oldest_due: string | null;
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
+      /**
+       * Total
+       * @default 0
+       */
+      total: number;
+    };
+    /** AgingBuckets */
+    AgingBuckets: {
+      /**
+       * Current
+       * @default 0
+       */
+      current: number;
+      /**
+       * D1 30
+       * @default 0
+       */
+      d1_30: number;
+      /**
+       * D31 60
+       * @default 0
+       */
+      d31_60: number;
+      /**
+       * D61 90
+       * @default 0
+       */
+      d61_90: number;
+      /**
+       * D90 Plus
+       * @default 0
+       */
+      d90_plus: number;
+      /**
+       * Total
+       * @default 0
+       */
+      total: number;
+    };
+    /** AgingGroup */
+    AgingGroup: {
+      /**
+       * Current
+       * @default 0
+       */
+      current: number;
+      /**
+       * D1 30
+       * @default 0
+       */
+      d1_30: number;
+      /**
+       * D31 60
+       * @default 0
+       */
+      d31_60: number;
+      /**
+       * D61 90
+       * @default 0
+       */
+      d61_90: number;
+      /**
+       * D90 Plus
+       * @default 0
+       */
+      d90_plus: number;
+      /** Label */
+      label: string;
+      /**
+       * Students
+       * @default 0
+       */
+      students: number;
+      /**
+       * Total
+       * @default 0
+       */
+      total: number;
+    };
+    /** AgingSummary */
+    AgingSummary: {
+      /**
+       * As Of
+       * Format: date
+       */
+      as_of: string;
+      /** Groups */
+      groups: components["schemas"]["AgingGroup"][];
+      /** Students Overdue */
+      students_overdue: number;
+      totals: components["schemas"]["AgingBuckets"];
+    };
     /** AlertAssignment */
     AlertAssignment: {
       /** Assigned To */
@@ -4765,6 +5109,30 @@ export interface components {
       /** User Id */
       user_id: number | null;
     };
+    /** AutomationRun */
+    AutomationRun: {
+      /** Billing Runs */
+      billing_runs: {
+        [key: string]: unknown;
+      }[];
+      /** Holds Lifted */
+      holds_lifted: string[];
+      /** Holds Set */
+      holds_set: string[];
+      /** Late Fees */
+      late_fees: {
+        [key: string]: unknown;
+      }[];
+      /** Sibling Discounts */
+      sibling_discounts: number;
+      /** Simulated */
+      simulated: boolean;
+      /**
+       * Today
+       * Format: date
+       */
+      today: string;
+    };
     /** BandBrief */
     BandBrief: {
       /** Label */
@@ -4890,8 +5258,15 @@ export interface components {
       name: string;
       /** Period Id */
       period_id?: number | null;
+      /** School Year Id */
+      school_year_id?: number | null;
+      /**
+       * Sibling Discount
+       * @default false
+       */
+      sibling_discount: boolean;
       /** Start Month */
-      start_month: string;
+      start_month?: string | null;
       targets?: components["schemas"]["BillingPlanTargets"];
     };
     /** BillingPlanOut */
@@ -4922,19 +5297,28 @@ export interface components {
       next_cycle: string | null;
       /** Period Id */
       period_id: number | null;
+      /** School Year Id */
+      school_year_id?: number | null;
+      /**
+       * Sibling Discount
+       * @default false
+       */
+      sibling_discount: boolean;
       /** Start Month */
       start_month: string;
       targets: components["schemas"]["BillingPlanTargets"];
     };
     /**
      * BillingPlanTargets
-     * @description Careers (or school grades), extra students and excluded students.
+     * @description Careers, school grades, extra students and excluded students.
      */
     BillingPlanTargets: {
       /** Career Ids */
       career_ids?: number[];
       /** Excluded Student Ids */
       excluded_student_ids?: number[];
+      /** Grades */
+      grades?: components["schemas"]["GradeTarget"][];
       /** Student Ids */
       student_ids?: number[];
     };
@@ -4952,6 +5336,8 @@ export interface components {
       end_month?: string | null;
       /** Name */
       name?: string | null;
+      /** Sibling Discount */
+      sibling_discount?: boolean | null;
     };
     /** BillingPreview */
     BillingPreview: {
@@ -5407,6 +5793,22 @@ export interface components {
       total_payments: number;
       /** Transfer Total */
       transfer_total: number;
+    };
+    /** CashierDay */
+    CashierDay: {
+      /** By Method */
+      by_method: {
+        [key: string]: number;
+      };
+      /**
+       * Day
+       * Format: date
+       */
+      day: string;
+      /** Payments */
+      payments: number;
+      /** Total */
+      total: number;
     };
     /** ChangePasswordRequest */
     ChangePasswordRequest: {
@@ -6103,6 +6505,32 @@ export interface components {
       /** Reason */
       reason: string;
     };
+    /** ExpectedMonth */
+    ExpectedMonth: {
+      /** By Concept */
+      by_concept: {
+        [key: string]: number;
+      };
+      /** Collected */
+      collected: number;
+      /** Expected */
+      expected: number;
+      /** Month */
+      month: string;
+    };
+    /** FamilyAccount */
+    FamilyAccount: {
+      /** Balance */
+      balance: number;
+      /** Members */
+      members: components["schemas"]["FamilyMember"][];
+      /** Overdue Balance */
+      overdue_balance: number;
+      /** Responsible */
+      responsible: string[];
+      /** Statements */
+      statements: components["schemas"]["AccountStatement"][];
+    };
     /** FamilyAllocation */
     FamilyAllocation: {
       /** Amount */
@@ -6138,6 +6566,19 @@ export interface components {
       total_balance: number;
       /** Total Overdue */
       total_overdue: number;
+    };
+    /** FamilyMember */
+    FamilyMember: {
+      /** Balance */
+      balance: number;
+      /** Enrollment Number */
+      enrollment_number: string;
+      /** Overdue Balance */
+      overdue_balance: number;
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
     };
     /** FamilyStudentBalance */
     FamilyStudentBalance: {
@@ -6282,6 +6723,98 @@ export interface components {
       simulator_enabled: boolean;
       /** Transfer Instructions */
       transfer_instructions: string;
+    };
+    /** FinancePolicyIn */
+    FinancePolicyIn: {
+      /**
+       * Auto Billing Enabled
+       * @default false
+       */
+      auto_billing_enabled: boolean;
+      /**
+       * Billing Lead Days
+       * @default 10
+       */
+      billing_lead_days: number;
+      /**
+       * Grace Days
+       * @default 5
+       */
+      grace_days: number;
+      /**
+       * Hold After Days
+       * @default 30
+       */
+      hold_after_days: number;
+      /**
+       * Hold Enabled
+       * @default false
+       */
+      hold_enabled: boolean;
+      /**
+       * Hold Min Amount
+       * @default 0
+       */
+      hold_min_amount: number | string;
+      /**
+       * Late Fee Enabled
+       * @default false
+       */
+      late_fee_enabled: boolean;
+      /**
+       * Late Fee Kind
+       * @default percent
+       */
+      late_fee_kind: string;
+      /**
+       * Late Fee Value
+       * @default 5
+       */
+      late_fee_value: number | string;
+      /** Reason */
+      reason: string;
+      /**
+       * Sibling Discount Enabled
+       * @default false
+       */
+      sibling_discount_enabled: boolean;
+      /**
+       * Sibling Second Percent
+       * @default 10
+       */
+      sibling_second_percent: number | string;
+      /**
+       * Sibling Third Percent
+       * @default 15
+       */
+      sibling_third_percent: number | string;
+    };
+    /** FinancePolicyOut */
+    FinancePolicyOut: {
+      /** Auto Billing Enabled */
+      auto_billing_enabled: boolean;
+      /** Billing Lead Days */
+      billing_lead_days: number;
+      /** Grace Days */
+      grace_days: number;
+      /** Hold After Days */
+      hold_after_days: number;
+      /** Hold Enabled */
+      hold_enabled: boolean;
+      /** Hold Min Amount */
+      hold_min_amount: number;
+      /** Late Fee Enabled */
+      late_fee_enabled: boolean;
+      /** Late Fee Kind */
+      late_fee_kind: string;
+      /** Late Fee Value */
+      late_fee_value: number;
+      /** Sibling Discount Enabled */
+      sibling_discount_enabled: boolean;
+      /** Sibling Second Percent */
+      sibling_second_percent: number;
+      /** Sibling Third Percent */
+      sibling_third_percent: number;
     };
     /** FinanceTransaction */
     FinanceTransaction: {
@@ -6461,6 +6994,16 @@ export interface components {
        * @default published
        */
       status: string;
+    };
+    /**
+     * GradeTarget
+     * @description A school grade: the members of that program's groups in the plan's year.
+     */
+    GradeTarget: {
+      /** Career Id */
+      career_id: number;
+      /** Grade Number */
+      grade_number: number;
     };
     /** GradeUpdate */
     GradeUpdate: {
@@ -6998,6 +7541,38 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
+    };
+    /** IncomeReport */
+    IncomeReport: {
+      /**
+       * End
+       * Format: date
+       */
+      end: string;
+      /** Group By */
+      group_by: string;
+      /** Payments */
+      payments: number;
+      /** Rows */
+      rows: components["schemas"]["IncomeRow"][];
+      /**
+       * Start
+       * Format: date
+       */
+      start: string;
+      /** Total */
+      total: number;
+    };
+    /** IncomeRow */
+    IncomeRow: {
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** Payments */
+      payments: number;
+      /** Total */
+      total: number;
     };
     /** InstitutionSettingsOut */
     InstitutionSettingsOut: {
@@ -12979,6 +13554,57 @@ export interface operations {
       };
     };
   };
+  run_daily_job_finance_automation_run_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AutomationRun"];
+        };
+      };
+    };
+  };
+  simulate_daily_job_finance_automation_simulate_post: {
+    parameters: {
+      query?: {
+        day?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AutomationRun"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   billing_concepts_finance_billing_concepts_get: {
     parameters: {
       query?: never;
@@ -13307,6 +13933,26 @@ export interface operations {
       };
     };
   };
+  my_cash_today_finance_cashier_today_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CashierDay"];
+        };
+      };
+    };
+  };
   options_finance_options_get: {
     parameters: {
       query?: never;
@@ -13334,6 +13980,242 @@ export interface operations {
       path: {
         identifier: number;
       };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_policy_finance_policy_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FinancePolicyOut"];
+        };
+      };
+    };
+  };
+  update_policy_finance_policy_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FinancePolicyIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FinancePolicyOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  aging_report_finance_reports_aging_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AgingSummary"];
+        };
+      };
+    };
+  };
+  aging_accounts_report_finance_reports_aging_accounts_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        career_id?: number | null;
+        skip?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AgingAccount"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  aging_accounts_csv_finance_reports_aging_accounts_csv_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        career_id?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  expected_report_finance_reports_expected_get: {
+    parameters: {
+      query: {
+        year: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ExpectedMonth"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  income_report_finance_reports_income_get: {
+    parameters: {
+      query: {
+        start: string;
+        end: string;
+        group_by?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["IncomeReport"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  income_csv_finance_reports_income_csv_get: {
+    parameters: {
+      query: {
+        start: string;
+        end: string;
+        group_by?: string;
+      };
+      header?: never;
+      path?: never;
       cookie?: never;
     };
     requestBody?: never;
@@ -13481,6 +14363,68 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["StudentFinanceSummary"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  student_family_finance_students__student_id__family_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FamilyAccount"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  student_family_pdf_finance_students__student_id__family_pdf_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

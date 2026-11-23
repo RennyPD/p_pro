@@ -11,12 +11,13 @@ import calendar
 from datetime import date
 
 from fastapi import HTTPException
-from sqlalchemy import or_
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.career_model import Career
-from app.models.configuration_model import AcademicPeriod
+from app.models.class_group_model import ClassGroup, ClassGroupMember
+from app.models.configuration_model import AcademicPeriod, SchoolYear
 from app.models.finance_model import (
     BillingConcept,
     BillingPlan,
@@ -34,6 +35,7 @@ from app.schemas.finance_schema import (
     BillingPlanUpdate,
     BillingPreview,
     BillingPreviewStudent,
+    GradeTarget,
 )
 from app.services.finance_workflow import (
     business_date,
@@ -43,6 +45,7 @@ from app.services.finance_workflow import (
     lock_finance,
     money,
 )
+from app.services.institution_profile import is_school_level
 
 MONTHS = (
     "enero",
@@ -96,6 +99,13 @@ def due_date(plan: BillingPlan, cycle: str) -> date:
 def targets_of(plan: BillingPlan) -> BillingPlanTargets:
     return BillingPlanTargets(
         career_ids=sorted(t.career_id for t in plan.targets if t.kind == "career"),
+        grades=[
+            GradeTarget(career_id=t.career_id, grade_number=t.grade_number)
+            for t in sorted(
+                (t for t in plan.targets if t.kind == "grade"),
+                key=lambda t: (t.career_id, t.grade_number),
+            )
+        ],
         student_ids=sorted(t.student_id for t in plan.targets if t.kind == "student"),
         excluded_student_ids=sorted(t.student_id for t in plan.targets if t.kind == "exclude"),
     )
@@ -123,6 +133,8 @@ def plan_out(db: Session, plan: BillingPlan) -> BillingPlanOut:
         period_id=plan.period_id,
         active=plan.active,
         targets=targets_of(plan),
+        school_year_id=plan.school_year_id,
+        sibling_discount=plan.sibling_discount,
         cycles=cycles,
         generated_cycles=done,
         next_cycle=pending[0] if pending and plan.active else None,
@@ -140,10 +152,23 @@ def set_targets(db: Session, plan: BillingPlan, targets: BillingPlanTargets) -> 
         raise HTTPException(422, "Algún estudiante seleccionado no existe")
     if set(targets.student_ids) & set(targets.excluded_student_ids):
         raise HTTPException(422, "Un estudiante no puede estar incluido y excluido a la vez")
+    grades = sorted({(g.career_id, g.grade_number) for g in targets.grades})
+    if grades and plan.school_year_id is None:
+        raise HTTPException(422, "Para cobrar por grado, elige el año lectivo del plan")
+    for career_id, grade in grades:
+        career = db.get(Career, career_id)
+        if career is None or not is_school_level(career.academic_level):
+            raise HTTPException(422, "Los grados son de programas de nivel escolar")
+        if grade > career.duration_terms:
+            raise HTTPException(422, f"{career.name} no tiene el grado {grade}")
     plan.targets.clear()
     db.flush()
     plan.targets.extend(
         [BillingPlanTarget(kind="career", career_id=item) for item in sorted(careers)]
+        + [
+            BillingPlanTarget(kind="grade", career_id=career_id, grade_number=grade)
+            for career_id, grade in grades
+        ]
         + [BillingPlanTarget(kind="student", student_id=item) for item in targets.student_ids]
         + [
             BillingPlanTarget(kind="exclude", student_id=item)
@@ -179,16 +204,27 @@ def create_plan(db: Session, data: BillingPlanCreate, user: User) -> BillingPlan
         raise HTTPException(422, "El concepto de cobro no existe")
     if data.period_id is not None and db.get(AcademicPeriod, data.period_id) is None:
         raise HTTPException(422, "El período académico no existe")
+    year = db.get(SchoolYear, data.school_year_id) if data.school_year_id else None
+    if data.school_year_id is not None and year is None:
+        raise HTTPException(422, "El año lectivo no existe")
+    start = data.start_month or (cycle_key(year.start_date) if year else None)
+    if start is None:
+        raise HTTPException(422, "Indica el mes inicial o el año lectivo del plan")
+    end = data.end_month or (
+        cycle_key(year.end_date) if year and data.frequency == "monthly" else start
+    )
     plan = BillingPlan(
         name=data.name,
         charge_description=data.charge_description,
         billing_concept_id=data.billing_concept_id,
         amount=money(cents(data.amount)),
         frequency=data.frequency,
-        start_month=parse_cycle(data.start_month),
-        end_month=parse_cycle(data.end_month or data.start_month),
+        start_month=parse_cycle(start),
+        end_month=parse_cycle(end),
         due_day=data.due_day,
         period_id=data.period_id,
+        school_year_id=data.school_year_id,
+        sibling_discount=data.sibling_discount,
         active=True,
         created_by=user.user_id,
     )
@@ -270,11 +306,28 @@ def eligible_students(db: Session, plan: BillingPlan, cycle: str) -> list[Studen
     targets = targets_of(plan)
     excluded = set(targets.excluded_student_ids)
     query = db.query(Student).filter(Student.active.is_(True))
-    if not targets.career_ids and not targets.student_ids:
+    if not targets.career_ids and not targets.student_ids and not targets.grades:
         return []
     conditions = []
     if targets.career_ids:
         conditions.append(Student.career_id.in_(targets.career_ids))
+    if targets.grades and plan.school_year_id is not None:
+        members = (
+            select(ClassGroupMember.student_id)
+            .join(ClassGroup, ClassGroup.class_group_id == ClassGroupMember.class_group_id)
+            .where(
+                ClassGroupMember.school_year_id == plan.school_year_id,
+                ClassGroupMember.status == "enrolled",
+                or_(
+                    *(
+                        (ClassGroup.career_id == g.career_id)
+                        & (ClassGroup.grade_number == g.grade_number)
+                        for g in targets.grades
+                    )
+                ),
+            )
+        )
+        conditions.append(Student.student_id.in_(members))
     if targets.student_ids:
         conditions.append(Student.student_id.in_(targets.student_ids))
     month_end = last_day(parse_cycle(cycle))
@@ -361,7 +414,7 @@ def generate(
                 description=description,
                 amount=plan.amount,
                 due_date=due,
-                created_by=user.user_id,
+                created_by=user.user_id if user else None,
                 billing_plan_id=plan.billing_plan_id,
                 billing_cycle=cycle,
             )
@@ -388,7 +441,7 @@ def generate(
             total=money(cents(plan.amount) * len(pending)),
             reason=reason,
             idempotency_key=idempotency_key,
-            created_by=user.user_id,
+            created_by=user.user_id if user else None,
         )
         db.add(run)
         db.flush()

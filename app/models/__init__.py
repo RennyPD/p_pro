@@ -16,6 +16,7 @@ from .finance_model import (
     CashClosing,
     Charge,
     FinanceEvent,
+    FinancePolicy,
     FinancialAdjustment,
     Installment,
     Payment,

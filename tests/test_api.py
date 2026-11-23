@@ -9,6 +9,7 @@ from app.db.database import Base
 from app.db.Session import get_db
 from app.models import *  # noqa: F403 - registers all tables
 from app.models.configuration_model import WriteLock
+from app.security import hash_password
 from main import app
 from scripts.seed_demo import seed_demo
 from scripts.seed_guardian_portal import seed_guardians
@@ -2913,6 +2914,23 @@ class ApiIntegrationTests(unittest.TestCase):
 
     def finance_fixture(self, amount="1000.01"):
         tokens, _ = self.task_fixture()
+        # A second supervisor: nobody reverses a payment they posted (Fase 3 E).
+        with self.Session() as db:
+            admin = db.query(User).filter_by(username="demo.admin").one()
+            db.add(
+                User(
+                    username="demo.supervisor",
+                    email="supervisor@nexo-academico.com",
+                    password=hash_password("NexoSupervisor2026!"),
+                    role_id=admin.role_id,
+                )
+            )
+            db.commit()
+        tokens["supervisor"] = self.request(
+            "POST",
+            "/auth/login",
+            json={"username": "demo.supervisor", "password": "NexoSupervisor2026!"},
+        ).json()["access_token"]
         with self.Session() as db:
             sid = db.query(Student).first().student_id
         base = f"/finance/students/{sid}"
@@ -2983,10 +3001,17 @@ class ApiIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(receipt.status_code, 200, receipt.text)
         self.assertEqual(receipt.headers["content-type"], "application/pdf")
-        reversal = self.request(
+        own = self.request(
             "POST",
             f"{base}/transactions/payment/{payment['transaction_id']}/reverse",
             tokens["admin"],
+            json={"reason": "Registro equivocado"},
+        )
+        self.assertEqual(own.status_code, 403, own.text)
+        reversal = self.request(
+            "POST",
+            f"{base}/transactions/payment/{payment['transaction_id']}/reverse",
+            tokens["supervisor"],
             json={"reason": "Registro equivocado"},
         )
         self.assertEqual(reversal.status_code, 200, reversal.text)
@@ -2999,14 +3024,18 @@ class ApiIntegrationTests(unittest.TestCase):
             self.request(
                 "POST",
                 f"{base}/transactions/payment/{payment['transaction_id']}/reverse",
-                tokens["admin"],
+                tokens["supervisor"],
                 json={"reason": "Repetido"},
             ).status_code,
             409,
         )
         history = self.request("GET", base + "/history", tokens["admin"]).json()
         self.assertEqual(len(history), 4)
-        self.assertTrue(all(h["actor"] == "demo.admin" for h in history))
+        # The reversal was made by the second supervisor.
+        self.assertEqual(
+            sorted(h["actor"] for h in history),
+            ["demo.admin", "demo.admin", "demo.admin", "demo.supervisor"],
+        )
         with self.Session() as db:
             self.assertEqual(db.query(Payment).count(), 1)
             self.assertEqual(db.query(FinanceEvent).filter_by(student_id=sid).count(), 4)
@@ -3189,7 +3218,7 @@ class ApiIntegrationTests(unittest.TestCase):
             self.request(
                 "POST",
                 f"{base}/transactions/payment/{payment_id}/reverse",
-                tokens["admin"],
+                tokens["supervisor"],
                 json={"reason": "Intento fuera de cierre"},
             ).status_code,
             409,

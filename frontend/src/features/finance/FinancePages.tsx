@@ -30,7 +30,9 @@ export function FinancePage() {
     <StudentFinance
       key={String(id)}
       studentId={Number(id)}
-      canManage={access.institution && access.can("finance.manage")}
+      canManage={access.institution && access.canAny("finance.collect", "finance.supervise")}
+      canCollect={access.institution && access.can("finance.collect")}
+      canSupervise={access.institution && access.can("finance.supervise")}
     />
   );
 }

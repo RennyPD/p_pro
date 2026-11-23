@@ -129,10 +129,18 @@ PlanName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2,
 ChargeText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=150)]
 
 
+class GradeTarget(BaseModel):
+    """A school grade: the members of that program's groups in the plan's year."""
+
+    career_id: int
+    grade_number: int = Field(ge=1, le=20)
+
+
 class BillingPlanTargets(BaseModel):
-    """Careers (or school grades), extra students and excluded students."""
+    """Careers, school grades, extra students and excluded students."""
 
     career_ids: list[int] = Field(default_factory=list, max_length=500)
+    grades: list[GradeTarget] = Field(default_factory=list, max_length=100)
     student_ids: list[int] = Field(default_factory=list, max_length=5000)
     excluded_student_ids: list[int] = Field(default_factory=list, max_length=5000)
 
@@ -143,10 +151,13 @@ class BillingPlanCreate(BaseModel):
     billing_concept_id: int | None = None
     amount: Money
     frequency: str = Field(default="monthly", pattern=r"^(monthly|single)$")
-    start_month: Cycle
+    # Without months, a plan with a school year bills every month of that year.
+    start_month: Cycle | None = None
     end_month: Cycle | None = None
     due_day: int = Field(default=5, ge=1, le=28)
     period_id: int | None = None
+    school_year_id: int | None = None
+    sibling_discount: bool = False
     targets: BillingPlanTargets = Field(default_factory=BillingPlanTargets)
 
 
@@ -157,6 +168,7 @@ class BillingPlanUpdate(BaseModel):
     end_month: Cycle | None = None
     due_day: int | None = Field(default=None, ge=1, le=28)
     active: bool | None = None
+    sibling_discount: bool | None = None
 
 
 class BillingPlanOut(BaseModel):
@@ -172,6 +184,8 @@ class BillingPlanOut(BaseModel):
     period_id: int | None
     active: bool
     targets: BillingPlanTargets
+    school_year_id: int | None = None
+    sibling_discount: bool = False
     cycles: list[str]
     generated_cycles: list[str]
     next_cycle: str | None

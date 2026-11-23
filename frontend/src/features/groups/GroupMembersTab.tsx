@@ -88,7 +88,7 @@ export function GroupMembersTab({ group }: { group: ClassGroupDetail }) {
 
 function AddMemberDialog({ group, onClose }: { group: ClassGroupDetail; onClose: () => void }) {
   const client = useQueryClient();
-  const canOverride = useAccess().can("finance.manage");
+  const canOverride = useAccess().can("finance.supervise");
   const [term, setTerm] = useState("");
   const [studentId, setStudentId] = useState<number | null>(null);
   const [override, setOverride] = useState("");

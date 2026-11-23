@@ -145,7 +145,7 @@ it("creates a plan for the chosen careers", async () => {
         amount: "9000",
         start_month: "2027-01",
         end_month: "2027-06",
-        targets: { career_ids: [1], student_ids: [], excluded_student_ids: [] },
+        targets: { career_ids: [1], grades: [], student_ids: [], excluded_student_ids: [] },
       }),
     ),
   );

@@ -31,6 +31,8 @@ const admin = [
   "enrollments.manage",
   "finance.view",
   "finance.manage",
+  "finance.collect",
+  "finance.supervise",
   "admissions.manage",
   "approvals.manage",
   "reports.view",

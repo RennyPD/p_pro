@@ -2,6 +2,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     Date,
     DateTime,
     ForeignKey,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    false,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -115,6 +117,12 @@ class FinancialAdjustment(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
+    # Fase 3 E: the charge an automatic adjustment belongs to (sibling discount,
+    # late fee) and a unique key so the daily job never posts it twice.
+    charge_id: Mapped[int | None] = mapped_column(
+        ForeignKey("charges.charge_id"), nullable=True, index=True
+    )
+    automation_key: Mapped[str | None] = mapped_column(String(80), unique=True, nullable=True)
 
 
 class PaymentPlan(Base):
@@ -183,6 +191,12 @@ class BillingPlan(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
+    # Fase 3 E: a school year (grade targets use its groups) and whether the
+    # family's sibling discount applies to this plan's charges.
+    school_year_id: Mapped[int | None] = mapped_column(
+        ForeignKey("school_years.school_year_id"), nullable=True, index=True
+    )
+    sibling_discount: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     targets: Mapped[list["BillingPlanTarget"]] = relationship(
         "BillingPlanTarget", cascade="all, delete-orphan"
     )
@@ -194,13 +208,20 @@ class BillingPlanTarget(Base):
     __tablename__ = "billing_plan_targets"
     __table_args__ = (
         UniqueConstraint(
-            "billing_plan_id", "kind", "career_id", "student_id", name="uq_plan_target"
+            "billing_plan_id",
+            "kind",
+            "career_id",
+            "grade_number",
+            "student_id",
+            name="uq_plan_target",
         ),
     )
     billing_plan_target_id: Mapped[int] = mapped_column(primary_key=True)
     billing_plan_id: Mapped[int] = mapped_column(ForeignKey("billing_plans.billing_plan_id"))
-    kind: Mapped[str] = mapped_column(String(20))  # career | student | exclude
+    kind: Mapped[str] = mapped_column(String(20))  # career | grade | student | exclude
     career_id: Mapped[int | None] = mapped_column(ForeignKey("careers.career_id"), nullable=True)
+    # kind "grade": career_id + grade_number, resolved with the year's groups.
+    grade_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     student_id: Mapped[int | None] = mapped_column(ForeignKey("students.student_id"), nullable=True)
 
 
@@ -215,7 +236,8 @@ class BillingRun(Base):
     total: Mapped[Decimal] = mapped_column(MONEY)
     reason: Mapped[str] = mapped_column(String(250))
     idempotency_key: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
-    created_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
+    # None: the scheduled daily job (Fase 3 E).
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
@@ -295,9 +317,34 @@ class FinanceEvent(Base):
     __tablename__ = "finance_events"
     finance_event_id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int | None] = mapped_column(ForeignKey("students.student_id"), nullable=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
+    # None: the scheduled daily job (Fase 3 E).
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
     action: Mapped[str] = mapped_column(String(80))
     detail: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
+
+
+class FinancePolicy(Base):
+    """Late fees, automatic holds, sibling discount and scheduled billing (Fase 3 E).
+
+    One row per institution; everything starts disabled until it is configured.
+    """
+
+    __tablename__ = "finance_policies"
+    finance_policy_id: Mapped[int] = mapped_column(primary_key=True)
+    late_fee_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    grace_days: Mapped[int] = mapped_column(Integer, default=5)
+    late_fee_kind: Mapped[str] = mapped_column(String(10), default="percent")  # percent | fixed
+    late_fee_value: Mapped[Decimal] = mapped_column(MONEY, default=Decimal("5"))
+    hold_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    hold_after_days: Mapped[int] = mapped_column(Integer, default=30)
+    hold_min_amount: Mapped[Decimal] = mapped_column(MONEY, default=Decimal("0"))
+    sibling_discount_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    sibling_second_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("10"))
+    sibling_third_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("15"))
+    auto_billing_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    billing_lead_days: Mapped[int] = mapped_column(Integer, default=10)
+    updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

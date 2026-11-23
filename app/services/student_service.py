@@ -99,12 +99,16 @@ def update_student_service(db: Session, student_id: int, student_data: StudentUp
             f"El estudiante {student_id} requiere un traslado de carrera. Registra el motivo en el flujo de traslado",
         )
 
+    held = current.financial_hold
     student = update_student(db, student_id, student_data)
 
     if not student:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Estudiante no encontrado"
         )
+    if student.financial_hold != held:
+        # A hold set or removed by a person is manual: the daily job never lifts it.
+        student.financial_hold_source = "manual" if student.financial_hold else None
 
     record(
         db,
