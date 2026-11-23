@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     # Fase 4 B: each institution answers at <code>.<tenant_base_domain>
     # (e.g. colegio-horizonte.nexo.do); the panel at admin.<tenant_base_domain>.
     tenant_base_domain: str | None = None
+    # Fase 4 C (audit M4): uploaded files live outside the database. "local" keeps
+    # them in STORAGE_DIR (development, a single server with a volume); "s3" uses
+    # any S3-compatible service (AWS S3, Cloudflare R2, DigitalOcean Spaces, MinIO).
+    storage_backend: Literal["local", "s3"] = "local"
+    storage_dir: str = "./storage"
+    s3_bucket: str | None = None
+    s3_endpoint_url: str | None = None
+    s3_region: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
 
@@ -67,6 +77,8 @@ class Settings(BaseSettings):
                 raise ValueError("TENANT_BASE_DOMAIN debe ser un dominio, por ejemplo nexo.do")
             # Only HTTPS subdomains of the configured domain (one label deep).
             self.cors_origin_regex = rf"https://([a-z0-9-]+\.)?{re.escape(domain)}"
+        if self.storage_backend == "s3" and not self.s3_bucket:
+            raise ValueError("Configura S3_BUCKET para guardar los archivos en S3")
         if self.email_backend == "smtp" and not self.smtp_host:
             raise ValueError("Configura SMTP_HOST para enviar correo por SMTP")
         if self.app_url and urlsplit(self.app_url).scheme != "https":

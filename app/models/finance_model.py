@@ -292,7 +292,11 @@ class TransferBatch(TenantMixin, Base):
     bank: Mapped[str] = mapped_column(String(100))
     note: Mapped[str] = mapped_column(String(250), default="")
     total_cents: Mapped[int] = mapped_column(Integer)
-    proof: Mapped[bytes] = mapped_column(LargeBinary)
+    # Fase 4 C: bytes in object storage; ``proof`` only for files not moved yet.
+    proof: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    proof_key: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    proof_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    proof_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     proof_type: Mapped[str] = mapped_column(String(40))
     status: Mapped[str] = mapped_column(String(20), default="pending")
     submitted_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
@@ -322,6 +326,9 @@ class TransferRequest(TenantMixin, Base):
     note: Mapped[str] = mapped_column(String(250), default="")
     # Empty for a share of a batch: the proof is stored once on the batch.
     proof: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    proof_key: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    proof_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    proof_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     proof_type: Mapped[str] = mapped_column(String(40))
     status: Mapped[str] = mapped_column(String(20), default="pending")
     submitted_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))

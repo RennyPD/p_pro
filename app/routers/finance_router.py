@@ -63,7 +63,7 @@ from app.schemas.finance_schema import (
     TransferOut,
     TransferReview,
 )
-from app.services import billing_plans
+from app.services import billing_plans, storage
 from app.services.account_statement import account_statement
 from app.services.business_time import INSTITUTION_TIME_ZONE, business_day_utc_range
 from app.services.finance_automation import apply_sibling_discounts
@@ -464,13 +464,16 @@ def submit_transfer(
         raise HTTPException(422, "La transferencia supera el balance pendiente")
     ensure_new_reference(db, data.reference)
     proof, mime = decode_proof(data.proof_base64)
+    stored = storage.store(db, "transfers", proof, mime)
     item = TransferRequest(
         student_id=student_id,
         amount_cents=cents(data.amount),
         reference=data.reference,
         bank=data.bank,
         note=data.note,
-        proof=proof,
+        proof_key=stored.key,
+        proof_size=stored.size,
+        proof_sha256=stored.sha256,
         proof_type=mime,
         submitted_by=user.user_id,
     )
@@ -544,10 +547,11 @@ def proof(identifier: int, db: Session = Depends(get_db), user: User = Depends(g
     if not item:
         raise HTTPException(404, "Comprobante no encontrado")
     accessible(db, user, item.student_id)
-    source = item.batch if item.proof is None and item.batch else item
+    own = item.proof is not None or item.proof_key is not None
+    source = item if own or item.batch is None else item.batch
     ext = {"application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpg"}[source.proof_type]
     return Response(
-        source.proof,
+        storage.read(source.proof_key, source.proof),
         media_type=item.proof_type,
         headers={
             "Content-Disposition": f'attachment; filename="comprobante-{identifier}.{ext}"',

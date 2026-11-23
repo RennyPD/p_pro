@@ -6,6 +6,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Index,
+    Integer,
     LargeBinary,
     String,
     Text,
@@ -98,7 +99,11 @@ class SubmissionAttachment(TenantMixin, Base):
     )
     filename: Mapped[str] = mapped_column(String(255))
     mime_type: Mapped[str] = mapped_column(String(100))
-    content: Mapped[bytes] = mapped_column(LargeBinary)
+    # Fase 4 C: bytes in object storage; ``content`` only for files not moved yet.
+    content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    storage_key: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
 
 class SubmissionRevision(TenantMixin, Base):
@@ -177,7 +182,10 @@ class StudentDocument(TenantMixin, Base):
     document_type: Mapped[str] = mapped_column(String(50))
     filename: Mapped[str] = mapped_column(String(255))
     mime_type: Mapped[str] = mapped_column(String(100))
-    content: Mapped[bytes] = mapped_column(LargeBinary)
+    content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    storage_key: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     expires_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     uploaded_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
     uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=now)

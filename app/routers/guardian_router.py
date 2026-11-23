@@ -47,6 +47,7 @@ from app.schemas.guardian_schema import (
     GuardianPeriodPerformance,
     GuardianTask,
 )
+from app.services import storage
 from app.services.academic_grading import academic_result
 from app.services.academic_metrics import summarize_results
 from app.services.account_statement import account_statement
@@ -519,12 +520,15 @@ def submit_family_transfer(
             raise HTTPException(
                 422, "El reparto supera el balance pendiente de uno de los estudiantes"
             )
+    stored = storage.store(db, "transfers", proof, mime)
     batch = TransferBatch(
         reference=data.reference,
         bank=data.bank,
         note=data.note,
         total_cents=sum(cents(item.amount) for item in data.allocations),
-        proof=proof,
+        proof_key=stored.key,
+        proof_size=stored.size,
+        proof_sha256=stored.sha256,
         proof_type=mime,
         status="pending",
         submitted_by=user.user_id,

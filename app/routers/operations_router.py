@@ -68,6 +68,7 @@ from app.schemas.operations_schema import (
     StudentDocumentOut,
 )
 from app.schemas.student_schema import StudentCreate
+from app.services import storage
 from app.services.academic_grading import academic_result
 from app.services.academic_metrics import summarize_results
 from app.services.effective_schedule import effective_blocks
@@ -969,12 +970,15 @@ def upload_document(
         raise HTTPException(
             422, "Selecciona un PDF, PNG o JPEG cuya extensión coincida con su contenido"
         )
+    stored = storage.store(db, "documents", content, data.mime_type)
     item = StudentDocument(
         student_id=student_id,
         document_type=data.document_type,
         filename=filename,
         mime_type=data.mime_type,
-        content=content,
+        storage_key=stored.key,
+        size_bytes=stored.size,
+        sha256=stored.sha256,
         expires_on=data.expires_on,
         uploaded_by=user.user_id,
     )
@@ -1001,7 +1005,7 @@ def download_document(
         raise HTTPException(status_code=404, detail="Documento no encontrado")
     ensure_student_academic_access(db, user, item.student_id)
     return Response(
-        item.content,
+        storage.read(item.storage_key, item.content),
         media_type=item.mime_type,
         headers={
             "Content-Disposition": f"attachment; filename*=UTF-8''{quote(item.filename, safe='')}",

@@ -34,6 +34,7 @@ from app.models.operations_model import (
 from app.models.section_model import Section
 from app.models.user_model import User
 from app.schemas.operations_schema import AssignmentCreate, SubmissionCreate, SubmissionGrade
+from app.services import storage
 from app.services.academic_grading import audit_event as log_event
 from app.services.academic_grading import ensure_grading_open, write_grade
 from app.services.academic_locks import (
@@ -378,12 +379,15 @@ def submit(
                 422, "Selecciona un PDF, PNG o JPEG con una extensión que coincida con su contenido"
             )
         db.flush()
+        stored = storage.store(db, "submissions", binary, attachment.mime_type)
         db.add(
             SubmissionAttachment(
                 revision_id=revision.revision_id,
                 filename=filename,
                 mime_type=attachment.mime_type,
-                content=binary,
+                storage_key=stored.key,
+                size_bytes=stored.size,
+                sha256=stored.sha256,
             )
         )
     audit_event(
@@ -470,7 +474,7 @@ def download_attempt_attachment(
     if attachment is None:
         raise HTTPException(404, "Este intento no contiene un adjunto")
     return Response(
-        attachment.content,
+        storage.read(attachment.storage_key, attachment.content),
         media_type=attachment.mime_type,
         headers={
             "Content-Disposition": f"attachment; filename*=UTF-8''{quote(attachment.filename, safe='')}",

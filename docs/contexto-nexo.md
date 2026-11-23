@@ -33,7 +33,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 | M1 | ✅ Cerrado en `master` (20/11): permisos granulares por ruta y menú por permisos | — |
 | M2 | ✅ Cerrado (21/11): toda ruta de escritura toma el bloqueo de su dominio; `tests/test_route_locks.py` | — |
 | M3 | ✅ Cerrado (21/11): los listados filtran y paginan en SQL (`search`, `page_query`) | — |
-| M4 | Archivos dentro de la base (5 columnas binarias) | 4 |
+| M4 | ✅ (25/11, Fase 4 C1): archivos en almacenamiento de objetos (carpeta local o S3) con traslado verificado de los existentes; falta borrar las columnas viejas cuando cada instalación confirme el traslado | 4 |
 | M5 | ✅ Cerrado (21/11): copia y restauración de PostgreSQL verificadas en CI | — |
 | M6 | ✅ Cerrado (22/11): recuperación de contraseña, invitaciones y avisos por correo con bandeja de salida y SMTP configurable | — |
 | M7 | ✅ (23/11): estado de cuenta por cuotas y pagos familiares (22/11); planes por grado y año, generación programada, descuento por hermanos, mora y bloqueo automáticos, cajero y supervisor separados y reportes (Fase 3 E). Pendiente para la Fase 4: comprobantes fiscales (NCF/e-CF) y pagos en línea | 3 |
@@ -125,7 +125,13 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
    - Pruebas: `tests/test_platform.py` y pruebas del frontend (`PlatformPage`, `FirstSteps`, `LoginPage`).
 - Planes, límites, suscripciones, prueba gratuita y suspensión por impago (Stripe o PayPal y Azul o CardNet).
 - Pagos en línea para familias, comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
-- Archivos en almacenamiento de objetos (M4), Redis si hace falta, Sentry, límites de peticiones en subidas e importaciones (B7), build ligero (B2).
+3. **Bloque C: infraestructura** (aprobado el 24/11/2026; sin Redis por ahora, Sentry sin datos personales, despliegue con Docker sin atarse a un proveedor).
+   - ✅ **C1, 25/11/2026: archivos fuera de la base (M4)** (migración `20261125_0064`, `app/services/storage.py`).
+     - Documentos del expediente, adjuntos de entregas y comprobantes de transferencia se guardan en una carpeta local (`STORAGE_BACKEND=local`) o en un servicio compatible con S3 (`s3`: AWS S3, Cloudflare R2, Spaces, MinIO), con cifrado del lado del servidor. Claves por institución: `inst/<id>/<tipo>/<uuid>`.
+     - Si la transacción no se confirma, los archivos que escribió se borran. Las descargas siguen pasando por el API (permiso, ámbito y auditoría); si el archivo falta, 503 con aviso.
+     - `python -m scripts.move_files_to_storage [--clear | --verify]` copia los archivos existentes y compara cada copia por SHA-256. Las columnas binarias se borrarán en una migración posterior, cuando `--verify` no muestre pendientes.
+     - Pruebas: `tests/test_object_storage.py`.
+   - Pendiente: C2 límites de peticiones (B7), C3 observabilidad, C4 despliegue, C5 build ligero (B2).
 
 ### Fase 5: lanzamiento (M)
 Landing page, demo pública, términos de uso, política de privacidad conforme a la Ley 172-13 con atención a datos de menores, documentación para clientes y soporte.
