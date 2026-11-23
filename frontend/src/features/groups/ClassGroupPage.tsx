@@ -72,6 +72,7 @@ export function ClassGroupPage() {
           </h1>
           <p className="muted">
             Titular: {data.homeroom_teacher_name ?? "sin asignar"} · {data.room}
+            {data.shift && ` · Tanda ${data.shift}`}
           </p>
         </div>
       </header>

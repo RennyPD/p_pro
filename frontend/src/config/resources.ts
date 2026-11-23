@@ -196,6 +196,15 @@ export const resources: Record<string, ResourceConfig> = {
         placeholder: "Ej. 2026",
       },
       {
+        name: "report_card_format",
+        label: "Formato del boletín",
+        type: "select",
+        options: [
+          { label: "General", value: "general" },
+          { label: "Oficial MINERD de secundaria (por competencias)", value: "minerd_secondary" },
+        ],
+      },
+      {
         name: "grading_scale_id",
         label: "Escala de calificación",
         type: "lookup",

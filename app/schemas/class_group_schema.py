@@ -12,6 +12,7 @@ class ClassGroupBase(BaseModel):
     homeroom_teacher_id: int | None = None
     room: str = Field(default="Por asignar", max_length=100)
     capacity: int = Field(default=35, ge=1, le=80)
+    shift: str = Field(default="", pattern=r"^(|matutina|vespertina|extendida|nocturna)$")
 
     @model_validator(mode="after")
     def clean(self):
@@ -31,6 +32,7 @@ class ClassGroupUpdate(BaseModel):
     room: str | None = Field(default=None, max_length=100)
     capacity: int | None = Field(default=None, ge=1, le=80)
     status: str | None = Field(default=None, pattern=r"^(active|closed)$")
+    shift: str | None = Field(default=None, pattern=r"^(|matutina|vespertina|extendida|nocturna)$")
 
 
 class ClassGroupOut(ClassGroupBase):
@@ -107,6 +109,7 @@ class SubjectResultOut(BaseModel):
     status: str
     completivo: float | None = None
     extraordinario: float | None = None
+    especial: float | None = None
 
 
 class PromotionRow(BaseModel):
@@ -144,7 +147,7 @@ class ResultConfirmation(BaseModel):
 
 class RecoveryIn(BaseModel):
     subject_id: int
-    kind: str = Field(pattern=r"^(completivo|extraordinario)$")
+    kind: str = Field(pattern=r"^(completivo|extraordinario|especial)$")
     exam_grade: Decimal = Field(ge=0, le=100, max_digits=5, decimal_places=2)
 
 

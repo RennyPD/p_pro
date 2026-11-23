@@ -18,13 +18,19 @@ from sqlalchemy.orm import Session
 
 from app.auth import ACADEMIC_SCOPE, has_permission, has_scope
 from app.models.attendance_model import Attendance
-from app.models.class_group_model import ClassGroup, ClassGroupMember, ReportCardComment
+from app.models.class_group_model import (
+    ClassGroup,
+    ClassGroupMember,
+    RecoveryExam,
+    ReportCardComment,
+)
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings, SchoolYear
 from app.models.enrollment_model import Enrollment
 from app.models.user_model import User
 from app.services import class_groups as groups
 from app.services.academic_grading import academic_result
 from app.services.audit_log import record
+from app.services.competencies import competency_groups, uses_competencies
 from app.services.grading_scales import label
 
 RESULT_LABELS = {
@@ -108,11 +114,78 @@ def attendance_by_period(db: Session, group: ClassGroup, member, periods) -> lis
 
 
 def final_value(subject) -> float | None:
+    if subject.especial is not None and subject.status == "passed":
+        return subject.especial
     if subject.extraordinario is not None:
         return subject.extraordinario
     if subject.completivo is not None:
         return subject.completivo
     return subject.average if subject.complete else None
+
+
+MONTHS = ("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sept", "Oct", "Nov", "Dic")
+
+
+def months_label(period) -> str:
+    """ "Ago–Sept–Oct" for a period from August to October (signature lines)."""
+    labels, year, month = [], period.start_date.year, period.start_date.month
+    while (year, month) <= (period.end_date.year, period.end_date.month) and len(labels) < 6:
+        labels.append(MONTHS[month - 1])
+        year, month = (year + 1, 1) if month == 12 else (year, month + 1)
+    return "–".join(labels)
+
+
+def order_number(group: ClassGroup, member: ClassGroupMember) -> int:
+    """Número de orden: alphabetical position by surname within the group."""
+    ordered = sorted(
+        groups.active_members(group) or [member],
+        key=lambda m: (m.student.last_name.casefold(), m.student.first_name.casefold()),
+    )
+    ids = [m.member_id for m in ordered]
+    return ids.index(member.member_id) + 1 if member.member_id in ids else len(ids) + 1
+
+
+def competency_grades(db: Session, group, member, scale, periods, courses, subjects):
+    """Per subject: one row per competency group with its P1–P4 labels.
+
+    A period's competency grades show only when that period's result is final,
+    like every other grade on the card (decision 2 of block F).
+    """
+    groups_rows = competency_groups(db)
+    sections = groups.group_sections(db, group)
+    result = {}
+    for course, subject in zip(courses, subjects):
+        rows = {g.competency_group_id: [None] * len(periods) for g in groups_rows}
+        for index, period in enumerate(periods):
+            if subject.periods[index] is None:
+                continue
+            section = next(
+                (
+                    s
+                    for s in sections
+                    if s.subject_id == course.subject_id and s.period_id == period.period_id
+                ),
+                None,
+            )
+            if section is None:
+                continue
+            enrollment = (
+                db.query(Enrollment)
+                .filter_by(student_id=member.student_id, section_id=section.section_id)
+                .first()
+            )
+            if enrollment is None:
+                continue
+            for grade in enrollment.grades:
+                assessment = grade.assessment
+                if (
+                    grade.status == "published"
+                    and assessment is not None
+                    and assessment.competency_group_id in rows
+                ):
+                    rows[assessment.competency_group_id][index] = label(scale, grade.grade_value)
+        result[course.subject_id] = [rows[g.competency_group_id] for g in groups_rows]
+    return result
 
 
 def build_report_card(db: Session, member: ClassGroupMember) -> dict:
@@ -129,7 +202,23 @@ def build_report_card(db: Session, member: ClassGroupMember) -> dict:
     settings = db.get(InstitutionSettings, 1)
     teacher = group.homeroom_teacher
     student = member.student
+    official = uses_competencies(group.career)
+    exams = {
+        (exam.subject_id, exam.kind): exam
+        for exam in db.query(RecoveryExam).filter_by(member_id=member.member_id)
+    }
+    competencies = (
+        competency_grades(db, group, member, scale, periods, courses, subjects) if official else {}
+    )
     return {
+        "format": "minerd_secondary" if official else "general",
+        "first_name": student.first_name,
+        "last_name": student.last_name,
+        "sigerd_id": student.sigerd_id or "",
+        "order_number": order_number(group, member),
+        "shift": group.shift or "",
+        "section_name": group.name,
+        "competency_groups": [g.name for g in competency_groups(db)] if official else [],
         "student_id": student.student_id,
         "student_name": student.full_name,
         "enrollment_number": student.enrollment_number,
@@ -140,6 +229,9 @@ def build_report_card(db: Session, member: ClassGroupMember) -> dict:
             "school_code": settings.school_code if settings else "",
             "regional": settings.regional if settings else "",
             "district": settings.district if settings else "",
+            "phone": settings.school_phone if settings else "",
+            "province": settings.province if settings else "",
+            "municipality": settings.municipality if settings else "",
         },
         "class_group_id": group.class_group_id,
         "group_label": group.label,
@@ -155,6 +247,7 @@ def build_report_card(db: Session, member: ClassGroupMember) -> dict:
                 "name": p.name,
                 "short": f"P{index}",
                 "closed": p.status == "closed",
+                "months": months_label(p),
             }
             for index, p in enumerate(periods, start=1)
         ],
@@ -173,8 +266,22 @@ def build_report_card(db: Session, member: ClassGroupMember) -> dict:
                 if s.extraordinario is not None
                 else None,
                 "final": label(scale, final_value(s)) if final_value(s) is not None else None,
+                "especial": label(scale, s.especial) if s.especial is not None else None,
                 "status": s.status,
                 "status_label": STATUS_LABELS.get(s.status, s.status),
+                # Situación final en la asignatura: A (aprobado) / R (reprobado).
+                "situation": "A" if s.passed else "R" if s.passed is False else None,
+                "competencies": competencies.get(s.subject_id, []),
+                "recovery": {
+                    kind: {
+                        "average": float(exam.annual_average),
+                        "exam": float(exam.exam_grade),
+                        "final": float(exam.final_grade),
+                        "passed": exam.passed,
+                    }
+                    for (subject_id, kind), exam in exams.items()
+                    if subject_id == s.subject_id
+                },
             }
             for s in subjects
         ],
@@ -188,6 +295,11 @@ def build_report_card(db: Session, member: ClassGroupMember) -> dict:
             for p in periods
             if p.period_id in comments
         ],
+        "weights": {
+            "completivo": float(scale.completivo_average_weight),
+            "extraordinario": float(scale.extraordinario_average_weight),
+        },
+        "result_note": member.result_note or "",
         "result": member.result if member.result_confirmed_at else "pending",
         "result_label": RESULT_LABELS.get(
             member.result if member.result_confirmed_at else "pending", member.result

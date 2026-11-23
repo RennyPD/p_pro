@@ -17,6 +17,8 @@ class Student(Base):
     telephone: Mapped[str] = mapped_column(String(20))
     address: Mapped[str] = mapped_column(String(255))
     document_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # MINERD student ID (SIGERD), printed on the official report card.
+    sigerd_id: Mapped[str | None] = mapped_column(String(30), nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     nationality: Mapped[str | None] = mapped_column(String(100), nullable=True)
     admission_date: Mapped[date | None] = mapped_column(Date, nullable=True)

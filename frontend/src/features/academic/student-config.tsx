@@ -6,6 +6,7 @@ import type { FieldConfig, ResourceConfig } from "../../types";
 
 const extraFields: FieldConfig[] = [
   { name: "document_number", label: "Documento de identidad", section: "Identificación personal" },
+  { name: "sigerd_id", label: "ID estudiante (SIGERD)", section: "Identificación personal" },
   {
     name: "birth_date",
     label: "Fecha de nacimiento",

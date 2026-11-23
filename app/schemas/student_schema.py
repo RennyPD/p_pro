@@ -1,11 +1,12 @@
 from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class StudentDossierFields(BaseModel):
     document_number: str | None = None
+    sigerd_id: str | None = Field(default=None, max_length=30)
     birth_date: date | None = None
     nationality: str | None = None
     admission_date: date | None = None

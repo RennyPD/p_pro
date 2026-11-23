@@ -51,6 +51,8 @@ class ClassGroup(Base):
     room: Mapped[str] = mapped_column(String(100), default="Por asignar")
     capacity: Mapped[int] = mapped_column(Integer, default=35)
     status: Mapped[str] = mapped_column(String(20), default="active")
+    # Tanda: matutina | vespertina | extendida | nocturna | "" (Fase 3 F2).
+    shift: Mapped[str] = mapped_column(String(20), default="", server_default="")
 
     career: Mapped["Career"] = relationship(lazy="selectin")
     school_year: Mapped["SchoolYear"] = relationship(lazy="selectin")

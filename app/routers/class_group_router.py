@@ -45,6 +45,7 @@ def group_out(group: ClassGroup) -> dict:
         "room": group.room,
         "capacity": group.capacity,
         "status": group.status,
+        "shift": group.shift,
         "label": group.label,
         "career_name": group.career.name,
         "school_year_name": group.school_year.name,

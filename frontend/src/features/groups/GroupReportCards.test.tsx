@@ -131,4 +131,39 @@ describe("GroupReportCardsTab", () => {
     const remarks = await screen.findByRole("region", { name: "Observaciones del titular" });
     expect(within(remarks).getByText(/Excelente/)).toBeInTheDocument();
   });
+
+  it("shows the competency groups of the official secondary card", async () => {
+    vi.spyOn(api, "get").mockResolvedValue({
+      data: {
+        ...card,
+        format: "minerd_secondary",
+        competency_groups: ["Comunicativa", "Pensamiento", "Científica", "Ética"],
+        subjects: [
+          {
+            ...card.subjects[0],
+            especial: "75",
+            competencies: [
+              ["80", null],
+              ["90", null],
+              ["70", null],
+              ["100", null],
+            ],
+          },
+        ],
+      },
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <GroupReportCardsTab group={group} />
+      </QueryClientProvider>,
+    );
+    const table = await screen.findByRole("table", {
+      name: "Calificaciones por competencias fundamentales",
+    });
+    expect(within(table).getByRole("columnheader", { name: "Comunicativa" })).toBeInTheDocument();
+    const row = within(table).getByRole("row", { name: /Matemática 1/ });
+    expect(within(row).getByText("100")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Especial" })).toBeInTheDocument();
+  });
 });

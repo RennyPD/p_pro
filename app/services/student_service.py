@@ -24,6 +24,7 @@ AUDITED_FIELDS = (
     "telephone",
     "address",
     "document_number",
+    "sigerd_id",
     "enrollment_number",
 )
 

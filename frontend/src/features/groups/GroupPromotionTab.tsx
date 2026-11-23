@@ -151,6 +151,27 @@ export function GroupPromotionTab({ group }: { group: ClassGroupDetail }) {
                           subject.extraordinario !== undefined && (
                             <small>Extraordinario {subject.extraordinario}</small>
                           )}
+                        {subject.especial !== null && subject.especial !== undefined && (
+                          <small>Especial {subject.especial}</small>
+                        )}
+                        {canGrade &&
+                          ["completivo", "extraordinario", "failed"].includes(subject.status) && (
+                            <button
+                              type="button"
+                              className="groups-recovery groups-recovery--secondary"
+                              onClick={() =>
+                                setRecovery({
+                                  memberId: row.member_id,
+                                  student: row.student_name,
+                                  subjectId: subject.subject_id,
+                                  subject: subject.name,
+                                  kind: "especial",
+                                })
+                              }
+                            >
+                              Evaluación especial
+                            </button>
+                          )}
                         {canGrade &&
                           (subject.status === "completivo" ||
                             subject.status === "extraordinario") && (
@@ -322,7 +343,9 @@ function RecoveryDialog({
           />
         </label>
         <p className="muted">
-          La calificación final combina el promedio anual y el examen con los pesos de la escala.
+          {recovery.kind === "especial"
+            ? "La evaluación especial es una nota directa: si aprueba, reemplaza la calificación final."
+            : "La calificación final combina el promedio anual y el examen con los pesos de la escala."}
         </p>
         {failure && (
           <p className="form-error" role="alert">

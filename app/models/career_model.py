@@ -37,5 +37,10 @@ class Career(Base):
         ForeignKey("grading_scales.grading_scale_id"), nullable=True, index=True
     )
     grading_scale: Mapped["GradingScale | None"] = relationship(lazy="selectin")
+    # general | minerd_secondary (Fase 3 F2): the official secondary report card,
+    # graded by competency groups.
+    report_card_format: Mapped[str] = mapped_column(
+        String(30), default="general", server_default="general"
+    )
 
     students: Mapped[list["Student"]] = relationship("Student", back_populates="career")

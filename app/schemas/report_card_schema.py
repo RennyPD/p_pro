@@ -6,6 +6,9 @@ class ReportCardInstitution(BaseModel):
     school_code: str
     regional: str
     district: str
+    phone: str = ""
+    province: str = ""
+    municipality: str = ""
 
 
 class ReportCardPeriod(BaseModel):
@@ -13,6 +16,14 @@ class ReportCardPeriod(BaseModel):
     name: str
     short: str
     closed: bool
+    months: str = ""
+
+
+class RecoveryValues(BaseModel):
+    average: float
+    exam: float
+    final: float
+    passed: bool
 
 
 class ReportCardSubject(BaseModel):
@@ -25,8 +36,12 @@ class ReportCardSubject(BaseModel):
     completivo: str | None
     extraordinario: str | None
     final: str | None
+    especial: str | None = None
     status: str
     status_label: str
+    situation: str | None = None
+    competencies: list[list[str | None]] = []
+    recovery: dict[str, RecoveryValues] = {}
 
 
 class ReportCardAttendance(BaseModel):
@@ -46,6 +61,14 @@ class ReportCardComment(BaseModel):
 
 
 class ReportCard(BaseModel):
+    format: str = "general"
+    first_name: str = ""
+    last_name: str = ""
+    sigerd_id: str = ""
+    order_number: int = 0
+    shift: str = ""
+    section_name: str = ""
+    competency_groups: list[str] = []
     student_id: int
     student_name: str
     enrollment_number: str
@@ -64,6 +87,8 @@ class ReportCard(BaseModel):
     subjects: list[ReportCardSubject]
     attendance: list[ReportCardAttendance]
     comments: list[ReportCardComment]
+    weights: dict[str, float] = {}
+    result_note: str = ""
     result: str
     result_label: str
 

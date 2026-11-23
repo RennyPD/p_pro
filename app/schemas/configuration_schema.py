@@ -158,6 +158,9 @@ class InstitutionSettingsBase(BaseModel):
     school_code: str = Field(default="", max_length=30)
     regional: str = Field(default="", max_length=80)
     district: str = Field(default="", max_length=80)
+    school_phone: str = Field(default="", max_length=30)
+    province: str = Field(default="", max_length=80)
+    municipality: str = Field(default="", max_length=80)
 
     @model_validator(mode="after")
     def clean_name(self):
@@ -174,6 +177,9 @@ class InstitutionSettingsUpdate(InstitutionSettingsBase):
     school_code: str | None = Field(default=None, max_length=30)
     regional: str | None = Field(default=None, max_length=80)
     district: str | None = Field(default=None, max_length=80)
+    school_phone: str | None = Field(default=None, max_length=30)
+    province: str | None = Field(default=None, max_length=80)
+    municipality: str | None = Field(default=None, max_length=80)
     reason: str = Field(
         default="Actualización de configuración institucional", min_length=3, max_length=250
     )

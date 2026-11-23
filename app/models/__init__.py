@@ -1,5 +1,5 @@
 from .access_model import Permission, RolePermission
-from .assessment_model import Assessment, AssessmentTemplate
+from .assessment_model import Assessment, AssessmentTemplate, CompetencyGroup
 from .attendance_model import Attendance, AttendanceChange
 from .career_model import Career
 from .class_group_model import (

@@ -1,6 +1,16 @@
 from datetime import date
 
-from sqlalchemy import JSON, Boolean, Date, Float, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Date,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -20,9 +30,28 @@ class Assessment(Base):
 
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     closed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # MINERD competency group this assessment grades (Fase 3 F2); None otherwise.
+    competency_group_id: Mapped[int | None] = mapped_column(
+        ForeignKey("competency_groups.competency_group_id"), nullable=True
+    )
 
     section: Mapped["Section"] = relationship("Section")
     grades: Mapped[list["Grade"]] = relationship("Grade", back_populates="assessment")
+
+
+class CompetencyGroup(Base):
+    """A group of MINERD fundamental competencies graded per subject and period (Fase 3 F2).
+
+    The secondary report card grades each subject on four groups; the period
+    result (PC) is their average. One row per group, per institution later.
+    """
+
+    __tablename__ = "competency_groups"
+
+    competency_group_id: Mapped[int] = mapped_column(primary_key=True)
+    position: Mapped[int] = mapped_column(Integer, unique=True)
+    name: Mapped[str] = mapped_column(String(150))
+    short_name: Mapped[str] = mapped_column(String(40))
 
 
 class AssessmentTemplate(Base):

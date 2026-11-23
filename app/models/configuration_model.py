@@ -74,6 +74,9 @@ class InstitutionSettings(Base):
     school_code: Mapped[str] = mapped_column(String(30), default="", server_default="")
     regional: Mapped[str] = mapped_column(String(80), default="", server_default="")
     district: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    school_phone: Mapped[str] = mapped_column(String(30), default="", server_default="")
+    province: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    municipality: Mapped[str] = mapped_column(String(80), default="", server_default="")
     revision: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 

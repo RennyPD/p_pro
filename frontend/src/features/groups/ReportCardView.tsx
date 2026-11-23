@@ -82,6 +82,7 @@ export function ReportCardView({
               <th scope="col">Promedio</th>
               <th scope="col">Completiva</th>
               <th scope="col">Extraordinaria</th>
+              {card.format === "minerd_secondary" && <th scope="col">Especial</th>}
               <th scope="col">Final</th>
               <th scope="col">Situación</th>
             </tr>
@@ -102,6 +103,7 @@ export function ReportCardView({
                 <td>{subject.average_label ?? "—"}</td>
                 <td>{subject.completivo ?? "—"}</td>
                 <td>{subject.extraordinario ?? "—"}</td>
+                {card.format === "minerd_secondary" && <td>{subject.especial ?? "—"}</td>}
                 <td>
                   <strong>{subject.final ?? "—"}</strong>
                 </td>
@@ -113,6 +115,7 @@ export function ReportCardView({
           </tbody>
         </table>
       </div>
+      {card.format === "minerd_secondary" && <CompetencyTable card={card} />}
       <div className="report-card__table-wrap">
         <table className="report-card__table report-card__attendance">
           <caption>Asistencia</caption>
@@ -155,5 +158,61 @@ export function ReportCardView({
         curso».
       </p>
     </article>
+  );
+}
+
+/** Official secondary card: each subject graded on four competency groups per period. */
+function CompetencyTable({ card }: { card: ReportCard }) {
+  const shorts = card.periods.map(period => period.short);
+  return (
+    <div className="report-card__table-wrap">
+      <table className="report-card__table report-card__competencies">
+        <caption>Calificaciones por competencias fundamentales</caption>
+        <thead>
+          <tr>
+            <th scope="col" rowSpan={2}>
+              Área curricular
+            </th>
+            {card.competency_groups.map(name => (
+              <th key={name} scope="colgroup" colSpan={shorts.length}>
+                {name}
+              </th>
+            ))}
+            <th scope="colgroup" colSpan={shorts.length}>
+              Promedio (PC)
+            </th>
+          </tr>
+          <tr>
+            {card.competency_groups.map(name =>
+              shorts.map(short => (
+                <th key={`${name}-${short}`} scope="col">
+                  {short}
+                </th>
+              )),
+            )}
+            {shorts.map((short, index) => (
+              <th key={`pc-${short}`} scope="col">
+                PC{index + 1}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {card.subjects.map(subject => (
+            <tr key={subject.subject_id}>
+              <th scope="row">{subject.name}</th>
+              {(subject.competencies ?? []).map((values, group) =>
+                values.map((value, index) => <td key={`${group}-${index}`}>{value ?? "—"}</td>),
+              )}
+              {subject.periods.map((value, index) => (
+                <td key={`pc-${index}`}>
+                  <strong>{value ?? "—"}</strong>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

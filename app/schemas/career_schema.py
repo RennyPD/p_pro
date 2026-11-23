@@ -36,6 +36,7 @@ class CareerBase(CareerInstitutionalFields):
     duration_terms: int = Field(default=8, ge=1, le=20)
     required_credits: int = Field(default=120, ge=1, le=400)
     curriculum_version: str = Field(default="current", min_length=1, max_length=30)
+    report_card_format: str = Field(default="general", pattern=r"^(general|minerd_secondary)$")
 
 
 class CareerCreate(CareerBase):
@@ -60,6 +61,7 @@ class CareerUpdate(CareerInstitutionalFields):
     )
     duration_terms: Optional[int] = Field(default=None, ge=1, le=20)
     required_credits: Optional[int] = Field(default=None, ge=1, le=400)
+    report_card_format: Optional[str] = Field(default=None, pattern=r"^(general|minerd_secondary)$")
     curriculum_version: Optional[str] = Field(default=None, min_length=1, max_length=30)
 
     @model_validator(mode="before")

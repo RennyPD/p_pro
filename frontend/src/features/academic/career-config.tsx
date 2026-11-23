@@ -79,6 +79,7 @@ export const careerConfig: ResourceConfig = {
     duration_terms: 8,
     required_credits: 120,
     curriculum_version: String(new Date().getFullYear()),
+    report_card_format: "general",
   },
   description:
     "Administra la identidad institucional, el perfil formativo y el plan de estudios de cada programa.",

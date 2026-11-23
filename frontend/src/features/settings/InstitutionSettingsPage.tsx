@@ -21,6 +21,9 @@ type SettingsForm = {
   school_code: string;
   regional: string;
   district: string;
+  school_phone: string;
+  province: string;
+  municipality: string;
 };
 type Settings = SettingsForm & {
   settings_id: number;
@@ -46,6 +49,9 @@ const names: Record<string, string> = {
   school_code: "Código del centro",
   regional: "Regional educativa",
   district: "Distrito educativo",
+  school_phone: "Teléfono del centro",
+  province: "Provincia",
+  municipality: "Municipio",
 };
 const fields = (s: Settings): SettingsForm => ({
   institution_name: s.institution_name,
@@ -58,6 +64,9 @@ const fields = (s: Settings): SettingsForm => ({
   school_code: s.school_code ?? "",
   regional: s.regional ?? "",
   district: s.district ?? "",
+  school_phone: s.school_phone ?? "",
+  province: s.province ?? "",
+  municipality: s.municipality ?? "",
 });
 export function InstitutionSettingsPage() {
   const uid = useAuthStore(s => s.user?.user_id);
@@ -237,7 +246,19 @@ export function InstitutionSettingsPage() {
           <label className="form-field">
             <span>Distrito educativo</span>
             <input disabled={busy} maxLength={80} {...register("district")} />
-            <small>Aparecen en el encabezado de los boletines.</small>
+          </label>
+          <label className="form-field">
+            <span>Teléfono del centro</span>
+            <input disabled={busy} maxLength={30} {...register("school_phone")} />
+          </label>
+          <label className="form-field">
+            <span>Provincia</span>
+            <input disabled={busy} maxLength={80} {...register("province")} />
+          </label>
+          <label className="form-field">
+            <span>Municipio</span>
+            <input disabled={busy} maxLength={80} {...register("municipality")} />
+            <small>Estos datos aparecen en el encabezado de los boletines.</small>
           </label>
           <label className="settings-toggle settings-wide">
             <input disabled={busy} type="checkbox" {...register("students_view_finance")} />

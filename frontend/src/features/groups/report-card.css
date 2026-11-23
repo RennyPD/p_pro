@@ -65,3 +65,10 @@
   margin: 0;
   font-size: 0.82rem;
 }
+.report-card__competencies thead th {
+  white-space: normal;
+  min-width: 2.4rem;
+}
+.report-card__competencies thead tr:first-child th {
+  border-left: 1px solid var(--line);
+}

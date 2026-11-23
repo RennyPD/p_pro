@@ -5718,6 +5718,11 @@ export interface components {
       /** Professional Fields */
       professional_fields?: string | null;
       /**
+       * Report Card Format
+       * @default general
+       */
+      report_card_format: string;
+      /**
        * Required Credits
        * @default 120
        */
@@ -5822,6 +5827,11 @@ export interface components {
       /** Professional Fields */
       professional_fields?: string | null;
       /**
+       * Report Card Format
+       * @default general
+       */
+      report_card_format: string;
+      /**
        * Required Credits
        * @default 120
        */
@@ -5879,6 +5889,8 @@ export interface components {
       name?: string | null;
       /** Professional Fields */
       professional_fields?: string | null;
+      /** Report Card Format */
+      report_card_format?: string | null;
       /** Required Credits */
       required_credits?: number | null;
       /** Status */
@@ -5984,6 +5996,11 @@ export interface components {
       room: string;
       /** School Year Id */
       school_year_id: number;
+      /**
+       * Shift
+       * @default
+       */
+      shift: string;
     };
     /** ClassGroupDetail */
     ClassGroupDetail: {
@@ -6026,6 +6043,11 @@ export interface components {
       school_year_id: number;
       /** School Year Name */
       school_year_name: string;
+      /**
+       * Shift
+       * @default
+       */
+      shift: string;
       /** Status */
       status: string;
       /** Subjects */
@@ -6104,6 +6126,11 @@ export interface components {
       school_year_id: number;
       /** School Year Name */
       school_year_name: string;
+      /**
+       * Shift
+       * @default
+       */
+      shift: string;
       /** Status */
       status: string;
     };
@@ -6135,6 +6162,8 @@ export interface components {
       name?: string | null;
       /** Room */
       room?: string | null;
+      /** Shift */
+      shift?: string | null;
       /** Status */
       status?: string | null;
     };
@@ -7740,10 +7769,20 @@ export interface components {
        * @default 24
        */
       max_credits_per_period: number;
+      /**
+       * Municipality
+       * @default
+       */
+      municipality: string;
       /** Next Enrollment Number */
       next_enrollment_number: number;
       /** Passing Grade */
       passing_grade: number;
+      /**
+       * Province
+       * @default
+       */
+      province: string;
       /**
        * Regional
        * @default
@@ -7759,6 +7798,11 @@ export interface components {
        * @default
        */
       school_code: string;
+      /**
+       * School Phone
+       * @default
+       */
+      school_phone: string;
       /** Settings Id */
       settings_id: number;
       /**
@@ -7786,8 +7830,12 @@ export interface components {
        * @default 24
        */
       max_credits_per_period: number;
+      /** Municipality */
+      municipality?: string | null;
       /** Passing Grade */
       passing_grade: number;
+      /** Province */
+      province?: string | null;
       /**
        * Reason
        * @default Actualización de configuración institucional
@@ -7797,6 +7845,8 @@ export interface components {
       regional?: string | null;
       /** School Code */
       school_code?: string | null;
+      /** School Phone */
+      school_phone?: string | null;
       /** Students View Finance */
       students_view_finance?: boolean | null;
     };
@@ -8245,6 +8295,17 @@ export interface components {
       /** Subject Id */
       subject_id: number;
     };
+    /** RecoveryValues */
+    RecoveryValues: {
+      /** Average */
+      average: number;
+      /** Exam */
+      exam: number;
+      /** Final */
+      final: number;
+      /** Passed */
+      passed: boolean;
+    };
     /** ReinscriptionIn */
     ReinscriptionIn: {
       /** Member Ids */
@@ -8271,8 +8332,23 @@ export interface components {
       class_group_id: number;
       /** Comments */
       comments: components["schemas"]["ReportCardComment"][];
+      /**
+       * Competency Groups
+       * @default []
+       */
+      competency_groups: string[];
       /** Enrollment Number */
       enrollment_number: string;
+      /**
+       * First Name
+       * @default
+       */
+      first_name: string;
+      /**
+       * Format
+       * @default general
+       */
+      format: string;
       /** Grade Number */
       grade_number: number;
       /** Group Label */
@@ -8280,10 +8356,20 @@ export interface components {
       /** Homeroom Teacher */
       homeroom_teacher: string | null;
       institution: components["schemas"]["ReportCardInstitution"];
+      /**
+       * Last Name
+       * @default
+       */
+      last_name: string;
       /** Member Id */
       member_id: number;
       /** Member Status */
       member_status: string;
+      /**
+       * Order Number
+       * @default 0
+       */
+      order_number: number;
       /** Passing Grade */
       passing_grade: number;
       /** Periods */
@@ -8292,16 +8378,43 @@ export interface components {
       result: string;
       /** Result Label */
       result_label: string;
+      /**
+       * Result Note
+       * @default
+       */
+      result_note: string;
       /** Scale Name */
       scale_name: string;
       /** School Year */
       school_year: string;
+      /**
+       * Section Name
+       * @default
+       */
+      section_name: string;
+      /**
+       * Shift
+       * @default
+       */
+      shift: string;
+      /**
+       * Sigerd Id
+       * @default
+       */
+      sigerd_id: string;
       /** Student Id */
       student_id: number;
       /** Student Name */
       student_name: string;
       /** Subjects */
       subjects: components["schemas"]["ReportCardSubject"][];
+      /**
+       * Weights
+       * @default {}
+       */
+      weights: {
+        [key: string]: number;
+      };
     };
     /** ReportCardAttendance */
     ReportCardAttendance: {
@@ -8333,8 +8446,23 @@ export interface components {
     ReportCardInstitution: {
       /** District */
       district: string;
+      /**
+       * Municipality
+       * @default
+       */
+      municipality: string;
       /** Name */
       name: string;
+      /**
+       * Phone
+       * @default
+       */
+      phone: string;
+      /**
+       * Province
+       * @default
+       */
+      province: string;
       /** Regional */
       regional: string;
       /** School Code */
@@ -8344,6 +8472,11 @@ export interface components {
     ReportCardPeriod: {
       /** Closed */
       closed: boolean;
+      /**
+       * Months
+       * @default
+       */
+      months: string;
       /** Name */
       name: string;
       /** Period Id */
@@ -8359,8 +8492,15 @@ export interface components {
       average_label: string | null;
       /** Code */
       code: string;
+      /**
+       * Competencies
+       * @default []
+       */
+      competencies: (string | null)[][];
       /** Completivo */
       completivo: string | null;
+      /** Especial */
+      especial?: string | null;
       /** Extraordinario */
       extraordinario: string | null;
       /** Final */
@@ -8369,6 +8509,15 @@ export interface components {
       name: string;
       /** Periods */
       periods: (string | null)[];
+      /**
+       * Recovery
+       * @default {}
+       */
+      recovery: {
+        [key: string]: components["schemas"]["RecoveryValues"];
+      };
+      /** Situation */
+      situation?: string | null;
       /** Status */
       status: string;
       /** Status Label */
@@ -9119,6 +9268,8 @@ export interface components {
        * @default 0
        */
       provisional_result_count: number;
+      /** Sigerd Id */
+      sigerd_id?: string | null;
       /** Student Id */
       student_id: number;
       /** Telephone */
@@ -9172,6 +9323,8 @@ export interface components {
       nationality?: string | null;
       /** Previous School */
       previous_school?: string | null;
+      /** Sigerd Id */
+      sigerd_id?: string | null;
       /** Telephone */
       telephone: string;
     };
@@ -9384,6 +9537,8 @@ export interface components {
       nationality?: string | null;
       /** Previous School */
       previous_school?: string | null;
+      /** Sigerd Id */
+      sigerd_id?: string | null;
       /** Student Id */
       student_id: number;
       /** Telephone */
@@ -9425,6 +9580,8 @@ export interface components {
       nationality?: string | null;
       /** Previous School */
       previous_school?: string | null;
+      /** Sigerd Id */
+      sigerd_id?: string | null;
       /** Telephone */
       telephone?: string | null;
     };
@@ -9531,6 +9688,8 @@ export interface components {
       complete: boolean;
       /** Completivo */
       completivo?: number | null;
+      /** Especial */
+      especial?: number | null;
       /** Extraordinario */
       extraordinario?: number | null;
       /** Name */

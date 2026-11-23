@@ -36,6 +36,7 @@ from app.models.user_model import User
 from app.services.academic_grading import academic_result
 from app.services.audit_log import record
 from app.services.business_time import business_date
+from app.services.competencies import ensure_competency_assessments, uses_competencies
 from app.services.grading_scales import label, passing_for, scale_for_career
 from app.services.institution_profile import is_school_level
 
@@ -269,6 +270,9 @@ def generate_subjects(db: Session, group: ClassGroup) -> dict:
             db.add(section)
             created += 1
     db.flush()
+    if uses_competencies(group.career):
+        # Official secondary report card: one assessment per competency group.
+        ensure_competency_assessments(db, group_sections(db, group, periods))
     enrolled = sync_member_enrollments(db, group)
     return {"sections_created": created, "enrollments_created": enrolled}
 
@@ -437,7 +441,7 @@ def transfer_member(
 
 # --- Promotion -------------------------------------------------------------
 
-RECOVERY_KINDS = ("completivo", "extraordinario")
+RECOVERY_KINDS = ("completivo", "extraordinario", "especial")
 
 
 @dataclass
@@ -454,6 +458,7 @@ class SubjectResult:
     status: str = "incomplete"
     completivo: float | None = None
     extraordinario: float | None = None
+    especial: float | None = None
 
 
 def group_scale(db: Session, group: ClassGroup):
@@ -497,8 +502,10 @@ def subject_results(db: Session, group: ClassGroup, member, scale, periods, cour
             result.average_label = label(scale, result.average)
         completivo = exams.get((course.subject_id, "completivo"))
         extraordinario = exams.get((course.subject_id, "extraordinario"))
+        especial = exams.get((course.subject_id, "especial"))
         result.completivo = float(completivo.final_grade) if completivo else None
         result.extraordinario = float(extraordinario.final_grade) if extraordinario else None
+        result.especial = float(especial.final_grade) if especial else None
         if not result.complete:
             result.status = "incomplete"
         elif result.average >= passing:
@@ -511,6 +518,10 @@ def subject_results(db: Session, group: ClassGroup, member, scale, periods, cour
             result.status = "extraordinario"
         else:
             result.status = "passed" if extraordinario.passed else "failed"
+        # Special evaluation (decision of 23/11): a direct grade that replaces
+        # the final one when it passes.
+        if result.complete and result.status != "passed" and especial and especial.passed:
+            result.status = "passed"
         if result.complete:
             result.passed = result.status == "passed"
         results.append(result)
@@ -573,7 +584,8 @@ def promotion_proposal(db: Session, group: ClassGroup) -> dict:
 def record_recovery(
     db: Session, group: ClassGroup, member, subject_id: int, kind: str, exam_grade, actor
 ) -> RecoveryExam:
-    """Grade a completivo or extraordinario: weighted with the annual average."""
+    """Grade a completivo or extraordinario (weighted with the annual average) or a
+    special evaluation (a direct grade that replaces the final one if it passes)."""
     if member.status != OPEN:
         raise HTTPException(409, "El estudiante ya no está activo en el grupo")
     scale = group_scale(db, group)
@@ -595,6 +607,12 @@ def record_recovery(
         .first()
     )
     allowed = subject.status == kind or (existing is not None and subject.status != "incomplete")
+    if kind == "especial":
+        allowed = existing is not None or subject.status in {
+            "completivo",
+            "extraordinario",
+            "failed",
+        }
     if not subject.complete:
         raise HTTPException(409, "La materia aún no tiene todas sus notas finales")
     if not allowed:
@@ -606,7 +624,7 @@ def record_recovery(
             else "El completivo ya está registrado; corrige ese examen o registra el extraordinario"
         )
         raise HTTPException(409, message)
-    if kind == "extraordinario":
+    if kind in {"extraordinario", "especial"}:
         later = None
     else:
         later = (
@@ -620,6 +638,8 @@ def record_recovery(
         scale.completivo_average_weight
         if kind == "completivo"
         else scale.extraordinario_average_weight
+        if kind == "extraordinario"
+        else Decimal(0)
     )
     average = Decimal(str(subject.average))
     exam = Decimal(str(exam_grade))

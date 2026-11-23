@@ -143,6 +143,7 @@ function CreateGroupDialog({
     homeroom_teacher_id: "",
     room: "",
     capacity: "35",
+    shift: "",
   });
   const [failure, setFailure] = useState<string | null>(null);
   const careers = useQuery({
@@ -177,6 +178,7 @@ function CreateGroupDialog({
         homeroom_teacher_id: form.homeroom_teacher_id ? Number(form.homeroom_teacher_id) : null,
         room: form.room || "Por asignar",
         capacity: Number(form.capacity),
+        shift: form.shift,
       }),
     onSuccess: response => {
       toast.success(`Grupo ${response.data.label} creado`);
@@ -263,6 +265,16 @@ function CreateGroupDialog({
             <input required type="number" min={1} max={80} {...field("capacity")} />
           </label>
         </div>
+        <label className="form-field">
+          <span>Tanda</span>
+          <select {...field("shift")}>
+            <option value="">Sin indicar</option>
+            <option value="matutina">Matutina</option>
+            <option value="vespertina">Vespertina</option>
+            <option value="extendida">Extendida</option>
+            <option value="nocturna">Nocturna</option>
+          </select>
+        </label>
         {failure && (
           <p className="form-error" role="alert">
             {failure}

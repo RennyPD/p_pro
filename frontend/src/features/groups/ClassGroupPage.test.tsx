@@ -171,4 +171,23 @@ describe("ClassGroupPage", () => {
       }),
     );
   });
+
+  it("records a special evaluation as a direct grade", async () => {
+    mockGet();
+    const post = vi.spyOn(api, "post").mockResolvedValue({ data: promotion });
+    renderPage();
+    await userEvent.click(await screen.findByRole("tab", { name: /Promoción/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "Evaluación especial" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(/nota directa/)).toBeInTheDocument();
+    await userEvent.type(within(dialog).getByLabelText(/Nota del examen/), "75");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Guardar" }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith("/class-groups/7/members/11/recovery", {
+        subject_id: 3,
+        kind: "especial",
+        exam_grade: 75,
+      }),
+    );
+  });
 });

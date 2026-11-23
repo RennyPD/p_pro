@@ -3722,6 +3722,12 @@
             ],
             "title": "Professional Fields"
           },
+          "report_card_format": {
+            "default": "general",
+            "pattern": "^(general|minerd_secondary)$",
+            "title": "Report Card Format",
+            "type": "string"
+          },
           "required_credits": {
             "default": 120,
             "maximum": 400.0,
@@ -4007,6 +4013,12 @@
             ],
             "title": "Professional Fields"
           },
+          "report_card_format": {
+            "default": "general",
+            "pattern": "^(general|minerd_secondary)$",
+            "title": "Report Card Format",
+            "type": "string"
+          },
           "required_credits": {
             "default": 120,
             "maximum": 400.0,
@@ -4284,6 +4296,18 @@
             ],
             "title": "Professional Fields"
           },
+          "report_card_format": {
+            "anyOf": [
+              {
+                "pattern": "^(general|minerd_secondary)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Card Format"
+          },
           "required_credits": {
             "anyOf": [
               {
@@ -4560,6 +4584,12 @@
           "school_year_id": {
             "title": "School Year Id",
             "type": "integer"
+          },
+          "shift": {
+            "default": "",
+            "pattern": "^(|matutina|vespertina|extendida|nocturna)$",
+            "title": "Shift",
+            "type": "string"
           }
         },
         "required": [
@@ -4661,6 +4691,12 @@
           },
           "school_year_name": {
             "title": "School Year Name",
+            "type": "string"
+          },
+          "shift": {
+            "default": "",
+            "pattern": "^(|matutina|vespertina|extendida|nocturna)$",
+            "title": "Shift",
             "type": "string"
           },
           "status": {
@@ -4859,6 +4895,12 @@
             "title": "School Year Name",
             "type": "string"
           },
+          "shift": {
+            "default": "",
+            "pattern": "^(|matutina|vespertina|extendida|nocturna)$",
+            "title": "Shift",
+            "type": "string"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -4978,6 +5020,18 @@
               }
             ],
             "title": "Room"
+          },
+          "shift": {
+            "anyOf": [
+              {
+                "pattern": "^(|matutina|vespertina|extendida|nocturna)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shift"
           },
           "status": {
             "anyOf": [
@@ -9195,6 +9249,12 @@
             "title": "Max Credits Per Period",
             "type": "integer"
           },
+          "municipality": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Municipality",
+            "type": "string"
+          },
           "next_enrollment_number": {
             "title": "Next Enrollment Number",
             "type": "integer"
@@ -9204,6 +9264,12 @@
             "minimum": 0.0,
             "title": "Passing Grade",
             "type": "number"
+          },
+          "province": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Province",
+            "type": "string"
           },
           "regional": {
             "default": "",
@@ -9220,6 +9286,12 @@
             "default": "",
             "maxLength": 30,
             "title": "School Code",
+            "type": "string"
+          },
+          "school_phone": {
+            "default": "",
+            "maxLength": 30,
+            "title": "School Phone",
             "type": "string"
           },
           "settings_id": {
@@ -9308,11 +9380,35 @@
             "title": "Max Credits Per Period",
             "type": "integer"
           },
+          "municipality": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Municipality"
+          },
           "passing_grade": {
             "maximum": 100.0,
             "minimum": 0.0,
             "title": "Passing Grade",
             "type": "number"
+          },
+          "province": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Province"
           },
           "reason": {
             "default": "Actualización de configuración institucional",
@@ -9344,6 +9440,18 @@
               }
             ],
             "title": "School Code"
+          },
+          "school_phone": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "School Phone"
           },
           "students_view_finance": {
             "anyOf": [
@@ -10566,7 +10674,7 @@
             "title": "Exam Grade"
           },
           "kind": {
-            "pattern": "^(completivo|extraordinario)$",
+            "pattern": "^(completivo|extraordinario|especial)$",
             "title": "Kind",
             "type": "string"
           },
@@ -10581,6 +10689,34 @@
           "exam_grade"
         ],
         "title": "RecoveryIn",
+        "type": "object"
+      },
+      "RecoveryValues": {
+        "properties": {
+          "average": {
+            "title": "Average",
+            "type": "number"
+          },
+          "exam": {
+            "title": "Exam",
+            "type": "number"
+          },
+          "final": {
+            "title": "Final",
+            "type": "number"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "average",
+          "exam",
+          "final",
+          "passed"
+        ],
+        "title": "RecoveryValues",
         "type": "object"
       },
       "ReinscriptionIn": {
@@ -10665,8 +10801,26 @@
             "title": "Comments",
             "type": "array"
           },
+          "competency_groups": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Competency Groups",
+            "type": "array"
+          },
           "enrollment_number": {
             "title": "Enrollment Number",
+            "type": "string"
+          },
+          "first_name": {
+            "default": "",
+            "title": "First Name",
+            "type": "string"
+          },
+          "format": {
+            "default": "general",
+            "title": "Format",
             "type": "string"
           },
           "grade_number": {
@@ -10691,6 +10845,11 @@
           "institution": {
             "$ref": "#/components/schemas/ReportCardInstitution"
           },
+          "last_name": {
+            "default": "",
+            "title": "Last Name",
+            "type": "string"
+          },
           "member_id": {
             "title": "Member Id",
             "type": "integer"
@@ -10698,6 +10857,11 @@
           "member_status": {
             "title": "Member Status",
             "type": "string"
+          },
+          "order_number": {
+            "default": 0,
+            "title": "Order Number",
+            "type": "integer"
           },
           "passing_grade": {
             "title": "Passing Grade",
@@ -10718,12 +10882,32 @@
             "title": "Result Label",
             "type": "string"
           },
+          "result_note": {
+            "default": "",
+            "title": "Result Note",
+            "type": "string"
+          },
           "scale_name": {
             "title": "Scale Name",
             "type": "string"
           },
           "school_year": {
             "title": "School Year",
+            "type": "string"
+          },
+          "section_name": {
+            "default": "",
+            "title": "Section Name",
+            "type": "string"
+          },
+          "shift": {
+            "default": "",
+            "title": "Shift",
+            "type": "string"
+          },
+          "sigerd_id": {
+            "default": "",
+            "title": "Sigerd Id",
             "type": "string"
           },
           "student_id": {
@@ -10740,6 +10924,14 @@
             },
             "title": "Subjects",
             "type": "array"
+          },
+          "weights": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "default": {},
+            "title": "Weights",
+            "type": "object"
           }
         },
         "required": [
@@ -10846,8 +11038,23 @@
             "title": "District",
             "type": "string"
           },
+          "municipality": {
+            "default": "",
+            "title": "Municipality",
+            "type": "string"
+          },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "default": "",
+            "title": "Phone",
+            "type": "string"
+          },
+          "province": {
+            "default": "",
+            "title": "Province",
             "type": "string"
           },
           "regional": {
@@ -10873,6 +11080,11 @@
           "closed": {
             "title": "Closed",
             "type": "boolean"
+          },
+          "months": {
+            "default": "",
+            "title": "Months",
+            "type": "string"
           },
           "name": {
             "title": "Name",
@@ -10924,6 +11136,24 @@
             "title": "Code",
             "type": "string"
           },
+          "competencies": {
+            "default": [],
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Competencies",
+            "type": "array"
+          },
           "completivo": {
             "anyOf": [
               {
@@ -10934,6 +11164,17 @@
               }
             ],
             "title": "Completivo"
+          },
+          "especial": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Especial"
           },
           "extraordinario": {
             "anyOf": [
@@ -10974,6 +11215,25 @@
             },
             "title": "Periods",
             "type": "array"
+          },
+          "recovery": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RecoveryValues"
+            },
+            "default": {},
+            "title": "Recovery",
+            "type": "object"
+          },
+          "situation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situation"
           },
           "status": {
             "title": "Status",
@@ -12793,6 +13053,18 @@
             "title": "Provisional Result Count",
             "type": "integer"
           },
+          "sigerd_id": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sigerd Id"
+          },
           "student_id": {
             "title": "Student Id",
             "type": "integer"
@@ -12958,6 +13230,18 @@
               }
             ],
             "title": "Previous School"
+          },
+          "sigerd_id": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sigerd Id"
           },
           "telephone": {
             "title": "Telephone",
@@ -13461,6 +13745,18 @@
             ],
             "title": "Previous School"
           },
+          "sigerd_id": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sigerd Id"
+          },
           "student_id": {
             "title": "Student Id",
             "type": "integer"
@@ -13675,6 +13971,18 @@
               }
             ],
             "title": "Previous School"
+          },
+          "sigerd_id": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sigerd Id"
           },
           "telephone": {
             "anyOf": [
@@ -13986,6 +14294,17 @@
               }
             ],
             "title": "Completivo"
+          },
+          "especial": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Especial"
           },
           "extraordinario": {
             "anyOf": [
