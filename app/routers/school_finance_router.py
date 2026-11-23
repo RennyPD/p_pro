@@ -36,6 +36,7 @@ from app.services.account_statement import account_statement
 from app.services.audit_log import record
 from app.services.csv_export import spreadsheet_safe_row
 from app.services.finance_workflow import cents, get_account, lock_finance, money
+from app.services.rate_limit import EXPORTS, per_account
 
 router = APIRouter(prefix="/finance", tags=["school finance"])
 finance_viewer = require_permissions("finance.view")
@@ -171,7 +172,7 @@ def student_family(student_id: int, db: Session = Depends(get_db), user=Depends(
     return family_account(db, student_id)
 
 
-@router.get("/students/{student_id}/family.pdf")
+@router.get("/students/{student_id}/family.pdf", dependencies=[Depends(per_account(EXPORTS))])
 def student_family_pdf(
     student_id: int, db: Session = Depends(get_db), user=Depends(finance_viewer)
 ):
@@ -243,7 +244,10 @@ def aging_accounts_report(
     return aging_page(db, response, q, career_id, skip, limit)
 
 
-@router.get("/reports/aging/accounts.csv", dependencies=[Depends(report_viewer)])
+@router.get(
+    "/reports/aging/accounts.csv",
+    dependencies=[Depends(per_account(EXPORTS)), Depends(report_viewer)],
+)
 def aging_accounts_csv(
     q: str | None = None,
     career_id: int | None = None,
@@ -301,7 +305,9 @@ def income_report(
     return checked_income(db, start, end, group_by)
 
 
-@router.get("/reports/income.csv", dependencies=[Depends(report_viewer)])
+@router.get(
+    "/reports/income.csv", dependencies=[Depends(per_account(EXPORTS)), Depends(report_viewer)]
+)
 def income_csv(
     start: date,
     end: date,

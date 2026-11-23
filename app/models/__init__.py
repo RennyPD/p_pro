@@ -51,7 +51,7 @@ from .platform_model import PlatformAdmin, PlatformAuditLog
 from .role_model import Role
 from .scheduling_model import Classroom, SectionMeeting
 from .section_model import Section
-from .security_model import AuditLog, LoginThrottle, RefreshToken
+from .security_model import AuditLog, LoginThrottle, RateLimit, RefreshToken
 from .student_model import Student
 from .subject_model import Subject
 from .teacher_model import Teacher

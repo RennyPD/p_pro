@@ -76,6 +76,7 @@ from app.services.finance_workflow import cents, money
 from app.services.finance_workflow import summary as finance_summary
 from app.services.governance_workflow import history as governance_history
 from app.services.governance_workflow import lock_governance, record
+from app.services.rate_limit import EXPORTS, UPLOADS, per_account
 from app.services.student_service import create_student_service
 
 router = APIRouter(prefix="/operations", tags=["institutional operations"])
@@ -937,7 +938,11 @@ def documents(
     )
 
 
-@router.post("/students/{student_id}/documents", response_model=StudentDocumentOut)
+@router.post(
+    "/students/{student_id}/documents",
+    response_model=StudentDocumentOut,
+    dependencies=[Depends(per_account(UPLOADS))],
+)
 def upload_document(
     student_id: int,
     data: StudentDocumentCreate,
@@ -996,7 +1001,7 @@ def upload_document(
     return item
 
 
-@router.get("/documents/{document_id}/download")
+@router.get("/documents/{document_id}/download", dependencies=[Depends(per_account(EXPORTS))])
 def download_document(
     document_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):

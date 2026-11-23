@@ -22,6 +22,7 @@ from app.services import report_cards as cards
 from app.services.csv_export import spreadsheet_safe_row
 from app.services.governance_workflow import lock_governance
 from app.services.pdf_service import report_card_pdf, simple_pdf
+from app.services.rate_limit import EXPORTS, per_account
 
 router = APIRouter(tags=["report cards"])
 
@@ -55,7 +56,7 @@ def report_card(
     return card_for(db, user, student_id, school_year_id)
 
 
-@router.get("/students/{student_id}/report-card.pdf")
+@router.get("/students/{student_id}/report-card.pdf", dependencies=[Depends(per_account(EXPORTS))])
 def report_card_file(
     student_id: int,
     school_year_id: int | None = None,
@@ -68,7 +69,9 @@ def report_card_file(
     )
 
 
-@router.get("/class-groups/{class_group_id}/report-cards.pdf")
+@router.get(
+    "/class-groups/{class_group_id}/report-cards.pdf", dependencies=[Depends(per_account(EXPORTS))]
+)
 def group_report_cards(
     class_group_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
@@ -145,7 +148,9 @@ def report_rows(report: dict) -> tuple[list[str], list[list]]:
     return header, rows
 
 
-@router.get("/class-groups/{class_group_id}/period-report.csv")
+@router.get(
+    "/class-groups/{class_group_id}/period-report.csv", dependencies=[Depends(per_account(EXPORTS))]
+)
 def period_report_csv(
     class_group_id: int,
     period_id: int,
@@ -167,7 +172,9 @@ def period_report_csv(
     )
 
 
-@router.get("/class-groups/{class_group_id}/period-report.pdf")
+@router.get(
+    "/class-groups/{class_group_id}/period-report.pdf", dependencies=[Depends(per_account(EXPORTS))]
+)
 def period_report_pdf(
     class_group_id: int,
     period_id: int,

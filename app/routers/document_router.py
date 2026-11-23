@@ -19,6 +19,7 @@ from app.models.user_model import User
 from app.routers.finance_router import build_summary, get_or_create_account
 from app.routers.record_router import RESULT_LABELS, STANDING_LABELS, build_transcript
 from app.services.pdf_service import report_card_pdf, simple_pdf
+from app.services.rate_limit import EXPORTS, per_account
 from app.services.report_cards import build_report_card, has_school_card, member_for
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -41,7 +42,7 @@ def pdf_bytes_response(filename: str, content: bytes) -> Response:
     )
 
 
-@router.get("/students/{student_id}/transcript.pdf")
+@router.get("/students/{student_id}/transcript.pdf", dependencies=[Depends(per_account(EXPORTS))])
 def transcript_pdf(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
@@ -81,7 +82,7 @@ def transcript_pdf(
     return pdf_response(f"expediente-{record.enrollment_number}.pdf", "EXPEDIENTE ACADEMICO", lines)
 
 
-@router.get("/students/{student_id}/statement.pdf")
+@router.get("/students/{student_id}/statement.pdf", dependencies=[Depends(per_account(EXPORTS))])
 def statement_pdf(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
@@ -104,7 +105,7 @@ def statement_pdf(
     return pdf_response(f"estado-{summary.enrollment_number}.pdf", "ESTADO DE CUENTA", lines)
 
 
-@router.get("/sections/{section_id}/roster.pdf")
+@router.get("/sections/{section_id}/roster.pdf", dependencies=[Depends(per_account(EXPORTS))])
 def roster_pdf(
     section_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
@@ -121,7 +122,10 @@ def roster_pdf(
     return pdf_response(f"lista-{section.code}.pdf", "LISTA DE ESTUDIANTES", lines)
 
 
-@router.get("/students/{student_id}/enrollment-certificate.pdf")
+@router.get(
+    "/students/{student_id}/enrollment-certificate.pdf",
+    dependencies=[Depends(per_account(EXPORTS))],
+)
 def enrollment_certificate(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
@@ -149,7 +153,7 @@ def cumulative_text(record) -> str:
     return "sin resultados definitivos"
 
 
-@router.get("/students/{student_id}/report-card.pdf")
+@router.get("/students/{student_id}/report-card.pdf", dependencies=[Depends(per_account(EXPORTS))])
 def report_card(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):

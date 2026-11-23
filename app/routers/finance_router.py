@@ -89,6 +89,7 @@ from app.services.finance_workflow import (
     writable_account,
 )
 from app.services.pdf_service import simple_pdf
+from app.services.rate_limit import EXPORTS, UPLOADS, per_account
 
 router = APIRouter(prefix="/finance", tags=["finance"])
 finance_manager = require_permissions("finance.manage")
@@ -449,7 +450,11 @@ def transfer_out(item):
     }
 
 
-@router.post("/students/{student_id}/transfers", response_model=TransferOut)
+@router.post(
+    "/students/{student_id}/transfers",
+    response_model=TransferOut,
+    dependencies=[Depends(per_account(UPLOADS))],
+)
 def submit_transfer(
     student_id: int,
     data: TransferCreate,
@@ -541,7 +546,7 @@ def transfer_inbox(
     ]
 
 
-@router.get("/transfers/{identifier}/proof")
+@router.get("/transfers/{identifier}/proof", dependencies=[Depends(per_account(EXPORTS))])
 def proof(identifier: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     item = db.get(TransferRequest, identifier)
     if not item:
@@ -621,7 +626,7 @@ def review_share(db, item, data, user):
     )
 
 
-@router.get("/payments/{identifier}/receipt.pdf")
+@router.get("/payments/{identifier}/receipt.pdf", dependencies=[Depends(per_account(EXPORTS))])
 def receipt(identifier: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     item = db.get(Payment, identifier)
     if not item:

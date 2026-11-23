@@ -64,6 +64,7 @@ from app.services.finance_workflow import (
     writable_account,
 )
 from app.services.grading_scales import brief, label, scale_for_student
+from app.services.rate_limit import UPLOADS, per_account
 
 router = APIRouter(prefix="/guardian", tags=["guardian portal"])
 guardian = require_personal("records.own", "linked")
@@ -498,7 +499,9 @@ def batch_out(db: Session, batch: TransferBatch) -> FamilyTransferOut:
     )
 
 
-@router.post("/transfers", response_model=FamilyTransferOut)
+@router.post(
+    "/transfers", response_model=FamilyTransferOut, dependencies=[Depends(per_account(UPLOADS))]
+)
 def submit_family_transfer(
     data: FamilyTransferCreate, db: Session = Depends(get_db), user: User = Depends(guardian)
 ):

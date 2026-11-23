@@ -22,6 +22,7 @@ from app.schemas.platform_schema import (
 from app.security import create_access_token, decode_token_claims
 from app.services import platform as service
 from app.services.email_service import deliver_after_commit
+from app.services.rate_limit import PLATFORM_LOGIN, PUBLIC, per_address
 from app.services.tenant_host import institution_for_host
 
 router = APIRouter(tags=["platform"])
@@ -60,7 +61,11 @@ def institution_out(db: Session, institution: Institution) -> dict:
     }
 
 
-@router.post("/platform/auth/login", response_model=PlatformToken)
+@router.post(
+    "/platform/auth/login",
+    response_model=PlatformToken,
+    dependencies=[Depends(per_address(PLATFORM_LOGIN))],
+)
 def platform_login(data: PlatformLogin, db: Session = Depends(get_db)):
     service.lock_platform(db)
     admin = service.authenticate(db, data.email, data.password, data.otp)
@@ -157,7 +162,11 @@ def platform_audit(
     ]
 
 
-@router.get("/public/institution", response_model=PublicInstitution)
+@router.get(
+    "/public/institution",
+    response_model=PublicInstitution,
+    dependencies=[Depends(per_address(PUBLIC))],
+)
 def public_institution(request: Request, code: str | None = None, db: Session = Depends(get_db)):
     """Name of the institution addressed by the host (or by its code) for the sign-in page."""
     institution = institution_for_host(db, request)

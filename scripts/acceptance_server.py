@@ -26,6 +26,9 @@ def main():
         "SOLO PRUEBAS: cuenta ficticia de aceptación; no realizar transferencias reales."
     )
     os.environ["FINANCE_SIMULATOR_ENABLED"] = "true"
+    # Every browser test comes from one address; limits have their own tests.
+    os.environ["RATE_LIMITS_ENABLED"] = "false"
+    os.environ["STORAGE_DIR"] = (output / "storage").as_posix()
 
     import uvicorn
     from alembic.config import Config

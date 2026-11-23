@@ -44,6 +44,7 @@ from app.services.academic_locks import (
     lock_submission,
 )
 from app.services.business_time import business_date
+from app.services.rate_limit import EXPORTS, UPLOADS, per_account
 
 router = APIRouter()
 
@@ -298,7 +299,7 @@ def edit_task(
     return task_view(db, item, user)
 
 
-@router.post("/assignments/{assignment_id}/submit")
+@router.post("/assignments/{assignment_id}/submit", dependencies=[Depends(per_account(UPLOADS))])
 def submit(
     assignment_id: int,
     data: SubmissionCreate,
@@ -459,7 +460,10 @@ def ensure_attempt_access(db, user, submission_id):
         raise HTTPException(403, "Solo puedes consultar tus propios intentos")
 
 
-@router.get("/submissions/{submission_id}/revisions/{revision_id}/attachment")
+@router.get(
+    "/submissions/{submission_id}/revisions/{revision_id}/attachment",
+    dependencies=[Depends(per_account(EXPORTS))],
+)
 def download_attempt_attachment(
     submission_id: int,
     revision_id: int,

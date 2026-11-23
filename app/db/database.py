@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     # Fase 4 C (audit M4): uploaded files live outside the database. "local" keeps
     # them in STORAGE_DIR (development, a single server with a volume); "s3" uses
     # any S3-compatible service (AWS S3, Cloudflare R2, DigitalOcean Spaces, MinIO).
+    # Fase 4 C (audit B7): limits on uploads, exports, imports and public routes.
+    rate_limits_enabled: bool = True
     storage_backend: Literal["local", "s3"] = "local"
     storage_dir: str = "./storage"
     s3_bucket: str | None = None

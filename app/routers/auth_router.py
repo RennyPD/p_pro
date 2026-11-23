@@ -60,6 +60,7 @@ from app.services.email_templates import app_link, password_reset
 from app.services.login_throttle import ensure_not_blocked, record_failure, record_success
 from app.services.one_time_tokens import INVALID_LINK, consume_token, issue_token
 from app.services.permission_catalog import grant_system_defaults
+from app.services.rate_limit import client_ip
 from app.services.tenant_host import institution_for_host
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -188,11 +189,6 @@ REUSE_GRACE = timedelta(seconds=30)
 # Compared against when the account does not exist, so the response time does
 # not reveal which usernames are registered.
 _DUMMY_PASSWORD_HASH = hash_password(secrets.token_urlsafe(16))
-
-
-def client_ip(request: Request) -> str:
-    # Behind a proxy, run uvicorn with --proxy-headers and FORWARDED_ALLOW_IPS.
-    return request.client.host if request.client else "desconocida"
 
 
 @router.post("/login", response_model=TokenOut)

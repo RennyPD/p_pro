@@ -42,7 +42,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 | B3, B4, B8 | ✅ Cerrados (21/11): cobertura de auditoría, panel y permisos al 94–100 %; módulos de consulta por permisos; código muerto de notas eliminado | — |
 | B1 | Tipos a mano: en avance (23/11), finanzas, panel, pagos, tutor y evaluaciones usan `ApiSchema`; quedan unos 120 tipos locales | continuo |
 | B5 | ✅ Cerrado (23/11): secciones, inscripciones y carrito enlazan el período por id (migración `20261123_0054`); renombrar un período ya no rompe vínculos | — |
-| B2, B7 | Build pesado, límites solo en login (B6 ✅ 23/11: bloqueos académicos por sección y estudiante) | según fase |
+| B2, B7 | Build pesado (B7 ✅ 25/11, Fase 4 C2: límites en subidas, exportaciones, importaciones y rutas públicas; B6 ✅ 23/11: bloqueos académicos por sección y estudiante) | según fase |
 | SaaS | ✅ 24/11: multi-tenant con `institution_id`, unicidades por institución, configuración por institución y RLS (bloque A). Pendiente: bloques B–F | 4 |
 
 ### Historial: auditoría del 17/11/2026
@@ -131,7 +131,11 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
      - Si la transacción no se confirma, los archivos que escribió se borran. Las descargas siguen pasando por el API (permiso, ámbito y auditoría); si el archivo falta, 503 con aviso.
      - `python -m scripts.move_files_to_storage [--clear | --verify]` copia los archivos existentes y compara cada copia por SHA-256. Las columnas binarias se borrarán en una migración posterior, cuando `--verify` no muestre pendientes.
      - Pruebas: `tests/test_object_storage.py`.
-   - Pendiente: C2 límites de peticiones (B7), C3 observabilidad, C4 despliegue, C5 build ligero (B2).
+   - ✅ **C2, 25/11/2026: límites de peticiones (B7)** (migración `20261125_0065`, `app/services/rate_limit.py`).
+     - Ventanas fijas contadas en la tabla global `rate_limits`, compartidas por todos los procesos sin Redis. Cada conteo se confirma en su propia transacción: una petición que falla también cuenta.
+     - Por cuenta (institución y usuario): subidas 30 cada 10 min, documentos y exportaciones (PDF, CSV, descargas) 60 cada 10 min, importación masiva 10 por hora. Por dirección: consulta pública de la institución 60 por minuto e inicio de sesión de plataforma 10 cada 15 min. Al pasarse: 429 con aviso en español y `Retry-After`.
+     - `tests/test_rate_limits.py` falla si una ruta nueva de PDF, CSV, exportación, importación, descarga o subida no declara su límite. `RATE_LIMITS_ENABLED=false` solo para el servidor de aceptación. `run_billing` borra las ventanas viejas.
+   - Pendiente: C3 observabilidad, C4 despliegue, C5 build ligero (B2).
 
 ### Fase 5: lanzamiento (M)
 Landing page, demo pública, términos de uso, política de privacidad conforme a la Ley 172-13 con atención a datos de menores, documentación para clientes y soporte.

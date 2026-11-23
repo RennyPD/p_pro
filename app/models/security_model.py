@@ -50,3 +50,17 @@ class LoginThrottle(Base):
     failures: Mapped[int] = mapped_column(default=0, server_default="0")
     window_started_at: Mapped[datetime] = mapped_column(DateTime)
     blocked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class RateLimit(Base):
+    """Request counters per fixed window, shared by every worker (Fase 4 C, audit B7).
+
+    Global (no institution column): the key already names the institution and
+    account, or the client address for public routes.
+    """
+
+    __tablename__ = "rate_limits"
+
+    rate_key: Mapped[str] = mapped_column(String(200), primary_key=True)
+    window_start: Mapped[datetime] = mapped_column(DateTime, index=True)
+    hits: Mapped[int] = mapped_column(default=0, server_default="0")

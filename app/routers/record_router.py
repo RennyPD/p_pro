@@ -15,6 +15,7 @@ from app.services.academic_grading import academic_result
 from app.services.academic_recognition import current_courses, recognize
 from app.services.csv_export import spreadsheet_safe_row
 from app.services.grading_scales import academic_index, label, scale_for_student
+from app.services.rate_limit import EXPORTS, per_account
 
 router = APIRouter(prefix="/records", tags=["academic records"])
 
@@ -173,7 +174,7 @@ def student_transcript(
 
 @router.get(
     "/reports/students.csv",
-    dependencies=[Depends(require_permissions("reports.view"))],
+    dependencies=[Depends(per_account(EXPORTS)), Depends(require_permissions("reports.view"))],
 )
 def student_report(db: Session = Depends(get_db)):
     output = io.StringIO()

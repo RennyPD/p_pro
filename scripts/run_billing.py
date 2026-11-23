@@ -15,6 +15,7 @@ import argparse
 
 from app.db.database import engine
 from app.services.finance_automation import run_daily
+from app.services.rate_limit import purge
 from app.services.tenants import for_each_institution
 
 
@@ -24,6 +25,8 @@ def main() -> None:
     args = parser.parse_args()
     # Each institution in its own tenant session (Fase 4 A).
     results = for_each_institution(engine, run_daily, commit=not args.simulate)
+    if not args.simulate:
+        purge(engine)  # forget request-limit windows that ended long ago
     label = "Simulación" if args.simulate else "Aplicado"
     for institution_id, result in results.items():
         report(label, institution_id, result)
