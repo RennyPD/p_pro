@@ -3318,6 +3318,59 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/school-years/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List School Years */
+    get: operations["list_school_years_school_years__get"];
+    put?: never;
+    /** Create School Year */
+    post: operations["create_school_year_school_years__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/school-years/{school_year_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete School Year */
+    delete: operations["delete_school_year_school_years__school_year_id__delete"];
+    options?: never;
+    head?: never;
+    /** Update School Year */
+    patch: operations["update_school_year_school_years__school_year_id__patch"];
+    trace?: never;
+  };
+  "/school-years/{school_year_id}/generate-periods": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Generate School Year Periods */
+    post: operations["generate_school_year_periods_school_years__school_year_id__generate_periods_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sections/": {
     parameters: {
       query?: never;
@@ -3709,6 +3762,8 @@ export interface components {
       registration_end?: string | null;
       /** Registration Start */
       registration_start?: string | null;
+      /** School Year Id */
+      school_year_id?: number | null;
       /**
        * Sequence
        * @default 1
@@ -6843,6 +6898,61 @@ export interface components {
       subject_name: string;
       /** Teacher Name */
       teacher_name: string;
+    };
+    /** SchoolYearCreate */
+    SchoolYearCreate: {
+      /**
+       * End Date
+       * Format: date
+       */
+      end_date: string;
+      /** Name */
+      name: string;
+      /** Period Scheme */
+      period_scheme?: string | null;
+      /**
+       * Start Date
+       * Format: date
+       */
+      start_date: string;
+    };
+    /** SchoolYearOut */
+    SchoolYearOut: {
+      /**
+       * End Date
+       * Format: date
+       */
+      end_date: string;
+      /** Name */
+      name: string;
+      /**
+       * Period Count
+       * @default 0
+       */
+      period_count: number;
+      /**
+       * Period Scheme
+       * @default semesters
+       */
+      period_scheme: string;
+      /** School Year Id */
+      school_year_id: number;
+      /**
+       * Start Date
+       * Format: date
+       */
+      start_date: string;
+    };
+    /** SchoolYearUpdate */
+    SchoolYearUpdate: {
+      /** End Date */
+      end_date?: string | null;
+      /** Name */
+      name?: string | null;
+      /** Period Scheme */
+      period_scheme?: string | null;
+      /** Start Date */
+      start_date?: string | null;
     };
     /** SectionAcademicSummary */
     SectionAcademicSummary: {
@@ -15542,6 +15652,169 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["MeetingOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_school_years_school_years__get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        skip?: number;
+        limit?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SchoolYearOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_school_year_school_years__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SchoolYearCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SchoolYearOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_school_year_school_years__school_year_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        school_year_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_school_year_school_years__school_year_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        school_year_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SchoolYearUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SchoolYearOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  generate_school_year_periods_school_years__school_year_id__generate_periods_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        school_year_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AcademicPeriodOut"][];
         };
       };
       /** @description Validation Error */

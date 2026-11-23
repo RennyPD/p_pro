@@ -8,6 +8,7 @@ import { resources } from "../../config/resources";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import { ResourcePage } from "../resources/ResourcePage";
+import { SchoolYearsPanel } from "./SchoolYearsPanel";
 import "./periods.css";
 
 const labels: Record<string, string> = {
@@ -112,6 +113,7 @@ export function PeriodsPage() {
           </button>
         )}
       />
+      <SchoolYearsPanel />
       {selected && (
         <Modal
           title={`${closing ? "Cerrar" : "Reabrir"} ${selected.name}`}

@@ -40,6 +40,7 @@ SCOPE_CHECKED = {
     ("GET", "/module-views/mine"): "own read-only modules",
     ("GET", "/configuration/institution"): "institution name for the shell",
     ("GET", "/periods/"): "period names for filters",
+    ("GET", "/school-years/"): "school year names for filters",
     ("GET", "/finance/options"): "transfer instructions shown to account holders",
     # Reads whose records are filtered by ensure_* / scope helpers.
     ("GET", "/academic/students/{student_id}/grades"): "ensure_student_access",

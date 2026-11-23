@@ -29,7 +29,7 @@ class CareerBase(CareerInstitutionalFields):
     )
     degree_title: str = Field(default="", max_length=150)
     term_type: str = Field(
-        default="semester", pattern=r"^(bimester|trimester|quadrimester|semester|annual)$"
+        default="semester", pattern=r"^(bimester|trimester|quarter|quadrimester|semester|annual)$"
     )
     duration_terms: int = Field(default=8, ge=1, le=20)
     required_credits: int = Field(default=120, ge=1, le=400)
@@ -54,7 +54,7 @@ class CareerUpdate(CareerInstitutionalFields):
     )
     degree_title: Optional[str] = Field(default=None, max_length=150)
     term_type: Optional[str] = Field(
-        default=None, pattern=r"^(bimester|trimester|quadrimester|semester|annual)$"
+        default=None, pattern=r"^(bimester|trimester|quarter|quadrimester|semester|annual)$"
     )
     duration_terms: Optional[int] = Field(default=None, ge=1, le=20)
     required_credits: Optional[int] = Field(default=None, ge=1, le=400)

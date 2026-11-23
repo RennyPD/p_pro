@@ -23,6 +23,7 @@ const labelTermType = (value: unknown) =>
   ({
     bimester: "Bimestre",
     trimester: "Trimestre",
+    quarter: "Período escolar",
     quadrimester: "Cuatrimestre",
     semester: "Semestre",
     annual: "Anual",
@@ -31,6 +32,7 @@ const pluralTerm = (type: string, count: number) =>
   ({
     bimester: "bimestres",
     trimester: "trimestres",
+    quarter: "períodos",
     quadrimester: "cuatrimestres",
     semester: "semestres",
     annual: "años",
@@ -179,6 +181,7 @@ export const resources: Record<string, ResourceConfig> = {
         options: [
           { label: "Bimestres", value: "bimester" },
           { label: "Trimestres", value: "trimester" },
+          { label: "Períodos escolares (MINERD)", value: "quarter" },
           { label: "Cuatrimestres", value: "quadrimester" },
           { label: "Semestres", value: "semester" },
           { label: "Anual", value: "annual" },
@@ -481,7 +484,7 @@ export const resources: Record<string, ResourceConfig> = {
     searchPlaceholder: "Buscar período",
     columns: [
       { key: "name", label: "Período" },
-      { key: "academic_year", label: "Año académico" },
+      { key: "academic_year", label: "Año lectivo" },
       { key: "period_type", label: "Tipo", render: v => labelTermType(String(v)) },
       { key: "sequence", label: "Número" },
       { key: "start_date", label: "Inicio" },
@@ -491,7 +494,12 @@ export const resources: Record<string, ResourceConfig> = {
     ],
     fields: [
       { name: "name", label: "Nombre visible", required: true, placeholder: "2026-3" },
-      { name: "academic_year", label: "Año académico", required: true, placeholder: "2026-2027" },
+      {
+        name: "academic_year",
+        label: "Año lectivo",
+        required: true,
+        placeholder: "2026-2027 (si no existe, se crea)",
+      },
       {
         name: "period_type",
         label: "Tipo de período",
@@ -500,6 +508,7 @@ export const resources: Record<string, ResourceConfig> = {
         options: [
           { label: "Bimestre", value: "bimester" },
           { label: "Trimestre", value: "trimester" },
+          { label: "Período escolar (MINERD)", value: "quarter" },
           { label: "Cuatrimestre", value: "quadrimester" },
           { label: "Semestre", value: "semester" },
           { label: "Anual", value: "annual" },

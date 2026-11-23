@@ -37,7 +37,7 @@
           },
           "period_type": {
             "default": "semester",
-            "pattern": "^(bimester|trimester|quadrimester|semester|annual)$",
+            "pattern": "^(bimester|trimester|quarter|quadrimester|semester|annual)$",
             "title": "Period Type",
             "type": "string"
           },
@@ -144,7 +144,7 @@
           },
           "period_type": {
             "default": "semester",
-            "pattern": "^(bimester|trimester|quadrimester|semester|annual)$",
+            "pattern": "^(bimester|trimester|quarter|quadrimester|semester|annual)$",
             "title": "Period Type",
             "type": "string"
           },
@@ -171,6 +171,17 @@
               }
             ],
             "title": "Registration Start"
+          },
+          "school_year_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "School Year Id"
           },
           "sequence": {
             "default": 1,
@@ -275,7 +286,7 @@
           "period_type": {
             "anyOf": [
               {
-                "pattern": "^(bimester|trimester|quadrimester|semester|annual)$",
+                "pattern": "^(bimester|trimester|quarter|quadrimester|semester|annual)$",
                 "type": "string"
               },
               {
@@ -3124,7 +3135,7 @@
           },
           "term_type": {
             "default": "semester",
-            "pattern": "^(bimester|trimester|quadrimester|semester|annual)$",
+            "pattern": "^(bimester|trimester|quarter|quadrimester|semester|annual)$",
             "title": "Term Type",
             "type": "string"
           }
@@ -3398,7 +3409,7 @@
           },
           "term_type": {
             "default": "semester",
-            "pattern": "^(bimester|trimester|quadrimester|semester|annual)$",
+            "pattern": "^(bimester|trimester|quarter|quadrimester|semester|annual)$",
             "title": "Term Type",
             "type": "string"
           }
@@ -3677,7 +3688,7 @@
           "term_type": {
             "anyOf": [
               {
-                "pattern": "^(bimester|trimester|quadrimester|semester|annual)$",
+                "pattern": "^(bimester|trimester|quarter|quadrimester|semester|annual)$",
                 "type": "string"
               },
               {
@@ -8660,6 +8671,143 @@
           "blocks"
         ],
         "title": "ScheduleItem",
+        "type": "object"
+      },
+      "SchoolYearCreate": {
+        "properties": {
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "period_scheme": {
+            "anyOf": [
+              {
+                "pattern": "^(bimesters|trimesters|quarters|quadrimesters|semesters|annual)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Scheme"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "start_date",
+          "end_date"
+        ],
+        "title": "SchoolYearCreate",
+        "type": "object"
+      },
+      "SchoolYearOut": {
+        "properties": {
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "period_count": {
+            "default": 0,
+            "title": "Period Count",
+            "type": "integer"
+          },
+          "period_scheme": {
+            "default": "semesters",
+            "pattern": "^(bimesters|trimesters|quarters|quadrimesters|semesters|annual)$",
+            "title": "Period Scheme",
+            "type": "string"
+          },
+          "school_year_id": {
+            "title": "School Year Id",
+            "type": "integer"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "start_date",
+          "end_date",
+          "school_year_id"
+        ],
+        "title": "SchoolYearOut",
+        "type": "object"
+      },
+      "SchoolYearUpdate": {
+        "properties": {
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "period_scheme": {
+            "anyOf": [
+              {
+                "pattern": "^(bimesters|trimesters|quarters|quadrimesters|semesters|annual)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Scheme"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date"
+          }
+        },
+        "title": "SchoolYearUpdate",
         "type": "object"
       },
       "SectionAcademicSummary": {
@@ -24805,6 +24953,288 @@
         "summary": "List Meetings",
         "tags": [
           "scheduling"
+        ]
+      }
+    },
+    "/school-years/": {
+      "get": {
+        "operationId": "list_school_years_school_years__get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SchoolYearOut"
+                  },
+                  "title": "Response List School Years School Years  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List School Years",
+        "tags": [
+          "academic configuration"
+        ]
+      },
+      "post": {
+        "operationId": "create_school_year_school_years__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolYearCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolYearOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create School Year",
+        "tags": [
+          "academic configuration"
+        ]
+      }
+    },
+    "/school-years/{school_year_id}": {
+      "delete": {
+        "operationId": "delete_school_year_school_years__school_year_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_year_id",
+            "required": true,
+            "schema": {
+              "title": "School Year Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete School Year",
+        "tags": [
+          "academic configuration"
+        ]
+      },
+      "patch": {
+        "operationId": "update_school_year_school_years__school_year_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_year_id",
+            "required": true,
+            "schema": {
+              "title": "School Year Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolYearUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolYearOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update School Year",
+        "tags": [
+          "academic configuration"
+        ]
+      }
+    },
+    "/school-years/{school_year_id}/generate-periods": {
+      "post": {
+        "operationId": "generate_school_year_periods_school_years__school_year_id__generate_periods_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_year_id",
+            "required": true,
+            "schema": {
+              "title": "School Year Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AcademicPeriodOut"
+                  },
+                  "title": "Response Generate School Year Periods School Years  School Year Id  Generate Periods Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Generate School Year Periods",
+        "tags": [
+          "academic configuration"
         ]
       }
     },

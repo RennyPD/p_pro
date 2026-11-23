@@ -26,6 +26,7 @@ export const modalityLabels: Record<string, string> = {
 export const termLabels: Record<string, string> = {
   bimester: "Bimestre",
   trimester: "Trimestre",
+  quarter: "Período escolar",
   quadrimester: "Cuatrimestre",
   semester: "Semestre",
   annual: "Año",

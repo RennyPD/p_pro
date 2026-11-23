@@ -2,6 +2,26 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+# quarter: the four periods of the MINERD school year (Fase 3 B).
+PERIOD_TYPES = r"^(bimester|trimester|quarter|quadrimester|semester|annual)$"
+PERIOD_LIMITS = {
+    "bimester": 6,
+    "trimester": 4,
+    "quarter": 4,
+    "quadrimester": 3,
+    "semester": 2,
+    "annual": 1,
+}
+SCHEMES = r"^(bimesters|trimesters|quarters|quadrimesters|semesters|annual)$"
+SCHEME_PERIODS = {
+    "bimesters": ("bimester", 6),
+    "trimesters": ("trimester", 4),
+    "quarters": ("quarter", 4),
+    "quadrimesters": ("quadrimester", 3),
+    "semesters": ("semester", 2),
+    "annual": ("annual", 1),
+}
+
 
 class AcademicPeriodBase(BaseModel):
     name: str
@@ -13,9 +33,7 @@ class AcademicPeriodBase(BaseModel):
     registration_end: date | None = None
     withdrawal_deadline: date | None = None
     grading_deadline: date | None = None
-    period_type: str = Field(
-        default="semester", pattern=r"^(bimester|trimester|quadrimester|semester|annual)$"
-    )
+    period_type: str = Field(default="semester", pattern=PERIOD_TYPES)
     sequence: int = Field(default=1, ge=1, le=12)
     academic_year: str = Field(default="", max_length=20)
 
@@ -43,8 +61,7 @@ class AcademicPeriodBase(BaseModel):
             raise ValueError("El plazo de calificación no puede preceder al fin del período")
         if self.status == "closed" and self.active:
             raise ValueError("Un período cerrado no puede estar vigente")
-        limits = {"bimester": 6, "trimester": 4, "quadrimester": 3, "semester": 2, "annual": 1}
-        if self.sequence > limits[self.period_type]:
+        if self.sequence > PERIOD_LIMITS[self.period_type]:
             raise ValueError("El número dentro del año no corresponde al tipo de período")
         return self
 
@@ -63,20 +80,59 @@ class AcademicPeriodUpdate(BaseModel):
     registration_end: date | None = None
     withdrawal_deadline: date | None = None
     grading_deadline: date | None = None
-    period_type: str | None = Field(
-        default=None, pattern=r"^(bimester|trimester|quadrimester|semester|annual)$"
-    )
+    period_type: str | None = Field(default=None, pattern=PERIOD_TYPES)
     sequence: int | None = Field(default=None, ge=1, le=12)
     academic_year: str | None = Field(default=None, max_length=20)
 
 
 class AcademicPeriodOut(AcademicPeriodBase):
     period_id: int
+    school_year_id: int | None = None
     model_config = ConfigDict(from_attributes=True)
 
     @model_validator(mode="after")
     def validate_dates(self):
         # Strict chronology is enforced on writes, not retroactively on legacy reads.
+        return self
+
+
+class SchoolYearBase(BaseModel):
+    name: str = Field(min_length=1, max_length=20)
+    start_date: date
+    end_date: date
+    period_scheme: str = Field(default="semesters", pattern=SCHEMES)
+
+    @model_validator(mode="after")
+    def validate_year(self):
+        self.name = self.name.strip()
+        if not self.name:
+            raise ValueError("El año lectivo necesita un nombre")
+        if self.start_date >= self.end_date:
+            raise ValueError("La fecha de fin debe ser posterior a la de inicio")
+        if (self.end_date - self.start_date).days > 550:
+            raise ValueError("Un año lectivo no puede durar más de 18 meses")
+        return self
+
+
+class SchoolYearCreate(SchoolYearBase):
+    # None: quarters (4, MINERD) in schools, semesters in universities.
+    period_scheme: str | None = Field(default=None, pattern=SCHEMES)
+
+
+class SchoolYearUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=20)
+    start_date: date | None = None
+    end_date: date | None = None
+    period_scheme: str | None = Field(default=None, pattern=SCHEMES)
+
+
+class SchoolYearOut(SchoolYearBase):
+    school_year_id: int
+    period_count: int = 0
+    model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def validate_year(self):
         return self
 
 
