@@ -23,7 +23,10 @@ def preview(db):
     if not name or name[0] != "Instituto Técnico Horizonte":
         raise ValueError("Refusing non-demo institution")
     rows = db.execute(
-        "SELECT s.section_id,s.code,s.capacity,e.period,COUNT(*) FROM sections s JOIN enrollments e ON e.section_id=s.section_id WHERE e.state='enrolled' GROUP BY s.section_id,e.period HAVING COUNT(*)>s.capacity"
+        "SELECT s.section_id,s.code,s.capacity,p.name,COUNT(*) FROM sections s "
+        "JOIN enrollments e ON e.section_id=s.section_id "
+        "JOIN academic_periods p ON p.period_id=e.period_id "
+        "WHERE e.state='enrolled' GROUP BY s.section_id,p.name HAVING COUNT(*)>s.capacity"
     ).fetchall()
     result = []
     for section_id, code, capacity, period, confirmed in rows:

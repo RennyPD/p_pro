@@ -122,9 +122,9 @@ def institution_history(db: Session = Depends(get_db)):
 
 def used_period(db, period):
     return bool(
-        db.query(Section).filter_by(period_name=period.name).first()
-        or db.query(Enrollment).filter_by(period=period.name).first()
-        or db.query(CourseSelectionCart).filter_by(period=period.name).first()
+        db.query(Section.section_id).filter_by(period_id=period.period_id).first()
+        or db.query(Enrollment.enrollment_id).filter_by(period_id=period.period_id).first()
+        or db.query(CourseSelectionCart.cart_item_id).filter_by(period_id=period.period_id).first()
     )
 
 
@@ -206,10 +206,7 @@ def update_period(
         raise HTTPException(409, "Reabre el período antes de editarlo")
     if values.get("status") == "closed":
         raise HTTPException(409, "Usa el cierre controlado del período")
-    if "name" in values and values["name"] != period.name and used_period(db, period):
-        raise HTTPException(
-            409, "No se renombra un período con secciones, selecciones o carritos vinculados"
-        )
+    # Sections, selections and carts point to the period by id (B5): renaming is safe.
     if (
         "name" in values
         and values["name"] != period.name

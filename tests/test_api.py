@@ -612,6 +612,14 @@ class ApiIntegrationTests(unittest.TestCase):
                 .order_by(Section.section_id)
                 .all()
             )
+            db.add(
+                AcademicPeriod(
+                    name="DEMO-2026",
+                    start_date=__import__("datetime").date(2026, 1, 1),
+                    end_date=__import__("datetime").date(2026, 6, 30),
+                )
+            )
+            db.flush()
             for section in sections:
                 section.period_name = "DEMO-2026"
                 for enrollment in section.enrollments:
@@ -2006,6 +2014,14 @@ class ApiIntegrationTests(unittest.TestCase):
         ).json()[0]
         with self.Session() as db:
             # Waiting and withdrawn selections must not prevent closing.
+            db.add(
+                AcademicPeriod(
+                    name="WAIT-TEST",
+                    start_date=__import__("datetime").date(2026, 1, 1),
+                    end_date=__import__("datetime").date(2026, 6, 30),
+                )
+            )
+            db.flush()
             db.add(
                 Enrollment(
                     student_id=db.get(Enrollment, enrollment_id).student_id,
@@ -3601,10 +3617,13 @@ class ApiIntegrationTests(unittest.TestCase):
             self.assertEqual(db.get(Section, independent_id).status, "closed")
             self.assertTrue(all(e.state == "enrolled" for e in db.query(Enrollment)))
             self.assertTrue(all(a.closed for a in db.query(Assessment)))
+        # B5: periods are linked by id, so a period in use can be renamed safely.
         self.assertEqual(
             self.request("PATCH", path, tokens["admin"], json={"name": "RENOMBRADO"}).status_code,
-            409,
+            200,
         )
+        with self.Session() as db:
+            self.assertTrue(all(e.period == "RENOMBRADO" for e in db.query(Enrollment)))
         self.assertEqual(self.request("DELETE", path, tokens["admin"]).status_code, 409)
 
     def test_period_dates_permission_safety_and_empty_analytics(self):
