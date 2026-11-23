@@ -23,6 +23,7 @@ import { formatDateTime, formatMoney, formatTime } from "../../lib/format";
 import { scheduleBlocks, weekDays } from "../../lib/schedule";
 import { useAuthStore } from "../../store/auth";
 import { useAccess } from "../../lib/permissions";
+import { FirstSteps } from "./FirstSteps";
 
 type Summary = ApiSchema<"DashboardSummary">;
 type SummaryMetric = ApiSchema<"DashboardMetric">;
@@ -125,6 +126,7 @@ export function DashboardPage() {
           </p>
         </div>
       </header>
+      {access.institution && access.can("settings.manage") && <FirstSteps />}
       {Boolean(data?.alerts?.length) && (
         <section className="dashboard-alerts">
           {data?.alerts.map(alert => (

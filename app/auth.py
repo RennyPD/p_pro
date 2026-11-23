@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session, object_session
 
@@ -18,12 +18,27 @@ from app.permissions import (
     default_scope,
     expand,
 )
-from app.security import decode_access_token
+from app.security import decode_token_claims
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+SUSPENDED_MESSAGE = (
+    "La institución está suspendida. Contacta a su administración o al soporte de Nexo"
+)
+OTHER_INSTITUTION = "Esta sesión pertenece a otra institución. Inicia sesión en su dirección"
+
+
+def ensure_institution_open(db: Session, institution_id: int) -> None:
+    from app.models.institution_model import Institution
+
+    institution = db.get(Institution, institution_id)
+    if institution is None or institution.status != "active":
+        raise HTTPException(status_code=403, detail=SUSPENDED_MESSAGE)
+
+
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
@@ -33,13 +48,26 @@ def get_current_user(
             detail="Debes iniciar sesión",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    user_id, version = decode_access_token(credentials.credentials)
+    claims = decode_token_claims(credentials.credentials)
+    if claims.get("scp", "institution") != "institution":
+        # A platform (super administrator) token never opens institution data.
+        raise HTTPException(status_code=401, detail="La sesión no es válida para esta institución")
+    user_id, version = int(claims["sub"]), int(claims.get("sv", 0))
     # The account is read before its institution is known, then every query of
     # the request is limited to that institution (Fase 4 A).
     user = db.get(User, user_id, execution_options=tenant_bypass())
     if user is None:
         raise HTTPException(status_code=401, detail="La cuenta ya no existe")
+    if claims.get("tid", user.institution_id) != user.institution_id:
+        raise HTTPException(status_code=401, detail=OTHER_INSTITUTION)
+    # Fase 4 B: a token is only valid at its own institution's address.
+    from app.services.tenant_host import institution_for_host
+
+    addressed = institution_for_host(db, request)
+    if addressed is not None and addressed.institution_id != user.institution_id:
+        raise HTTPException(status_code=401, detail=OTHER_INSTITUTION)
     set_tenant(db, user.institution_id)
+    ensure_institution_open(db, user.institution_id)
     if user.session_version != version:
         raise HTTPException(status_code=401, detail="La sesión se revocó. Inicia sesión de nuevo")
     ensure_account_active(user)

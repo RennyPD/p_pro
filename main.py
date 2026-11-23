@@ -33,7 +33,9 @@ from app.routers.grade_router import router as grade_router
 from app.routers.grading_scale_router import router as grading_scale_router
 from app.routers.guardian_router import router as guardian_router
 from app.routers.module_router import router as module_router
+from app.routers.onboarding_router import router as onboarding_router
 from app.routers.operations_router import router as operations_router
+from app.routers.platform_router import router as platform_router
 from app.routers.record_router import router as record_router
 from app.routers.report_card_router import router as report_card_router
 from app.routers.role_router import router as role_router
@@ -136,6 +138,8 @@ app.include_router(class_group_router)
 app.include_router(grading_scale_router)
 app.include_router(school_finance_router)
 app.include_router(report_card_router)
+app.include_router(platform_router)
+app.include_router(onboarding_router)
 app.include_router(community_router)
 app.include_router(curriculum_router)
 app.include_router(dashboard_router)

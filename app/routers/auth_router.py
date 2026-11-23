@@ -17,7 +17,13 @@ from fastapi import (
 from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
-from app.auth import account_is_active, ensure_account_active, get_current_user
+from app.auth import (
+    SUSPENDED_MESSAGE,
+    account_is_active,
+    ensure_account_active,
+    ensure_institution_open,
+    get_current_user,
+)
 from app.db.database import settings
 from app.db.Session import get_db
 from app.db.tenant import DEFAULT_INSTITUTION_ID, set_tenant, tenant_bypass
@@ -54,6 +60,7 @@ from app.services.email_templates import app_link, password_reset
 from app.services.login_throttle import ensure_not_blocked, record_failure, record_success
 from app.services.one_time_tokens import INVALID_LINK, consume_token, issue_token
 from app.services.permission_catalog import grant_system_defaults
+from app.services.tenant_host import institution_for_host
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -73,7 +80,7 @@ def issue_session(db: Session, response: Response, user: User) -> TokenOut:
         )
     )
     audit(db, "session.created", "authentication", user.user_id)
-    access_token = create_access_token(user.user_id, user.session_version)
+    access_token = create_access_token(user.user_id, user.session_version, user.institution_id)
     db.commit()
     response.set_cookie(
         "refresh_token",
@@ -131,6 +138,15 @@ def bootstrap_admin(
     return issue_session(db, response, user)
 
 
+def ensure_code_open(db: Session, code: str | None) -> None:
+    """A suspended institution says so at sign-in instead of «wrong password»."""
+    if not code:
+        return
+    institution = db.query(Institution).filter(Institution.slug == code.strip().casefold()).first()
+    if institution is not None and institution.status != "active":
+        raise HTTPException(status_code=403, detail=SUSPENDED_MESSAGE)
+
+
 AMBIGUOUS_ACCOUNT = "Esa cuenta existe en varias instituciones. Indica el código de tu institución"
 
 
@@ -183,10 +199,14 @@ def client_ip(request: Request) -> str:
 def login(data: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     ip = client_ip(request)
     ensure_not_blocked(db, ip, data.username)
+    # Fase 4 B: at an institution's own address its code comes from the host.
+    addressed = institution_for_host(db, request)
+    code = addressed.slug if addressed is not None else data.institution
+    ensure_code_open(db, code)
     institution_id = account_institution(
         db,
         or_(User.username == data.username, User.email == data.username),
-        data.institution,
+        code,
     )
     user = None
     if institution_id is not None:
@@ -244,6 +264,7 @@ def refresh_session(
     if session is None:
         raise HTTPException(status_code=401, detail="La sesión expiró. Inicia sesión de nuevo")
     set_tenant(db, session.institution_id)
+    ensure_institution_open(db, session.institution_id)
     user = db.get(User, session.user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="La cuenta ya no existe")

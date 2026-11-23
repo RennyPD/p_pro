@@ -12,7 +12,13 @@ end to end.
 
 from route_analysis import reaches, write_routes
 
-from app.services import academic_grading, attendance_workflow, audit_log, finance_workflow
+from app.services import (
+    academic_grading,
+    attendance_workflow,
+    audit_log,
+    finance_workflow,
+    platform,
+)
 
 # Writers of an audit trail: the general log and the domain histories.
 AUDIT_WRITERS = {
@@ -20,6 +26,7 @@ AUDIT_WRITERS = {
     academic_grading.record_change,  # grade_changes
     attendance_workflow.change,  # attendance_changes
     finance_workflow.event,  # finance_events
+    platform.platform_record,  # platform_audit_logs (Fase 4 B)
 }
 
 # (method, path): why the route records nothing.

@@ -97,6 +97,9 @@ const InstitutionalControlPage = lazy(() =>
 const UsersPage = lazy(() =>
   import("./features/settings/UsersPage").then(module => ({ default: module.UsersPage })),
 );
+const PlatformPage = lazy(() =>
+  import("./features/platform/PlatformPage").then(module => ({ default: module.PlatformPage })),
+);
 const SectionsPage = lazy(() =>
   import("./features/academic/SectionsPage").then(module => ({ default: module.SectionsPage })),
 );
@@ -164,6 +167,7 @@ export default function App() {
   return (
     <Suspense fallback={<Spinner label="Cargando página" />}>
       <Routes>
+        <Route path="/plataforma" element={<PlatformPage />} />
         <Route element={<SessionGate />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/recuperar" element={<ForgotPasswordPage />} />

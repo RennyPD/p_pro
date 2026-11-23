@@ -19,6 +19,10 @@ class Institution(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
+    # Fase 4 B: contact and the reason of the last suspension or reactivation.
+    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status_reason: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    status_changed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 @event.listens_for(Institution.__table__, "after_create")

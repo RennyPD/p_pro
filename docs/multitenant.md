@@ -1,6 +1,6 @@
-# Multi-tenant (Fase 4, bloque A)
+# Multi-tenant (Fase 4, bloques A y B)
 
-Nexo atiende a varias instituciones en una sola base de datos. Cada tabla de la institución (66) lleva `institution_id`. Solo son globales el catálogo de permisos (`permissions`), las llaves de bloqueo (`write_locks`, que ya incluyen la institución en la llave) y el freno de intentos de acceso (`login_throttles`).
+Nexo atiende a varias instituciones en una sola base de datos. Cada tabla de la institución (66) lleva `institution_id`. Solo son globales el catálogo de permisos (`permissions`), las llaves de bloqueo (`write_locks`, que ya incluyen la institución en la llave), el freno de intentos de acceso (`login_throttles`), las instituciones y la superadministración (`platform_admins`, `platform_audit_logs`).
 
 ## Cómo se aísla cada institución
 
@@ -37,8 +37,20 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO ne
 
 - La cuenta pertenece a una institución.
 - Si el usuario o el correo existe en una sola institución, basta con usuario y contraseña. Si existe en varias, el servidor responde 409 y la pantalla pide el código de la institución (`slug`).
-- El bloque B añade el subdominio por institución.
+- Con `TENANT_BASE_DOMAIN` (por ejemplo `nexo.do`), cada institución tiene su dirección `<código>.nexo.do` y allí no se pide el código. El servidor identifica la institución por el `Host` o, si el API vive en otro host (`api.nexo.do`), por el `Origin` de la página. Ninguno de los dos es una credencial: el token lleva su institución (`tid`) y se rechaza en la dirección de otra.
+- Una institución suspendida no puede entrar: el inicio de sesión, la renovación y cada petición responden 403 con un aviso.
 - La recuperación de contraseña sigue la misma regla y, si hay ambigüedad, no envía nada.
+
+## Superadministración de la plataforma
+
+- Cuentas aparte de las de las instituciones, con segundo factor obligatorio. Se crean desde el servidor:
+  ```
+  python -m scripts.create_platform_admin soporte@nexo.do "Equipo Nexo"
+  ```
+  El script pide la contraseña (12 caracteres o más) y muestra una sola vez el secreto TOTP para la aplicación de verificación.
+- El panel está en `/plataforma` (en producción, `admin.<dominio>/plataforma`). Crea instituciones, las suspende o reactiva con motivo y ve conteos de uso; no lee los registros de ninguna institución.
+- El código de una institución usa minúsculas, números y guiones (3 a 40) y no puede ser una palabra reservada (`admin`, `api`, `app`, `www`, `plataforma`, `platform`, `mail`, `soporte`, `support`, `static`, `assets`, `demo`, `status`).
+- El alta invita al primer administrador por correo, así que el servidor necesita `APP_URL` y un backend de correo configurado.
 
 ## Para quien desarrolla
 

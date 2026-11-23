@@ -47,6 +47,7 @@ from .operations_model import (
     Submission,
     SubmissionRevision,
 )
+from .platform_model import PlatformAdmin, PlatformAuditLog
 from .role_model import Role
 from .scheduling_model import Classroom, SectionMeeting
 from .section_model import Section

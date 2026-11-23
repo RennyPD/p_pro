@@ -1,0 +1,35 @@
+.platform-login {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.5rem 1rem;
+  background: var(--bg);
+}
+
+.platform-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.platform-search .form-field {
+  flex: 1 1 16rem;
+}
+
+.platform-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.platform-audit {
+  margin-top: 1.5rem;
+}
+
+.platform-audit h2 {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}

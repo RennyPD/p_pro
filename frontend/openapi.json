@@ -9205,6 +9205,131 @@
         "title": "IncomeRow",
         "type": "object"
       },
+      "InstitutionCreate": {
+        "properties": {
+          "admin_email": {
+            "format": "email",
+            "title": "Admin Email",
+            "type": "string"
+          },
+          "code": {
+            "maxLength": 40,
+            "minLength": 3,
+            "title": "Code",
+            "type": "string"
+          },
+          "enrollment_prefix": {
+            "default": "EST",
+            "maxLength": 20,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9-]+$",
+            "title": "Enrollment Prefix",
+            "type": "string"
+          },
+          "institution_type": {
+            "pattern": "^(university|school|both)$",
+            "title": "Institution Type",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 150,
+            "minLength": 3,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "code",
+          "institution_type",
+          "admin_email"
+        ],
+        "title": "InstitutionCreate",
+        "type": "object"
+      },
+      "InstitutionOut": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Email"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "institution_id": {
+            "title": "Institution Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "status_changed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Changed At"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/InstitutionUsage"
+          }
+        },
+        "required": [
+          "institution_id",
+          "name",
+          "code",
+          "status",
+          "created_at",
+          "usage"
+        ],
+        "title": "InstitutionOut",
+        "type": "object"
+      },
       "InstitutionSettingsOut": {
         "properties": {
           "district": {
@@ -9472,6 +9597,51 @@
           "passing_grade"
         ],
         "title": "InstitutionSettingsUpdate",
+        "type": "object"
+      },
+      "InstitutionStatusChange": {
+        "properties": {
+          "reason": {
+            "maxLength": 250,
+            "minLength": 5,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "InstitutionStatusChange",
+        "type": "object"
+      },
+      "InstitutionUsage": {
+        "properties": {
+          "last_activity": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity"
+          },
+          "students": {
+            "title": "Students",
+            "type": "integer"
+          },
+          "users": {
+            "title": "Users",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "students",
+          "users"
+        ],
+        "title": "InstitutionUsage",
         "type": "object"
       },
       "LessonPlanCreate": {
@@ -9922,6 +10092,65 @@
           "read_at"
         ],
         "title": "NotificationOut",
+        "type": "object"
+      },
+      "OnboardingChecklist": {
+        "properties": {
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/OnboardingStep"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "steps",
+          "completed",
+          "total"
+        ],
+        "title": "OnboardingChecklist",
+        "type": "object"
+      },
+      "OnboardingStep": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "done": {
+            "title": "Done",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "description",
+          "done",
+          "to"
+        ],
+        "title": "OnboardingStep",
         "type": "object"
       },
       "OperationReason": {
@@ -10503,6 +10732,130 @@
         "title": "PlanTemplateOut",
         "type": "object"
       },
+      "PlatformAuditOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "platform_audit_log_id": {
+            "title": "Platform Audit Log Id",
+            "type": "integer"
+          },
+          "resource": {
+            "title": "Resource",
+            "type": "string"
+          }
+        },
+        "required": [
+          "platform_audit_log_id",
+          "actor",
+          "action",
+          "resource",
+          "detail",
+          "created_at"
+        ],
+        "title": "PlatformAuditOut",
+        "type": "object"
+      },
+      "PlatformLogin": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "otp": {
+            "pattern": "^\\d{6}$",
+            "title": "Otp",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 200,
+            "minLength": 10,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "otp"
+        ],
+        "title": "PlatformLogin",
+        "type": "object"
+      },
+      "PlatformMe": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "platform_admin_id": {
+            "title": "Platform Admin Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "platform_admin_id",
+          "name",
+          "email"
+        ],
+        "title": "PlatformMe",
+        "type": "object"
+      },
+      "PlatformToken": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "name",
+          "email"
+        ],
+        "title": "PlatformToken",
+        "type": "object"
+      },
       "PromotionProposal": {
         "properties": {
           "class_group_id": {
@@ -10679,6 +11032,29 @@
           "pending"
         ],
         "title": "PromotionSummaryRow",
+        "type": "object"
+      },
+      "PublicInstitution": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "status"
+        ],
+        "title": "PublicInstitution",
         "type": "object"
       },
       "RecoveryIn": {
@@ -27190,6 +27566,32 @@
         ]
       }
     },
+    "/onboarding/checklist": {
+      "get": {
+        "operationId": "checklist_onboarding_checklist_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingChecklist"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Checklist",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
     "/operations/admissions": {
       "get": {
         "operationId": "admissions_operations_admissions_get",
@@ -29587,6 +29989,444 @@
         "summary": "Reopen Period",
         "tags": [
           "academic configuration"
+        ]
+      }
+    },
+    "/platform/audit": {
+      "get": {
+        "operationId": "platform_audit_platform_audit_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlatformAuditOut"
+                  },
+                  "title": "Response Platform Audit Platform Audit Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Platform Audit",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/auth/login": {
+      "post": {
+        "operationId": "platform_login_platform_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformToken"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Platform Login",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/institutions": {
+      "get": {
+        "operationId": "list_institutions_platform_institutions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(active|suspended)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InstitutionOut"
+                  },
+                  "title": "Response List Institutions Platform Institutions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Institutions",
+        "tags": [
+          "platform"
+        ]
+      },
+      "post": {
+        "operationId": "create_institution_platform_institutions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstitutionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Institution",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/institutions/{institution_id}/reactivate": {
+      "post": {
+        "operationId": "reactivate_institution_platform_institutions__institution_id__reactivate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "institution_id",
+            "required": true,
+            "schema": {
+              "title": "Institution Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstitutionStatusChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reactivate Institution",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/institutions/{institution_id}/suspend": {
+      "post": {
+        "operationId": "suspend_institution_platform_institutions__institution_id__suspend_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "institution_id",
+            "required": true,
+            "schema": {
+              "title": "Institution Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstitutionStatusChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Suspend Institution",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/me": {
+      "get": {
+        "operationId": "platform_me_platform_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformMe"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Platform Me",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/public/institution": {
+      "get": {
+        "description": "Name of the institution addressed by the host (or by its code) for the sign-in page.",
+        "operationId": "public_institution_public_institution_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicInstitution"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Public Institution",
+        "tags": [
+          "platform"
         ]
       }
     },

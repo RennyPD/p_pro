@@ -8,7 +8,10 @@ import { useAuthStore } from "../../store/auth";
 import { LoginPage } from "./LoginPage";
 
 describe("LoginPage", () => {
-  beforeEach(() => useAuthStore.getState().clearSession());
+  beforeEach(() => {
+    useAuthStore.getState().clearSession();
+    vi.spyOn(api, "get").mockRejectedValue({ isAxiosError: true, response: { status: 404 } });
+  });
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
@@ -60,5 +63,42 @@ describe("LoginPage", () => {
         expect.objectContaining({ username: "demo.admin", institution: "segundo" }),
       ),
     );
+  });
+
+  it("names the institution of its own address and never asks for the code there", async () => {
+    vi.spyOn(api, "get").mockResolvedValue({
+      data: { code: "segundo", name: "Colegio Segundo", status: "active" },
+    });
+    const post = vi.spyOn(api, "post").mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 409, data: { detail: "Indica el código de tu institución" } },
+    });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <LoginPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText("Colegio Segundo")).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Usuario o correo"), "demo.admin");
+    await userEvent.type(screen.getByLabelText("Contraseña"), "SegundaAdmin2026!");
+    await userEvent.click(screen.getByRole("button", { name: "Entrar a Nexo" }));
+    await waitFor(() => expect(post).toHaveBeenCalled());
+    expect(screen.queryByLabelText("Código de tu institución")).toBeNull();
+  });
+
+  it("warns when the institution of the address is suspended", async () => {
+    vi.spyOn(api, "get").mockResolvedValue({
+      data: { code: "segundo", name: "Colegio Segundo", status: "suspended" },
+    });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <LoginPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("está suspendida");
   });
 });

@@ -40,17 +40,26 @@ def _decode_part(value: str) -> dict:
     return json.loads(base64.urlsafe_b64decode(padded))
 
 
-def create_access_token(user_id: int, session_version: int) -> str:
+def create_access_token(
+    user_id: int,
+    session_version: int,
+    institution_id: int | None = None,
+    scope: str = "institution",
+) -> str:
+    """Signed access token. ``tid``: the account's institution; ``scp``: institution
+    or platform (super administrators, Fase 4 B). The two never mix."""
     now = int(time.time())
     header = _encode_part({"alg": "HS256", "typ": "JWT"})
-    payload = _encode_part(
-        {
-            "sub": str(user_id),
-            "sv": session_version,
-            "iat": now,
-            "exp": now + settings.access_token_expire_minutes * 60,
-        }
-    )
+    claims = {
+        "sub": str(user_id),
+        "sv": session_version,
+        "scp": scope,
+        "iat": now,
+        "exp": now + settings.access_token_expire_minutes * 60,
+    }
+    if institution_id is not None:
+        claims["tid"] = institution_id
+    payload = _encode_part(claims)
     message = f"{header}.{payload}".encode()
     signature = (
         base64.urlsafe_b64encode(
@@ -63,6 +72,12 @@ def create_access_token(user_id: int, session_version: int) -> str:
 
 
 def decode_access_token(token: str) -> tuple[int, int]:
+    claims = decode_token_claims(token)
+    return int(claims["sub"]), int(claims.get("sv", 0))
+
+
+def decode_token_claims(token: str) -> dict:
+    """Verified claims of an access token (signature and expiry checked)."""
     credentials_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="La sesión no es válida o expiró. Inicia sesión de nuevo",
@@ -83,7 +98,8 @@ def decode_access_token(token: str) -> tuple[int, int]:
         claims = _decode_part(payload)
         if int(claims["exp"]) < int(time.time()):
             raise credentials_error
-        return int(claims["sub"]), int(claims.get("sv", 0))
+        int(claims["sub"])
+        return claims
     except (ValueError, KeyError, TypeError, json.JSONDecodeError):
         raise credentials_error
 

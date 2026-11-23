@@ -28,7 +28,7 @@ from sqlalchemy.orm import Session
 
 from app.models.configuration_model import WriteLock
 
-DOMAINS = frozenset({"academic", "access", "finance"})
+DOMAINS = frozenset({"academic", "access", "finance", "platform"})
 
 
 def _tenant_of(db: Session, institution_id: int | None) -> int | None:

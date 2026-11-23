@@ -1,0 +1,46 @@
+.first-steps header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.first-steps h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.first-steps progress {
+  width: 100%;
+  margin: 0.75rem 0;
+  accent-color: var(--blue);
+}
+
+.first-steps ol {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.first-steps li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.first-steps li svg {
+  flex: none;
+  width: 1.1rem;
+  color: var(--muted);
+}
+
+.first-steps li.first-steps__done svg {
+  color: var(--success);
+}
+
+.first-steps li p {
+  margin: 0.15rem 0 0;
+}

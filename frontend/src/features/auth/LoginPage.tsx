@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import { Eye, EyeOff, GraduationCap, ShieldCheck, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -7,7 +8,12 @@ import { z } from "zod";
 import { Button } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
+import type { ApiSchema } from "../../lib/apiTypes";
 import type { TokenResponse } from "../../types";
+
+type PublicInstitution = ApiSchema<"PublicInstitution">;
+export const SUSPENDED_NOTICE =
+  "Esta institución está suspendida. Contacta a su administración o al soporte de Nexo.";
 
 const schema = z.object({
   username: z.string().min(1, "Escribe tu usuario o correo"),
@@ -26,6 +32,14 @@ export function LoginPage() {
   const [show, setShow] = useState(false);
   const [serverError, setServerError] = useState("");
   const [askInstitution, setAskInstitution] = useState(false);
+  // On an institution's own address (subdomain) the server already knows which one it is.
+  const addressed = useQuery({
+    queryKey: ["public-institution"],
+    queryFn: () => api.get<PublicInstitution>("/public/institution").then(r => r.data),
+    retry: false,
+    staleTime: Infinity,
+  });
+  const institution = addressed.data;
   const {
     register,
     handleSubmit,
@@ -38,12 +52,12 @@ export function LoginPage() {
       const { data } = await api.post<TokenResponse>("/auth/login", {
         ...values,
         otp: values.otp || undefined,
-        institution: values.institution?.trim() || undefined,
+        institution: institution ? undefined : values.institution?.trim() || undefined,
       });
       setSession(data.access_token, data.user);
     } catch (error) {
       const status = (error as { response?: { status?: number } }).response?.status;
-      if (status === 409) setAskInstitution(true);
+      if (status === 409 && !institution) setAskInstitution(true);
       setServerError(apiMessage(error));
     }
   }
@@ -76,10 +90,15 @@ export function LoginPage() {
       <section className="auth-form-wrap">
         <form className="auth-card" onSubmit={handleSubmit(submit)}>
           <div>
-            <span className="kicker">Portal académico</span>
+            <span className="kicker">{institution?.name ?? "Portal académico"}</span>
             <h2>Qué bueno verte</h2>
             <p>Usa tus credenciales institucionales para continuar.</p>
           </div>
+          {institution?.status === "suspended" && (
+            <div className="form-error" role="alert">
+              {SUSPENDED_NOTICE}
+            </div>
+          )}
           <label className="form-field">
             <span>Usuario o correo</span>
             <input
@@ -120,7 +139,7 @@ export function LoginPage() {
             />
             {errors.otp && <small>{errors.otp.message}</small>}
           </label>
-          {askInstitution && (
+          {askInstitution && !institution && (
             <label className="form-field">
               <span>Código de tu institución</span>
               <input

@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -30,6 +31,9 @@ class Settings(BaseSettings):
     smtp_security: Literal["starttls", "ssl", "none"] = "starttls"
     # Public address of the interface, used to build links in emails.
     app_url: str | None = None
+    # Fase 4 B: each institution answers at <code>.<tenant_base_domain>
+    # (e.g. colegio-horizonte.nexo.do); the panel at admin.<tenant_base_domain>.
+    tenant_base_domain: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
 
@@ -57,6 +61,12 @@ class Settings(BaseSettings):
                 raise ValueError("CORS_ORIGINS requiere orígenes HTTPS explícitos")
         if self.cors_origin_regex is not None:
             raise ValueError("Usa CORS_ORIGINS para definir los orígenes de producción")
+        if self.tenant_base_domain:
+            domain = self.tenant_base_domain.strip().lower()
+            if not re.fullmatch(r"[a-z0-9-]+(\.[a-z0-9-]+)+", domain):
+                raise ValueError("TENANT_BASE_DOMAIN debe ser un dominio, por ejemplo nexo.do")
+            # Only HTTPS subdomains of the configured domain (one label deep).
+            self.cors_origin_regex = rf"https://([a-z0-9-]+\.)?{re.escape(domain)}"
         if self.email_backend == "smtp" and not self.smtp_host:
             raise ValueError("Configura SMTP_HOST para enviar correo por SMTP")
         if self.app_url and urlsplit(self.app_url).scheme != "https":

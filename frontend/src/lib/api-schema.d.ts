@@ -3029,6 +3029,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/onboarding/checklist": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Checklist */
+    get: operations["checklist_onboarding_checklist_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/operations/admissions": {
     parameters: {
       query?: never;
@@ -3713,6 +3730,129 @@ export interface paths {
     put?: never;
     /** Reopen Period */
     post: operations["reopen_period_periods__period_id__reopen_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/audit": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Platform Audit */
+    get: operations["platform_audit_platform_audit_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/auth/login": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Platform Login */
+    post: operations["platform_login_platform_auth_login_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/institutions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Institutions */
+    get: operations["list_institutions_platform_institutions_get"];
+    put?: never;
+    /** Create Institution */
+    post: operations["create_institution_platform_institutions_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/institutions/{institution_id}/reactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reactivate Institution */
+    post: operations["reactivate_institution_platform_institutions__institution_id__reactivate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/institutions/{institution_id}/suspend": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Suspend Institution */
+    post: operations["suspend_institution_platform_institutions__institution_id__suspend_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Platform Me */
+    get: operations["platform_me_platform_me_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/public/institution": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Public Institution
+     * @description Name of the institution addressed by the host (or by its code) for the sign-in page.
+     */
+    get: operations["public_institution_public_institution_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -7744,6 +7884,50 @@ export interface components {
       /** Total */
       total: number;
     };
+    /** InstitutionCreate */
+    InstitutionCreate: {
+      /**
+       * Admin Email
+       * Format: email
+       */
+      admin_email: string;
+      /** Code */
+      code: string;
+      /**
+       * Enrollment Prefix
+       * @default EST
+       */
+      enrollment_prefix: string;
+      /** Institution Type */
+      institution_type: string;
+      /** Name */
+      name: string;
+    };
+    /** InstitutionOut */
+    InstitutionOut: {
+      /** Address */
+      address?: string | null;
+      /** Code */
+      code: string;
+      /** Contact Email */
+      contact_email?: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Institution Id */
+      institution_id: number;
+      /** Name */
+      name: string;
+      /** Status */
+      status: string;
+      /** Status Changed At */
+      status_changed_at?: string | null;
+      /** Status Reason */
+      status_reason?: string | null;
+      usage: components["schemas"]["InstitutionUsage"];
+    };
     /** InstitutionSettingsOut */
     InstitutionSettingsOut: {
       /**
@@ -7849,6 +8033,20 @@ export interface components {
       school_phone?: string | null;
       /** Students View Finance */
       students_view_finance?: boolean | null;
+    };
+    /** InstitutionStatusChange */
+    InstitutionStatusChange: {
+      /** Reason */
+      reason: string;
+    };
+    /** InstitutionUsage */
+    InstitutionUsage: {
+      /** Last Activity */
+      last_activity?: string | null;
+      /** Students */
+      students: number;
+      /** Users */
+      users: number;
     };
     /** LessonPlanCreate */
     LessonPlanCreate: {
@@ -8036,6 +8234,28 @@ export interface components {
       title: string;
       /** User Id */
       user_id: number;
+    };
+    /** OnboardingChecklist */
+    OnboardingChecklist: {
+      /** Completed */
+      completed: number;
+      /** Steps */
+      steps: components["schemas"]["OnboardingStep"][];
+      /** Total */
+      total: number;
+    };
+    /** OnboardingStep */
+    OnboardingStep: {
+      /** Description */
+      description: string;
+      /** Done */
+      done: boolean;
+      /** Key */
+      key: string;
+      /** Label */
+      label: string;
+      /** To */
+      to: string;
     };
     /** OperationReason */
     OperationReason: {
@@ -8227,6 +8447,59 @@ export interface components {
       /** Subject Id */
       subject_id: number;
     };
+    /** PlatformAuditOut */
+    PlatformAuditOut: {
+      /** Action */
+      action: string;
+      /** Actor */
+      actor: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Detail */
+      detail: string;
+      /** Platform Audit Log Id */
+      platform_audit_log_id: number;
+      /** Resource */
+      resource: string;
+    };
+    /** PlatformLogin */
+    PlatformLogin: {
+      /**
+       * Email
+       * Format: email
+       */
+      email: string;
+      /** Otp */
+      otp: string;
+      /** Password */
+      password: string;
+    };
+    /** PlatformMe */
+    PlatformMe: {
+      /** Email */
+      email: string;
+      /** Name */
+      name: string;
+      /** Platform Admin Id */
+      platform_admin_id: number;
+    };
+    /** PlatformToken */
+    PlatformToken: {
+      /** Access Token */
+      access_token: string;
+      /** Email */
+      email: string;
+      /** Name */
+      name: string;
+      /**
+       * Token Type
+       * @default bearer
+       */
+      token_type: string;
+    };
     /** PromotionProposal */
     PromotionProposal: {
       /** Class Group Id */
@@ -8289,6 +8562,15 @@ export interface components {
       repeated: number;
       /** Students */
       students: number;
+    };
+    /** PublicInstitution */
+    PublicInstitution: {
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /** Status */
+      status: string;
     };
     /** RecoveryIn */
     RecoveryIn: {
@@ -16764,6 +17046,26 @@ export interface operations {
       };
     };
   };
+  checklist_onboarding_checklist_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OnboardingChecklist"];
+        };
+      };
+    };
+  };
   admissions_operations_admissions_get: {
     parameters: {
       query?: never;
@@ -18284,6 +18586,259 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["AcademicPeriodOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  platform_audit_platform_audit_get: {
+    parameters: {
+      query?: {
+        skip?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlatformAuditOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  platform_login_platform_auth_login_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PlatformLogin"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlatformToken"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_institutions_platform_institutions_get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        status?: string | null;
+        skip?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstitutionOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_institution_platform_institutions_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["InstitutionCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstitutionOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reactivate_institution_platform_institutions__institution_id__reactivate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        institution_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["InstitutionStatusChange"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstitutionOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  suspend_institution_platform_institutions__institution_id__suspend_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        institution_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["InstitutionStatusChange"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstitutionOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  platform_me_platform_me_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlatformMe"];
+        };
+      };
+    };
+  };
+  public_institution_public_institution_get: {
+    parameters: {
+      query?: {
+        code?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PublicInstitution"];
         };
       };
       /** @description Validation Error */
