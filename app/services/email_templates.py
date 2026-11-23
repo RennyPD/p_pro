@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import settings
-from app.models.configuration_model import InstitutionSettings
+from app.services.institution_profile import settings_of
 
 
 @dataclass
@@ -18,7 +18,7 @@ class Email:
 
 
 def institution_name(db: Session) -> str:
-    row = db.get(InstitutionSettings, 1)
+    row = settings_of(db)
     return row.institution_name if row else "Nexo Académico"
 
 

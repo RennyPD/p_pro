@@ -4,9 +4,10 @@ from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class RefreshToken(Base):
+class RefreshToken(TenantMixin, Base):
     __tablename__ = "refresh_tokens"
     # Migration 0004 created both a unique constraint and a unique index.
     __table_args__ = (UniqueConstraint("token_hash", name="refresh_tokens_token_hash_key"),)
@@ -21,7 +22,7 @@ class RefreshToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime)
 
 
-class AuditLog(Base):
+class AuditLog(TenantMixin, Base):
     __tablename__ = "audit_logs"
 
     audit_log_id: Mapped[int] = mapped_column(primary_key=True)

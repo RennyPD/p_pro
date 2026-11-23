@@ -4,9 +4,10 @@ from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class Attendance(Base):
+class Attendance(TenantMixin, Base):
     __tablename__ = "attendances"
 
     attendance_id: Mapped[int] = mapped_column(primary_key=True)
@@ -37,7 +38,7 @@ class Attendance(Base):
         return self.enrollment.section.subject.description
 
 
-class AttendanceChange(Base):
+class AttendanceChange(TenantMixin, Base):
     """Snapshots survive physical deletion without cascading away the audit."""
 
     __tablename__ = "attendance_changes"

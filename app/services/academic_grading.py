@@ -7,11 +7,12 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.assessment_model import Assessment
-from app.models.configuration_model import AcademicPeriod, InstitutionSettings
+from app.models.configuration_model import AcademicPeriod
 from app.models.enrollment_model import Enrollment
 from app.models.grade_model import Grade, GradeChange
 from app.services.audit_log import audit_event  # noqa: F401  (re-exported)
 from app.services.business_time import business_date
+from app.services.institution_profile import settings_of
 
 
 @dataclass
@@ -27,7 +28,7 @@ class AcademicResult:
 def academic_result(db: Session, enrollment: Enrollment) -> AcademicResult:
     assessments = db.query(Assessment).filter_by(section_id=enrollment.section_id).all()
     published = [grade for grade in enrollment.grades if grade.status == "published"]
-    settings = db.get(InstitutionSettings, 1)
+    settings = settings_of(db)
     passing = (
         enrollment.passing_grade
         if enrollment.passing_grade is not None

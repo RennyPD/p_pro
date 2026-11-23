@@ -18,12 +18,13 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 # Money: exact decimal with cents, in the database and in Python (CLAUDE.md, rule 7).
 MONEY = Numeric(12, 2)
 
 
-class StudentAccount(Base):
+class StudentAccount(TenantMixin, Base):
     __tablename__ = "student_accounts"
 
     student_account_id: Mapped[int] = mapped_column(primary_key=True)
@@ -42,7 +43,7 @@ class StudentAccount(Base):
     )
 
 
-class Charge(Base):
+class Charge(TenantMixin, Base):
     __tablename__ = "charges"
     __table_args__ = (
         Index("idx_charges_account_due", "student_account_id", "due_date"),
@@ -76,9 +77,14 @@ class Charge(Base):
     billing_cycle: Mapped[str | None] = mapped_column(String(7), nullable=True)
 
 
-class Payment(Base):
+class Payment(TenantMixin, Base):
     __tablename__ = "payments"
-    __table_args__ = (Index("idx_payments_account_date", "student_account_id", "paid_at"),)
+    __table_args__ = (
+        Index("idx_payments_account_date", "student_account_id", "paid_at"),
+        UniqueConstraint(
+            "institution_id", "receipt_number", name="uq_payments_institution_receipt_number"
+        ),
+    )
 
     payment_id: Mapped[int] = mapped_column(primary_key=True)
     student_account_id: Mapped[int] = mapped_column(
@@ -86,7 +92,7 @@ class Payment(Base):
     )
     amount: Mapped[Decimal] = mapped_column(MONEY)
     reference: Mapped[str] = mapped_column(String(100))
-    receipt_number: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    receipt_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
     note: Mapped[str] = mapped_column(String(250), default="")
     method: Mapped[str] = mapped_column(String(20), default="legacy", server_default="legacy")
     status: Mapped[str] = mapped_column(String(20), default="posted", server_default="posted")
@@ -100,7 +106,7 @@ class Payment(Base):
     )
 
 
-class FinancialAdjustment(Base):
+class FinancialAdjustment(TenantMixin, Base):
     __tablename__ = "financial_adjustments"
 
     adjustment_id: Mapped[int] = mapped_column(primary_key=True)
@@ -125,7 +131,7 @@ class FinancialAdjustment(Base):
     automation_key: Mapped[str | None] = mapped_column(String(80), unique=True, nullable=True)
 
 
-class PaymentPlan(Base):
+class PaymentPlan(TenantMixin, Base):
     __tablename__ = "payment_plans"
 
     payment_plan_id: Mapped[int] = mapped_column(primary_key=True)
@@ -143,7 +149,7 @@ class PaymentPlan(Base):
     )
 
 
-class Installment(Base):
+class Installment(TenantMixin, Base):
     __tablename__ = "installments"
 
     installment_id: Mapped[int] = mapped_column(primary_key=True)
@@ -153,17 +159,20 @@ class Installment(Base):
     paid: Mapped[bool] = mapped_column(default=False)
 
 
-class BillingConcept(Base):
+class BillingConcept(TenantMixin, Base):
     __tablename__ = "billing_concepts"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "name", name="uq_billing_concepts_institution_name"),
+    )
     billing_concept_id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(120), unique=True)
+    name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str] = mapped_column(String(250), default="")
     amount: Mapped[Decimal] = mapped_column(MONEY)
     frequency: Mapped[str] = mapped_column(String(20), default="once")
     active: Mapped[bool] = mapped_column(default=True)
 
 
-class BillingPlan(Base):
+class BillingPlan(TenantMixin, Base):
     """Recurring or one-off charge applied to a group of students (e.g. monthly tuition).
 
     Each cycle is a calendar month ("YYYY-MM"): a monthly plan has one cycle per
@@ -172,8 +181,11 @@ class BillingPlan(Base):
     """
 
     __tablename__ = "billing_plans"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "name", name="uq_billing_plans_institution_name"),
+    )
     billing_plan_id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(120), unique=True)
+    name: Mapped[str] = mapped_column(String(120))
     charge_description: Mapped[str] = mapped_column(String(150))
     billing_concept_id: Mapped[int | None] = mapped_column(
         ForeignKey("billing_concepts.billing_concept_id"), nullable=True
@@ -202,7 +214,7 @@ class BillingPlan(Base):
     )
 
 
-class BillingPlanTarget(Base):
+class BillingPlanTarget(TenantMixin, Base):
     """Who a plan applies to: a career (or school grade), a student, or an exclusion."""
 
     __tablename__ = "billing_plan_targets"
@@ -225,7 +237,7 @@ class BillingPlanTarget(Base):
     student_id: Mapped[int | None] = mapped_column(ForeignKey("students.student_id"), nullable=True)
 
 
-class BillingRun(Base):
+class BillingRun(TenantMixin, Base):
     """One generation of a plan's cycle: who ran it and what it charged."""
 
     __tablename__ = "billing_runs"
@@ -243,10 +255,15 @@ class BillingRun(Base):
     )
 
 
-class CashClosing(Base):
+class CashClosing(TenantMixin, Base):
     __tablename__ = "cash_closings"
+    __table_args__ = (
+        UniqueConstraint(
+            "institution_id", "closing_date", name="uq_cash_closings_institution_closing_date"
+        ),
+    )
     cash_closing_id: Mapped[int] = mapped_column(primary_key=True)
-    closing_date: Mapped[date] = mapped_column(Date, unique=True)
+    closing_date: Mapped[date] = mapped_column(Date)
     total_payments: Mapped[Decimal] = mapped_column(MONEY)
     payment_count: Mapped[int] = mapped_column(Integer)
     cash_total: Mapped[Decimal] = mapped_column(MONEY, default=0, server_default="0")
@@ -257,7 +274,7 @@ class CashClosing(Base):
     )
 
 
-class TransferBatch(Base):
+class TransferBatch(TenantMixin, Base):
     """One bank transfer a guardian reports for several linked students.
 
     Each student gets their share as a TransferRequest linked to the batch;
@@ -265,8 +282,13 @@ class TransferBatch(Base):
     """
 
     __tablename__ = "transfer_batches"
+    __table_args__ = (
+        UniqueConstraint(
+            "institution_id", "reference", name="uq_transfer_batches_institution_reference"
+        ),
+    )
     transfer_batch_id: Mapped[int] = mapped_column(primary_key=True)
-    reference: Mapped[str] = mapped_column(String(100), unique=True)
+    reference: Mapped[str] = mapped_column(String(100))
     bank: Mapped[str] = mapped_column(String(100))
     note: Mapped[str] = mapped_column(String(250), default="")
     total_cents: Mapped[int] = mapped_column(Integer)
@@ -285,12 +307,17 @@ class TransferBatch(Base):
     )
 
 
-class TransferRequest(Base):
+class TransferRequest(TenantMixin, Base):
     __tablename__ = "transfer_requests"
+    __table_args__ = (
+        UniqueConstraint(
+            "institution_id", "reference", name="uq_transfer_requests_institution_reference"
+        ),
+    )
     transfer_request_id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("students.student_id"))
     amount_cents: Mapped[int] = mapped_column(Integer)
-    reference: Mapped[str] = mapped_column(String(100), unique=True)
+    reference: Mapped[str] = mapped_column(String(100))
     bank: Mapped[str] = mapped_column(String(100))
     note: Mapped[str] = mapped_column(String(250), default="")
     # Empty for a share of a batch: the proof is stored once on the batch.
@@ -313,7 +340,7 @@ class TransferRequest(Base):
     )
 
 
-class FinanceEvent(Base):
+class FinanceEvent(TenantMixin, Base):
     __tablename__ = "finance_events"
     finance_event_id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int | None] = mapped_column(ForeignKey("students.student_id"), nullable=True)
@@ -326,7 +353,7 @@ class FinanceEvent(Base):
     )
 
 
-class FinancePolicy(Base):
+class FinancePolicy(TenantMixin, Base):
     """Late fees, automatic holds, sibling discount and scheduled billing (Fase 3 E).
 
     One row per institution; everything starts disabled until it is configured.

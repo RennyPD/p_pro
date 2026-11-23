@@ -20,6 +20,8 @@ from sqlalchemy.orm import Session
 from app.auth import account_is_active, ensure_account_active, get_current_user
 from app.db.database import settings
 from app.db.Session import get_db
+from app.db.tenant import DEFAULT_INSTITUTION_ID, set_tenant, tenant_bypass
+from app.models.institution_model import Institution
 from app.models.role_model import Role
 from app.models.security_model import RefreshToken
 from app.models.user_model import User
@@ -112,8 +114,10 @@ def bootstrap_admin(
         db.execute(text("BEGIN IMMEDIATE"))
     else:
         db.execute(text("LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE"))
-    if db.query(User).first() is not None:
+    if db.query(User).execution_options(**tenant_bypass()).first() is not None:
         raise HTTPException(status_code=409, detail="La configuración inicial ya se completó")
+    # The first administrator belongs to the first institution (Fase 4 A).
+    set_tenant(db, DEFAULT_INSTITUTION_ID)
     role = db.query(Role).filter(Role.name.ilike("admin")).first()
     if role is None:
         role = Role(name="admin", description="System administrator")
@@ -125,6 +129,41 @@ def bootstrap_admin(
     user = create_user(db, user_data)
     audit(db, "account.bootstrapped", f"user:{user.user_id}", user.user_id, "Primer administrador")
     return issue_session(db, response, user)
+
+
+AMBIGUOUS_ACCOUNT = "Esa cuenta existe en varias instituciones. Indica el código de tu institución"
+
+
+def account_institution(db: Session, condition, code: str | None, ambiguous="raise"):
+    """Institution of the account matching ``condition`` (Fase 4 A).
+
+    With an institution code it is that institution (if active). Without one,
+    the account must exist in a single institution; otherwise sign-in asks for
+    the code and password reset silently does nothing. ``None``: unknown.
+    """
+    if code:
+        institution = (
+            db.query(Institution).filter(Institution.slug == code.strip().casefold()).first()
+        )
+        if institution is None or institution.status != "active":
+            return None
+        return institution.institution_id
+    found = {
+        row[0]
+        for row in db.query(User.institution_id)
+        .filter(condition)
+        .execution_options(**tenant_bypass())
+        .limit(3)
+    }
+    if len(found) > 1:
+        if ambiguous == "raise":
+            raise HTTPException(status_code=409, detail=AMBIGUOUS_ACCOUNT)
+        return None
+    if not found:
+        return None
+    institution_id = found.pop()
+    status_value = db.get(Institution, institution_id).status
+    return institution_id if status_value == "active" else None
 
 
 # Parallel tabs may refresh with the same cookie within this window.
@@ -144,17 +183,26 @@ def client_ip(request: Request) -> str:
 def login(data: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     ip = client_ip(request)
     ensure_not_blocked(db, ip, data.username)
-    user = (
-        db.query(User)
-        .filter(or_(User.username == data.username, User.email == data.username))
-        .first()
+    institution_id = account_institution(
+        db,
+        or_(User.username == data.username, User.email == data.username),
+        data.institution,
     )
+    user = None
+    if institution_id is not None:
+        set_tenant(db, institution_id)
+        user = (
+            db.query(User)
+            .filter(or_(User.username == data.username, User.email == data.username))
+            .first()
+        )
     if user is not None:
         user = lock_account(db, user)
     valid = verify_password(data.password, user.password if user else _DUMMY_PASSWORD_HASH)
     if user is None or not valid:
         record_failure(db, ip, data.username)
-        audit(db, "login.failed", "authentication", user.user_id if user else None)
+        if institution_id is not None:
+            audit(db, "login.failed", "authentication", user.user_id if user else None)
         db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -188,10 +236,14 @@ def refresh_session(
             status_code=401, detail="No se encontró la sesión. Inicia sesión de nuevo"
         )
     session = (
-        db.query(RefreshToken).filter(RefreshToken.token_hash == hash_token(refresh_token)).first()
+        db.query(RefreshToken)
+        .filter(RefreshToken.token_hash == hash_token(refresh_token))
+        .execution_options(**tenant_bypass())
+        .first()
     )
     if session is None:
         raise HTTPException(status_code=401, detail="La sesión expiró. Inicia sesión de nuevo")
+    set_tenant(db, session.institution_id)
     user = db.get(User, session.user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="La cuenta ya no existe")
@@ -226,8 +278,11 @@ def logout(
         session = (
             db.query(RefreshToken)
             .filter(RefreshToken.token_hash == hash_token(refresh_token))
+            .execution_options(**tenant_bypass())
             .first()
         )
+        if session is not None:
+            set_tenant(db, session.institution_id)
         if session and session.revoked_at is None:
             session.revoked_at = datetime.now(UTC).replace(tzinfo=None)
             audit(db, "session.revoked", "authentication", session.user_id)
@@ -410,16 +465,15 @@ def request_password_reset(
     # Separate counter from sign-in: "reset:" keeps login attempts independent.
     ensure_not_blocked(db, ip, f"reset:{identifier}")
     record_failure(db, ip, f"reset:{identifier}")
-    user = (
-        db.query(User)
-        .filter(
-            or_(
-                func.lower(User.username) == identifier.casefold(),
-                func.lower(User.email) == identifier.casefold(),
-            )
-        )
-        .first()
+    matches = or_(
+        func.lower(User.username) == identifier.casefold(),
+        func.lower(User.email) == identifier.casefold(),
     )
+    institution_id = account_institution(db, matches, data.institution, ambiguous=None)
+    user = None
+    if institution_id is not None:
+        set_tenant(db, institution_id)
+        user = db.query(User).filter(matches).first()
     if user is not None and user.email and account_is_active(user):
         user = lock_account(db, user)
         token = issue_token(db, user.user_id, "reset")
@@ -443,6 +497,7 @@ def request_password_reset(
 def confirm_password_reset(data: PasswordResetConfirm, db: Session = Depends(get_db)):
     """Set a new password from a reset or invitation link; every session is closed."""
     token = consume_token(db, data.token, ("reset", "invite"))
+    set_tenant(db, token.institution_id)
     user = db.get(User, token.user_id)
     if user is None or not account_is_active(user):
         raise HTTPException(400, INVALID_LINK)

@@ -43,7 +43,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 | B1 | Tipos a mano: en avance (23/11), finanzas, panel, pagos, tutor y evaluaciones usan `ApiSchema`; quedan unos 120 tipos locales | continuo |
 | B5 | ✅ Cerrado (23/11): secciones, inscripciones y carrito enlazan el período por id (migración `20261123_0054`); renombrar un período ya no rompe vínculos | — |
 | B2, B7 | Build pesado, límites solo en login (B6 ✅ 23/11: bloqueos académicos por sección y estudiante) | según fase |
-| SaaS | 16 unicidades globales, configuración de una fila, catálogos sin filtro | 4 |
+| SaaS | ✅ 24/11: multi-tenant con `institution_id`, unicidades por institución, configuración por institución y RLS (bloque A). Pendiente: bloques B–F | 4 |
 
 ### Historial: auditoría del 17/11/2026
 Cerrados en la Fase 0 (18/11/2026): A1, A2, M1–M6, M8, M7 parcial (bloqueos por clave), bajos de seguridad y datos (Float→Numeric, TOTP, refresh, bootstrap, nginx, logs, `date_recorded`, `school.db`), PostgreSQL de punta a punta, Prettier, mensajes en español, tokens de diseño, diálogo propio y tipos generados.
@@ -105,8 +105,17 @@ Orden aprobado el 23/11/2026, por bloques: A (cimientos), B (año lectivo), C (g
    - En PostgreSQL, una llave nueva se crea en su propia transacción confirmada, para que crearla no haga esperar a otros escritores.
    - Pruebas de concurrencia reales en PostgreSQL (`tests/test_write_locks.py`): secciones distintas avanzan a la vez y la misma sección espera; lo estructural y lo fino se excluyen; la promoción no espera. El guardián de rutas acepta `lock_academic`. Las llaves ya llevan el prefijo de institución para el multi-tenant.
 
-### Fase 4: SaaS (L)
-- Multi-tenant: `institution_id` en modelos y consultas, las 16 unicidades por institución, configuración por institución, catálogos filtrados, bloqueos por institución (ya preparados).
+### Fase 4: SaaS (L), en curso
+Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acceso y superadministración), C (infraestructura), D (planes y suscripciones), E (pagos en línea), F (comprobantes fiscales). Decisiones: una base con `institution_id` y RLS; cada cuenta pertenece a una institución; subdominio por institución con código como respaldo; Stripe para suscripciones y Azul o CardNet para familias (adaptadores en modo de prueba hasta tener cuentas); NCF manual primero y e-CF con proveedor después.
+1. ✅ **Bloque A, 24/11/2026: cimientos multi-tenant** (migración `20261124_0062`, guía en `docs/multitenant.md`).
+   - Tabla `institutions`; la instalación actual es la institución 1. `institution_id` en las 66 tablas de la institución; solo `permissions`, `write_locks` y `login_throttles` son globales.
+   - Las 23 unicidades de negocio pasan a ser por institución; los tokens y claves de idempotencia siguen globales. Configuración: una fila por institución (`settings_of`).
+   - Filtro automático (`app/db/tenant.py`): la autenticación fija la institución y toda consulta, carga, actualización masiva y registro nuevo queda dentro de ella. Una petición sin institución no ve nada; crear o modificar algo de otra institución lanza `TenantError`.
+   - Row-Level Security en PostgreSQL en las 66 tablas, para el rol de la aplicación (`nexo_app`); las migraciones y respaldos usan el rol dueño.
+   - Bloqueos con la institución en la llave (`1:academic`, `1:academic:section:5`). Los procesos diarios recorren cada institución.
+   - Inicio de sesión: si el usuario existe en varias instituciones se pide el código (409 y campo «Código de tu institución»); la recuperación de contraseña no envía nada si hay ambigüedad.
+   - La regla «sin permisos guardados, los roles integrados usan sus permisos por defecto» ahora se evalúa por institución. Antes era global, y las pruebas de aislamiento detectaron que una institución nueva podía dejar sin permisos a otra.
+   - Pruebas (`tests/test_multi_tenant.py`): barrido de las más de 40 rutas GET con una segunda institución, con control positivo; registros ajenos dan 404; unicidades y actualizaciones masivas por institución; sesión sin institución vacía; RLS real en PostgreSQL con un rol no dueño.
 - Alta de instituciones (onboarding) y subdominio por cliente; panel de superadmin.
 - Planes, límites, suscripciones, prueba gratuita y suspensión por impago (Stripe o PayPal y Azul o CardNet).
 - Pagos en línea para familias, comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.

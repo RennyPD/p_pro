@@ -31,6 +31,15 @@ from app.models.configuration_model import WriteLock
 DOMAINS = frozenset({"academic", "access", "finance"})
 
 
+def _tenant_of(db: Session, institution_id: int | None) -> int | None:
+    """Locks belong to the session's institution unless one is given (Fase 4 A)."""
+    if institution_id is not None:
+        return institution_id
+    from app.db.tenant import current_tenant
+
+    return current_tenant(db)
+
+
 def lock_key(domain: str, institution_id: int | None = None) -> str:
     if domain not in DOMAINS:
         raise ValueError(f"Dominio de bloqueo desconocido: {domain}")
@@ -104,7 +113,7 @@ def lock_academic(
 ) -> None:
     """Fine-grained academic locks in the global order (see the module docstring)."""
     state = _state(db)
-    general = lock_key("academic", institution_id)
+    general = lock_key("academic", _tenant_of(db, institution_id))
     if state["general"] is None:
         dialect = _ensure_row(db, general)
         if dialect == "postgresql":
@@ -145,7 +154,7 @@ def try_lock_student(db: Session, student_id: int, institution_id: int | None = 
     state = _state(db)
     if ("student", student_id) in state["held"]:
         return True
-    key = f"{lock_key('academic', institution_id)}:student:{student_id}"
+    key = f"{lock_key('academic', _tenant_of(db, institution_id))}:student:{student_id}"
     if _ensure_row(db, key) == "postgresql":
         row = db.execute(
             text("SELECT lock_key FROM write_locks WHERE lock_key = :key FOR UPDATE SKIP LOCKED"),
@@ -160,7 +169,7 @@ def try_lock_student(db: Session, student_id: int, institution_id: int | None = 
 
 
 def lock_scope(db: Session, domain: str, institution_id: int | None = None) -> None:
-    key = lock_key(domain, institution_id)
+    key = lock_key(domain, _tenant_of(db, institution_id))
     if domain == "academic":
         state = _state(db)
         if state["held"] or state["general"] == "shared":

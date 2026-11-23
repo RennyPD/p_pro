@@ -7,6 +7,8 @@ class LoginRequest(BaseModel):
     username: str
     password: str = Field(min_length=8)
     otp: str | None = Field(default=None, pattern=r"^\d{6}$")
+    # Institution code (slug); needed only when the username exists in several.
+    institution: str | None = Field(default=None, max_length=60)
 
 
 class BootstrapRequest(BaseModel):
@@ -41,6 +43,7 @@ class MfaDisableRequest(MfaCodeRequest):
 
 class PasswordResetRequest(BaseModel):
     identifier: str = Field(min_length=1, max_length=255)
+    institution: str | None = Field(default=None, max_length=60)
 
 
 class PasswordResetConfirm(BaseModel):

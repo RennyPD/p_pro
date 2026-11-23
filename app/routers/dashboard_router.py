@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.auth import ACADEMIC_SCOPE, get_current_user, has_permission, has_scope
 from app.db.Session import get_db
 from app.models.community_model import Guardian
-from app.models.configuration_model import AcademicPeriod, InstitutionSettings
+from app.models.configuration_model import AcademicPeriod
 from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
 from app.models.student_model import Student
@@ -13,6 +13,7 @@ from app.models.user_model import User
 from app.schemas.dashboard_schema import DashboardMetric, DashboardSummary
 from app.services.academic_metrics import summarize_results
 from app.services.dashboard_metrics import finance_metrics, student_extra_metrics, teacher_metrics
+from app.services.institution_profile import settings_of
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -74,7 +75,7 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(get_cu
         ]
         if has_permission(user, "finance.view"):
             metrics += finance_metrics(db)
-        settings = db.get(InstitutionSettings, 1)
+        settings = settings_of(db)
         if settings is None:
             alerts.append("Completa la configuración institucional")
         return DashboardSummary(

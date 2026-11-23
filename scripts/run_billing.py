@@ -13,25 +13,25 @@ charges, discounts or fines anyone twice.
 
 import argparse
 
-from sqlalchemy.orm import Session
-
 from app.db.database import engine
 from app.services.finance_automation import run_daily
+from app.services.tenants import for_each_institution
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Tareas financieras diarias")
     parser.add_argument("--simulate", action="store_true", help="No guarda ningún cambio")
     args = parser.parse_args()
-    with Session(bind=engine) as db:
-        result = run_daily(db)
-        if args.simulate:
-            db.rollback()
-        else:
-            db.commit()
+    # Each institution in its own tenant session (Fase 4 A).
+    results = for_each_institution(engine, run_daily, commit=not args.simulate)
     label = "Simulación" if args.simulate else "Aplicado"
+    for institution_id, result in results.items():
+        report(label, institution_id, result)
+
+
+def report(label, institution_id, result) -> None:
     print(
-        f"{label} {result.today}: {len(result.billing_runs)} cobros generados, "
+        f"{label} · institución {institution_id} · {result.today}: {len(result.billing_runs)} cobros generados, "
         f"{result.sibling_discounts} descuentos por hermanos, {len(result.late_fees)} recargos, "
         f"{len(result.holds_set)} bloqueos y {len(result.holds_lifted)} desbloqueos"
     )

@@ -1,19 +1,23 @@
 from datetime import date
 
-from sqlalchemy import Date, Integer, String
+from sqlalchemy import Date, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class Teacher(Base):
+class Teacher(TenantMixin, Base):
     __tablename__ = "teachers"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "email", name="uq_teachers_institution_email"),
+    )
 
     teacher_id: Mapped[int] = mapped_column(primary_key=True)
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
     specialty: Mapped[str] = mapped_column(String(255))
-    email: Mapped[str] = mapped_column(String(255), unique=True)
+    email: Mapped[str] = mapped_column(String(255))
     telephone: Mapped[str] = mapped_column(String(20))
     address: Mapped[str] = mapped_column(String(255))
     active: Mapped[bool] = mapped_column(default=True)

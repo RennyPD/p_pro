@@ -18,7 +18,8 @@ UNIVERSITY_LEVELS = frozenset({"technical", "undergraduate", "graduate", "postgr
 
 
 def settings_of(db: Session) -> InstitutionSettings | None:
-    return db.get(InstitutionSettings, 1)
+    """The active institution's settings (queries are filtered by institution)."""
+    return db.query(InstitutionSettings).order_by(InstitutionSettings.settings_id).first()
 
 
 def institution_type(db: Session) -> str:

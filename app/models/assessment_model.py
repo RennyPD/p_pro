@@ -14,9 +14,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class Assessment(Base):
+class Assessment(TenantMixin, Base):
     __tablename__ = "assessments"
     __table_args__ = (
         UniqueConstraint("section_id", "name", name="uq_assessment_section_name"),
@@ -39,7 +40,7 @@ class Assessment(Base):
     grades: Mapped[list["Grade"]] = relationship("Grade", back_populates="assessment")
 
 
-class CompetencyGroup(Base):
+class CompetencyGroup(TenantMixin, Base):
     """A group of MINERD fundamental competencies graded per subject and period (Fase 3 F2).
 
     The secondary report card grades each subject on four groups; the period
@@ -47,14 +48,19 @@ class CompetencyGroup(Base):
     """
 
     __tablename__ = "competency_groups"
+    __table_args__ = (
+        UniqueConstraint(
+            "institution_id", "position", name="uq_competency_groups_institution_position"
+        ),
+    )
 
     competency_group_id: Mapped[int] = mapped_column(primary_key=True)
-    position: Mapped[int] = mapped_column(Integer, unique=True)
+    position: Mapped[int] = mapped_column(Integer)
     name: Mapped[str] = mapped_column(String(150))
     short_name: Mapped[str] = mapped_column(String(40))
 
 
-class AssessmentTemplate(Base):
+class AssessmentTemplate(TenantMixin, Base):
     __tablename__ = "assessment_templates"
     __table_args__ = (
         UniqueConstraint("owner_id", "name", name="uq_assessment_template_owner_name"),

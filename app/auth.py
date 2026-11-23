@@ -3,6 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session, object_session
 
 from app.db.Session import get_db
+from app.db.tenant import set_tenant, tenant_bypass
 from app.models.access_model import Permission, RolePermission
 from app.models.community_model import StudentGuardian
 from app.models.enrollment_model import Enrollment
@@ -33,9 +34,12 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     user_id, version = decode_access_token(credentials.credentials)
-    user = db.get(User, user_id)
+    # The account is read before its institution is known, then every query of
+    # the request is limited to that institution (Fase 4 A).
+    user = db.get(User, user_id, execution_options=tenant_bypass())
     if user is None:
         raise HTTPException(status_code=401, detail="La cuenta ya no existe")
+    set_tenant(db, user.institution_id)
     if user.session_version != version:
         raise HTTPException(status_code=401, detail="La sesión se revocó. Inicia sesión de nuevo")
     ensure_account_active(user)
@@ -72,6 +76,12 @@ def assigned_permission_slugs(db: Session, role_id: int) -> set[str]:
     }
 
 
+def institution_configured(db: Session) -> bool:
+    from app.services.permission_catalog import institution_configured as configured
+
+    return configured(db)
+
+
 def role_permission_slugs(db: Session, role_id: int) -> set[str]:
     """Effective granular permissions of a role.
 
@@ -80,7 +90,7 @@ def role_permission_slugs(db: Session, role_id: int) -> set[str]:
     roles their default permissions, so the system is usable from the start.
     """
     assigned = assigned_permission_slugs(db, role_id)
-    if not assigned and db.query(Permission.permission_id).first() is None:
+    if not assigned and not institution_configured(db):
         role = db.get(Role, role_id)
         if role is not None:
             return set(SYSTEM_ROLE_DEFAULTS.get(role.name.casefold(), ("", frozenset()))[1])

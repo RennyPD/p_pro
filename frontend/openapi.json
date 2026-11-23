@@ -9586,6 +9586,18 @@
       },
       "LoginRequest": {
         "properties": {
+          "institution": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Institution"
+          },
           "otp": {
             "anyOf": [
               {
@@ -9955,6 +9967,18 @@
             "minLength": 1,
             "title": "Identifier",
             "type": "string"
+          },
+          "institution": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Institution"
           }
         },
         "required": [

@@ -15,13 +15,14 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
 def now() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
 
 
-class CalendarEvent(Base):
+class CalendarEvent(TenantMixin, Base):
     __tablename__ = "calendar_events"
     calendar_event_id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(150))
@@ -35,7 +36,7 @@ class CalendarEvent(Base):
     created_by: Mapped[int] = mapped_column(ForeignKey("users.user_id"))
 
 
-class LessonPlan(Base):
+class LessonPlan(TenantMixin, Base):
     __tablename__ = "lesson_plans"
     lesson_plan_id: Mapped[int] = mapped_column(primary_key=True)
     section_id: Mapped[int] = mapped_column(ForeignKey("sections.section_id"))
@@ -47,7 +48,7 @@ class LessonPlan(Base):
     status: Mapped[str] = mapped_column(String(20), default="planned")
 
 
-class Assignment(Base):
+class Assignment(TenantMixin, Base):
     __tablename__ = "assignments"
     __table_args__ = (
         Index(
@@ -74,7 +75,7 @@ class Assignment(Base):
     allow_resubmit: Mapped[bool] = mapped_column(default=True, server_default="1")
 
 
-class Submission(Base):
+class Submission(TenantMixin, Base):
     __tablename__ = "submissions"
     __table_args__ = (
         UniqueConstraint("assignment_id", "student_id", name="uq_assignment_student"),
@@ -89,7 +90,7 @@ class Submission(Base):
     feedback: Mapped[str] = mapped_column(Text, default="")
 
 
-class SubmissionAttachment(Base):
+class SubmissionAttachment(TenantMixin, Base):
     __tablename__ = "submission_attachments"
 
     revision_id: Mapped[int] = mapped_column(
@@ -100,7 +101,7 @@ class SubmissionAttachment(Base):
     content: Mapped[bytes] = mapped_column(LargeBinary)
 
 
-class SubmissionRevision(Base):
+class SubmissionRevision(TenantMixin, Base):
     __tablename__ = "submission_revisions"
     revision_id: Mapped[int] = mapped_column(primary_key=True)
     submission_id: Mapped[int] = mapped_column(ForeignKey("submissions.submission_id"))
@@ -108,7 +109,7 @@ class SubmissionRevision(Base):
     submitted_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
 
-class EarlyAlert(Base):
+class EarlyAlert(TenantMixin, Base):
     __tablename__ = "early_alerts"
     early_alert_id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("students.student_id"))
@@ -124,7 +125,7 @@ class EarlyAlert(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
-class AlertIntervention(Base):
+class AlertIntervention(TenantMixin, Base):
     __tablename__ = "alert_interventions"
     alert_intervention_id: Mapped[int] = mapped_column(primary_key=True)
     early_alert_id: Mapped[int] = mapped_column(ForeignKey("early_alerts.early_alert_id"))
@@ -134,12 +135,17 @@ class AlertIntervention(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
 
-class AdmissionApplication(Base):
+class AdmissionApplication(TenantMixin, Base):
     __tablename__ = "admission_applications"
+    __table_args__ = (
+        UniqueConstraint(
+            "institution_id", "email", name="uq_admission_applications_institution_email"
+        ),
+    )
     admission_application_id: Mapped[int] = mapped_column(primary_key=True)
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
-    email: Mapped[str] = mapped_column(String(255), unique=True)
+    email: Mapped[str] = mapped_column(String(255))
     telephone: Mapped[str] = mapped_column(String(30))
     career_id: Mapped[int] = mapped_column(ForeignKey("careers.career_id"))
     status: Mapped[str] = mapped_column(String(20), default="submitted")
@@ -149,7 +155,7 @@ class AdmissionApplication(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
 
-class ApprovalRequest(Base):
+class ApprovalRequest(TenantMixin, Base):
     __tablename__ = "approval_requests"
     approval_request_id: Mapped[int] = mapped_column(primary_key=True)
     request_type: Mapped[str] = mapped_column(String(40))
@@ -164,7 +170,7 @@ class ApprovalRequest(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
-class StudentDocument(Base):
+class StudentDocument(TenantMixin, Base):
     __tablename__ = "student_documents"
     student_document_id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("students.student_id"))

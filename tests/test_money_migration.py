@@ -64,7 +64,8 @@ def test_grade_dates_become_real_dates(tmp_path, monkeypatch):
                 ),
                 {"id": grade_id, "recorded": recorded, "updated": updated},
             )
-    command.upgrade(config, "head")
+    # The migration under test; later ones need valid foreign keys.
+    command.upgrade(config, "20261118_0044")
     with engine.connect() as connection:
         rows = dict(connection.execute(text("SELECT grade_id, date_recorded FROM grades")).all())
     as_text = {key: str(value)[:10] for key, value in rows.items()}

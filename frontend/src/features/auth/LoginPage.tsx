@@ -17,12 +17,15 @@ const schema = z.object({
     .regex(/^\d{6}$/, "Usa 6 dígitos")
     .or(z.literal(""))
     .optional(),
+  // Institution code: asked only when the username exists in several (Fase 4 A).
+  institution: z.string().max(60).optional(),
 });
 type FormValues = z.infer<typeof schema>;
 export function LoginPage() {
   const { token, setSession } = useAuthStore();
   const [show, setShow] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [askInstitution, setAskInstitution] = useState(false);
   const {
     register,
     handleSubmit,
@@ -35,9 +38,12 @@ export function LoginPage() {
       const { data } = await api.post<TokenResponse>("/auth/login", {
         ...values,
         otp: values.otp || undefined,
+        institution: values.institution?.trim() || undefined,
       });
       setSession(data.access_token, data.user);
     } catch (error) {
+      const status = (error as { response?: { status?: number } }).response?.status;
+      if (status === 409) setAskInstitution(true);
       setServerError(apiMessage(error));
     }
   }
@@ -114,6 +120,16 @@ export function LoginPage() {
             />
             {errors.otp && <small>{errors.otp.message}</small>}
           </label>
+          {askInstitution && (
+            <label className="form-field">
+              <span>Código de tu institución</span>
+              <input
+                autoComplete="organization"
+                placeholder="Ej. colegio-horizonte"
+                {...register("institution")}
+              />
+            </label>
+          )}
           {serverError && (
             <div className="form-error" role="alert">
               {serverError}

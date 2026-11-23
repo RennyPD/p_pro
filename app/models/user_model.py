@@ -1,17 +1,22 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, true
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class User(Base):
+class User(TenantMixin, Base):
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "username", name="uq_users_institution_username"),
+        UniqueConstraint("institution_id", "email", name="uq_users_institution_email"),
+    )
 
     user_id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(String(50), unique=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True)
+    username: Mapped[str] = mapped_column(String(50))
+    email: Mapped[str] = mapped_column(String(255))
     password: Mapped[str] = mapped_column(String(255))
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.role_id"))
     student_id: Mapped[int | None] = mapped_column(ForeignKey("students.student_id"), nullable=True)

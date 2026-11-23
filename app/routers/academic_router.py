@@ -14,7 +14,7 @@ from app.auth import (
 )
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
-from app.models.configuration_model import AcademicPeriod, InstitutionSettings
+from app.models.configuration_model import AcademicPeriod
 from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import CourseSelectionCart, Enrollment
 from app.models.grade_model import Grade
@@ -51,6 +51,7 @@ from app.services.grading_scales import (
     label,
     scale_for_student,
 )
+from app.services.institution_profile import settings_of
 
 selection_user = require_personal("selection.own", "own")
 router = APIRouter(prefix="/academic", tags=["academic queries"])
@@ -176,7 +177,7 @@ def course_selection_summary(db: Session = Depends(get_db), user: User = Depends
             detail="La selección de asignaturas solo está disponible para estudiantes",
         )
     period = db.query(AcademicPeriod).filter(AcademicPeriod.active.is_(True)).first()
-    settings = db.get(InstitutionSettings, 1)
+    settings = settings_of(db)
     maximum = settings.max_credits_per_period if settings else 24
     if period is None:
         return CourseSelectionSummary(

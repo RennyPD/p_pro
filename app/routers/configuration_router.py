@@ -28,17 +28,16 @@ from app.schemas.configuration_schema import (
 from app.services.academic_grading import academic_result
 from app.services.business_time import business_date
 from app.services.governance_workflow import history, lock_governance, record
-from app.services.institution_profile import allowed_levels
+from app.services.institution_profile import allowed_levels, settings_of
 
 router = APIRouter(tags=["academic configuration"])
 academic_manager = require_permissions("settings.manage")
 
 
 def get_or_create_settings(db, write=False):
-    item = db.get(InstitutionSettings, 1)
+    item = settings_of(db)
     if item is None:
         item = InstitutionSettings(
-            settings_id=1,
             institution_name="Nexo Académico",
             enrollment_prefix="EST",
             enrollment_digits=4,
@@ -91,7 +90,7 @@ def settings_out(settings):
             else InstitutionSettingsBase.model_fields[k].default
             for k in InstitutionSettingsBase.model_fields
         },
-        settings_id=settings.settings_id,
+        settings_id=settings.settings_id or 0,
         next_enrollment_number=settings.next_enrollment_number,
         enrollment_preview=enrollment_number(settings),
         revision=settings.revision,

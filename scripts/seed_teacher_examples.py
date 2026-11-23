@@ -254,7 +254,14 @@ def seed(database: Path, apply=False):
                 sqlite3.connect(backup) as target,
             ):
                 source.backup(target)
+            tenant_column = any(
+                row[1] == "institution_id"
+                for row in db.execute("PRAGMA table_info(teachers)").fetchall()
+            )
             for example in new:
+                if tenant_column:
+                    # Demo data belongs to the first institution (Fase 4 A).
+                    example = {"institution_id": 1, **example}
                 columns = ",".join(example)
                 placeholders = ",".join("?" for _ in example)
                 db.execute(

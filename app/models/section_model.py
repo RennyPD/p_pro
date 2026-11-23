@@ -1,16 +1,20 @@
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, Time
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, Time, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 from app.models.period_link import period_by_name
 
 
-class Section(Base):
+class Section(TenantMixin, Base):
     __tablename__ = "sections"
-    __table_args__ = (CheckConstraint("start_time < end_time", name="ck_sections_time_range"),)
+    __table_args__ = (
+        CheckConstraint("start_time < end_time", name="ck_sections_time_range"),
+        UniqueConstraint("institution_id", "code", name="uq_sections_institution_code"),
+    )
 
     section_id: Mapped[int] = mapped_column(primary_key=True)
-    code: Mapped[str] = mapped_column(String(100), unique=True)
+    code: Mapped[str] = mapped_column(String(100))
     description: Mapped[str] = mapped_column(String(255))
     teacher_id: Mapped[int] = mapped_column(ForeignKey("teachers.teacher_id"))
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.subject_id"))

@@ -11,13 +11,14 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
 def _now() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
 
 
-class EmailOutbox(Base):
+class EmailOutbox(TenantMixin, Base):
     __tablename__ = "email_outbox"
 
     email_id: Mapped[int] = mapped_column(primary_key=True)
@@ -40,7 +41,7 @@ class EmailOutbox(Base):
     sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
-class OneTimeToken(Base):
+class OneTimeToken(TenantMixin, Base):
     """Password reset or invitation link. Only the SHA-256 of the token is stored."""
 
     __tablename__ = "one_time_tokens"

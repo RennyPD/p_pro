@@ -7909,6 +7909,8 @@ export interface components {
     };
     /** LoginRequest */
     LoginRequest: {
+      /** Institution */
+      institution?: string | null;
       /** Otp */
       otp?: string | null;
       /** Password */
@@ -8051,6 +8053,8 @@ export interface components {
     PasswordResetRequest: {
       /** Identifier */
       identifier: string;
+      /** Institution */
+      institution?: string | null;
     };
     /** PaymentCreate */
     PaymentCreate: {

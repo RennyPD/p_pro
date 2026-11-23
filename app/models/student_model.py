@@ -1,19 +1,26 @@
 from datetime import date
 
-from sqlalchemy import Date, ForeignKey, String
+from sqlalchemy import Date, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class Student(Base):
+class Student(TenantMixin, Base):
     __tablename__ = "students"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "email", name="uq_students_institution_email"),
+        UniqueConstraint(
+            "institution_id", "enrollment_number", name="uq_students_institution_enrollment_number"
+        ),
+    )
 
     student_id: Mapped[int] = mapped_column(primary_key=True)
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
-    email: Mapped[str] = mapped_column(String(255), unique=True)
-    enrollment_number: Mapped[str] = mapped_column(String(50), unique=True)
+    email: Mapped[str] = mapped_column(String(255))
+    enrollment_number: Mapped[str] = mapped_column(String(50))
     telephone: Mapped[str] = mapped_column(String(20))
     address: Mapped[str] = mapped_column(String(255))
     document_number: Mapped[str | None] = mapped_column(String(50), nullable=True)

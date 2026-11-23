@@ -8,20 +8,24 @@ of each band for the academic index (universities).
 
 from decimal import Decimal
 
-from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 SCALE_KINDS = ("numeric", "letter", "conceptual")
 
 
-class GradingScale(Base):
+class GradingScale(TenantMixin, Base):
     __tablename__ = "grading_scales"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "name", name="uq_grading_scales_institution_name"),
+    )
 
     grading_scale_id: Mapped[int] = mapped_column(primary_key=True)
     # Unique per institution once the system is multi-tenant (Fase 4).
-    name: Mapped[str] = mapped_column(String(80), unique=True)
+    name: Mapped[str] = mapped_column(String(80))
     kind: Mapped[str] = mapped_column(String(20), default="numeric")
     passing_value: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("70"))
     decimals: Mapped[int] = mapped_column(Integer, default=0)
@@ -40,7 +44,7 @@ class GradingScale(Base):
     )
 
 
-class GradingScaleBand(Base):
+class GradingScaleBand(TenantMixin, Base):
     """A range [min_value, max_value) of the 0–100 scale; the top band includes 100."""
 
     __tablename__ = "grading_scale_bands"

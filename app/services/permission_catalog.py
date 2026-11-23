@@ -7,6 +7,15 @@ from app.models.role_model import Role
 from app.permissions import PERMISSIONS, SYSTEM_ROLE_DEFAULTS
 
 
+def institution_configured(db: Session) -> bool:
+    """Whether the active institution has saved any role permission (Fase 4 A).
+
+    Until it has, its built-in roles keep their default permissions. This is per
+    institution: the permission catalog itself is shared by every institution.
+    """
+    return db.query(RolePermission.role_permission_id).first() is not None
+
+
 def sync_permission_catalog(db: Session) -> dict[str, Permission]:
     """Insert missing catalog permissions and refresh their descriptions."""
     existing = {item.slug: item for item in db.query(Permission).all()}
@@ -24,17 +33,22 @@ def sync_permission_catalog(db: Session) -> dict[str, Permission]:
 
 def grant_system_defaults(db: Session, role: Role) -> None:
     """Give a built-in role (admin, teacher, student, guardian) its default scope and grants."""
+    if SYSTEM_ROLE_DEFAULTS.get(role.name.casefold()) is None:
+        return
+    if not institution_configured(db):
+        # Configuring permissions ends the implicit defaults of every built-in role
+        # of the institution, so seed all of them, not only this one.
+        ensure_catalog(db)
+        return
+    _seed_role(db, role, sync_permission_catalog(db))
+
+
+def _seed_role(db: Session, role: Role, catalog: dict[str, Permission]) -> None:
     defaults = SYSTEM_ROLE_DEFAULTS.get(role.name.casefold())
     if defaults is None:
         return
     scope, slugs = defaults
     role.scope = scope
-    if db.query(Permission.permission_id).first() is None:
-        # Creating the catalog ends the implicit defaults of every built-in role,
-        # so seed all of them, not only this one (ensure_catalog calls back here).
-        ensure_catalog(db)
-        return
-    catalog = sync_permission_catalog(db)
     held = {
         row[0]
         for row in db.query(RolePermission.permission_id).filter(
@@ -49,14 +63,15 @@ def grant_system_defaults(db: Session, role: Role) -> None:
 
 
 def ensure_catalog(db: Session) -> dict[str, Permission]:
-    """Sync the catalog; on a database that had none, also seed the built-in roles.
+    """Sync the shared catalog; for an institution without any saved permission,
+    also seed its built-in roles (Fase 4 A: evaluated per institution).
 
     Without the second step, the first saved permission would end the defaults
-    that unconfigured databases give to the built-in roles.
+    that unconfigured institutions give to their built-in roles.
     """
-    was_empty = db.query(Permission.permission_id).first() is None
+    was_empty = not institution_configured(db)
     catalog = sync_permission_catalog(db)
     if was_empty:
         for role in db.query(Role).all():
-            grant_system_defaults(db, role)
+            _seed_role(db, role, catalog)
     return catalog

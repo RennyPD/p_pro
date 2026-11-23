@@ -4,9 +4,10 @@ from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text, Unique
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class CourseEquivalence(Base):
+class CourseEquivalence(TenantMixin, Base):
     __tablename__ = "course_equivalences"
     __table_args__ = (
         UniqueConstraint(
@@ -29,7 +30,7 @@ class CourseEquivalence(Base):
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
-class StudentCareerHistory(Base):
+class StudentCareerHistory(TenantMixin, Base):
     __tablename__ = "student_career_history"
     student_career_history_id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("students.student_id"))

@@ -12,6 +12,7 @@ from app.repositories.student_repository import (
 from app.schemas.student_schema import StudentCreate, StudentUpdate
 from app.services.audit_log import changes, record, snapshot
 from app.services.business_time import business_date
+from app.services.institution_profile import settings_of
 
 # Fields whose change is recorded on PATCH /students (holds and status first).
 AUDITED_FIELDS = (
@@ -45,9 +46,9 @@ def create_student_service(
             )
 
     if not student_data.enrollment_number:
-        settings = db.get(InstitutionSettings, 1)
+        settings = settings_of(db)
         if settings is None:
-            settings = InstitutionSettings(settings_id=1)
+            settings = InstitutionSettings()
             db.add(settings)
             db.flush()
         year = business_date().year

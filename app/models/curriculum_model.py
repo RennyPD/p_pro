@@ -2,9 +2,10 @@ from sqlalchemy import Float, ForeignKey, Index, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class CurriculumCourse(Base):
+class CurriculumCourse(TenantMixin, Base):
     __tablename__ = "curriculum_courses"
     __table_args__ = (
         UniqueConstraint(

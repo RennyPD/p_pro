@@ -46,7 +46,7 @@ Antes de dar una tarea por terminada, corre como mínimo pytest y ruff (backend)
 1. **No romper lo que funciona.** Todo cambio de modelo va con su migración Alembic, y todo arreglo con una prueba de regresión en `tests/` (o `*.test.tsx`).
 2. **Acceso seguro por defecto.** Toda ruta valida autenticación, permiso y ámbito (qué estudiantes, secciones o institución puede ver el usuario). Si no hay ámbito, el resultado es vacío, nunca "todo".
 3. **Permisos, no nombres de rol.** No decidas el acceso a datos con `is_admin()`. Usa los permisos (`finance.manage`, `reports.view`, `grades.manage`…) de `require_permissions` y las funciones `ensure_*`.
-4. **Preparar el multi-tenant.** Diseña los modelos, las consultas, las restricciones de unicidad y los bloqueos de forma que puedan llevar `institution_id` sin rediseño.
+4. **Multi-tenant.** Todo modelo de la institución hereda `TenantMixin` (`app/db/tenant.py`); su migración añade `institution_id` y la política RLS; las unicidades de negocio incluyen `institution_id`. No leas la configuración con `db.get(InstitutionSettings, 1)` (usa `settings_of`). Guía: `docs/multitenant.md`.
 5. **Universidad y escuela.** Antes de diseñar una funcionalidad, piensa cómo funciona con créditos y selección libre (universidad) y con grados y secciones fijas (escuela). Prefiere la configuración por institución al código duplicado.
 6. **Interfaz 100 % en español.** Los mensajes de `HTTPException` que llegan al usuario van en español.
 7. **Tipos correctos.** Dinero en `Decimal`/`Numeric`, nunca `Float`. Fechas como `date`/`datetime`, nunca texto libre.

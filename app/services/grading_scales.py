@@ -12,8 +12,8 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.models.career_model import Career
-from app.models.configuration_model import InstitutionSettings
 from app.models.grading_scale_model import GradingScale, GradingScaleBand
+from app.services.institution_profile import settings_of
 
 DEFAULT_NAME = "Numérica 0–100"
 HUNDRED = Decimal("100")
@@ -128,7 +128,7 @@ def default_scale(db: Session) -> ScaleView:
     if scale is not None:
         return view_of(scale)
     # Databases created without migrations: the institution's passing grade.
-    settings = db.get(InstitutionSettings, 1)
+    settings = settings_of(db)
     passing = D(settings.passing_grade) if settings else Decimal("70")
     return ScaleView(None, DEFAULT_NAME, "numeric", passing)
 
@@ -252,7 +252,7 @@ def sync_default_passing(db: Session, scale: GradingScale) -> None:
     """The default scale and the institution's passing grade are the same value."""
     if not scale.is_default:
         return
-    settings = db.get(InstitutionSettings, 1)
+    settings = settings_of(db)
     if settings is not None:
         settings.passing_grade = float(scale.passing_value)
 

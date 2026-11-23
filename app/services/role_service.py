@@ -62,11 +62,10 @@ def create_role_service(db: Session, role_data: RoleCreate, actor=None):
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe un rol con ese nombre"
             )
     role = create_role(db, role_data.model_copy(update={"name": code}))
-    from app.models.access_model import Permission
     from app.permissions import SYSTEM_ROLE_DEFAULTS
-    from app.services.permission_catalog import grant_system_defaults
+    from app.services.permission_catalog import grant_system_defaults, institution_configured
 
-    if code in SYSTEM_ROLE_DEFAULTS and db.query(Permission.permission_id).first() is not None:
+    if code in SYSTEM_ROLE_DEFAULTS and institution_configured(db):
         # A re-created built-in role starts with its usual permissions.
         grant_system_defaults(db, role)
     return role

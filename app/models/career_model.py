@@ -1,16 +1,21 @@
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class Career(Base):
+class Career(TenantMixin, Base):
     __tablename__ = "careers"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "name", name="uq_careers_institution_name"),
+        UniqueConstraint("institution_id", "code", name="uq_careers_institution_code"),
+    )
 
     career_id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True)
+    name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str] = mapped_column(String(255))
-    code: Mapped[str] = mapped_column(String(30), unique=True)
+    code: Mapped[str] = mapped_column(String(30))
     academic_level: Mapped[str] = mapped_column(String(30), default="undergraduate")
     degree_title: Mapped[str] = mapped_column(String(150), default="")
     term_type: Mapped[str] = mapped_column(String(20), default="semester")

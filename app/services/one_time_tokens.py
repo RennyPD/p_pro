@@ -47,7 +47,13 @@ def issue_token(db: Session, user_id: int, purpose: str) -> str:
 
 def consume_token(db: Session, raw: str, purposes: tuple[str, ...]) -> OneTimeToken:
     """Mark the token used and return it, or fail with a single generic message."""
-    token = db.query(OneTimeToken).filter_by(token_hash=digest(raw or "")).first()
+    # Read before the institution is known; the caller then sets it (Fase 4 A).
+    token = (
+        db.query(OneTimeToken)
+        .filter_by(token_hash=digest(raw or ""))
+        .execution_options(nexo_tenant_bypass=True)
+        .first()
+    )
     if (
         token is None
         or token.purpose not in purposes

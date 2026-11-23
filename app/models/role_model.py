@@ -1,14 +1,16 @@
-from sqlalchemy import String, event
+from sqlalchemy import String, UniqueConstraint, event
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class Role(Base):
+class Role(TenantMixin, Base):
     __tablename__ = "roles"
+    __table_args__ = (UniqueConstraint("institution_id", "name", name="uq_roles_institution_name"),)
 
     role_id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(50), unique=True)
+    name: Mapped[str] = mapped_column(String(50))
     description: Mapped[str] = mapped_column(String(255))
     label: Mapped[str | None] = mapped_column(String(100))
     # Which records the role's permissions reach: institution | sections | own | linked.

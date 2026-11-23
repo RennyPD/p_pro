@@ -4,11 +4,12 @@ from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, UniqueConst
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 from app.models.attendance_model import Attendance
 from app.models.period_link import period_by_name
 
 
-class Enrollment(Base):
+class Enrollment(TenantMixin, Base):
     __tablename__ = "enrollments"
     __table_args__ = (
         UniqueConstraint(
@@ -54,7 +55,7 @@ class Enrollment(Base):
         return self.section.subject.description
 
 
-class CourseSelectionCart(Base):
+class CourseSelectionCart(TenantMixin, Base):
     __tablename__ = "course_selection_cart"
     __table_args__ = (
         UniqueConstraint(

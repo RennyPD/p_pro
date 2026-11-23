@@ -24,12 +24,13 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 MEMBER_STATUSES = ("enrolled", "withdrawn", "transferred")
 RESULTS = ("pending", "promoted", "completivo", "extraordinario", "repeated")
 
 
-class ClassGroup(Base):
+class ClassGroup(TenantMixin, Base):
     __tablename__ = "class_groups"
     __table_args__ = (
         # Careers belong to one institution, so this stays unique per institution.
@@ -69,7 +70,7 @@ class ClassGroup(Base):
         return f"{self.grade_number}.º {self.name} · {self.career.name}"
 
 
-class ClassGroupSubject(Base):
+class ClassGroupSubject(TenantMixin, Base):
     """Who teaches each subject of the grade in this group (default: the homeroom teacher)."""
 
     __tablename__ = "class_group_subjects"
@@ -87,7 +88,7 @@ class ClassGroupSubject(Base):
     class_group: Mapped[ClassGroup] = relationship(back_populates="subject_teachers")
 
 
-class ClassGroupMember(Base):
+class ClassGroupMember(TenantMixin, Base):
     """A student's place in a group for one school year (one group per year)."""
 
     __tablename__ = "class_group_members"
@@ -113,7 +114,7 @@ class ClassGroupMember(Base):
     student: Mapped["Student"] = relationship(lazy="selectin")
 
 
-class RecoveryExam(Base):
+class RecoveryExam(TenantMixin, Base):
     """Completivo or extraordinario exam of one subject for one member (Fase 3 D).
 
     The final grade mixes the annual average and the exam with the weights of
@@ -137,7 +138,7 @@ class RecoveryExam(Base):
     member: Mapped[ClassGroupMember] = relationship()
 
 
-class ReportCardComment(Base):
+class ReportCardComment(TenantMixin, Base):
     """Homeroom teacher's remark on a member's report card for one period (Fase 3 F)."""
 
     __tablename__ = "report_card_comments"

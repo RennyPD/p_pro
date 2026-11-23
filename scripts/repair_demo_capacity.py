@@ -96,7 +96,7 @@ def repair(database: Path, apply=False):
                         {"classroom_id": room_id, "name": name, "before": capacity, "after": 40}
                     )
                 db.execute(
-                    "INSERT INTO audit_logs(user_id,action,resource,detail,created_at) VALUES(NULL,?,?,?,?)",
+                    "INSERT INTO audit_logs(institution_id,user_id,action,resource,detail,created_at) VALUES(1,NULL,?,?,?,?)",
                     (
                         "demo.capacity.repaired",
                         f"section:{item['section_id']}",

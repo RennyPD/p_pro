@@ -15,20 +15,24 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import relationship as orm_relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class Guardian(Base):
+class Guardian(TenantMixin, Base):
     __tablename__ = "guardians"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "email", name="uq_guardians_institution_email"),
+    )
 
     guardian_id: Mapped[int] = mapped_column(primary_key=True)
     first_name: Mapped[str] = mapped_column(String(100))
     last_name: Mapped[str] = mapped_column(String(100))
-    email: Mapped[str] = mapped_column(String(255), unique=True)
+    email: Mapped[str] = mapped_column(String(255))
     telephone: Mapped[str] = mapped_column(String(30))
     address: Mapped[str] = mapped_column(String(255), default="")
 
 
-class StudentGuardian(Base):
+class StudentGuardian(TenantMixin, Base):
     __tablename__ = "student_guardians"
     __table_args__ = (UniqueConstraint("student_id", "guardian_id", name="uq_student_guardian"),)
 
@@ -52,7 +56,7 @@ class StudentGuardian(Base):
     guardian: Mapped[Guardian] = orm_relationship("Guardian")
 
 
-class Announcement(Base):
+class Announcement(TenantMixin, Base):
     __tablename__ = "announcements"
 
     announcement_id: Mapped[int] = mapped_column(primary_key=True)
@@ -67,7 +71,7 @@ class Announcement(Base):
     )
 
 
-class Notification(Base):
+class Notification(TenantMixin, Base):
     __tablename__ = "notifications"
     __table_args__ = (Index("idx_notifications_user", "user_id"),)
 

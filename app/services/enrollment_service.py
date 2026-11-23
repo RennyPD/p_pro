@@ -3,7 +3,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.attendance_model import AttendanceChange
-from app.models.configuration_model import InstitutionSettings
 from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import Enrollment
 from app.models.operations_model import Assignment, Submission
@@ -23,6 +22,7 @@ from app.services.audit_log import changes, record, snapshot
 from app.services.business_time import business_date
 from app.services.effective_schedule import effective_blocks, overlap
 from app.services.enrollment_policy import selection_period
+from app.services.institution_profile import settings_of
 from app.services.write_locks import try_lock_student
 
 AUDITED_FIELDS = ("state", "waitlist_position")
@@ -102,7 +102,7 @@ def validate_eligibility(
                 status_code=409,
                 detail=f"Primero debes seleccionar el correquisito {curriculum_course.corequisite.code}",
             )
-    settings = db.get(InstitutionSettings, 1)
+    settings = settings_of(db)
     if requested_section.subject_id in recognition.completed:
         raise HTTPException(status_code=409, detail="La asignatura ya fue aprobada")
     current = (

@@ -24,7 +24,7 @@ from app.models.class_group_model import (
     RecoveryExam,
     ReportCardComment,
 )
-from app.models.configuration_model import AcademicPeriod, InstitutionSettings, SchoolYear
+from app.models.configuration_model import AcademicPeriod, SchoolYear
 from app.models.enrollment_model import Enrollment
 from app.models.user_model import User
 from app.services import class_groups as groups
@@ -32,6 +32,7 @@ from app.services.academic_grading import academic_result
 from app.services.audit_log import record
 from app.services.competencies import competency_groups, uses_competencies
 from app.services.grading_scales import label
+from app.services.institution_profile import settings_of
 
 RESULT_LABELS = {
     "pending": "Pendiente",
@@ -199,7 +200,7 @@ def build_report_card(db: Session, member: ClassGroupMember) -> dict:
     comments = {
         c.period_id: c for c in db.query(ReportCardComment).filter_by(member_id=member.member_id)
     }
-    settings = db.get(InstitutionSettings, 1)
+    settings = settings_of(db)
     teacher = group.homeroom_teacher
     student = member.student
     official = uses_competencies(group.career)

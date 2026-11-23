@@ -2,6 +2,7 @@ from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
 class Permission(Base):
@@ -11,7 +12,7 @@ class Permission(Base):
     description: Mapped[str] = mapped_column(String(255))
 
 
-class RolePermission(Base):
+class RolePermission(TenantMixin, Base):
     __tablename__ = "role_permissions"
     __table_args__ = (UniqueConstraint("role_id", "permission_id", name="uq_role_permission"),)
     role_permission_id: Mapped[int] = mapped_column(primary_key=True)

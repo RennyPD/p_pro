@@ -1,20 +1,35 @@
 from datetime import date
 
-from sqlalchemy import Boolean, Date, ForeignKey, Integer, String, Text, func, select, true
+from sqlalchemy import (
+    Boolean,
+    Date,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    select,
+    true,
+)
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 from app.models.school_year_link import school_year_by_name
 
 
-class SchoolYear(Base):
+class SchoolYear(TenantMixin, Base):
     """A school or academic year (e.g. "2026-2027") that groups its periods (Fase 3 B)."""
 
     __tablename__ = "school_years"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "name", name="uq_school_years_institution_name"),
+    )
 
     school_year_id: Mapped[int] = mapped_column(primary_key=True)
     # Unique per institution once the system is multi-tenant (Fase 4).
-    name: Mapped[str] = mapped_column(String(20), unique=True)
+    name: Mapped[str] = mapped_column(String(20))
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date] = mapped_column(Date)
     # quarters (4, MINERD) | trimesters | bimesters | quadrimesters | semesters | annual
@@ -26,11 +41,14 @@ class SchoolYear(Base):
     )
 
 
-class AcademicPeriod(Base):
+class AcademicPeriod(TenantMixin, Base):
     __tablename__ = "academic_periods"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "name", name="uq_academic_periods_institution_name"),
+    )
 
     period_id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(50), unique=True)
+    name: Mapped[str] = mapped_column(String(50))
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date] = mapped_column(Date)
     active: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -50,10 +68,13 @@ class AcademicPeriod(Base):
     closure_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
-class InstitutionSettings(Base):
+class InstitutionSettings(TenantMixin, Base):
     __tablename__ = "institution_settings"
+    __table_args__ = (
+        UniqueConstraint("institution_id", name="uq_institution_settings_institution"),
+    )
 
-    settings_id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    settings_id: Mapped[int] = mapped_column(primary_key=True)
     institution_name: Mapped[str] = mapped_column(String(150), default="Nexo Académico")
     enrollment_prefix: Mapped[str] = mapped_column(String(20), default="EST")
     enrollment_digits: Mapped[int] = mapped_column(Integer, default=4)

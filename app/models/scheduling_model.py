@@ -2,19 +2,23 @@ from sqlalchemy import Boolean, ForeignKey, Integer, String, Time, UniqueConstra
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class Classroom(Base):
+class Classroom(TenantMixin, Base):
     __tablename__ = "classrooms"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "name", name="uq_classrooms_institution_name"),
+    )
 
     classroom_id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), unique=True)
+    name: Mapped[str] = mapped_column(String(100))
     capacity: Mapped[int] = mapped_column(Integer, default=30)
     location: Mapped[str] = mapped_column(String(200), default="")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
-class SectionMeeting(Base):
+class SectionMeeting(TenantMixin, Base):
     __tablename__ = "section_meetings"
     __table_args__ = (
         UniqueConstraint("section_id", "day_of_week", "start_time", name="uq_section_meeting_slot"),

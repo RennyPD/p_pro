@@ -4,9 +4,10 @@ from sqlalchemy import CheckConstraint, Date, DateTime, Float, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
+from app.db.tenant import TenantMixin
 
 
-class Grade(Base):
+class Grade(TenantMixin, Base):
     __tablename__ = "grades"
     __table_args__ = (
         CheckConstraint("grade_value >= 0 AND grade_value <= 100", name="ck_grades_value_range"),
@@ -38,7 +39,7 @@ class Grade(Base):
     assessment: Mapped["Assessment | None"] = relationship("Assessment", back_populates="grades")
 
 
-class GradeChange(Base):
+class GradeChange(TenantMixin, Base):
     __tablename__ = "grade_changes"
     grade_change_id: Mapped[int] = mapped_column(primary_key=True)
     grade_id: Mapped[int] = mapped_column(ForeignKey("grades.grade_id"))
