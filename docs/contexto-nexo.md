@@ -3,7 +3,7 @@
 Última revisión: 20 de noviembre de 2026. Repo: `RennyPD/p_pro`.
 
 ## 1. Qué es hoy
-Sistema de gestión académica de una sola institución, muy orientado a universidades. Unas 14.800 líneas de backend (245 rutas, 53 tablas) y 16.700 de frontend. Fase 0 cerrada el 18/11/2026; Fase 1 cerrada el 21/11/2026.
+Sistema de gestión académica de una sola institución, muy orientado a universidades. Unas 14.800 líneas de backend (245 rutas, 53 tablas) y 16.700 de frontend. Fase 0 cerrada el 18/11/2026; Fase 1 el 21/11/2026; Fase 2 el 23/11/2026.
 
 ### Módulos existentes
 - **Académico:** carreras, pensum versionado con prerrequisitos y correquisitos, asignaturas, secciones, aulas y bloques horarios, períodos académicos con cierre controlado, equivalencias, auditoría de graduación.
@@ -38,9 +38,10 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 | M6 | ✅ Cerrado (22/11): recuperación de contraseña, invitaciones y avisos por correo con bandeja de salida y SMTP configurable | — |
 | M7 | Vista y pagos ✅ (22/11): estado de cuenta por cuotas, pagos familiares. Pendiente: facturación escolar, mora automática, cajero y supervisor separados | 3 |
 | M8 | ✅ Cerrado (22/11): portal del tutor por hijo y por área, y «Mi cuenta» del estudiante rehecha, móvil primero | — |
-| M9 | Pruebas del frontend escasas; componentes de más de 1.000 líneas | continuo |
+| M9 | Componentes de más de 1.000 líneas ✅ (23/11): ninguno supera 1.000 (el mayor, `SectionBook`, 798). Pruebas del frontend: 123 en 38 archivos; seguir ampliando | continuo |
 | B3, B4, B8 | ✅ Cerrados (21/11): cobertura de auditoría, panel y permisos al 94–100 %; módulos de consulta por permisos; código muerto de notas eliminado | — |
-| B1, B2, B5–B7 | Tipos a mano, build pesado, períodos por nombre, bloqueo académico único, límites solo en login | según fase |
+| B1 | Tipos a mano: en avance (23/11), finanzas, panel, pagos, tutor y evaluaciones usan `ApiSchema`; quedan unos 120 tipos locales | continuo |
+| B2, B5–B7 | Build pesado, períodos por nombre, bloqueo académico único, límites solo en login | según fase |
 | SaaS | 16 unicidades globales, configuración de una fila, catálogos sin filtro | 4 |
 
 ### Historial: auditoría del 17/11/2026
@@ -60,14 +61,14 @@ Lo que hace falta para que cualquier cliente confíe en los datos. Base para tod
 5. ✅ **Copias de seguridad de PostgreSQL (M5):** `pg_dump`/`pg_restore` en `scripts/backup_database.py`, restauración solo en una base vacía y comparación de filas; probado en CI contra PostgreSQL 16. Procedimiento en el README.
 6. ✅ **Cobertura (B3) y código muerto (B8):** auditoría, panel y módulos al 100 %, editor de permisos al 94 %; eliminados `grade_repository` y las escrituras de notas sin bloqueo ni historial; `objetivos.txt` movido a `docs/historico/`. Queda pendiente unificar del todo las capas `repositories`/`services`, que no bloquea nada.
 
-### Fase 2: familias, pagos y experiencia (L)
+### Fase 2: familias, pagos y experiencia (L) ✅ (23/11/2026)
 Lo que se ve y lo que piden las familias. Funciona con los datos actuales.
 1. **Sistema visual:** componentes reutilizables (tarjeta, indicador, chip, estado, avatar, pestañas, progreso) y criterio de «menos texto»; móvil primero en portales. ✅ Primer caso: tarjeta de tareas.
 2. ✅ **Vínculo tutor–estudiante con permisos (A1), 21/11/2026:** migración `20261121_0049`. Por defecto el tutor ve todo de sus estudiantes vinculados (asistencia, notas, balance, tareas y desempeño); administración restringe áreas de un vínculo concreto y marca al responsable de pago desde la ficha del estudiante. `PATCH`/`DELETE /community/guardian-links/{id}` con bloqueo y auditoría; `ensure_guardian_view` aplica las áreas en el resumen, el detalle, los documentos, las tareas y las alertas.
 3. ✅ **Portal del tutor detallado (M8), 21/11/2026:** endpoints `/guardian/students/{id}/attendance|grades|tasks|finance|performance` y portal con pestañas por hijo y por área (Resumen, Asistencia, Notas, Tareas, Pagos, Desempeño). Capturas antes y después en `docs/capturas/portal-tutor/`. Pendiente: comunicados dentro del portal.
 4. ✅ **Módulo de pagos para estudiante y tutor (M7, M8), 22/11/2026:** `account_statement` reparte los pagos entre las cuotas, de la más antigua a la más reciente, con la misma regla del saldo vencido; el tutor con acceso a finanzas reporta transferencias y descarga recibos (cualquier tutor con ese acceso, decisión del 22/11); «Pagos de la familia» con total, desglose por hijo y por concepto, y una transferencia repartida entre varios hijos (migración `20261122_0051`, reparto sugerido pagando primero lo que vence antes, ajustable; caja revisa el lote completo). Componente `AccountView` compartido; bandeja de caja con los lotes agrupados. Capturas en `docs/capturas/pagos/`. Alcance original: balance, próximo vencimiento, cuotas, movimientos, recibos y reporte de transferencia; total familiar con desglose por hijo y concepto, y una transferencia para varios hijos. Si el estudiante ve sus finanzas lo decide cada institución: ajuste `students_view_finance` en Configuración (migración `20261121_0050`), activo por defecto hasta que exista el tipo de institución (Fase 3), que lo apagará por defecto en escuelas.
 5. ✅ **Correo electrónico (M6), 22/11/2026:** bandeja `email_outbox` en la misma transacción y envío después del commit; `EMAIL_BACKEND` `console` o `smtp` (cualquier proveedor); recuperación de contraseña (30 min) e invitaciones (72 h) con enlaces de un solo uso guardados con hash; avisos de comunicados, notas publicadas (uno por publicación y estudiante) y vencimientos (3 días antes y 1 después, comando diario) que respetan los accesos del vínculo y las preferencias de cada cuenta. Migraciones `20261122_0052` y `0053`. Operación en el README.
-6. **Rediseño de pantallas clave** con el sistema visual: panel principal, «Mi cuenta», finanzas de administración; dividir los componentes de más de 1.000 líneas (M9) y migrar sus tipos a `ApiSchema` (B1).
+6. ✅ **Rediseño de pantallas clave, 23/11/2026:** componentes compartidos en `src/components/visual.tsx` (indicador, chip, pestañas accesibles, progreso, avatar, sección); panel principal por rol con cifras accionables (`/dashboard/summary` con tono, enlace y formato; finanzas solo con `finance.view`); finanzas de administración divididas en un archivo por pestaña, con la cuenta que abre en «Cuotas» (mismo estado de cuenta que ven las familias); `OperationsPage`, `AssessmentsPage` e `InstitutionalControlPage` divididas sin cambios de lógica (M9). Capturas en `docs/capturas/rediseno/`.
 
 ### Fase 3: modelo escolar (L)
 1. **Períodos por id (B5)** y año lectivo con trimestres o bimestres.
