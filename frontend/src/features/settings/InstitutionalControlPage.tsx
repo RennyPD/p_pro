@@ -1,103 +1,32 @@
 import { confirmAction } from "../../lib/confirm";
-import { useId, useState, type FormEvent } from "react";
-import { DateInput } from "../../components/DateInput";
-import { formatDateTime, formatMoney } from "../../lib/format";
+import { useState } from "react";
+import { formatDateTime } from "../../lib/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Users, UserCheck, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { LookupSelect } from "../../components/LookupSelect";
-import { useDraftGuard } from "../../lib/useDraftGuard";
 import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./institutional-control.css";
 import { AdmissionCreateModal } from "./AdmissionCreateModal";
 import "./alert-history.css";
-import { describeAverage } from "../../lib/academicResult";
-
-const alertLabels: Record<string, string> = {
-  academic: "Académica",
-  attendance: "Asistencia",
-  financial: "Financiera",
-  behavior: "Convivencia",
-  other: "Otra",
-};
-const severityNames: Record<string, string> = {
-  low: "Baja",
-  medium: "Media",
-  high: "Alta",
-  critical: "Crítica",
-};
-const admissionNames: Record<string, string> = {
-  submitted: "Recibida",
-  review: "En revisión",
-  accepted: "Aceptada",
-  rejected: "Rechazada",
-  enrolled: "Matriculada",
-};
-const admissionTones: Record<string, "neutral" | "info" | "success" | "danger" | "warning"> = {
-  submitted: "neutral",
-  review: "warning",
-  accepted: "info",
-  rejected: "danger",
-  enrolled: "success",
-};
-const transitionLabels: Record<string, string> = {
-  review: "Pasar a revisión",
-  accepted: "Aceptar",
-  submitted: "Volver a recibida",
-};
-const transitions: Record<string, string[]> = {
-  submitted: ["review", "rejected"],
-  review: ["accepted", "rejected"],
-  accepted: ["review", "rejected"],
-  rejected: ["review"],
-  enrolled: [],
-};
-const interventionTypes = {
-  note: "Nota",
-  contact: "Contacto",
-  meeting: "Reunión",
-  referral: "Derivación",
-  agreement: "Acuerdo",
-};
-type AlertDraft = {
-  assigned_to: string;
-  follow_up_date: string;
-  notes: string;
-  action_type?: string;
-};
-const studentLookup = {
-  endpoint: "/students/",
-  valueKey: "student_id",
-  labelKeys: ["enrollment_number", "first_name", "last_name"],
-  placeholder: "Buscar estudiante",
-};
-type GradeMetric = {
-  average_grade: number | null;
-  grade_count: number;
-  provisional_average_grade?: number | null;
-  provisional_grade_count?: number;
-};
-function AverageMetric({ r }: { r: GradeMetric }) {
-  const average = describeAverage({
-    finalAverage: r.average_grade,
-    finalCount: r.grade_count,
-    provisionalAverage: r.provisional_average_grade,
-    provisionalCount: r.provisional_grade_count,
-  });
-  return (
-    <div>
-      <dt>{average.kind === "provisional" ? "Promedio provisional" : "Promedio final"}</dt>
-      <dd>{average.value}</dd>
-      <small>{average.note}</small>
-    </div>
-  );
-}
-const metric = (value: number | null | undefined, suffix = "") =>
-  value == null ? "Sin datos" : `${value}${suffix}`;
-const money = formatMoney;
+import {
+  alertLabels,
+  severityNames,
+  admissionNames,
+  admissionTones,
+  transitionLabels,
+  transitions,
+  type AlertDraft,
+  metric,
+  money,
+} from "./institutionalControlShared";
+import { AverageMetric } from "./AverageMetric";
+import { CreateAlert } from "./CreateAlert";
+import { AlertCase } from "./AlertCase";
+import "./institutional-control.css";
+import "./alert-history.css";
 
 export function InstitutionalControlPage() {
   const uid = useAuthStore(s => s.user?.user_id);
@@ -756,254 +685,5 @@ export function InstitutionalControlPage() {
         </Modal>
       )}
     </div>
-  );
-}
-
-function CreateAlert({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const lookupLabel = useId();
-  const [student, setStudent] = useState<number | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  useDraftGuard(dirty, busy);
-  async function close() {
-    if (!busy && (!dirty || (await confirmAction("¿Descartar los datos del caso?")))) onClose();
-  }
-  async function create(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!student) return;
-    setBusy(true);
-    setError("");
-    const data = Object.fromEntries(new FormData(event.currentTarget));
-    try {
-      await api.post("/operations/alerts", {
-        ...data,
-        student_id: student,
-        reason: String(data.reason).trim(),
-      });
-      toast.success("Caso registrado");
-      onCreated();
-    } catch (failure) {
-      setError(apiMessage(failure));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <Modal title="Nuevo caso de seguimiento" onClose={close}>
-      <form className="resource-form" onSubmit={create} onChange={() => setDirty(true)}>
-        <div className="form-field">
-          <span id={lookupLabel}>Estudiante</span>
-          <LookupSelect
-            config={studentLookup}
-            labelId={lookupLabel}
-            required
-            value={student}
-            onChange={value => {
-              setStudent(Number(value));
-              setDirty(true);
-            }}
-          />
-        </div>
-        <label className="form-field">
-          <span>Categoría</span>
-          <select name="category">
-            {Object.entries(alertLabels).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="form-field">
-          <span>Prioridad</span>
-          <select name="severity" defaultValue="medium">
-            {Object.entries(severityNames).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="form-field">
-          <span>Motivo</span>
-          <textarea name="reason" required minLength={2} rows={3} />
-        </label>
-        {error && (
-          <p role="alert" className="form-error">
-            {error}
-          </p>
-        )}
-        <div className="form-actions">
-          <Button type="button" variant="secondary" disabled={busy} onClick={close}>
-            Cancelar
-          </Button>
-          <Button disabled={!student || busy}>{busy ? "Registrando…" : "Registrar caso"}</Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-function AlertCase({
-  alert,
-  draft,
-  studentName,
-  busy,
-  update,
-  assign,
-  register,
-  resolve,
-  reopen,
-}: any) {
-  const uid = useAuthStore(s => s.user?.user_id);
-  const assignees = useQuery({
-    queryKey: ["alert-assignees", uid, alert.student_id],
-    queryFn: () =>
-      api
-        .get(`/operations/alert-assignees`, { params: { student_id: alert.student_id } })
-        .then(r => r.data),
-    enabled: alert.status === "open",
-  });
-  const [showHistory, setShowHistory] = useState(false);
-  const history = useQuery({
-    queryKey: ["alert-interventions", uid, alert.early_alert_id],
-    queryFn: () =>
-      api
-        .get(`/operations/alerts/${alert.early_alert_id}/interventions`)
-        .then(response => response.data),
-    enabled: showHistory,
-  });
-  return (
-    <article>
-      <div className="case-title">
-        <div>
-          <strong>{studentName ?? `Estudiante #${alert.student_id}`}</strong>
-          <small>{alertLabels[alert.category] ?? alert.category}</small>
-        </div>
-        <span className={`case-severity case-severity--${alert.severity}`}>
-          {severityNames[alert.severity] || alert.severity}
-        </span>
-      </div>
-      <p>{alert.reason}</p>
-      {alert.status === "open" ? (
-        <>
-          <div className="case-fields">
-            <label>
-              <span>Responsable</span>
-              <select
-                disabled={busy || assignees.isFetching}
-                value={draft.assigned_to}
-                onChange={e => update({ ...draft, assigned_to: e.target.value })}
-              >
-                <option value="">Sin asignar</option>
-                {(assignees.data || []).map((u: any) => (
-                  <option key={u.user_id} value={u.user_id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Próximo seguimiento</span>
-              <DateInput
-                disabled={busy}
-                value={draft.follow_up_date}
-                onValueChange={e => update({ ...draft, follow_up_date: e })}
-              />
-            </label>
-          </div>
-          <label className="form-field">
-            <span>Tipo de actuación</span>
-            <select
-              disabled={busy}
-              value={draft.action_type ?? "note"}
-              onChange={event => update({ ...draft, action_type: event.target.value })}
-            >
-              {Object.entries(interventionTypes).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="form-field">
-            <span>Detalle de la actuación</span>
-            <textarea
-              aria-label="Actuación del caso"
-              disabled={busy}
-              maxLength={5000}
-              rows={3}
-              placeholder="Describe la llamada, reunión, acuerdo o resultado"
-              value={draft.notes}
-              onChange={e => update({ ...draft, notes: e.target.value })}
-            />
-          </label>
-        </>
-      ) : (
-        <p className="resolution-note">
-          <strong>Resolución:</strong> {alert.resolution_notes || "Sin detalle"}
-        </p>
-      )}
-      <div className="case-actions">
-        <button
-          type="button"
-          className="text-link case-history-toggle"
-          onClick={() => setShowHistory(value => !value)}
-        >
-          {showHistory ? "Ocultar historial" : "Ver historial"}
-        </button>
-        {alert.status === "open" ? (
-          <>
-            <Button variant="secondary" disabled={busy} onClick={() => assign(draft)}>
-              Asignar
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={busy || draft.notes.trim().length < 3}
-              onClick={() => register(draft)}
-            >
-              Registrar actuación
-            </Button>
-            <Button disabled={!draft.notes.trim()} onClick={() => resolve(draft)}>
-              Resolver
-            </Button>
-          </>
-        ) : (
-          <Button variant="secondary" disabled={busy} onClick={reopen}>
-            Reabrir caso
-          </Button>
-        )}
-      </div>
-      {assignees.error && <p className="form-error">{apiMessage(assignees.error)}</p>}
-      {showHistory && (
-        <div className="intervention-history">
-          {history.isLoading ? (
-            <Spinner />
-          ) : history.error ? (
-            <p className="form-error">{apiMessage(history.error)}</p>
-          ) : history.data?.length ? (
-            history.data.map((item: any) => (
-              <div key={item.alert_intervention_id}>
-                <strong>
-                  {{
-                    contact: "Contacto",
-                    meeting: "Reunión",
-                    referral: "Derivación",
-                    agreement: "Acuerdo",
-                    note: "Actuación",
-                  }[item.action_type as string] || item.action_type}{" "}
-                  · {item.performer_name || "Registro histórico"}
-                </strong>
-                <small>{formatDateTime(item.created_at)}</small>
-                <p>{item.notes}</p>
-              </div>
-            ))
-          ) : (
-            <p className="muted">Todavía no hay actuaciones registradas.</p>
-          )}
-        </div>
-      )}
-    </article>
   );
 }
