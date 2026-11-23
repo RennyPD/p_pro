@@ -44,6 +44,31 @@ const summary = {
     },
   ],
 };
+const statement = {
+  student_id: 7,
+  student_name: "Daniel Santos",
+  enrollment_number: "EST-2026-0001",
+  balance: 9800,
+  overdue_balance: 9800,
+  next_due_date: null,
+  next_due_amount: null,
+  obligations: [
+    {
+      type: "charge",
+      obligation_id: 1,
+      concept: "Matrícula",
+      description: "Matrícula",
+      due_date: "2026-09-15",
+      amount: 15000,
+      paid_amount: 5200,
+      remaining: 9800,
+      status: "overdue",
+    },
+  ],
+  concepts: [],
+  payments: [],
+  payment_plans: [],
+};
 function setup(admin = false, accounts = false) {
   useAuthStore.setState({
     user: {
@@ -71,25 +96,27 @@ function setup(admin = false, accounts = false) {
                   overdue_balance: 0,
                 },
               ]
-            : String(path).endsWith("/options")
-              ? { transfer_instructions: "", simulator_enabled: admin }
-              : String(path).endsWith("/transfers")
-                ? [
-                    {
-                      transfer_request_id: 1,
-                      amount: 500,
-                      reference: "BANCO-1",
-                      bank: "Banco ficticio",
-                      status: "pending",
-                      submitted_at: "2026-10-12T12:00:00",
-                    },
-                  ]
-                : String(path).endsWith("/payment-plans") ||
-                    String(path).endsWith("/history") ||
-                    String(path).endsWith("/cash-closings") ||
-                    String(path).endsWith("/billing-concepts")
-                  ? []
-                  : summary,
+            : String(path).endsWith("/statement")
+              ? { ...statement }
+              : String(path).endsWith("/options")
+                ? { transfer_instructions: "", simulator_enabled: admin }
+                : String(path).endsWith("/transfers")
+                  ? [
+                      {
+                        transfer_request_id: 1,
+                        amount: 500,
+                        reference: "BANCO-1",
+                        bank: "Banco ficticio",
+                        status: "pending",
+                        submitted_at: "2026-10-12T12:00:00",
+                      },
+                    ]
+                  : String(path).endsWith("/payment-plans") ||
+                      String(path).endsWith("/history") ||
+                      String(path).endsWith("/cash-closings") ||
+                      String(path).endsWith("/billing-concepts")
+                    ? []
+                    : summary,
       }) as never,
   );
   const post = vi.spyOn(api, "post").mockImplementation(
@@ -135,7 +162,7 @@ it("requires reason and explicit verification before approving a transfer", asyn
   const post = setup(true);
   vi.spyOn(window, "confirm").mockReturnValue(true);
   await screen.findByRole("heading", { name: "Daniel Santos" });
-  fireEvent.click(screen.getByRole("button", { name: "Transferencias" }));
+  fireEvent.click(screen.getByRole("tab", { name: /Transferencias/ }));
   fireEvent.click(await screen.findByRole("button", { name: "Revisar ingreso" }));
   expect(screen.getByText(/Confirma el ingreso en el banco/)).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Motivo de la operación"), {
@@ -160,4 +187,16 @@ it("simulates a result without posting to the real payment endpoint", async () =
     outcome: "approved",
   });
   expect(post.mock.calls.some(([path]) => String(path).endsWith("/payments"))).toBe(false);
+});
+it("opens a student's account on its installments and jumps to pending transfers", async () => {
+  setup(true);
+  expect(await screen.findByRole("heading", { name: "Daniel Santos" })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "Cuotas" })).toHaveAttribute("aria-selected", "true");
+  expect(await screen.findByText("Vencida")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Transferencias por revisar/ }));
+  expect(screen.getByRole("tab", { name: /Transferencias/ })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  expect(await screen.findByRole("button", { name: "Revisar ingreso" })).toBeInTheDocument();
 });

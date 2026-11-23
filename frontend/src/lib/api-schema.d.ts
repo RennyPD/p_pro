@@ -4444,6 +4444,24 @@ export interface components {
       /** Name */
       name: string;
     };
+    /** BillingConceptOut */
+    BillingConceptOut: {
+      /** Active */
+      active: boolean;
+      /** Amount */
+      amount: number;
+      /** Billing Concept Id */
+      billing_concept_id: number;
+      /**
+       * Description
+       * @default
+       */
+      description: string;
+      /** Frequency */
+      frequency: string;
+      /** Name */
+      name: string;
+    };
     /** BillingCycleRequest */
     BillingCycleRequest: {
       /** Cycle */
@@ -4952,6 +4970,31 @@ export interface components {
       subject_code: string;
       /** Subject Name */
       subject_name: string;
+    };
+    /** CashClosingOut */
+    CashClosingOut: {
+      /** Cash Closing Id */
+      cash_closing_id: number;
+      /** Cash Total */
+      cash_total: number;
+      /** Closed By */
+      closed_by: number;
+      /**
+       * Closing Date
+       * Format: date
+       */
+      closing_date: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Payment Count */
+      payment_count: number;
+      /** Total Payments */
+      total_payments: number;
+      /** Transfer Total */
+      transfer_total: number;
     };
     /** ChangePasswordRequest */
     ChangePasswordRequest: {
@@ -5624,6 +5667,33 @@ export interface components {
       student_id: number;
       /** Student Name */
       student_name: string;
+    };
+    /** FinanceEventOut */
+    FinanceEventOut: {
+      /** Action */
+      action: string;
+      /** Actor */
+      actor: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Detail */
+      detail: string;
+      /** Id */
+      id: number;
+    };
+    /** FinanceOptions */
+    FinanceOptions: {
+      /** Currency */
+      currency: string;
+      /** Gateway Enabled */
+      gateway_enabled: boolean;
+      /** Simulator Enabled */
+      simulator_enabled: boolean;
+      /** Transfer Instructions */
+      transfer_instructions: string;
     };
     /** FinanceTransaction */
     FinanceTransaction: {
@@ -11498,7 +11568,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["BillingConceptOut"][];
         };
       };
     };
@@ -11775,7 +11845,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["CashClosingOut"][];
         };
       };
     };
@@ -11826,7 +11896,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["FinanceOptions"];
         };
       };
     };
@@ -12015,7 +12085,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["FinanceEventOut"][];
         };
       };
       /** @description Validation Error */
@@ -12046,7 +12116,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": unknown;
+          "application/json": components["schemas"]["PaymentPlanStatus"][];
         };
       };
       /** @description Validation Error */

@@ -299,3 +299,40 @@ class TransferOut(BaseModel):
 class TransferInboxItem(TransferOut):
     student_name: str
     enrollment_number: str
+
+
+class FinanceOptions(BaseModel):
+    currency: str
+    gateway_enabled: bool
+    transfer_instructions: str
+    simulator_enabled: bool
+
+
+class FinanceEventOut(BaseModel):
+    id: int
+    action: str
+    detail: str
+    created_at: datetime
+    actor: str
+
+
+class BillingConceptOut(BaseModel):
+    billing_concept_id: int
+    name: str
+    description: str = ""
+    amount: Amount
+    frequency: str
+    active: bool
+    model_config = {"from_attributes": True}
+
+
+class CashClosingOut(BaseModel):
+    cash_closing_id: int
+    closing_date: date
+    total_payments: Amount
+    payment_count: int
+    cash_total: Amount
+    transfer_total: Amount
+    closed_by: int
+    created_at: datetime
+    model_config = {"from_attributes": True}

@@ -13,6 +13,7 @@ import {
   type Statement,
   type Transfer,
 } from "./paymentsData";
+import { StatementInstallments } from "./StatementInstallments";
 import { TransferDialog } from "./TransferDialog";
 import "./payments.css";
 
@@ -28,7 +29,6 @@ export function AccountView({
   statementPath: string;
 }) {
   const [reporting, setReporting] = useState(false);
-  const [showPaid, setShowPaid] = useState(false);
   const statement = useQuery({
     queryKey: ["payments", "statement", studentId, statementPath],
     queryFn: () => api.get<Statement>(statementPath).then(response => response.data),
@@ -55,8 +55,6 @@ export function AccountView({
       />
     );
   const data = statement.data;
-  const unpaid = data.obligations.filter(item => item.status !== "paid");
-  const shown = showPaid ? data.obligations : unpaid;
   const overdue = data.overdue_balance > 0;
   const instructions = options.data?.transfer_instructions ?? "";
   const suggested = overdue ? data.overdue_balance : (data.next_due_amount ?? data.balance);
@@ -99,43 +97,7 @@ export function AccountView({
         )}
       </section>
 
-      <section className="panel payments-section" aria-label="Cuotas">
-        <div className="payments-heading">
-          <h2>Cuotas</h2>
-          {data.obligations.length > unpaid.length && (
-            <Button variant="ghost" onClick={() => setShowPaid(value => !value)}>
-              {showPaid ? "Ocultar pagadas" : "Ver pagadas"}
-            </Button>
-          )}
-        </div>
-        {shown.length ? (
-          <ul className="payments-list">
-            {shown.map(item => {
-              const state = obligationStatus[item.status] ?? obligationStatus.pending;
-              return (
-                <li key={`${item.type}-${item.obligation_id}`}>
-                  <div>
-                    <strong>{item.description}</strong>
-                    <small>
-                      {item.concept !== item.description && `${item.concept} · `}
-                      vence {formatDate(item.due_date)}
-                      {item.status !== "paid" &&
-                        item.paid_amount > 0 &&
-                        ` · abonado ${formatMoney(item.paid_amount)}`}
-                    </small>
-                  </div>
-                  <div className="payments-figure">
-                    <b>{formatMoney(item.status === "paid" ? item.amount : item.remaining)}</b>
-                    <Badge tone={state.tone}>{state.label}</Badge>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="muted">No hay cuotas pendientes.</p>
-        )}
-      </section>
+      <StatementInstallments obligations={data.obligations} />
 
       {data.payment_plans.map(plan => (
         <section key={plan.payment_plan_id} className="panel payments-section">

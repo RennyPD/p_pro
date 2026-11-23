@@ -38,6 +38,7 @@ from app.schemas.finance_schema import (
     AccountUpdate,
     AdjustmentCreate,
     BillingConceptCreate,
+    BillingConceptOut,
     BillingCycleRequest,
     BillingPlanCreate,
     BillingPlanOut,
@@ -46,10 +47,14 @@ from app.schemas.finance_schema import (
     BillingPreview,
     BillingRunCreate,
     BillingRunOut,
+    CashClosingOut,
     ChargeCreate,
     FinanceAccountListItem,
+    FinanceEventOut,
+    FinanceOptions,
     PaymentCreate,
     PaymentPlanCreate,
+    PaymentPlanStatus,
     ReasonRequest,
     SimulationCreate,
     StudentFinanceSummary,
@@ -107,7 +112,7 @@ def result(db, account):
     return summary(db.get(StudentAccount, account.student_account_id))
 
 
-@router.get("/options")
+@router.get("/options", response_model=FinanceOptions)
 def options(user: User = Depends(get_current_user)):
     return {
         "currency": "DOP",
@@ -381,7 +386,7 @@ def student_statement(
     return account_statement(db, get_account(db, student_id))
 
 
-@router.get("/students/{student_id}/payment-plans")
+@router.get("/students/{student_id}/payment-plans", response_model=list[PaymentPlanStatus])
 def list_plans(
     student_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
@@ -633,7 +638,11 @@ def receipt(identifier: int, db: Session = Depends(get_db), user: User = Depends
     )
 
 
-@router.get("/students/{student_id}/history", dependencies=[Depends(finance_viewer)])
+@router.get(
+    "/students/{student_id}/history",
+    response_model=list[FinanceEventOut],
+    dependencies=[Depends(finance_viewer)],
+)
 def history(student_id: int, db: Session = Depends(get_db)):
     get_account(db, student_id)
     return [
@@ -671,7 +680,11 @@ def simulate(
     }
 
 
-@router.get("/billing-concepts", dependencies=[Depends(finance_viewer)])
+@router.get(
+    "/billing-concepts",
+    response_model=list[BillingConceptOut],
+    dependencies=[Depends(finance_viewer)],
+)
 def billing_concepts(db: Session = Depends(get_db)):
     return db.query(BillingConcept).order_by(BillingConcept.name).all()
 
@@ -779,7 +792,9 @@ def billing_runs(plan_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/cash-closings", dependencies=[Depends(finance_viewer)])
+@router.get(
+    "/cash-closings", response_model=list[CashClosingOut], dependencies=[Depends(finance_viewer)]
+)
 def closings(db: Session = Depends(get_db)):
     return db.query(CashClosing).order_by(CashClosing.closing_date.desc()).all()
 

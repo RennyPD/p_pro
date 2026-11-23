@@ -2180,6 +2180,44 @@
         "title": "BillingConceptCreate",
         "type": "object"
       },
+      "BillingConceptOut": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "number"
+          },
+          "billing_concept_id": {
+            "title": "Billing Concept Id",
+            "type": "integer"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "frequency": {
+            "title": "Frequency",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "billing_concept_id",
+          "name",
+          "amount",
+          "frequency",
+          "active"
+        ],
+        "title": "BillingConceptOut",
+        "type": "object"
+      },
       "BillingCycleRequest": {
         "properties": {
           "cycle": {
@@ -3698,6 +3736,56 @@
           "period"
         ],
         "title": "CartItemOut",
+        "type": "object"
+      },
+      "CashClosingOut": {
+        "properties": {
+          "cash_closing_id": {
+            "title": "Cash Closing Id",
+            "type": "integer"
+          },
+          "cash_total": {
+            "title": "Cash Total",
+            "type": "number"
+          },
+          "closed_by": {
+            "title": "Closed By",
+            "type": "integer"
+          },
+          "closing_date": {
+            "format": "date",
+            "title": "Closing Date",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "payment_count": {
+            "title": "Payment Count",
+            "type": "integer"
+          },
+          "total_payments": {
+            "title": "Total Payments",
+            "type": "number"
+          },
+          "transfer_total": {
+            "title": "Transfer Total",
+            "type": "number"
+          }
+        },
+        "required": [
+          "cash_closing_id",
+          "closing_date",
+          "total_payments",
+          "payment_count",
+          "cash_total",
+          "transfer_total",
+          "closed_by",
+          "created_at"
+        ],
+        "title": "CashClosingOut",
         "type": "object"
       },
       "ChangePasswordRequest": {
@@ -5500,6 +5588,68 @@
           "overdue_balance"
         ],
         "title": "FinanceAccountListItem",
+        "type": "object"
+      },
+      "FinanceEventOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "detail",
+          "created_at",
+          "actor"
+        ],
+        "title": "FinanceEventOut",
+        "type": "object"
+      },
+      "FinanceOptions": {
+        "properties": {
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "gateway_enabled": {
+            "title": "Gateway Enabled",
+            "type": "boolean"
+          },
+          "simulator_enabled": {
+            "title": "Simulator Enabled",
+            "type": "boolean"
+          },
+          "transfer_instructions": {
+            "title": "Transfer Instructions",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency",
+          "gateway_enabled",
+          "transfer_instructions",
+          "simulator_enabled"
+        ],
+        "title": "FinanceOptions",
         "type": "object"
       },
       "FinanceTransaction": {
@@ -18073,7 +18223,13 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BillingConceptOut"
+                  },
+                  "title": "Response Billing Concepts Finance Billing Concepts Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"
@@ -18491,7 +18647,13 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CashClosingOut"
+                  },
+                  "title": "Response Closings Finance Cash Closings Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"
@@ -18561,7 +18723,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/FinanceOptions"
+                }
               }
             },
             "description": "Successful Response"
@@ -18859,7 +19023,13 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FinanceEventOut"
+                  },
+                  "title": "Response History Finance Students  Student Id  History Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"
@@ -18904,7 +19074,13 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PaymentPlanStatus"
+                  },
+                  "title": "Response List Plans Finance Students  Student Id  Payment Plans Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"
