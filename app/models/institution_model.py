@@ -34,3 +34,8 @@ def _first_institution(target, connection, **_kwargs) -> None:
             "VALUES (1, 'Institución principal', 'principal', 'active', CURRENT_TIMESTAMP)"
         )
     )
+    if connection.dialect.name == "postgresql":
+        # The explicit id does not advance the sequence: the next institution would collide.
+        connection.execute(
+            text("SELECT setval(pg_get_serial_sequence('institutions', 'institution_id'), 1)")
+        )
