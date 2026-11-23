@@ -1,7 +1,8 @@
+import { Progress } from "../../components/visual";
 import { Badge } from "../../components/ui";
 import type { ApiSchema } from "../../lib/apiTypes";
 import { formatDate } from "../../lib/format";
-import { Loaded, Meter } from "./guardianShared";
+import { Loaded } from "./guardianShared";
 import { alertCategories, alertPriorities, percent, useGuardianDetail } from "./guardianData";
 
 type Performance = ApiSchema<"GuardianPerformance">;
@@ -29,7 +30,7 @@ export function GuardianPerformance({ studentId }: { studentId: number }) {
                             ` · asistencia ${percent(period.attendance_percentage)}`}
                         </small>
                       </div>
-                      <Meter value={value} label={`Promedio de ${period.period}`} />
+                      <Progress value={value} label={`Promedio de ${period.period}`} />
                       <span className="guardian-figure">
                         {value ?? "—"}
                         {period.average_grade === null && value !== null && (

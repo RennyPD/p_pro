@@ -1,8 +1,9 @@
+import { Progress } from "../../components/visual";
 import { Badge } from "../../components/ui";
 import { attendanceLabels, attendanceTones, isLowAttendance } from "../../lib/academicResult";
 import type { ApiSchema } from "../../lib/apiTypes";
 import { formatDate } from "../../lib/format";
-import { Loaded, Meter } from "./guardianShared";
+import { Loaded } from "./guardianShared";
 import { percent, useGuardianDetail } from "./guardianData";
 
 type Attendance = ApiSchema<"GuardianAttendance">;
@@ -56,7 +57,7 @@ export function GuardianAttendance({ studentId }: { studentId: number }) {
                         {percent(course.percentage)}
                       </span>
                     </summary>
-                    <Meter
+                    <Progress
                       value={course.percentage}
                       label={`Asistencia en ${course.subject_name}`}
                     />

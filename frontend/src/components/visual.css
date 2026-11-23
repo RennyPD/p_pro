@@ -1,0 +1,228 @@
+/* Shared visual system (Fase 2). Tokens only; mobile first. */
+
+.vs-metric-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+@media (min-width: 720px) {
+  .vs-metric-row {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+}
+
+.vs-metric {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+}
+.vs-metric--action {
+  cursor: pointer;
+}
+.vs-metric--action:hover,
+.vs-metric--action:focus-visible {
+  border-color: var(--blue-line);
+}
+.vs-metric__label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-right: 1rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.vs-metric__label svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+.vs-metric__value {
+  overflow: hidden;
+  font-size: 1.3rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vs-metric__note {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.vs-metric__go {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.6rem;
+  width: 16px;
+  height: 16px;
+  color: var(--subtle);
+}
+
+.vs-tone--danger {
+  color: var(--danger-strong);
+}
+.vs-tone--warning {
+  color: var(--warning-strong);
+}
+.vs-tone--success {
+  color: var(--success);
+}
+.vs-tone--info {
+  color: var(--blue-strong);
+}
+
+.vs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.vs-chip svg {
+  width: 14px;
+  height: 14px;
+}
+.vs-chip--danger {
+  background: var(--danger-soft);
+  color: var(--danger-strong);
+}
+.vs-chip--warning {
+  background: var(--warning-soft);
+  color: var(--warning-strong);
+}
+.vs-chip--success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.vs-chip--info {
+  background: var(--blue-soft);
+  color: var(--blue-strong);
+}
+
+.vs-tabs {
+  display: flex;
+  gap: 0.3rem;
+  overflow-x: auto;
+  padding: 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.vs-tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 40px;
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.vs-tab svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.vs-tab.is-active {
+  background: var(--blue-soft);
+  color: var(--blue-strong);
+}
+.vs-tab__count {
+  min-width: 1.3rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--warning-soft);
+  color: var(--warning-strong);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.vs-progress {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+}
+.vs-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blue);
+}
+.vs-progress--danger > span {
+  background: var(--danger);
+}
+.vs-progress--warning > span {
+  background: var(--warning);
+}
+.vs-progress--success > span {
+  background: var(--success);
+}
+
+.vs-avatar {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue-strong);
+  font-weight: 700;
+}
+.vs-avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 0.7rem;
+}
+.vs-avatar--md {
+  width: 36px;
+  height: 36px;
+  font-size: 0.8rem;
+}
+.vs-avatar--lg {
+  width: 48px;
+  height: 48px;
+  font-size: 1rem;
+}
+
+.vs-section {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+}
+.vs-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.vs-section__header h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 1rem;
+}
+.vs-section__header h2 svg {
+  width: 18px;
+  height: 18px;
+  color: var(--blue);
+}

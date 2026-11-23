@@ -20,6 +20,7 @@ import { GuardianSummary } from "./GuardianSummary";
 import { GuardianTasks } from "./GuardianTasks";
 import { AccountView } from "../payments/AccountView";
 import { FamilyPayments } from "../payments/FamilyPayments";
+import { initials } from "../../lib/text";
 import "./guardian-portal.css";
 
 export type StudentOverview = ApiSchema<"GuardianStudentOverview">;
@@ -34,15 +35,6 @@ const TABS: { key: TabKey; label: string; icon: ReactNode; area?: Area }[] = [
   { key: "finance", label: "Pagos", icon: <Wallet />, area: "finance" },
   { key: "performance", label: "Desempeño", icon: <BarChart3 />, area: "academic" },
 ];
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(part => part[0]?.toUpperCase())
-    .join("");
-}
 
 export function GuardianPortalPage() {
   const query = useQuery<StudentOverview[]>({

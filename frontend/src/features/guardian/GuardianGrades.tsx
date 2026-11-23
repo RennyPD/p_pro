@@ -1,8 +1,9 @@
+import { Progress } from "../../components/visual";
 import { Badge } from "../../components/ui";
 import { provisionalReason, resultLabel, resultTone } from "../../lib/academicResult";
 import type { ApiSchema } from "../../lib/apiTypes";
 import { formatDate } from "../../lib/format";
-import { Loaded, Meter } from "./guardianShared";
+import { Loaded } from "./guardianShared";
 import { useGuardianDetail } from "./guardianData";
 
 type Grades = ApiSchema<"GuardianGrades">;
@@ -34,7 +35,7 @@ export function GuardianGrades({ studentId }: { studentId: number }) {
                       </Badge>
                     </div>
                   </summary>
-                  <Meter
+                  <Progress
                     value={
                       course.configured_weight
                         ? (course.completed_weight * 100) / course.configured_weight

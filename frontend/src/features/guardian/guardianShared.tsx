@@ -23,19 +23,3 @@ export function Loaded<T>({
     );
   return <>{children(query.data)}</>;
 }
-
-export function Meter({ value, label }: { value: number | null | undefined; label: string }) {
-  const width = Math.max(0, Math.min(100, value ?? 0));
-  return (
-    <span
-      className="guardian-meter"
-      role="meter"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={value ?? 0}
-    >
-      <span style={{ width: `${width}%` }} />
-    </span>
-  );
-}
