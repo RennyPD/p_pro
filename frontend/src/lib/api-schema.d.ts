@@ -1140,6 +1140,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/class-groups/{class_group_id}/members/{member_id}/comments/{period_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Save Comment */
+    put: operations["save_comment_class_groups__class_group_id__members__member_id__comments__period_id__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/class-groups/{class_group_id}/members/{member_id}/recovery": {
     parameters: {
       query?: never;
@@ -1194,6 +1211,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/class-groups/{class_group_id}/period-report": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Period Report */
+    get: operations["period_report_class_groups__class_group_id__period_report_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/period-report.csv": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Period Report Csv */
+    get: operations["period_report_csv_class_groups__class_group_id__period_report_csv_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/period-report.pdf": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Period Report Pdf */
+    get: operations["period_report_pdf_class_groups__class_group_id__period_report_pdf_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/class-groups/{class_group_id}/promotion": {
     parameters: {
       query?: never;
@@ -1223,6 +1291,23 @@ export interface paths {
     put?: never;
     /** Reinscribe Group */
     post: operations["reinscribe_group_class_groups__class_group_id__reinscribe_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/report-cards.pdf": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Group Report Cards */
+    get: operations["group_report_cards_class_groups__class_group_id__report_cards_pdf_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -3866,6 +3951,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/school-years/{school_year_id}/promotion-summary": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Promotion Summary */
+    get: operations["promotion_summary_school_years__school_year_id__promotion_summary_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/sections/": {
     parameters: {
       query?: never;
@@ -3938,6 +4040,40 @@ export interface paths {
     head?: never;
     /** Update Student */
     patch: operations["update_student_students__student_id__patch"];
+    trace?: never;
+  };
+  "/students/{student_id}/report-card": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Report Card */
+    get: operations["report_card_students__student_id__report_card_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/students/{student_id}/report-card.pdf": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Report Card File */
+    get: operations["report_card_file_students__student_id__report_card_pdf_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   "/subjects/": {
@@ -6076,6 +6212,11 @@ export interface components {
       /** Name */
       name: string;
     };
+    /** CommentIn */
+    CommentIn: {
+      /** Comment */
+      comment: string;
+    };
     /** CourseOffering */
     CourseOffering: {
       /** Available Seats */
@@ -7576,6 +7717,11 @@ export interface components {
     };
     /** InstitutionSettingsOut */
     InstitutionSettingsOut: {
+      /**
+       * District
+       * @default
+       */
+      district: string;
       /** Enrollment Digits */
       enrollment_digits: number;
       /** Enrollment Prefix */
@@ -7599,10 +7745,20 @@ export interface components {
       /** Passing Grade */
       passing_grade: number;
       /**
+       * Regional
+       * @default
+       */
+      regional: string;
+      /**
        * Revision
        * @default 0
        */
       revision: number;
+      /**
+       * School Code
+       * @default
+       */
+      school_code: string;
       /** Settings Id */
       settings_id: number;
       /**
@@ -7613,6 +7769,8 @@ export interface components {
     };
     /** InstitutionSettingsUpdate */
     InstitutionSettingsUpdate: {
+      /** District */
+      district?: string | null;
       /** Enrollment Digits */
       enrollment_digits: number;
       /** Enrollment Prefix */
@@ -7635,6 +7793,10 @@ export interface components {
        * @default Actualización de configuración institucional
        */
       reason: string;
+      /** Regional */
+      regional?: string | null;
+      /** School Code */
+      school_code?: string | null;
       /** Students View Finance */
       students_view_finance?: boolean | null;
     };
@@ -7884,6 +8046,17 @@ export interface components {
       /** Payment Plan Id */
       payment_plan_id: number;
     };
+    /** PeriodGrade */
+    PeriodGrade: {
+      /** Final */
+      final: boolean;
+      /** Label */
+      label: string | null;
+      /** Subject Id */
+      subject_id: number;
+      /** Value */
+      value: number | null;
+    };
     /** PeriodRecord */
     PeriodRecord: {
       /** Attempted Credits */
@@ -7896,6 +8069,55 @@ export interface components {
       earned_credits: number;
       /** Period */
       period: string;
+    };
+    /** PeriodReport */
+    PeriodReport: {
+      /** Class Group Id */
+      class_group_id: number;
+      /** Closed */
+      closed: boolean;
+      /** Group Label */
+      group_label: string;
+      /** Passing Grade */
+      passing_grade: number;
+      /** Period */
+      period: string;
+      /** Period Id */
+      period_id: number;
+      /** Students */
+      students: components["schemas"]["PeriodStudent"][];
+      /** Subjects */
+      subjects: components["schemas"]["PeriodSubject"][];
+    };
+    /** PeriodStudent */
+    PeriodStudent: {
+      /** Attendance */
+      attendance: number | null;
+      /** Below Passing */
+      below_passing: string[];
+      /** Enrollment Number */
+      enrollment_number: string;
+      /** Grades */
+      grades: components["schemas"]["PeriodGrade"][];
+      /** Member Id */
+      member_id: number;
+      /** Student Name */
+      student_name: string;
+    };
+    /** PeriodSubject */
+    PeriodSubject: {
+      /** Average */
+      average: number | null;
+      /** Code */
+      code: string;
+      /** Graded */
+      graded: number;
+      /** Name */
+      name: string;
+      /** Passed Percentage */
+      passed_percentage: number | null;
+      /** Subject Id */
+      subject_id: number;
     };
     /** PermissionCreate */
     PermissionCreate: {
@@ -7991,6 +8213,29 @@ export interface components {
       /** Subjects */
       subjects: components["schemas"]["SubjectResultOut"][];
     };
+    /** PromotionSummaryRow */
+    PromotionSummaryRow: {
+      /** Career Name */
+      career_name: string;
+      /** Class Group Id */
+      class_group_id: number;
+      /** Completivo */
+      completivo: number;
+      /** Extraordinario */
+      extraordinario: number;
+      /** Grade Number */
+      grade_number: number;
+      /** Label */
+      label: string;
+      /** Pending */
+      pending: number;
+      /** Promoted */
+      promoted: number;
+      /** Repeated */
+      repeated: number;
+      /** Students */
+      students: number;
+    };
     /** RecoveryIn */
     RecoveryIn: {
       /** Exam Grade */
@@ -8015,6 +8260,121 @@ export interface components {
       blocked: components["schemas"]["BlockedStudent"][];
       /** Reinscribed */
       reinscribed: string[];
+    };
+    /** ReportCard */
+    ReportCard: {
+      /** Attendance */
+      attendance: components["schemas"]["ReportCardAttendance"][];
+      /** Career Name */
+      career_name: string;
+      /** Class Group Id */
+      class_group_id: number;
+      /** Comments */
+      comments: components["schemas"]["ReportCardComment"][];
+      /** Enrollment Number */
+      enrollment_number: string;
+      /** Grade Number */
+      grade_number: number;
+      /** Group Label */
+      group_label: string;
+      /** Homeroom Teacher */
+      homeroom_teacher: string | null;
+      institution: components["schemas"]["ReportCardInstitution"];
+      /** Member Id */
+      member_id: number;
+      /** Member Status */
+      member_status: string;
+      /** Passing Grade */
+      passing_grade: number;
+      /** Periods */
+      periods: components["schemas"]["ReportCardPeriod"][];
+      /** Result */
+      result: string;
+      /** Result Label */
+      result_label: string;
+      /** Scale Name */
+      scale_name: string;
+      /** School Year */
+      school_year: string;
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
+      /** Subjects */
+      subjects: components["schemas"]["ReportCardSubject"][];
+    };
+    /** ReportCardAttendance */
+    ReportCardAttendance: {
+      /** Absent */
+      absent: number;
+      /** Excused */
+      excused: number;
+      /** Late */
+      late: number;
+      /** Percentage */
+      percentage: number | null;
+      /** Period */
+      period: string;
+      /** Present */
+      present: number;
+      /** Total */
+      total: number;
+    };
+    /** ReportCardComment */
+    ReportCardComment: {
+      /** Comment */
+      comment: string;
+      /** Period */
+      period: string;
+      /** Period Id */
+      period_id: number;
+    };
+    /** ReportCardInstitution */
+    ReportCardInstitution: {
+      /** District */
+      district: string;
+      /** Name */
+      name: string;
+      /** Regional */
+      regional: string;
+      /** School Code */
+      school_code: string;
+    };
+    /** ReportCardPeriod */
+    ReportCardPeriod: {
+      /** Closed */
+      closed: boolean;
+      /** Name */
+      name: string;
+      /** Period Id */
+      period_id: number;
+      /** Short */
+      short: string;
+    };
+    /** ReportCardSubject */
+    ReportCardSubject: {
+      /** Average */
+      average: number | null;
+      /** Average Label */
+      average_label: string | null;
+      /** Code */
+      code: string;
+      /** Completivo */
+      completivo: string | null;
+      /** Extraordinario */
+      extraordinario: string | null;
+      /** Final */
+      final: string | null;
+      /** Name */
+      name: string;
+      /** Periods */
+      periods: (string | null)[];
+      /** Status */
+      status: string;
+      /** Status Label */
+      status_label: string;
+      /** Subject Id */
+      subject_id: number;
     };
     /** ResultConfirmation */
     ResultConfirmation: {
@@ -12170,6 +12530,43 @@ export interface operations {
       };
     };
   };
+  save_comment_class_groups__class_group_id__members__member_id__comments__period_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+        member_id: number;
+        period_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CommentIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReportCard"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   record_recovery_exam_class_groups__class_group_id__members__member_id__recovery_post: {
     parameters: {
       query?: never;
@@ -12278,6 +12675,105 @@ export interface operations {
       };
     };
   };
+  period_report_class_groups__class_group_id__period_report_get: {
+    parameters: {
+      query: {
+        period_id: number;
+      };
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PeriodReport"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  period_report_csv_class_groups__class_group_id__period_report_csv_get: {
+    parameters: {
+      query: {
+        period_id: number;
+      };
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  period_report_pdf_class_groups__class_group_id__period_report_pdf_get: {
+    parameters: {
+      query: {
+        period_id: number;
+      };
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   promotion_class_groups__class_group_id__promotion_get: {
     parameters: {
       query?: never;
@@ -12366,6 +12862,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ReinscriptionOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  group_report_cards_class_groups__class_group_id__report_cards_pdf_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */
@@ -18282,6 +18809,37 @@ export interface operations {
       };
     };
   };
+  promotion_summary_school_years__school_year_id__promotion_summary_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        school_year_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PromotionSummaryRow"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_sections_sections__get: {
     parameters: {
       query?: {
@@ -18598,6 +19156,72 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["StudentOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  report_card_students__student_id__report_card_get: {
+    parameters: {
+      query?: {
+        school_year_id?: number | null;
+      };
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReportCard"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  report_card_file_students__student_id__report_card_pdf_get: {
+    parameters: {
+      query?: {
+        school_year_id?: number | null;
+      };
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

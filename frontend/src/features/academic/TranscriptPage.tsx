@@ -8,6 +8,7 @@ import { Badge, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import type { ApiSchema } from "../../lib/apiTypes";
 import { gradeText } from "../../lib/grades";
+import { SchoolReportCard } from "../groups/SchoolReportCard";
 import { useAuthStore } from "../../store/auth";
 import { describeAverage, resultLabel, resultTone, standingLabel } from "../../lib/academicResult";
 
@@ -73,6 +74,7 @@ export function TranscriptPage() {
           {id && <RequestApproval resource="student" id={id} label={record.enrollment_number} />}
         </div>
       </header>
+      {id && <SchoolReportCard studentId={id} />}
       <section className="transcript-metrics">
         <article>
           <span>

@@ -18,15 +18,20 @@ from app.models.student_model import Student
 from app.models.user_model import User
 from app.routers.finance_router import build_summary, get_or_create_account
 from app.routers.record_router import RESULT_LABELS, STANDING_LABELS, build_transcript
-from app.services.pdf_service import simple_pdf
+from app.services.pdf_service import report_card_pdf, simple_pdf
+from app.services.report_cards import build_report_card, has_school_card, member_for
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
 def pdf_response(filename: str, title: str, lines: list[str]) -> Response:
+    return pdf_bytes_response(filename, simple_pdf(title, lines))
+
+
+def pdf_bytes_response(filename: str, content: bytes) -> Response:
     fallback = re.sub(r"[^A-Za-z0-9_.-]", "_", filename)
     return Response(
-        simple_pdf(title, lines),
+        content,
         media_type="application/pdf",
         headers={
             "Content-Disposition": f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(filename, safe='')}",
@@ -44,6 +49,13 @@ def transcript_pdf(
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    # School students get the school report card of their latest year (Fase 3 F).
+    if has_school_card(db, student_id):
+        card = build_report_card(db, member_for(db, student_id, None))
+        return pdf_bytes_response(
+            f"boletin-{card['enrollment_number']}-{card['school_year']}.pdf",
+            report_card_pdf([card]),
+        )
     record = build_transcript(db, student)
     lines = [
         f"Estudiante: {record.student_name}",
@@ -145,6 +157,13 @@ def report_card(
     student = db.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    # School students get the school report card of their latest year (Fase 3 F).
+    if has_school_card(db, student_id):
+        card = build_report_card(db, member_for(db, student_id, None))
+        return pdf_bytes_response(
+            f"boletin-{card['enrollment_number']}-{card['school_year']}.pdf",
+            report_card_pdf([card]),
+        )
     record = build_transcript(db, student)
     lines = [
         f"Estudiante: {record.student_name}",

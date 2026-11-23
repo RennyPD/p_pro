@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BookOpen, GraduationCap, Users } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, GraduationCap, Table2, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { EmptyState, Spinner } from "../../components/ui";
@@ -7,12 +7,14 @@ import { Metric, Tabs } from "../../components/visual";
 import { api, apiMessage } from "../../lib/api";
 import { useAccess } from "../../lib/permissions";
 import { GroupMembersTab } from "./GroupMembersTab";
+import { GroupPeriodReportTab } from "./GroupPeriodReportTab";
+import { GroupReportCardsTab } from "./GroupReportCardsTab";
 import { GroupPromotionTab } from "./GroupPromotionTab";
 import { GroupSubjectsTab } from "./GroupSubjectsTab";
 import { groupKey, type ClassGroupDetail } from "./groupsData";
 import "./class-groups.css";
 
-type Tab = "members" | "subjects" | "promotion";
+type Tab = "members" | "subjects" | "cards" | "period" | "promotion";
 
 export function ClassGroupPage() {
   const { groupId = "" } = useParams();
@@ -48,6 +50,8 @@ export function ClassGroupPage() {
       icon: <BookOpen size={16} />,
       count: data.subjects.length,
     },
+    { key: "cards" as const, label: "Boletines", icon: <FileText size={16} /> },
+    { key: "period" as const, label: "Cuadro del período", icon: <Table2 size={16} /> },
     ...(access.can("enrollments.manage")
       ? [{ key: "promotion" as const, label: "Promoción", icon: <GraduationCap size={16} /> }]
       : []),
@@ -90,6 +94,8 @@ export function ClassGroupPage() {
       <div id="group-panel" role="tabpanel">
         {tab === "members" && <GroupMembersTab group={data} />}
         {tab === "subjects" && <GroupSubjectsTab group={data} />}
+        {tab === "cards" && <GroupReportCardsTab group={data} />}
+        {tab === "period" && <GroupPeriodReportTab group={data} />}
         {tab === "promotion" && <GroupPromotionTab group={data} />}
       </div>
     </div>

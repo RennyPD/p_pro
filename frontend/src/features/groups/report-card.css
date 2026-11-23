@@ -1,0 +1,67 @@
+.report-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+.report-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.report-card__header h2 {
+  margin: 0.2rem 0;
+}
+.report-card__header p {
+  margin: 0;
+}
+.report-card__result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.report-card__table-wrap {
+  overflow-x: auto;
+}
+.report-card__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.report-card__table caption {
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  text-align: left;
+}
+.report-card__table th,
+.report-card__table td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  white-space: nowrap;
+}
+.report-card__table thead th {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.report-card__table tbody th {
+  color: var(--ink);
+  font-weight: 600;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.report-card__attendance {
+  max-width: 640px;
+}
+.report-card__comments h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.95rem;
+}
+.report-card__comments p {
+  margin: 0.2rem 0;
+}
+.report-card__note {
+  margin: 0;
+  font-size: 0.82rem;
+}

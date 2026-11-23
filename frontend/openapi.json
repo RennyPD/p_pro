@@ -5115,6 +5115,20 @@
         "title": "ClassroomOut",
         "type": "object"
       },
+      "CommentIn": {
+        "properties": {
+          "comment": {
+            "maxLength": 1000,
+            "title": "Comment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "comment"
+        ],
+        "title": "CommentIn",
+        "type": "object"
+      },
       "CourseOffering": {
         "properties": {
           "available_seats": {
@@ -9139,6 +9153,12 @@
       },
       "InstitutionSettingsOut": {
         "properties": {
+          "district": {
+            "default": "",
+            "maxLength": 80,
+            "title": "District",
+            "type": "string"
+          },
           "enrollment_digits": {
             "maximum": 10.0,
             "minimum": 3.0,
@@ -9185,10 +9205,22 @@
             "title": "Passing Grade",
             "type": "number"
           },
+          "regional": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Regional",
+            "type": "string"
+          },
           "revision": {
             "default": 0,
             "title": "Revision",
             "type": "integer"
+          },
+          "school_code": {
+            "default": "",
+            "maxLength": 30,
+            "title": "School Code",
+            "type": "string"
           },
           "settings_id": {
             "title": "Settings Id",
@@ -9214,6 +9246,18 @@
       },
       "InstitutionSettingsUpdate": {
         "properties": {
+          "district": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "District"
+          },
           "enrollment_digits": {
             "maximum": 10.0,
             "minimum": 3.0,
@@ -9276,6 +9320,30 @@
             "minLength": 3,
             "title": "Reason",
             "type": "string"
+          },
+          "regional": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Regional"
+          },
+          "school_code": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "School Code"
           },
           "students_view_finance": {
             "anyOf": [
@@ -9912,6 +9980,48 @@
         "title": "PaymentPlanStatus",
         "type": "object"
       },
+      "PeriodGrade": {
+        "properties": {
+          "final": {
+            "title": "Final",
+            "type": "boolean"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "integer"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "subject_id",
+          "value",
+          "label",
+          "final"
+        ],
+        "title": "PeriodGrade",
+        "type": "object"
+      },
       "PeriodRecord": {
         "properties": {
           "attempted_credits": {
@@ -9950,6 +10060,163 @@
           "courses"
         ],
         "title": "PeriodRecord",
+        "type": "object"
+      },
+      "PeriodReport": {
+        "properties": {
+          "class_group_id": {
+            "title": "Class Group Id",
+            "type": "integer"
+          },
+          "closed": {
+            "title": "Closed",
+            "type": "boolean"
+          },
+          "group_label": {
+            "title": "Group Label",
+            "type": "string"
+          },
+          "passing_grade": {
+            "title": "Passing Grade",
+            "type": "number"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "period_id": {
+            "title": "Period Id",
+            "type": "integer"
+          },
+          "students": {
+            "items": {
+              "$ref": "#/components/schemas/PeriodStudent"
+            },
+            "title": "Students",
+            "type": "array"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/PeriodSubject"
+            },
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "class_group_id",
+          "group_label",
+          "period_id",
+          "period",
+          "closed",
+          "passing_grade",
+          "subjects",
+          "students"
+        ],
+        "title": "PeriodReport",
+        "type": "object"
+      },
+      "PeriodStudent": {
+        "properties": {
+          "attendance": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attendance"
+          },
+          "below_passing": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Below Passing",
+            "type": "array"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "grades": {
+            "items": {
+              "$ref": "#/components/schemas/PeriodGrade"
+            },
+            "title": "Grades",
+            "type": "array"
+          },
+          "member_id": {
+            "title": "Member Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "member_id",
+          "student_name",
+          "enrollment_number",
+          "grades",
+          "below_passing",
+          "attendance"
+        ],
+        "title": "PeriodStudent",
+        "type": "object"
+      },
+      "PeriodSubject": {
+        "properties": {
+          "average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "graded": {
+            "title": "Graded",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "passed_percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed Percentage"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subject_id",
+          "code",
+          "name",
+          "average",
+          "passed_percentage",
+          "graded"
+        ],
+        "title": "PeriodSubject",
         "type": "object"
       },
       "PermissionCreate": {
@@ -10224,6 +10491,64 @@
         "title": "PromotionRow",
         "type": "object"
       },
+      "PromotionSummaryRow": {
+        "properties": {
+          "career_name": {
+            "title": "Career Name",
+            "type": "string"
+          },
+          "class_group_id": {
+            "title": "Class Group Id",
+            "type": "integer"
+          },
+          "completivo": {
+            "title": "Completivo",
+            "type": "integer"
+          },
+          "extraordinario": {
+            "title": "Extraordinario",
+            "type": "integer"
+          },
+          "grade_number": {
+            "title": "Grade Number",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "integer"
+          },
+          "promoted": {
+            "title": "Promoted",
+            "type": "integer"
+          },
+          "repeated": {
+            "title": "Repeated",
+            "type": "integer"
+          },
+          "students": {
+            "title": "Students",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "class_group_id",
+          "label",
+          "career_name",
+          "grade_number",
+          "students",
+          "promoted",
+          "completivo",
+          "extraordinario",
+          "repeated",
+          "pending"
+        ],
+        "title": "PromotionSummaryRow",
+        "type": "object"
+      },
       "RecoveryIn": {
         "properties": {
           "exam_grade": {
@@ -10314,6 +10639,369 @@
           "blocked"
         ],
         "title": "ReinscriptionOut",
+        "type": "object"
+      },
+      "ReportCard": {
+        "properties": {
+          "attendance": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCardAttendance"
+            },
+            "title": "Attendance",
+            "type": "array"
+          },
+          "career_name": {
+            "title": "Career Name",
+            "type": "string"
+          },
+          "class_group_id": {
+            "title": "Class Group Id",
+            "type": "integer"
+          },
+          "comments": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCardComment"
+            },
+            "title": "Comments",
+            "type": "array"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "grade_number": {
+            "title": "Grade Number",
+            "type": "integer"
+          },
+          "group_label": {
+            "title": "Group Label",
+            "type": "string"
+          },
+          "homeroom_teacher": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homeroom Teacher"
+          },
+          "institution": {
+            "$ref": "#/components/schemas/ReportCardInstitution"
+          },
+          "member_id": {
+            "title": "Member Id",
+            "type": "integer"
+          },
+          "member_status": {
+            "title": "Member Status",
+            "type": "string"
+          },
+          "passing_grade": {
+            "title": "Passing Grade",
+            "type": "number"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCardPeriod"
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "result": {
+            "title": "Result",
+            "type": "string"
+          },
+          "result_label": {
+            "title": "Result Label",
+            "type": "string"
+          },
+          "scale_name": {
+            "title": "Scale Name",
+            "type": "string"
+          },
+          "school_year": {
+            "title": "School Year",
+            "type": "string"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/ReportCardSubject"
+            },
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "student_id",
+          "student_name",
+          "enrollment_number",
+          "member_id",
+          "member_status",
+          "institution",
+          "class_group_id",
+          "group_label",
+          "career_name",
+          "grade_number",
+          "school_year",
+          "homeroom_teacher",
+          "scale_name",
+          "passing_grade",
+          "periods",
+          "subjects",
+          "attendance",
+          "comments",
+          "result",
+          "result_label"
+        ],
+        "title": "ReportCard",
+        "type": "object"
+      },
+      "ReportCardAttendance": {
+        "properties": {
+          "absent": {
+            "title": "Absent",
+            "type": "integer"
+          },
+          "excused": {
+            "title": "Excused",
+            "type": "integer"
+          },
+          "late": {
+            "title": "Late",
+            "type": "integer"
+          },
+          "percentage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentage"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "present": {
+            "title": "Present",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period",
+          "present",
+          "late",
+          "absent",
+          "excused",
+          "total",
+          "percentage"
+        ],
+        "title": "ReportCardAttendance",
+        "type": "object"
+      },
+      "ReportCardComment": {
+        "properties": {
+          "comment": {
+            "title": "Comment",
+            "type": "string"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "period_id": {
+            "title": "Period Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period_id",
+          "period",
+          "comment"
+        ],
+        "title": "ReportCardComment",
+        "type": "object"
+      },
+      "ReportCardInstitution": {
+        "properties": {
+          "district": {
+            "title": "District",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "regional": {
+            "title": "Regional",
+            "type": "string"
+          },
+          "school_code": {
+            "title": "School Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "school_code",
+          "regional",
+          "district"
+        ],
+        "title": "ReportCardInstitution",
+        "type": "object"
+      },
+      "ReportCardPeriod": {
+        "properties": {
+          "closed": {
+            "title": "Closed",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "period_id": {
+            "title": "Period Id",
+            "type": "integer"
+          },
+          "short": {
+            "title": "Short",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period_id",
+          "name",
+          "short",
+          "closed"
+        ],
+        "title": "ReportCardPeriod",
+        "type": "object"
+      },
+      "ReportCardSubject": {
+        "properties": {
+          "average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
+          },
+          "average_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Label"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "completivo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completivo"
+          },
+          "extraordinario": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extraordinario"
+          },
+          "final": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "periods": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "status_label": {
+            "title": "Status Label",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subject_id",
+          "code",
+          "name",
+          "periods",
+          "average",
+          "average_label",
+          "completivo",
+          "extraordinario",
+          "final",
+          "status",
+          "status_label"
+        ],
+        "title": "ReportCardSubject",
         "type": "object"
       },
       "ResultConfirmation": {
@@ -19441,6 +20129,81 @@
         ]
       }
     },
+    "/class-groups/{class_group_id}/members/{member_id}/comments/{period_id}": {
+      "put": {
+        "operationId": "save_comment_class_groups__class_group_id__members__member_id__comments__period_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "schema": {
+              "title": "Member Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "title": "Period Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save Comment",
+        "tags": [
+          "report cards"
+        ]
+      }
+    },
     "/class-groups/{class_group_id}/members/{member_id}/recovery": {
       "post": {
         "description": "Completivo or extraordinario grade (Fase 3 D); teachers of the group or academic staff.",
@@ -19640,6 +20403,170 @@
         ]
       }
     },
+    "/class-groups/{class_group_id}/period-report": {
+      "get": {
+        "operationId": "period_report_class_groups__class_group_id__period_report_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "title": "Period Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Period Report",
+        "tags": [
+          "report cards"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/period-report.csv": {
+      "get": {
+        "operationId": "period_report_csv_class_groups__class_group_id__period_report_csv_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "title": "Period Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Period Report Csv",
+        "tags": [
+          "report cards"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/period-report.pdf": {
+      "get": {
+        "operationId": "period_report_pdf_class_groups__class_group_id__period_report_pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period_id",
+            "required": true,
+            "schema": {
+              "title": "Period Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Period Report Pdf",
+        "tags": [
+          "report cards"
+        ]
+      }
+    },
     "/class-groups/{class_group_id}/promotion": {
       "get": {
         "operationId": "promotion_class_groups__class_group_id__promotion_get",
@@ -19796,6 +20723,51 @@
         "summary": "Reinscribe Group",
         "tags": [
           "class groups"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/report-cards.pdf": {
+      "get": {
+        "operationId": "group_report_cards_class_groups__class_group_id__report_cards_pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Group Report Cards",
+        "tags": [
+          "report cards"
         ]
       }
     },
@@ -29449,6 +30421,57 @@
         ]
       }
     },
+    "/school-years/{school_year_id}/promotion-summary": {
+      "get": {
+        "operationId": "promotion_summary_school_years__school_year_id__promotion_summary_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_year_id",
+            "required": true,
+            "schema": {
+              "title": "School Year Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PromotionSummaryRow"
+                  },
+                  "title": "Response Promotion Summary School Years  School Year Id  Promotion Summary Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Promotion Summary",
+        "tags": [
+          "report cards"
+        ]
+      }
+    },
     "/sections/": {
       "get": {
         "operationId": "get_sections_sections__get",
@@ -30035,6 +31058,130 @@
         "summary": "Update Student",
         "tags": [
           "students"
+        ]
+      }
+    },
+    "/students/{student_id}/report-card": {
+      "get": {
+        "operationId": "report_card_students__student_id__report_card_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "school_year_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "School Year Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Report Card",
+        "tags": [
+          "report cards"
+        ]
+      }
+    },
+    "/students/{student_id}/report-card.pdf": {
+      "get": {
+        "operationId": "report_card_file_students__student_id__report_card_pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "school_year_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "School Year Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Report Card File",
+        "tags": [
+          "report cards"
         ]
       }
     },

@@ -84,7 +84,13 @@ Orden aprobado el 23/11/2026, por bloques: A (cimientos), B (año lectivo), C (g
    - **Mora y bloqueo:** recargo fijo o porcentual, una vez por cuota y solo sobre cargos, tras los días de gracia. Bloqueo automático por días de atraso y monto mínimo; se levanta al pagar o en el proceso diario solo si fue automático (`students.financial_hold_source`); los bloqueos puestos a mano no se tocan.
    - **Cajero y supervisor:** `finance.collect` (cobrar, revisar transferencias, «Mi caja de hoy») y `finance.supervise` (cargos, ajustes, reversos, planes de pago, cierre de caja, política y excepciones financieras de los grupos). Nadie reversa un pago que registró. `finance.manage` incluye ambos.
    - **Reportes** (`finance.view` o `reports.view`): morosidad por antigüedad (por grupo o programa, por cuenta con familia y bloqueo, CSV), ingresos por día, método o cajero (CSV) y esperado contra cobrado por mes con desglose por concepto. Los ingresos no se reparten por concepto porque los pagos no están ligados a un cargo concreto.
-6. **Boletines MINERD** y reportes por período.
+6. ✅ **Bloque F, 23/11/2026: boletines y reportes por período.** Migración `20261123_0060`, decisiones del 23/11.
+   - **Formato general de estilo MINERD** (no hay modelo oficial): una nota por materia y período (P1–P4), promedio anual, calificación completiva, extraordinaria y final, situación por materia, asistencia por período, observaciones del titular, situación final del año y espacio para firmas. **Pendiente:** el boletín oficial de secundaria califica por competencias específicas; replicarlo requiere el formato y evaluar por competencia en cada período. El diseño del PDF está aislado en `report_card_pdf` (`app/services/pdf_service.py`).
+   - **Visibilidad:** solo se muestran las notas de períodos con resultado final; los demás aparecen «En curso». Los datos salen del mismo cálculo que la promoción (`class_groups.subject_results`).
+   - **Datos del centro:** código, regional y distrito en Configuración › Institución, impresos en el encabezado.
+   - **Observaciones** del titular por estudiante y período (`report_card_comments`): las escribe el titular o quien tenga `grades.manage` con alcance académico, con bloqueo y auditoría.
+   - **API:** `GET /students/{id}/report-card` (JSON) y `.pdf` (estudiante, tutor con acceso académico, personal con alcance o docentes del grupo); `/class-groups/{id}/report-cards.pdf` (todo el grupo, una página por estudiante); `/class-groups/{id}/period-report` (cuadro del período: notas, promedio y % de aprobados por materia, estudiantes bajo la mínima y asistencia, también en CSV y PDF); `/school-years/{id}/promotion-summary` (promovidos, completivo, extraordinario, repitentes y pendientes por grupo). `/documents/students/{id}/report-card.pdf` usa el formato escolar si el estudiante tiene grupo.
+   - **Interfaz:** pestañas «Boletines» y «Cuadro del período» en el grupo; boletín visible en «Mi historial» del estudiante y en la pestaña de notas del portal del tutor.
 7. **Bloqueo académico por sección y período (B6)** cuando las invariantes escolares estén definidas.
 
 ### Fase 4: SaaS (L)
@@ -102,3 +108,4 @@ Landing page, demo pública, términos de uso, política de privacidad conforme 
 2. ✅ (21/11/2026) Si el estudiante ve sus finanzas lo decide cada institución (no en escuelas, sí en universidades).
 3. Correo: el código funciona con cualquier proveedor SMTP; se elige al desplegar (recomendación: Amazon SES o Brevo). Pendiente: proveedor de comprobantes fiscales.
 4. ✅ (23/11/2026) Nota mínima configurable por nivel mediante la escala de cada programa (70 por defecto), con completivo (50/50) y extraordinario (30/70) configurables; confirmar los pesos con la norma del MINERD.
+5. ✅ (23/11/2026) Boletín escolar con formato general de estilo MINERD mientras no se disponga del modelo oficial (que califica por competencias); las familias ven solo los períodos con resultado final.

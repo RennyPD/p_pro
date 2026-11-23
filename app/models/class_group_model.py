@@ -133,3 +133,17 @@ class RecoveryExam(Base):
     recorded_at: Mapped[datetime] = mapped_column(DateTime)
 
     member: Mapped[ClassGroupMember] = relationship()
+
+
+class ReportCardComment(Base):
+    """Homeroom teacher's remark on a member's report card for one period (Fase 3 F)."""
+
+    __tablename__ = "report_card_comments"
+    __table_args__ = (UniqueConstraint("member_id", "period_id", name="uq_report_card_comment"),)
+
+    report_card_comment_id: Mapped[int] = mapped_column(primary_key=True)
+    member_id: Mapped[int] = mapped_column(ForeignKey("class_group_members.member_id"), index=True)
+    period_id: Mapped[int] = mapped_column(ForeignKey("academic_periods.period_id"))
+    comment: Mapped[str] = mapped_column(Text)
+    author_id: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime)

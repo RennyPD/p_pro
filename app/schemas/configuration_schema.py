@@ -155,6 +155,9 @@ class InstitutionSettingsBase(BaseModel):
     max_credits_per_period: int = Field(default=24, ge=1, le=60)
     students_view_finance: bool = True
     institution_type: str = Field(default="university", pattern=r"^(university|school|both)$")
+    school_code: str = Field(default="", max_length=30)
+    regional: str = Field(default="", max_length=80)
+    district: str = Field(default="", max_length=80)
 
     @model_validator(mode="after")
     def clean_name(self):
@@ -168,6 +171,9 @@ class InstitutionSettingsUpdate(InstitutionSettingsBase):
     # Optional on update: an older client that omits it keeps the saved value.
     students_view_finance: bool | None = None
     institution_type: str | None = Field(default=None, pattern=r"^(university|school|both)$")
+    school_code: str | None = Field(default=None, max_length=30)
+    regional: str | None = Field(default=None, max_length=80)
+    district: str | None = Field(default=None, max_length=80)
     reason: str = Field(
         default="Actualización de configuración institucional", min_length=3, max_length=250
     )

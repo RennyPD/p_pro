@@ -70,6 +70,10 @@ class InstitutionSettings(Base):
     students_view_finance: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default=true()
     )
+    # MINERD identification printed on report cards (Fase 3 F).
+    school_code: Mapped[str] = mapped_column(String(30), default="", server_default="")
+    regional: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    district: Mapped[str] = mapped_column(String(80), default="", server_default="")
     revision: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 

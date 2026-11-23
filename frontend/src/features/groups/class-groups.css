@@ -182,3 +182,19 @@
 .groups-recovery:focus-visible {
   text-decoration: underline;
 }
+.groups-section-stack {
+  display: grid;
+  gap: 0.9rem;
+}
+.groups-student-pick {
+  min-width: 240px;
+}
+.groups-table tfoot th,
+.groups-table tfoot td {
+  font-weight: 600;
+}
+.groups-table td small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+}

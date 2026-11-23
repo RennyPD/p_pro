@@ -84,7 +84,13 @@ def enrollment_number(settings):
 
 def settings_out(settings):
     return InstitutionSettingsOut(
-        **{k: getattr(settings, k) for k in InstitutionSettingsBase.model_fields},
+        **{
+            # Unsaved settings have no column defaults yet: use the schema's.
+            k: getattr(settings, k)
+            if getattr(settings, k) is not None
+            else InstitutionSettingsBase.model_fields[k].default
+            for k in InstitutionSettingsBase.model_fields
+        },
         settings_id=settings.settings_id,
         next_enrollment_number=settings.next_enrollment_number,
         enrollment_preview=enrollment_number(settings),

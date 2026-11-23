@@ -18,6 +18,9 @@ type SettingsForm = {
   max_credits_per_period: number;
   students_view_finance: boolean;
   institution_type: string;
+  school_code: string;
+  regional: string;
+  district: string;
 };
 type Settings = SettingsForm & {
   settings_id: number;
@@ -40,6 +43,9 @@ const names: Record<string, string> = {
   max_credits_per_period: "Máximo de créditos",
   students_view_finance: "El estudiante ve sus finanzas",
   institution_type: "Tipo de institución",
+  school_code: "Código del centro",
+  regional: "Regional educativa",
+  district: "Distrito educativo",
 };
 const fields = (s: Settings): SettingsForm => ({
   institution_name: s.institution_name,
@@ -49,6 +55,9 @@ const fields = (s: Settings): SettingsForm => ({
   max_credits_per_period: s.max_credits_per_period,
   students_view_finance: s.students_view_finance ?? true,
   institution_type: s.institution_type ?? "university",
+  school_code: s.school_code ?? "",
+  regional: s.regional ?? "",
+  district: s.district ?? "",
 });
 export function InstitutionSettingsPage() {
   const uid = useAuthStore(s => s.user?.user_id);
@@ -216,6 +225,19 @@ export function InstitutionSettingsPage() {
               Al pasar a escuela, el estudiante deja de ver sus finanzas (sus tutores sí) salvo que
               lo actives abajo. Los programas deben tener un nivel acorde.
             </small>
+          </label>
+          <label className="form-field">
+            <span>Código del centro (MINERD)</span>
+            <input disabled={busy} maxLength={30} {...register("school_code")} />
+          </label>
+          <label className="form-field">
+            <span>Regional educativa</span>
+            <input disabled={busy} maxLength={80} {...register("regional")} />
+          </label>
+          <label className="form-field">
+            <span>Distrito educativo</span>
+            <input disabled={busy} maxLength={80} {...register("district")} />
+            <small>Aparecen en el encabezado de los boletines.</small>
           </label>
           <label className="settings-toggle settings-wide">
             <input disabled={busy} type="checkbox" {...register("students_view_finance")} />
