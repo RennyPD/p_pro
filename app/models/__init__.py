@@ -2,7 +2,7 @@ from .access_model import Permission, RolePermission
 from .assessment_model import Assessment, AssessmentTemplate
 from .attendance_model import Attendance, AttendanceChange
 from .career_model import Career
-from .class_group_model import ClassGroup, ClassGroupMember, ClassGroupSubject
+from .class_group_model import ClassGroup, ClassGroupMember, ClassGroupSubject, RecoveryExam
 from .community_model import Announcement, Guardian, Notification, StudentGuardian
 from .configuration_model import AcademicPeriod, InstitutionSettings, SchoolYear, WriteLock
 from .curriculum_model import CurriculumCourse
@@ -26,6 +26,7 @@ from .finance_model import (
 )
 from .governance_model import CourseEquivalence, StudentCareerHistory
 from .grade_model import Grade, GradeChange
+from .grading_scale_model import GradingScale, GradingScaleBand
 from .operations_model import (
     AdmissionApplication,
     AlertIntervention,

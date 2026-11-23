@@ -30,6 +30,7 @@ from app.routers.enrollment_router import router as enrollment_router
 from app.routers.finance_router import router as finance_router
 from app.routers.governance_router import router as governance_router
 from app.routers.grade_router import router as grade_router
+from app.routers.grading_scale_router import router as grading_scale_router
 from app.routers.guardian_router import router as guardian_router
 from app.routers.module_router import router as module_router
 from app.routers.operations_router import router as operations_router
@@ -130,6 +131,7 @@ app.include_router(career_router)
 app.include_router(configuration_router)
 app.include_router(school_year_router)
 app.include_router(class_group_router)
+app.include_router(grading_scale_router)
 app.include_router(community_router)
 app.include_router(curriculum_router)
 app.include_router(dashboard_router)

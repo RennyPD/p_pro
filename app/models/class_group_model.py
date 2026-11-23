@@ -8,14 +8,25 @@ teacher scope and the guardian portal keep working unchanged.
 """
 
 from datetime import date, datetime
+from decimal import Decimal
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
 
 MEMBER_STATUSES = ("enrolled", "withdrawn", "transferred")
-RESULTS = ("pending", "promoted", "completivo", "repeated")
+RESULTS = ("pending", "promoted", "completivo", "extraordinario", "repeated")
 
 
 class ClassGroup(Base):
@@ -98,3 +109,27 @@ class ClassGroupMember(Base):
 
     class_group: Mapped[ClassGroup] = relationship(back_populates="members")
     student: Mapped["Student"] = relationship(lazy="selectin")
+
+
+class RecoveryExam(Base):
+    """Completivo or extraordinario exam of one subject for one member (Fase 3 D).
+
+    The final grade mixes the annual average and the exam with the weights of
+    the program's grading scale (by default 50/50 and 30/70).
+    """
+
+    __tablename__ = "recovery_exams"
+    __table_args__ = (UniqueConstraint("member_id", "subject_id", "kind", name="uq_recovery_exam"),)
+
+    recovery_exam_id: Mapped[int] = mapped_column(primary_key=True)
+    member_id: Mapped[int] = mapped_column(ForeignKey("class_group_members.member_id"), index=True)
+    subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.subject_id"))
+    kind: Mapped[str] = mapped_column(String(20))  # completivo | extraordinario
+    annual_average: Mapped[Decimal] = mapped_column(Numeric(5, 2))
+    exam_grade: Mapped[Decimal] = mapped_column(Numeric(5, 2))
+    final_grade: Mapped[Decimal] = mapped_column(Numeric(5, 2))
+    passed: Mapped[bool] = mapped_column(Boolean)
+    recorded_by: Mapped[int | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime)
+
+    member: Mapped[ClassGroupMember] = relationship()

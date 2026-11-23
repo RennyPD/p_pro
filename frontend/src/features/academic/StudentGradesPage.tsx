@@ -5,6 +5,7 @@ import { Badge, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./assessments.css";
+import { gradeText } from "../../lib/grades";
 
 type Course = {
   enrollment_id: number;
@@ -14,6 +15,7 @@ type Course = {
   period: string;
   state: string;
   average_grade: number | null;
+  average_label?: string | null;
   result_final: boolean;
   result_status: string;
   completed_weight: number;
@@ -96,7 +98,7 @@ export function StudentGradesPage() {
                   <h2>{course.subject_name}</h2>
                 </div>
                 <div className={`student-grade__score student-grade__score--${tone}`}>
-                  <strong>{course.average_grade ?? "—"}</strong>
+                  <strong>{gradeText(course.average_grade, course.average_label)}</strong>
                   <Badge tone={tone}>{states[course.result_status] ?? "Provisional"}</Badge>
                 </div>
               </header>

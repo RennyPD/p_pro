@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.schemas.academic_schema import AttendanceCourseSummary, ScheduleBlock
 from app.schemas.finance_schema import Amount, Money, Reference, StudentFinanceSummary
+from app.schemas.grading_scale_schema import ScaleBrief
 
 
 class GuardianAttendance(BaseModel):
@@ -25,6 +26,7 @@ class GuardianAssessment(BaseModel):
     due_date: date | None
     grade_value: float | None
     contribution: float | None
+    grade_label: str | None = None
 
 
 class GuardianCourseGrades(BaseModel):
@@ -39,12 +41,14 @@ class GuardianCourseGrades(BaseModel):
     completed_weight: float
     configured_weight: float
     assessments: list[GuardianAssessment]
+    result_label: str | None = None
 
 
 class GuardianGrades(BaseModel):
     student_id: int
     period: str | None
     courses: list[GuardianCourseGrades]
+    grading_scale: ScaleBrief | None = None
 
 
 class GuardianTask(BaseModel):

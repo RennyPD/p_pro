@@ -167,3 +167,18 @@
   letter-spacing: 0;
   text-transform: none;
 }
+.groups-recovery {
+  display: block;
+  margin-top: 0.25rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.groups-recovery:hover,
+.groups-recovery:focus-visible {
+  text-decoration: underline;
+}

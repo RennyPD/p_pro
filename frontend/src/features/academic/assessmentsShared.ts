@@ -22,8 +22,15 @@ export type Student = {
   last_name: string;
   enrollment_number: string;
   grades: Grade[];
+  grading_scale_id?: number | null;
 };
-export type Workspace = { roster: Student[]; subject_id: number; period_name: string };
+export type Scale = ApiSchema<"ScaleBrief">;
+export type Workspace = {
+  roster: Student[];
+  subject_id: number;
+  period_name: string;
+  grading_scales?: Scale[];
+};
 export type Final = {
   enrollment_id: number;
   weighted_grade: number;

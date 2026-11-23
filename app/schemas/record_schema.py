@@ -22,6 +22,7 @@ class TranscriptCourse(BaseModel):
     average: float | None
     result: str
     attempts: int
+    average_label: str | None = None
 
 
 class AcademicTranscript(BaseModel):
@@ -42,3 +43,6 @@ class AcademicTranscript(BaseModel):
     academic_standing: str
     periods: list[PeriodRecord]
     courses: list[TranscriptCourse]
+    grading_scale_name: str | None = None
+    # Credit-weighted index (0–4 with letter scales); None without band points.
+    academic_index: float | None = None

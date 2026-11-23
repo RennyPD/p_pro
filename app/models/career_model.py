@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, Text
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -31,5 +31,11 @@ class Career(Base):
     professional_fields: Mapped[str | None] = mapped_column(Text, nullable=True)
     admission_requirements: Mapped[str | None] = mapped_column(Text, nullable=True)
     graduation_requirements: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # None: the institution's default scale (Fase 3 D).
+    grading_scale_id: Mapped[int | None] = mapped_column(
+        ForeignKey("grading_scales.grading_scale_id"), nullable=True, index=True
+    )
+    grading_scale: Mapped["GradingScale | None"] = relationship(lazy="selectin")
 
     students: Mapped[list["Student"]] = relationship("Student", back_populates="career")

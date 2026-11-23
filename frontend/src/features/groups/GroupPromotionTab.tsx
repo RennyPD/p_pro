@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Send } from "lucide-react";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { Button, Spinner } from "../../components/ui";
+import { Button, Modal, Spinner } from "../../components/ui";
 import { Chip } from "../../components/visual";
 import { api, apiMessage } from "../../lib/api";
+import { gradeText } from "../../lib/grades";
 import { useAccess } from "../../lib/permissions";
 import {
   groupKey,
@@ -15,7 +16,15 @@ import {
   type Reinscription,
 } from "./groupsData";
 
-const choices = ["promoted", "completivo", "repeated"] as const;
+const choices = ["promoted", "completivo", "extraordinario", "repeated"] as const;
+
+type Recovery = {
+  memberId: number;
+  student: string;
+  subjectId: number;
+  subject: string;
+  kind: string;
+};
 
 /**
  * Year-end: the system proposes a result from the annual average of each
@@ -23,7 +32,10 @@ const choices = ["promoted", "completivo", "repeated"] as const;
  */
 export function GroupPromotionTab({ group }: { group: ClassGroupDetail }) {
   const client = useQueryClient();
-  const canOverride = useAccess().can("finance.manage");
+  const access = useAccess();
+  const canOverride = access.can("finance.manage");
+  const canGrade = access.can("grades.manage");
+  const [recovery, setRecovery] = useState<Recovery | null>(null);
   const key = [...groupKey(group.class_group_id), "promotion"];
   const proposal = useQuery({
     queryKey: key,
@@ -86,8 +98,11 @@ export function GroupPromotionTab({ group }: { group: ClassGroupDetail }) {
           <div>
             <h2>Promoción</h2>
             <p className="muted">
-              Promedio anual de cada materia frente a la nota mínima ({data.passing_grade}). Revisa
-              la propuesta y confirma el resultado de cada estudiante.
+              Promedio anual de cada materia frente a la nota mínima ({data.passing_grade},{" "}
+              {data.scale_name}). Completivo: {data.completivo_average_weight} % promedio +{" "}
+              {100 - data.completivo_average_weight} % examen; extraordinario:{" "}
+              {data.extraordinario_average_weight} % + {100 - data.extraordinario_average_weight} %.
+              Revisa la propuesta y confirma el resultado de cada estudiante.
             </p>
           </div>
           <Button
@@ -127,8 +142,34 @@ export function GroupPromotionTab({ group }: { group: ClassGroupDetail }) {
                         key={subject.subject_id}
                         className={subject.passed === false ? "is-low" : undefined}
                       >
-                        {subject.average ?? "—"}
+                        {gradeText(subject.average, subject.average_label, true)}
                         {!subject.complete && <small>incompleta</small>}
+                        {subject.completivo !== null && subject.completivo !== undefined && (
+                          <small>Completivo {subject.completivo}</small>
+                        )}
+                        {subject.extraordinario !== null &&
+                          subject.extraordinario !== undefined && (
+                            <small>Extraordinario {subject.extraordinario}</small>
+                          )}
+                        {canGrade &&
+                          (subject.status === "completivo" ||
+                            subject.status === "extraordinario") && (
+                            <button
+                              type="button"
+                              className="groups-recovery"
+                              onClick={() =>
+                                setRecovery({
+                                  memberId: row.member_id,
+                                  student: row.student_name,
+                                  subjectId: subject.subject_id,
+                                  subject: subject.name,
+                                  kind: subject.status,
+                                })
+                              }
+                            >
+                              Registrar {subject.status}
+                            </button>
+                          )}
                       </td>
                     ))}
                     <td>
@@ -218,6 +259,85 @@ export function GroupPromotionTab({ group }: { group: ClassGroupDetail }) {
           </div>
         )}
       </section>
+      {recovery && (
+        <RecoveryDialog
+          groupId={group.class_group_id}
+          recovery={recovery}
+          onClose={() => setRecovery(null)}
+          onSaved={proposal => client.setQueryData(key, proposal)}
+        />
+      )}
     </>
+  );
+}
+
+function RecoveryDialog({
+  groupId,
+  recovery,
+  onClose,
+  onSaved,
+}: {
+  groupId: number;
+  recovery: Recovery;
+  onClose: () => void;
+  onSaved: (proposal: Promotion) => void;
+}) {
+  const [grade, setGrade] = useState("");
+  const [failure, setFailure] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: () =>
+      api.post<Promotion>(`/class-groups/${groupId}/members/${recovery.memberId}/recovery`, {
+        subject_id: recovery.subjectId,
+        kind: recovery.kind,
+        exam_grade: Number(grade),
+      }),
+    onSuccess: response => {
+      onSaved(response.data);
+      toast.success(`Examen ${recovery.kind} registrado`);
+      onClose();
+    },
+    onError: error => setFailure(apiMessage(error)),
+  });
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    save.mutate();
+  };
+  return (
+    <Modal
+      title={`Examen ${recovery.kind}`}
+      description={`${recovery.student} · ${recovery.subject}`}
+      onClose={onClose}
+    >
+      <form className="groups-form" onSubmit={submit}>
+        <label className="form-field">
+          <span>Nota del examen (0–100)</span>
+          <input
+            required
+            type="number"
+            min={0}
+            max={100}
+            step="0.01"
+            value={grade}
+            onChange={event => setGrade(event.target.value)}
+          />
+        </label>
+        <p className="muted">
+          La calificación final combina el promedio anual y el examen con los pesos de la escala.
+        </p>
+        {failure && (
+          <p className="form-error" role="alert">
+            {failure}
+          </p>
+        )}
+        <div className="form-actions">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={save.isPending || grade === ""}>
+            Guardar
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

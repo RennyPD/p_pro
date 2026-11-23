@@ -5,6 +5,7 @@ import type { ApiSchema } from "../../lib/apiTypes";
 import { formatDate } from "../../lib/format";
 import { Loaded } from "./guardianShared";
 import { useGuardianDetail } from "./guardianData";
+import { gradeText } from "../../lib/grades";
 
 type Grades = ApiSchema<"GuardianGrades">;
 
@@ -29,7 +30,9 @@ export function GuardianGrades({ studentId }: { studentId: number }) {
                       </small>
                     </div>
                     <div className="guardian-result">
-                      <span className="guardian-figure">{course.result ?? "—"}</span>
+                      <span className="guardian-figure">
+                        {gradeText(course.result, course.result_label)}
+                      </span>
                       <Badge tone={resultTone(course.result_status)}>
                         {resultLabel(course.result_status)}
                       </Badge>
@@ -55,7 +58,11 @@ export function GuardianGrades({ studentId }: { studentId: number }) {
                             <small> · {assessment.weight}%</small>
                           )}
                         </span>
-                        <b>{assessment.grade_value ?? "Pendiente"}</b>
+                        <b>
+                          {assessment.grade_value === null || assessment.grade_value === undefined
+                            ? "Pendiente"
+                            : gradeText(assessment.grade_value, assessment.grade_label)}
+                        </b>
                         {assessment.due_date && <small>{formatDate(assessment.due_date)}</small>}
                       </li>
                     ))}

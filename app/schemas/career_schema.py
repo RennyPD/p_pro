@@ -15,6 +15,8 @@ class CareerInstitutionalFields(BaseModel):
     professional_fields: str | None = Field(default=None, max_length=4000)
     admission_requirements: str | None = Field(default=None, max_length=4000)
     graduation_requirements: str | None = Field(default=None, max_length=4000)
+    # None: the institution's default grading scale (Fase 3 D).
+    grading_scale_id: int | None = None
 
 
 class CareerBase(CareerInstitutionalFields):

@@ -6,7 +6,7 @@ import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import { AssessmentsPage } from "./AssessmentsPage";
 
-function setup() {
+function setup(conceptual = false) {
   useAuthStore.setState({
     user: {
       user_id: 1,
@@ -55,8 +55,24 @@ function setup() {
             last_name: "Demo",
             enrollment_number: "EST-6",
             grades: [],
+            grading_scale_id: conceptual ? 9 : null,
           },
         ],
+        grading_scales: conceptual
+          ? [
+              {
+                grading_scale_id: 9,
+                name: "Conceptual",
+                kind: "conceptual",
+                passing_value: 65,
+                bands: [
+                  { label: "Iniciado", min_value: 0, stored_value: 50 },
+                  { label: "En proceso", min_value: 65, stored_value: 75 },
+                  { label: "Logrado", min_value: 85, stored_value: 95 },
+                ],
+              },
+            ]
+          : [],
       },
       "/assessments/sections/1/finals": [
         {
@@ -122,6 +138,28 @@ describe("Assessment workflow", () => {
       ),
     );
   });
+  it("captures conceptual grades by band and stores the band's value", async () => {
+    const { post } = setup(true);
+    const pick = await screen.findByRole("combobox", {
+      name: "Parcial de Eva Demo, matrícula EST-6",
+    });
+    expect(
+      screen.getByRole("spinbutton", { name: "Parcial de Luis Demo, matrícula EST-5" }),
+    ).toBeInTheDocument();
+    fireEvent.change(pick, { target: { value: "95" } });
+    fireEvent.change(
+      screen.getByPlaceholderText("Ej. Revisión del examen y corrección del puntaje"),
+      { target: { value: "Primera observación" } },
+    );
+    fireEvent.click(screen.getAllByRole("button", { name: "Guardar borrador" })[0]);
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(
+        "/grades/bulk",
+        expect.objectContaining({ records: [{ enrollment_id: 6, grade_value: 95 }] }),
+      ),
+    );
+  });
+
   it("sends redistribution as one operation instead of changing percentages individually", async () => {
     const { patch } = setup();
     await screen.findByRole("spinbutton", { name: "Parcial de Luis Demo, matrícula EST-5" });

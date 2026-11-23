@@ -1140,6 +1140,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/class-groups/{class_group_id}/members/{member_id}/recovery": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Record Recovery Exam
+     * @description Completivo or extraordinario grade (Fase 3 D); teachers of the group or academic staff.
+     */
+    post: operations["record_recovery_exam_class_groups__class_group_id__members__member_id__recovery_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/class-groups/{class_group_id}/members/{member_id}/transfer": {
     parameters: {
       query?: never;
@@ -2389,6 +2409,96 @@ export interface paths {
     };
     /** Grade History */
     get: operations["grade_history_grades__grade_id__history_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/grading-scales/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Scales */
+    get: operations["list_scales_grading_scales__get"];
+    put?: never;
+    /** Create Scale */
+    post: operations["create_scale_grading_scales__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/grading-scales/presets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Scale Presets */
+    get: operations["scale_presets_grading_scales_presets_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/grading-scales/{scale_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Update Scale
+     * @description Existing selections keep the passing grade they were created with.
+     */
+    put: operations["update_scale_grading_scales__scale_id__put"];
+    post?: never;
+    /** Delete Scale */
+    delete: operations["delete_scale_grading_scales__scale_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/grading-scales/{scale_id}/default": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Make Default */
+    post: operations["make_default_grading_scales__scale_id__default_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/grading-scales/{scale_id}/history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Scale History */
+    get: operations["scale_history_grading_scales__scale_id__history_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -3985,6 +4095,8 @@ export interface components {
     };
     /** AcademicTranscript */
     AcademicTranscript: {
+      /** Academic Index */
+      academic_index?: number | null;
       /** Academic Standing */
       academic_standing: string;
       /** Attempted Credits */
@@ -4009,6 +4121,8 @@ export interface components {
        * @default 0
        */
       final_result_count: number;
+      /** Grading Scale Name */
+      grading_scale_name?: string | null;
       /** Periods */
       periods: components["schemas"]["PeriodRecord"][];
       /** Provisional Average */
@@ -4651,6 +4765,62 @@ export interface components {
       /** User Id */
       user_id: number | null;
     };
+    /** BandBrief */
+    BandBrief: {
+      /** Label */
+      label: string;
+      /** Min Value */
+      min_value: number;
+      /** Points */
+      points?: number | null;
+      /** Stored Value */
+      stored_value: number;
+    };
+    /** BandIn */
+    "BandIn-Input": {
+      /** Description */
+      description?: string | null;
+      /** Label */
+      label: string;
+      /** Max Value */
+      max_value: number | string;
+      /** Min Value */
+      min_value: number | string;
+      /** Points */
+      points?: number | string | null;
+      /** Stored Value */
+      stored_value: number | string;
+    };
+    /** BandIn */
+    "BandIn-Output": {
+      /** Description */
+      description?: string | null;
+      /** Label */
+      label: string;
+      /** Max Value */
+      max_value: string;
+      /** Min Value */
+      min_value: string;
+      /** Points */
+      points?: string | null;
+      /** Stored Value */
+      stored_value: string;
+    };
+    /** BandOut */
+    BandOut: {
+      /** Description */
+      description?: string | null;
+      /** Label */
+      label: string;
+      /** Max Value */
+      max_value: number;
+      /** Min Value */
+      min_value: number;
+      /** Points */
+      points?: number | null;
+      /** Stored Value */
+      stored_value: number;
+    };
     /** BillingConceptCreate */
     BillingConceptCreate: {
       /**
@@ -5010,6 +5180,8 @@ export interface components {
       duration_terms: number;
       /** Faculty */
       faculty?: string | null;
+      /** Grading Scale Id */
+      grading_scale_id?: number | null;
       /** Graduate Profile */
       graduate_profile?: string | null;
       /** Graduation Requirements */
@@ -5112,6 +5284,8 @@ export interface components {
       duration_terms: number;
       /** Faculty */
       faculty?: string | null;
+      /** Grading Scale Id */
+      grading_scale_id?: number | null;
       /** Graduate Profile */
       graduate_profile?: string | null;
       /** Graduation Requirements */
@@ -5171,6 +5345,8 @@ export interface components {
       duration_terms?: number | null;
       /** Faculty */
       faculty?: string | null;
+      /** Grading Scale Id */
+      grading_scale_id?: number | null;
       /** Graduate Profile */
       graduate_profile?: string | null;
       /** Graduation Requirements */
@@ -6250,6 +6426,8 @@ export interface components {
       enrollment_id: number;
       /** Grade Id */
       grade_id: number;
+      /** Grade Label */
+      grade_label?: string | null;
       /** Grade Type */
       grade_type: string;
       /** Grade Value */
@@ -6300,6 +6478,90 @@ export interface components {
       reason: string;
       /** Status */
       status?: string | null;
+    };
+    /** GradingScaleIn */
+    "GradingScaleIn-Input": {
+      /** Bands */
+      bands?: components["schemas"]["BandIn-Input"][];
+      /**
+       * Completivo Average Weight
+       * @default 50
+       */
+      completivo_average_weight: number | string;
+      /**
+       * Decimals
+       * @default 0
+       */
+      decimals: number;
+      /**
+       * Extraordinario Average Weight
+       * @default 30
+       */
+      extraordinario_average_weight: number | string;
+      /** Kind */
+      kind: string;
+      /** Name */
+      name: string;
+      /** Passing Value */
+      passing_value: number | string;
+    };
+    /** GradingScaleIn */
+    "GradingScaleIn-Output": {
+      /** Bands */
+      bands?: components["schemas"]["BandIn-Output"][];
+      /**
+       * Completivo Average Weight
+       * @default 50
+       */
+      completivo_average_weight: string;
+      /**
+       * Decimals
+       * @default 0
+       */
+      decimals: number;
+      /**
+       * Extraordinario Average Weight
+       * @default 30
+       */
+      extraordinario_average_weight: string;
+      /** Kind */
+      kind: string;
+      /** Name */
+      name: string;
+      /** Passing Value */
+      passing_value: string;
+    };
+    /** GradingScaleOut */
+    GradingScaleOut: {
+      /** Bands */
+      bands: components["schemas"]["BandOut"][];
+      /** Completivo Average Weight */
+      completivo_average_weight: number;
+      /** Decimals */
+      decimals: number;
+      /** Extraordinario Average Weight */
+      extraordinario_average_weight: number;
+      /** Grading Scale Id */
+      grading_scale_id: number;
+      /** Is Default */
+      is_default: boolean;
+      /** Kind */
+      kind: string;
+      /** Name */
+      name: string;
+      /** Passing Value */
+      passing_value: number;
+      /**
+       * Program Count
+       * @default 0
+       */
+      program_count: number;
+    };
+    /** GradingScalePreset */
+    GradingScalePreset: {
+      /** Key */
+      key: string;
+      scale: components["schemas"]["GradingScaleIn-Output"];
     };
     /** GraduationAudit */
     GraduationAudit: {
@@ -6374,6 +6636,8 @@ export interface components {
       contribution: number | null;
       /** Due Date */
       due_date: string | null;
+      /** Grade Label */
+      grade_label?: string | null;
       /** Grade Value */
       grade_value: number | null;
       /** Name */
@@ -6414,6 +6678,8 @@ export interface components {
       final: boolean;
       /** Result */
       result: number | null;
+      /** Result Label */
+      result_label?: string | null;
       /** Result Status */
       result_status: string;
       /** Section Code */
@@ -6487,6 +6753,7 @@ export interface components {
     GuardianGrades: {
       /** Courses */
       courses: components["schemas"]["GuardianCourseGrades"][];
+      grading_scale?: components["schemas"]["ScaleBrief"] | null;
       /** Period */
       period: string | null;
       /** Student Id */
@@ -7113,12 +7380,18 @@ export interface components {
     PromotionProposal: {
       /** Class Group Id */
       class_group_id: number;
+      /** Completivo Average Weight */
+      completivo_average_weight: number;
+      /** Extraordinario Average Weight */
+      extraordinario_average_weight: number;
       /** Members */
       members: components["schemas"]["PromotionRow"][];
       /** Passing Grade */
       passing_grade: number;
       /** Periods */
       periods: string[];
+      /** Scale Name */
+      scale_name: string;
     };
     /** PromotionRow */
     PromotionRow: {
@@ -7142,6 +7415,15 @@ export interface components {
       student_name: string;
       /** Subjects */
       subjects: components["schemas"]["SubjectResultOut"][];
+    };
+    /** RecoveryIn */
+    RecoveryIn: {
+      /** Exam Grade */
+      exam_grade: number | string;
+      /** Kind */
+      kind: string;
+      /** Subject Id */
+      subject_id: number;
     };
     /** ReinscriptionIn */
     ReinscriptionIn: {
@@ -7272,6 +7554,8 @@ export interface components {
       date_recorded: string;
       /** Grade Id */
       grade_id: number;
+      /** Grade Label */
+      grade_label?: string | null;
       /** Grade Type */
       grade_type: string;
       /** Grade Value */
@@ -7281,6 +7565,30 @@ export interface components {
        * @default published
        */
       status: string;
+    };
+    /**
+     * ScaleBrief
+     * @description What a screen needs to show and capture grades on a scale.
+     */
+    ScaleBrief: {
+      /**
+       * Bands
+       * @default []
+       */
+      bands: components["schemas"]["BandBrief"][];
+      /**
+       * Decimals
+       * @default 0
+       */
+      decimals: number;
+      /** Grading Scale Id */
+      grading_scale_id: number | null;
+      /** Kind */
+      kind: string;
+      /** Name */
+      name: string;
+      /** Passing Value */
+      passing_value: number;
     };
     /** ScheduleBlock */
     ScheduleBlock: {
@@ -7606,6 +7914,8 @@ export interface components {
       attendances: components["schemas"]["RosterAttendanceItem"][];
       /** Average Grade */
       average_grade: number | null;
+      /** Average Label */
+      average_label?: string | null;
       /**
        * Calculation Mode
        * @default weighted
@@ -7626,6 +7936,8 @@ export interface components {
       first_name: string;
       /** Grades */
       grades: components["schemas"]["RosterGradeItem"][];
+      /** Grading Scale Id */
+      grading_scale_id?: number | null;
       /** Last Name */
       last_name: string;
       /** Period */
@@ -7709,6 +8021,11 @@ export interface components {
        * Format: time
        */
       end_time: string;
+      /**
+       * Grading Scales
+       * @default []
+       */
+      grading_scales: components["schemas"]["ScaleBrief"][];
       /**
        * Period Name
        * @default
@@ -7807,6 +8124,8 @@ export interface components {
        * @default false
        */
       academic_hold: boolean;
+      /** Academic Index */
+      academic_index?: number | null;
       /** Active */
       active: boolean;
       /** Address */
@@ -7847,6 +8166,7 @@ export interface components {
       financial_hold: boolean;
       /** First Name */
       first_name: string;
+      grading_scale?: components["schemas"]["ScaleBrief"] | null;
       /** Last Name */
       last_name: string;
       /** Nationality */
@@ -7961,6 +8281,8 @@ export interface components {
       attendance_percentage: number | null;
       /** Average Grade */
       average_grade: number | null;
+      /** Average Label */
+      average_label?: string | null;
       /**
        * Calculation Mode
        * @default weighted
@@ -8266,16 +8588,24 @@ export interface components {
     SubjectResultOut: {
       /** Average */
       average: number | null;
+      /** Average Label */
+      average_label?: string | null;
       /** Code */
       code: string;
       /** Complete */
       complete: boolean;
+      /** Completivo */
+      completivo?: number | null;
+      /** Extraordinario */
+      extraordinario?: number | null;
       /** Name */
       name: string;
       /** Passed */
       passed: boolean | null;
       /** Periods */
       periods: (number | null)[];
+      /** Status */
+      status: string;
       /** Subject Id */
       subject_id: number;
     };
@@ -8566,6 +8896,8 @@ export interface components {
       attempts: number;
       /** Average */
       average: number | null;
+      /** Average Label */
+      average_label?: string | null;
       /** Credits */
       credits: number | null;
       /** Curriculum Version */
@@ -11250,6 +11582,42 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ClassGroupDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  record_recovery_exam_class_groups__class_group_id__members__member_id__recovery_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+        member_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RecoveryIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PromotionProposal"];
         };
       };
       /** @description Validation Error */
@@ -14174,6 +14542,207 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["GradeChangeOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_scales_grading_scales__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GradingScaleOut"][];
+        };
+      };
+    };
+  };
+  create_scale_grading_scales__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GradingScaleIn-Input"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GradingScaleOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  scale_presets_grading_scales_presets_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GradingScalePreset"][];
+        };
+      };
+    };
+  };
+  update_scale_grading_scales__scale_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scale_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GradingScaleIn-Input"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GradingScaleOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_scale_grading_scales__scale_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scale_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  make_default_grading_scales__scale_id__default_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scale_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GradingScaleOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  scale_history_grading_scales__scale_id__history_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        scale_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

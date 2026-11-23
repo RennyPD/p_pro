@@ -3,6 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.career_model import Career
+from app.models.grading_scale_model import GradingScale
 from app.repositories.career_repository import (
     create_career,
     delete_career,
@@ -29,8 +30,14 @@ def ensure_level_fits(db: Session, level: str | None) -> None:
         raise HTTPException(422, message)
 
 
+def ensure_scale_exists(db: Session, scale_id: int | None) -> None:
+    if scale_id is not None and db.get(GradingScale, scale_id) is None:
+        raise HTTPException(422, "La escala de calificación no existe")
+
+
 def create_career_service(db: Session, data: CareerCreate, actor):
     ensure_level_fits(db, data.academic_level)
+    ensure_scale_exists(db, data.grading_scale_id)
     if not data.code:
         highest_id = db.query(func.max(Career.career_id)).scalar() or 0
         data = data.model_copy(update={"code": f"CAR-{highest_id + 1:03d}"})
@@ -57,6 +64,7 @@ def get_career_service(db: Session, career_id: int):
 def update_career_service(db: Session, career_id: int, data: CareerUpdate, actor):
     lock_governance(db)
     ensure_level_fits(db, data.academic_level)
+    ensure_scale_exists(db, data.grading_scale_id)
     fields = sorted(data.model_fields_set)
     before = snapshot(get_career_service(db, career_id), fields)
     career = update_career(db, career_id, data)

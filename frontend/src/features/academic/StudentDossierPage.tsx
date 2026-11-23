@@ -34,6 +34,7 @@ import { studentConfig } from "./student-config";
 import "./academic-pages.css";
 import "./students.css";
 import { useAccess } from "../../lib/permissions";
+import { gradeText } from "../../lib/grades";
 
 type Enrollment = {
   enrollment_id: number;
@@ -44,6 +45,7 @@ type Enrollment = {
   period: string;
   state: string;
   average_grade: number | null;
+  average_label?: string | null;
   result_final?: boolean;
   result_status?: string;
   attendance_percentage: number | null;
@@ -76,6 +78,8 @@ type Dossier = {
   provisional_result_count?: number;
   overall_attendance: number | null;
   enrollments: Enrollment[];
+  academic_index?: number | null;
+  grading_scale?: { name: string } | null;
 };
 type Transcript = {
   cumulative_average: number;
@@ -228,7 +232,16 @@ export function StudentDossierPage() {
           }
           icon={<ShieldCheck />}
         />
-        <Metric label="Asignaturas activas" value={activeCourses} icon={<GraduationCap />} />
+        {student.academic_index !== null && student.academic_index !== undefined ? (
+          <Metric
+            label="Índice académico"
+            value={student.academic_index.toFixed(2)}
+            note={`Ponderado por créditos · ${student.grading_scale?.name ?? ""}`}
+            icon={<GraduationCap />}
+          />
+        ) : (
+          <Metric label="Asignaturas activas" value={activeCourses} icon={<GraduationCap />} />
+        )}
         <Metric
           label="Períodos en el historial"
           value={new Set(student.enrollments.map(item => item.period)).size}
@@ -472,7 +485,7 @@ export function StudentDossierPage() {
                         <span className="muted">Sin notas</span>
                       ) : (
                         <span className="dossier-result">
-                          <b>{item.average_grade}</b>
+                          <b>{gradeText(item.average_grade, item.average_label, true)}</b>
                           <Badge
                             tone={resultTone(
                               item.result_final ? item.result_status : "in_progress",

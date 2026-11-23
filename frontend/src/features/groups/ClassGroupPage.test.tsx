@@ -62,6 +62,9 @@ const group = {
 const promotion = {
   class_group_id: 7,
   passing_grade: 70,
+  scale_name: "Numérica 0–100",
+  completivo_average_weight: 50,
+  extraordinario_average_weight: 30,
   periods: ["Período 1"],
   members: [
     {
@@ -76,8 +79,12 @@ const promotion = {
           name: "Matemática 1",
           periods: [62],
           average: 62,
+          average_label: "62",
           complete: true,
           passed: false,
+          status: "completivo",
+          completivo: null,
+          extraordinario: null,
         },
       ],
       failed: ["MAT1"],
@@ -132,7 +139,7 @@ describe("ClassGroupPage", () => {
     await userEvent.click(await screen.findByRole("tab", { name: /Promoción/ }));
     const table = await screen.findByRole("table");
     expect(within(table).getByText("Completivo", { selector: ".vs-chip" })).toBeInTheDocument();
-    expect(within(table).getByText("62")).toHaveClass("is-low");
+    expect(within(table).getByText("62").closest("td")).toHaveClass("is-low");
     const confirm = screen.getByRole("button", { name: /Confirmar resultados/ });
     expect(confirm).toBeDisabled();
     await userEvent.selectOptions(
@@ -143,6 +150,24 @@ describe("ClassGroupPage", () => {
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith("/class-groups/7/promotion", {
         decisions: [{ member_id: 11, result: "repeated" }],
+      }),
+    );
+  });
+
+  it("records a completivo exam from the promotion table", async () => {
+    mockGet();
+    const post = vi.spyOn(api, "post").mockResolvedValue({ data: promotion });
+    renderPage();
+    await userEvent.click(await screen.findByRole("tab", { name: /Promoción/ }));
+    await userEvent.click(await screen.findByRole("button", { name: "Registrar completivo" }));
+    const dialog = screen.getByRole("dialog");
+    await userEvent.type(within(dialog).getByLabelText(/Nota del examen/), "78");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Guardar" }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith("/class-groups/7/members/11/recovery", {
+        subject_id: 3,
+        kind: "completivo",
+        exam_grade: 78,
       }),
     );
   });

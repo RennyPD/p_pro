@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -100,8 +101,12 @@ class SubjectResultOut(BaseModel):
     name: str
     periods: list[float | None]
     average: float | None
+    average_label: str | None = None
     complete: bool
     passed: bool | None
+    status: str
+    completivo: float | None = None
+    extraordinario: float | None = None
 
 
 class PromotionRow(BaseModel):
@@ -120,18 +125,27 @@ class PromotionRow(BaseModel):
 class PromotionProposal(BaseModel):
     class_group_id: int
     passing_grade: float
+    scale_name: str
+    completivo_average_weight: float
+    extraordinario_average_weight: float
     periods: list[str]
     members: list[PromotionRow]
 
 
 class ResultDecision(BaseModel):
     member_id: int
-    result: str = Field(pattern=r"^(promoted|completivo|repeated)$")
+    result: str = Field(pattern=r"^(promoted|completivo|extraordinario|repeated)$")
     note: str | None = Field(default=None, max_length=250)
 
 
 class ResultConfirmation(BaseModel):
     decisions: list[ResultDecision] = Field(min_length=1)
+
+
+class RecoveryIn(BaseModel):
+    subject_id: int
+    kind: str = Field(pattern=r"^(completivo|extraordinario)$")
+    exam_grade: Decimal = Field(ge=0, le=100, max_digits=5, decimal_places=2)
 
 
 class ReinscriptionIn(BaseModel):

@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 
-from app.models.configuration_model import InstitutionSettings
 from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
@@ -8,13 +7,13 @@ from app.models.student_model import Student
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate
 from app.services.enrollment_policy import selection_period
 from app.services.governance_workflow import lock_governance
+from app.services.grading_scales import passing_for
 
 
 def create_enrollment(db: Session, enrollment_data: EnrollmentCreate) -> Enrollment:
     """Add the selection; the service records it and commits."""
     lock_governance(db)
     selection_period(db, enrollment_data.section_id, enrollment_data.period, registration=True)
-    settings = db.get(InstitutionSettings, 1)
     student = db.get(Student, enrollment_data.student_id)
     section = db.get(Section, enrollment_data.section_id)
     course = (
@@ -28,7 +27,7 @@ def create_enrollment(db: Session, enrollment_data: EnrollmentCreate) -> Enrollm
     )
     new_enrollment = Enrollment(
         **enrollment_data.model_dump(),
-        passing_grade=settings.passing_grade if settings else 70,
+        passing_grade=passing_for(db, student),
         curriculum_version=student.curriculum_version,
         curriculum_credits=course.credits if course else None,
     )

@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import ValidationError
@@ -11,6 +12,7 @@ from app.models.assessment_model import Assessment
 from app.models.career_model import Career
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.enrollment_model import CourseSelectionCart, Enrollment
+from app.models.grading_scale_model import GradingScale
 from app.models.section_model import Section
 from app.pagination import page_query
 from app.schemas.configuration_schema import (
@@ -137,6 +139,10 @@ def update_institution_settings(
                 f"{data.reason[:250]}; {key}: {before} → {after}",
             )
         setattr(settings, key, after)
+    # The default grading scale carries the same passing grade (Fase 3 D).
+    default = db.query(GradingScale).filter_by(is_default=True).first()
+    if default is not None:
+        default.passing_value = Decimal(str(settings.passing_grade))
     settings.revision += 1
     db.commit()
     return settings_out(settings)

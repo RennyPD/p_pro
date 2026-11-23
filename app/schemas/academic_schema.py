@@ -2,6 +2,7 @@ from datetime import date, time
 
 from pydantic import BaseModel
 
+from app.schemas.grading_scale_schema import ScaleBrief
 from app.schemas.scheduling_schema import ScheduleBlock
 from app.schemas.student_schema import StudentDossierFields
 
@@ -17,6 +18,7 @@ class GradeHistoryItem(BaseModel):
     date_recorded: date
     assessment_weight: float | None = None
     contribution: float | None = None
+    grade_label: str | None = None
 
 
 class ScheduleItem(BaseModel):
@@ -94,6 +96,7 @@ class StudentEnrollmentSummary(BaseModel):
     result_status: str = "in_progress"
     completed_weight: float = 0
     calculation_mode: str = "weighted"
+    average_label: str | None = None
 
 
 class StudentAcademicProfile(StudentDossierFields):
@@ -116,6 +119,9 @@ class StudentAcademicProfile(StudentDossierFields):
     provisional_result_count: int = 0
     overall_attendance: float | None
     enrollments: list[StudentEnrollmentSummary]
+    grading_scale: ScaleBrief | None = None
+    # Credit-weighted index (0–4 with letter scales); None without band points.
+    academic_index: float | None = None
 
 
 class RosterGradeItem(BaseModel):
@@ -127,6 +133,7 @@ class RosterGradeItem(BaseModel):
     status: str = "published"
     assessment_weight: float | None = None
     contribution: float | None = None
+    grade_label: str | None = None
 
 
 class RosterAttendanceItem(BaseModel):
@@ -148,6 +155,8 @@ class SectionRosterItem(SectionStudentItem):
     result_status: str = "in_progress"
     completed_weight: float = 0
     calculation_mode: str = "weighted"
+    average_label: str | None = None
+    grading_scale_id: int | None = None
 
 
 class SectionAcademicSummary(BaseModel):
@@ -190,6 +199,8 @@ class SectionWorkspace(BaseModel):
     roster: list[SectionRosterItem]
     subject_id: int = 0
     period_name: str = ""
+    # Scales of the roster's programs (Fase 3 D), to show and capture grades.
+    grading_scales: list[ScaleBrief] = []
 
 
 class AttendanceCourseSummary(BaseModel):

@@ -1,0 +1,131 @@
+.scales-page {
+  display: grid;
+  gap: 1rem;
+}
+.scales-new {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.scales-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.scale-card {
+  display: grid;
+  align-content: start;
+  gap: 0.7rem;
+  padding: 1rem;
+}
+.scale-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.scale-card__head > div:first-child {
+  display: grid;
+  min-width: 0;
+}
+.scale-card__head small {
+  color: var(--muted);
+}
+.scale-card__chips {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+.scale-bands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.scale-bands li {
+  display: grid;
+  min-width: 64px;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.scale-bands li.is-passing {
+  border-color: var(--blue);
+}
+.scale-bands small {
+  color: var(--muted);
+}
+.scale-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.scale-form {
+  display: grid;
+  gap: 0.8rem;
+}
+.scale-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.scale-form__bands legend {
+  padding: 0 0.3rem;
+  font-weight: 600;
+}
+.scale-form__bands {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.scale-band-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 1.4fr) repeat(4, minmax(56px, 1fr)) auto;
+  gap: 0.4rem;
+  align-items: center;
+}
+.scale-band-row input {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.scale-band-row input:focus {
+  border-color: var(--blue-bright);
+  outline: 0;
+}
+.scale-band-row--head span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.scale-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) 1fr;
+  gap: 0.8rem;
+  align-items: end;
+}
+@media (max-width: 640px) {
+  .scale-form__row,
+  .scale-preview {
+    grid-template-columns: 1fr;
+  }
+  .scale-band-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

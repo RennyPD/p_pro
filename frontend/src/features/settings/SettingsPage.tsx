@@ -5,6 +5,7 @@ import {
   FileSpreadsheet,
   KeyRound,
   Layers3,
+  Ruler,
   Shield,
   UserCog,
 } from "lucide-react";
@@ -35,6 +36,13 @@ export function SettingsPage() {
             icon={<Building2 />}
             title="Institución y matrícula"
             text="Identidad, numeración, créditos y nota aprobatoria para nuevas selecciones."
+          />
+          <Setting
+            to="/settings/grading-scales"
+            permission="settings.manage"
+            icon={<Ruler />}
+            title="Escalas de calificación"
+            text="Numérica, letras o conceptual por programa, con nota mínima y recuperación."
           />
           <Setting
             to="/periods"

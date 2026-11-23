@@ -44,6 +44,13 @@ from app.services.business_time import business_date
 from app.services.effective_schedule import effective_blocks, load_schedule
 from app.services.enrollment_service import create_enrollment_service
 from app.services.governance_workflow import lock_governance
+from app.services.grading_scales import (
+    ScaleCache,
+    academic_index,
+    brief,
+    label,
+    scale_for_student,
+)
 
 selection_user = require_personal("selection.own", "own")
 router = APIRouter(prefix="/academic", tags=["academic queries"])
@@ -504,8 +511,10 @@ def student_grade_history(
     if period:
         query = query.filter(Enrollment.period == period)
     grades = query.offset(skip).limit(limit).all()
+    scale = scale_for_student(db, db.get(Student, student_id))
     return [
         GradeHistoryItem(
+            grade_label=label(scale, grade.grade_value),
             grade_id=grade.grade_id,
             enrollment_id=grade.enrollment_id,
             subject_code=grade.enrollment.section.subject.code,
@@ -704,6 +713,8 @@ def student_academic_profile(
     all_grades = []
     final_grades = []
     provisional_grades = []
+    index_rows = []
+    scale = scale_for_student(db, student)
     total_attendances = 0
     total_present = 0
     for enrollment in student.enrollments:
@@ -720,6 +731,8 @@ def student_academic_profile(
         all_grades.extend(grades)
         if result.value is not None:
             (final_grades if result.final else provisional_grades).append(result.value)
+        if result.final:
+            index_rows.append((result.value, enrollment.curriculum_credits))
         total_attendances += len(attendances)
         total_present += present
         summaries.append(
@@ -732,6 +745,7 @@ def student_academic_profile(
                 period=enrollment.period,
                 state=enrollment.state,
                 average_grade=result.value,
+                average_label=label(scale, result.value),
                 result_final=result.final,
                 result_status=result.status,
                 completed_weight=result.completed_weight,
@@ -740,6 +754,8 @@ def student_academic_profile(
             )
         )
     return StudentAcademicProfile(
+        grading_scale=brief(scale),
+        academic_index=academic_index(index_rows, scale),
         student_id=student.student_id,
         enrollment_number=student.enrollment_number,
         first_name=student.first_name,
@@ -792,9 +808,12 @@ def section_workspace(
     if period:
         query = query.filter(Enrollment.period == period)
     roster = []
+    scales = ScaleCache(db)
     for enrollment in query.all():
+        scale = scales.for_student(enrollment.student)
         grades = [
             RosterGradeItem(
+                grade_label=label(scale, item.grade_value),
                 grade_id=item.grade_id,
                 assessment_id=item.assessment_id,
                 grade_type=item.assessment.name if item.assessment else item.grade_type,
@@ -830,6 +849,8 @@ def section_workspace(
                 period=enrollment.period,
                 grades=grades,
                 average_grade=result.value,
+                average_label=label(scale, result.value),
+                grading_scale_id=scale.grading_scale_id,
                 result_final=result.final,
                 result_status=result.status,
                 completed_weight=result.completed_weight,
@@ -866,6 +887,7 @@ def section_workspace(
         blocks=schedule.blocks,
         attendance_date=attendance_date,
         roster=roster,
+        grading_scales=[brief(item) for item in scales.distinct()],
     )
 
 

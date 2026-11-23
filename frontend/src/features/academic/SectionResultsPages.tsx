@@ -8,6 +8,7 @@ import { Badge, EmptyState, Spinner } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import "./section-results.css";
+import { gradeText } from "../../lib/grades";
 import {
   attendanceTones,
   isLowAttendance,
@@ -68,6 +69,7 @@ type Student = {
   period: string;
   state: string;
   average_grade: number | null;
+  average_label?: string | null;
   result_final: boolean;
   result_status: string;
   completed_weight: number;
@@ -541,7 +543,9 @@ export function SectionResultsDetailPage() {
                     ? s.attendance_percentage === null
                       ? "Sin registros"
                       : `${s.attendance_percentage}%`
-                    : (s.average_grade ?? "Sin notas publicadas")}
+                    : s.average_grade === null
+                      ? "Sin notas publicadas"
+                      : gradeText(s.average_grade, s.average_label, true)}
                 </b>
                 {attendance ? (
                   <small>{s.attendances.length} clases registradas</small>

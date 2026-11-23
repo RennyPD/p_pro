@@ -362,3 +362,64 @@ def test_promotion_proposal_confirmation_and_reinscription(school):
     )
     assert backwards.status_code == 409
     assert entries(sessions, "class_group.result_confirmed", f"class-group:{gid}")
+
+
+def test_completivo_then_extraordinario_with_scale_weights(school):
+    client, sessions, tokens, ids = school
+    admin = tokens["admin"]
+    gid = create_group(client, admin, ids)["class_group_id"]
+    student = ids["students"][0]
+    client.post(f"/class-groups/{gid}/members", headers=admin, json={"student_id": student})
+    client.post(f"/class-groups/{gid}/generate-subjects", headers=admin)
+    math = ids["subjects"][0]
+    with sessions() as db:
+        for enrollment in db.query(Enrollment).filter_by(student_id=student):
+            publish_final(db, enrollment, 60 if enrollment.section.subject_id == math else 80)
+        db.commit()
+    proposal = client.get(f"/class-groups/{gid}/promotion", headers=admin).json()
+    row = proposal["members"][0]
+    assert row["proposal"] == "completivo"
+    assert proposal["completivo_average_weight"] == 50
+    assert row["subjects"][0]["status"] == "completivo"
+    path = f"/class-groups/{gid}/members/{row['member_id']}/recovery"
+    early = client.post(
+        path, headers=admin, json={"subject_id": math, "kind": "extraordinario", "exam_grade": 90}
+    )
+    assert early.status_code == 409 and "completivo" in early.json()["detail"]
+    passed_subject = client.post(
+        path,
+        headers=admin,
+        json={"subject_id": ids["subjects"][1], "kind": "completivo", "exam_grade": 90},
+    )
+    assert passed_subject.status_code == 409 and "aprobada" in passed_subject.json()["detail"]
+    # 50 % of 60 + 50 % of 70 = 65 < 70: the extraordinario comes next.
+    completivo = client.post(
+        path, headers=admin, json={"subject_id": math, "kind": "completivo", "exam_grade": 70}
+    )
+    assert completivo.status_code == 200, completivo.text
+    subject = completivo.json()["members"][0]["subjects"][0]
+    assert subject["completivo"] == 65 and subject["status"] == "extraordinario"
+    assert completivo.json()["members"][0]["proposal"] == "extraordinario"
+    # 30 % of 60 + 70 % of 75 = 70.5: passes, and the student is promoted.
+    extraordinario = client.post(
+        path,
+        headers=admin,
+        json={"subject_id": math, "kind": "extraordinario", "exam_grade": 75},
+    )
+    row = extraordinario.json()["members"][0]
+    assert row["subjects"][0]["extraordinario"] == 70.5
+    assert row["proposal"] == "promoted"
+    locked = client.post(
+        path, headers=admin, json={"subject_id": math, "kind": "completivo", "exam_grade": 80}
+    )
+    assert locked.status_code == 409
+    details = [entry[2] for entry in entries(sessions, "class_group.recovery_recorded")]
+    assert any("completivo 70" in detail and "→ 65.00 reprobada" in detail for detail in details)
+    assert (
+        client.post(
+            path,
+            headers=tokens["estudiante"],
+            json={"subject_id": math, "kind": "completivo", "exam_grade": 80},
+        ).status_code
+        == 403
+    )

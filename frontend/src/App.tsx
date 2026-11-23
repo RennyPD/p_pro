@@ -37,6 +37,7 @@ import { EquivalencesPage } from "./features/settings/EquivalencesPage";
 import { RolesPage } from "./features/settings/RolesPage";
 import { InstitutionSettingsPage } from "./features/settings/InstitutionSettingsPage";
 import { PeriodsPage } from "./features/settings/PeriodsPage";
+import { GradingScalesPage } from "./features/settings/GradingScalesPage";
 import { ClassGroupPage } from "./features/groups/ClassGroupPage";
 import { ClassGroupsPage } from "./features/groups/ClassGroupsPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
@@ -273,6 +274,7 @@ export default function App() {
             <Route element={<Allow when={institution("settings.manage")} />}>
               <Route path="periods" element={<PeriodsPage />} />
               <Route path="settings/institution" element={<InstitutionSettingsPage />} />
+              <Route path="settings/grading-scales" element={<GradingScalesPage />} />
             </Route>
             <Route element={<Allow when={institution("roles.manage")} />}>
               <Route path="roles" element={<RolesPage />} />

@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.auth import ensure_student_access, get_current_user, require_permissions
 from app.db.Session import get_db
-from app.models.configuration_model import InstitutionSettings
 from app.models.student_model import Student
 from app.models.subject_model import Subject
 from app.models.user_model import User
@@ -15,6 +14,7 @@ from app.schemas.record_schema import AcademicTranscript, PeriodRecord, Transcri
 from app.services.academic_grading import academic_result
 from app.services.academic_recognition import current_courses, recognize
 from app.services.csv_export import spreadsheet_safe_row
+from app.services.grading_scales import academic_index, label, scale_for_student
 
 router = APIRouter(prefix="/records", tags=["academic records"])
 
@@ -33,8 +33,9 @@ RESULT_LABELS = {
 
 
 def build_transcript(db: Session, student: Student) -> AcademicTranscript:
-    settings = db.get(InstitutionSettings, 1)
-    passing = settings.passing_grade if settings else 70.0
+    scale = scale_for_student(db, student)
+    passing = float(scale.passing_value)
+    index_rows = []
     curriculum = {item.subject_id: item for item in current_courses(db, student)}
     attempts: dict[int, int] = {}
     period_values: dict[str, dict[str, float]] = {}
@@ -55,6 +56,7 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
         attempted += credits or 0
         if result.final and average is not None:
             all_grades.append(average)
+            index_rows.append((average, credits))
         elif average is not None:
             provisional_grades.append(average)
         passed = result.status == "passed"
@@ -81,6 +83,7 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
                 credits=credits,
                 curriculum_version=enrollment.curriculum_version,
                 average=average,
+                average_label=label(scale, average),
                 result=result.status,
                 attempts=attempts[subject.subject_id],
             )
@@ -133,6 +136,8 @@ def build_transcript(db: Session, student: Student) -> AcademicTranscript:
         for name, values in sorted(period_values.items())
     ]
     return AcademicTranscript(
+        grading_scale_name=scale.name,
+        academic_index=academic_index(index_rows, scale),
         student_id=student.student_id,
         enrollment_number=student.enrollment_number,
         student_name=f"{student.first_name} {student.last_name}",

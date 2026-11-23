@@ -374,6 +374,17 @@
       },
       "AcademicTranscript": {
         "properties": {
+          "academic_index": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Academic Index"
+          },
           "academic_standing": {
             "title": "Academic Standing",
             "type": "string"
@@ -421,6 +432,17 @@
             "default": 0,
             "title": "Final Result Count",
             "type": "integer"
+          },
+          "grading_scale_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grading Scale Name"
           },
           "periods": {
             "items": {
@@ -2146,6 +2168,239 @@
         "title": "AuditLogOut",
         "type": "object"
       },
+      "BandBrief": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "min_value": {
+            "title": "Min Value",
+            "type": "number"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
+          },
+          "stored_value": {
+            "title": "Stored Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "min_value",
+          "stored_value"
+        ],
+        "title": "BandBrief",
+        "type": "object"
+      },
+      "BandIn-Input": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "label": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "max_value": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Max Value"
+          },
+          "min_value": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Min Value"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "maximum": 10.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,2}|(?=[\\d.]{1,5}0*$)\\d{0,2}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
+          },
+          "stored_value": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Stored Value"
+          }
+        },
+        "required": [
+          "label",
+          "min_value",
+          "max_value",
+          "stored_value"
+        ],
+        "title": "BandIn",
+        "type": "object"
+      },
+      "BandIn-Output": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "label": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "max_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+            "title": "Max Value",
+            "type": "string"
+          },
+          "min_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+            "title": "Min Value",
+            "type": "string"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,2}|(?=[\\d.]{1,5}0*$)\\d{0,2}\\.\\d{0,2}0*$)",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
+          },
+          "stored_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+            "title": "Stored Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "min_value",
+          "max_value",
+          "stored_value"
+        ],
+        "title": "BandIn",
+        "type": "object"
+      },
+      "BandOut": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "label": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "max_value": {
+            "title": "Max Value",
+            "type": "number"
+          },
+          "min_value": {
+            "title": "Min Value",
+            "type": "number"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
+          },
+          "stored_value": {
+            "title": "Stored Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "min_value",
+          "max_value",
+          "stored_value"
+        ],
+        "title": "BandOut",
+        "type": "object"
+      },
       "BillingConceptCreate": {
         "properties": {
           "active": {
@@ -3090,6 +3345,17 @@
             ],
             "title": "Faculty"
           },
+          "grading_scale_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grading Scale Id"
+          },
           "graduate_profile": {
             "anyOf": [
               {
@@ -3364,6 +3630,17 @@
             ],
             "title": "Faculty"
           },
+          "grading_scale_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grading Scale Id"
+          },
           "graduate_profile": {
             "anyOf": [
               {
@@ -3616,6 +3893,17 @@
               }
             ],
             "title": "Faculty"
+          },
+          "grading_scale_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grading Scale Id"
           },
           "graduate_profile": {
             "anyOf": [
@@ -6525,6 +6813,17 @@
             "title": "Grade Id",
             "type": "integer"
           },
+          "grade_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Label"
+          },
           "grade_type": {
             "title": "Grade Type",
             "type": "string"
@@ -6695,6 +6994,219 @@
           "reason"
         ],
         "title": "GradeUpdate",
+        "type": "object"
+      },
+      "GradingScaleIn-Input": {
+        "properties": {
+          "bands": {
+            "items": {
+              "$ref": "#/components/schemas/BandIn-Input"
+            },
+            "maxItems": 20,
+            "title": "Bands",
+            "type": "array"
+          },
+          "completivo_average_weight": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "default": "50",
+            "title": "Completivo Average Weight"
+          },
+          "decimals": {
+            "default": 0,
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Decimals",
+            "type": "integer"
+          },
+          "extraordinario_average_weight": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "default": "30",
+            "title": "Extraordinario Average Weight"
+          },
+          "kind": {
+            "pattern": "^(numeric|letter|conceptual)$",
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "passing_value": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Passing Value"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "passing_value"
+        ],
+        "title": "GradingScaleIn",
+        "type": "object"
+      },
+      "GradingScaleIn-Output": {
+        "properties": {
+          "bands": {
+            "items": {
+              "$ref": "#/components/schemas/BandIn-Output"
+            },
+            "maxItems": 20,
+            "title": "Bands",
+            "type": "array"
+          },
+          "completivo_average_weight": {
+            "default": "50",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+            "title": "Completivo Average Weight",
+            "type": "string"
+          },
+          "decimals": {
+            "default": 0,
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Decimals",
+            "type": "integer"
+          },
+          "extraordinario_average_weight": {
+            "default": "30",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+            "title": "Extraordinario Average Weight",
+            "type": "string"
+          },
+          "kind": {
+            "pattern": "^(numeric|letter|conceptual)$",
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "passing_value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+            "title": "Passing Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "passing_value"
+        ],
+        "title": "GradingScaleIn",
+        "type": "object"
+      },
+      "GradingScaleOut": {
+        "properties": {
+          "bands": {
+            "items": {
+              "$ref": "#/components/schemas/BandOut"
+            },
+            "title": "Bands",
+            "type": "array"
+          },
+          "completivo_average_weight": {
+            "title": "Completivo Average Weight",
+            "type": "number"
+          },
+          "decimals": {
+            "title": "Decimals",
+            "type": "integer"
+          },
+          "extraordinario_average_weight": {
+            "title": "Extraordinario Average Weight",
+            "type": "number"
+          },
+          "grading_scale_id": {
+            "title": "Grading Scale Id",
+            "type": "integer"
+          },
+          "is_default": {
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "passing_value": {
+            "title": "Passing Value",
+            "type": "number"
+          },
+          "program_count": {
+            "default": 0,
+            "title": "Program Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "grading_scale_id",
+          "name",
+          "kind",
+          "passing_value",
+          "decimals",
+          "is_default",
+          "completivo_average_weight",
+          "extraordinario_average_weight",
+          "bands"
+        ],
+        "title": "GradingScaleOut",
+        "type": "object"
+      },
+      "GradingScalePreset": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "scale": {
+            "$ref": "#/components/schemas/GradingScaleIn-Output"
+          }
+        },
+        "required": [
+          "key",
+          "scale"
+        ],
+        "title": "GradingScalePreset",
         "type": "object"
       },
       "GraduationAudit": {
@@ -6903,6 +7415,17 @@
             ],
             "title": "Due Date"
           },
+          "grade_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Label"
+          },
           "grade_value": {
             "anyOf": [
               {
@@ -7039,6 +7562,17 @@
               }
             ],
             "title": "Result"
+          },
+          "result_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Label"
           },
           "result_status": {
             "title": "Result Status",
@@ -7220,6 +7754,16 @@
             },
             "title": "Courses",
             "type": "array"
+          },
+          "grading_scale": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScaleBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "period": {
             "anyOf": [
@@ -8831,6 +9375,14 @@
             "title": "Class Group Id",
             "type": "integer"
           },
+          "completivo_average_weight": {
+            "title": "Completivo Average Weight",
+            "type": "number"
+          },
+          "extraordinario_average_weight": {
+            "title": "Extraordinario Average Weight",
+            "type": "number"
+          },
           "members": {
             "items": {
               "$ref": "#/components/schemas/PromotionRow"
@@ -8848,11 +9400,18 @@
             },
             "title": "Periods",
             "type": "array"
+          },
+          "scale_name": {
+            "title": "Scale Name",
+            "type": "string"
           }
         },
         "required": [
           "class_group_id",
           "passing_grade",
+          "scale_name",
+          "completivo_average_weight",
+          "extraordinario_average_weight",
           "periods",
           "members"
         ],
@@ -8928,6 +9487,40 @@
           "confirmed"
         ],
         "title": "PromotionRow",
+        "type": "object"
+      },
+      "RecoveryIn": {
+        "properties": {
+          "exam_grade": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,3}|(?=[\\d.]{1,6}0*$)\\d{0,3}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Exam Grade"
+          },
+          "kind": {
+            "pattern": "^(completivo|extraordinario)$",
+            "title": "Kind",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subject_id",
+          "kind",
+          "exam_grade"
+        ],
+        "title": "RecoveryIn",
         "type": "object"
       },
       "ReinscriptionIn": {
@@ -9024,7 +9617,7 @@
             "title": "Note"
           },
           "result": {
-            "pattern": "^(promoted|completivo|repeated)$",
+            "pattern": "^(promoted|completivo|extraordinario|repeated)$",
             "title": "Result",
             "type": "string"
           }
@@ -9296,6 +9889,17 @@
             "title": "Grade Id",
             "type": "integer"
           },
+          "grade_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Label"
+          },
           "grade_type": {
             "title": "Grade Type",
             "type": "string"
@@ -9318,6 +9922,55 @@
           "date_recorded"
         ],
         "title": "RosterGradeItem",
+        "type": "object"
+      },
+      "ScaleBrief": {
+        "description": "What a screen needs to show and capture grades on a scale.",
+        "properties": {
+          "bands": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BandBrief"
+            },
+            "title": "Bands",
+            "type": "array"
+          },
+          "decimals": {
+            "default": 0,
+            "title": "Decimals",
+            "type": "integer"
+          },
+          "grading_scale_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grading Scale Id"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "passing_value": {
+            "title": "Passing Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "grading_scale_id",
+          "name",
+          "kind",
+          "passing_value"
+        ],
+        "title": "ScaleBrief",
         "type": "object"
       },
       "ScheduleBlock": {
@@ -9944,6 +10597,17 @@
             ],
             "title": "Average Grade"
           },
+          "average_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Label"
+          },
           "calculation_mode": {
             "default": "weighted",
             "title": "Calculation Mode",
@@ -9976,6 +10640,17 @@
             },
             "title": "Grades",
             "type": "array"
+          },
+          "grading_scale_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grading Scale Id"
           },
           "last_name": {
             "title": "Last Name",
@@ -10255,6 +10930,14 @@
             "title": "End Time",
             "type": "string"
           },
+          "grading_scales": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ScaleBrief"
+            },
+            "title": "Grading Scales",
+            "type": "array"
+          },
           "period_name": {
             "default": "",
             "title": "Period Name",
@@ -10478,6 +11161,17 @@
             "title": "Academic Hold",
             "type": "boolean"
           },
+          "academic_index": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Academic Index"
+          },
           "active": {
             "title": "Active",
             "type": "boolean"
@@ -10601,6 +11295,16 @@
           "first_name": {
             "title": "First Name",
             "type": "string"
+          },
+          "grading_scale": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScaleBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "last_name": {
             "title": "Last Name",
@@ -10975,6 +11679,17 @@
               }
             ],
             "title": "Average Grade"
+          },
+          "average_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Label"
           },
           "calculation_mode": {
             "default": "weighted",
@@ -11819,6 +12534,17 @@
             ],
             "title": "Average"
           },
+          "average_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Label"
+          },
           "code": {
             "title": "Code",
             "type": "string"
@@ -11826,6 +12552,28 @@
           "complete": {
             "title": "Complete",
             "type": "boolean"
+          },
+          "completivo": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completivo"
+          },
+          "extraordinario": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extraordinario"
           },
           "name": {
             "title": "Name",
@@ -11856,6 +12604,10 @@
             "title": "Periods",
             "type": "array"
           },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
           "subject_id": {
             "title": "Subject Id",
             "type": "integer"
@@ -11868,7 +12620,8 @@
           "periods",
           "average",
           "complete",
-          "passed"
+          "passed",
+          "status"
         ],
         "title": "SubjectResultOut",
         "type": "object"
@@ -12959,6 +13712,17 @@
               }
             ],
             "title": "Average"
+          },
+          "average_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Label"
           },
           "credits": {
             "anyOf": [
@@ -17942,6 +18706,73 @@
         ]
       }
     },
+    "/class-groups/{class_group_id}/members/{member_id}/recovery": {
+      "post": {
+        "description": "Completivo or extraordinario grade (Fase 3 D); teachers of the group or academic staff.",
+        "operationId": "record_recovery_exam_class_groups__class_group_id__members__member_id__recovery_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "schema": {
+              "title": "Member Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoveryIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionProposal"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Record Recovery Exam",
+        "tags": [
+          "class groups"
+        ]
+      }
+    },
     "/class-groups/{class_group_id}/members/{member_id}/transfer": {
       "post": {
         "operationId": "transfer_group_member_class_groups__class_group_id__members__member_id__transfer_post",
@@ -22687,6 +23518,303 @@
         "summary": "Grade History",
         "tags": [
           "grades"
+        ]
+      }
+    },
+    "/grading-scales/": {
+      "get": {
+        "operationId": "list_scales_grading_scales__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GradingScaleOut"
+                  },
+                  "title": "Response List Scales Grading Scales  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Scales",
+        "tags": [
+          "grading scales"
+        ]
+      },
+      "post": {
+        "operationId": "create_scale_grading_scales__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradingScaleIn-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradingScaleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Scale",
+        "tags": [
+          "grading scales"
+        ]
+      }
+    },
+    "/grading-scales/presets": {
+      "get": {
+        "operationId": "scale_presets_grading_scales_presets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GradingScalePreset"
+                  },
+                  "title": "Response Scale Presets Grading Scales Presets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Scale Presets",
+        "tags": [
+          "grading scales"
+        ]
+      }
+    },
+    "/grading-scales/{scale_id}": {
+      "delete": {
+        "operationId": "delete_scale_grading_scales__scale_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scale_id",
+            "required": true,
+            "schema": {
+              "title": "Scale Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Scale",
+        "tags": [
+          "grading scales"
+        ]
+      },
+      "put": {
+        "description": "Existing selections keep the passing grade they were created with.",
+        "operationId": "update_scale_grading_scales__scale_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scale_id",
+            "required": true,
+            "schema": {
+              "title": "Scale Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradingScaleIn-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradingScaleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Scale",
+        "tags": [
+          "grading scales"
+        ]
+      }
+    },
+    "/grading-scales/{scale_id}/default": {
+      "post": {
+        "operationId": "make_default_grading_scales__scale_id__default_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scale_id",
+            "required": true,
+            "schema": {
+              "title": "Scale Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradingScaleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Make Default",
+        "tags": [
+          "grading scales"
+        ]
+      }
+    },
+    "/grading-scales/{scale_id}/history": {
+      "get": {
+        "operationId": "scale_history_grading_scales__scale_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scale_id",
+            "required": true,
+            "schema": {
+              "title": "Scale Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Scale History",
+        "tags": [
+          "grading scales"
         ]
       }
     },

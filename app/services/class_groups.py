@@ -13,14 +13,20 @@ Fase 3, block C (decisions of 23/11/2026):
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, time
+from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.auth import ACADEMIC_SCOPE, has_permission, has_scope
 from app.models.career_model import Career
-from app.models.class_group_model import ClassGroup, ClassGroupMember, ClassGroupSubject
-from app.models.configuration_model import AcademicPeriod, InstitutionSettings, SchoolYear
+from app.models.class_group_model import (
+    ClassGroup,
+    ClassGroupMember,
+    ClassGroupSubject,
+    RecoveryExam,
+)
+from app.models.configuration_model import AcademicPeriod, SchoolYear
 from app.models.curriculum_model import CurriculumCourse
 from app.models.enrollment_model import Enrollment
 from app.models.section_model import Section
@@ -30,6 +36,7 @@ from app.models.user_model import User
 from app.services.academic_grading import academic_result
 from app.services.audit_log import record
 from app.services.business_time import business_date
+from app.services.grading_scales import label, passing_for, scale_for_career
 from app.services.institution_profile import is_school_level
 
 # Group subjects start without a timetable; times are placeholders until the
@@ -210,6 +217,7 @@ def enroll_in_section(db: Session, student: Student, section: Section, course) -
             section_id=section.section_id,
             academic_period=section.academic_period,
             state="enrolled",
+            passing_grade=passing_for(db, student),
             curriculum_version=student.curriculum_version,
             curriculum_credits=course.credits if course else None,
         )
@@ -429,6 +437,8 @@ def transfer_member(
 
 # --- Promotion -------------------------------------------------------------
 
+RECOVERY_KINDS = ("completivo", "extraordinario")
+
 
 @dataclass
 class SubjectResult:
@@ -437,17 +447,92 @@ class SubjectResult:
     name: str
     periods: list[float | None] = field(default_factory=list)
     average: float | None = None
+    average_label: str | None = None
     complete: bool = False
     passed: bool | None = None
+    # passed | completivo | extraordinario | failed | incomplete
+    status: str = "incomplete"
+    completivo: float | None = None
+    extraordinario: float | None = None
 
 
-def passing_grade(db: Session) -> float:
-    settings = db.get(InstitutionSettings, 1)
-    return float(settings.passing_grade) if settings else 70.0
+def group_scale(db: Session, group: ClassGroup):
+    return scale_for_career(db, group.career)
+
+
+def subject_results(db: Session, group: ClassGroup, member, scale, periods, courses, sections):
+    exams = {
+        (exam.subject_id, exam.kind): exam
+        for exam in db.query(RecoveryExam).filter_by(member_id=member.member_id)
+    }
+    passing = float(scale.passing_value)
+    results = []
+    for course in courses:
+        result = SubjectResult(course.subject_id, course.subject.code, course.subject.description)
+        complete = True
+        for period in periods:
+            section = next(
+                (
+                    s
+                    for s in sections
+                    if s.subject_id == course.subject_id and s.period_id == period.period_id
+                ),
+                None,
+            )
+            enrollment = (
+                db.query(Enrollment)
+                .filter_by(student_id=member.student_id, section_id=section.section_id)
+                .first()
+                if section
+                else None
+            )
+            outcome = academic_result(db, enrollment) if enrollment else None
+            value = outcome.value if outcome and outcome.final else None
+            complete = complete and value is not None
+            result.periods.append(value)
+        values = [v for v in result.periods if v is not None]
+        result.complete = complete and bool(values)
+        if values:
+            result.average = round(sum(values) / len(values), 2)
+            result.average_label = label(scale, result.average)
+        completivo = exams.get((course.subject_id, "completivo"))
+        extraordinario = exams.get((course.subject_id, "extraordinario"))
+        result.completivo = float(completivo.final_grade) if completivo else None
+        result.extraordinario = float(extraordinario.final_grade) if extraordinario else None
+        if not result.complete:
+            result.status = "incomplete"
+        elif result.average >= passing:
+            result.status = "passed"
+        elif completivo is None:
+            result.status = "completivo"
+        elif completivo.passed:
+            result.status = "passed"
+        elif extraordinario is None:
+            result.status = "extraordinario"
+        else:
+            result.status = "passed" if extraordinario.passed else "failed"
+        if result.complete:
+            result.passed = result.status == "passed"
+        results.append(result)
+    return results
+
+
+def proposal_for(subjects: list[SubjectResult]) -> str | None:
+    statuses = {s.status for s in subjects}
+    if not subjects or "incomplete" in statuses:
+        return None
+    for status, proposal in (
+        ("failed", "repeated"),
+        ("extraordinario", "extraordinario"),
+        ("completivo", "completivo"),
+    ):
+        if status in statuses:
+            return proposal
+    return "promoted"
 
 
 def promotion_proposal(db: Session, group: ClassGroup) -> dict:
-    passing = passing_grade(db)
+    scale = group_scale(db, group)
     periods = (
         db.query(AcademicPeriod)
         .filter_by(school_year_id=group.school_year_id)
@@ -458,42 +543,8 @@ def promotion_proposal(db: Session, group: ClassGroup) -> dict:
     sections = group_sections(db, group)
     rows = []
     for member in sorted(active_members(group), key=lambda m: m.student.last_name):
-        subjects = []
-        for course in courses:
-            result = SubjectResult(
-                course.subject_id, course.subject.code, course.subject.description
-            )
-            complete = True
-            for period in periods:
-                section = next(
-                    (
-                        s
-                        for s in sections
-                        if s.subject_id == course.subject_id and s.period_id == period.period_id
-                    ),
-                    None,
-                )
-                enrollment = (
-                    db.query(Enrollment)
-                    .filter_by(student_id=member.student_id, section_id=section.section_id)
-                    .first()
-                    if section
-                    else None
-                )
-                outcome = academic_result(db, enrollment) if enrollment else None
-                value = outcome.value if outcome and outcome.final else None
-                complete = complete and value is not None
-                result.periods.append(value)
-            values = [v for v in result.periods if v is not None]
-            result.complete = complete and bool(values)
-            if values:
-                result.average = round(sum(values) / len(values), 2)
-            if result.complete:
-                result.passed = result.average >= passing
-            subjects.append(result)
-        failed = [s.code for s in subjects if s.passed is False]
-        complete = bool(subjects) and all(s.complete for s in subjects)
-        proposal = None if not complete else "completivo" if failed else "promoted"
+        subjects = subject_results(db, group, member, scale, periods, courses, sections)
+        proposal = proposal_for(subjects)
         rows.append(
             {
                 "member_id": member.member_id,
@@ -501,8 +552,8 @@ def promotion_proposal(db: Session, group: ClassGroup) -> dict:
                 "student_name": member.student.full_name,
                 "enrollment_number": member.student.enrollment_number,
                 "subjects": [vars(s) for s in subjects],
-                "failed": failed,
-                "complete": complete,
+                "failed": [s.code for s in subjects if s.passed is False],
+                "complete": proposal is not None,
                 "proposal": proposal,
                 "result": member.result,
                 "confirmed": member.result_confirmed_at is not None,
@@ -510,10 +561,94 @@ def promotion_proposal(db: Session, group: ClassGroup) -> dict:
         )
     return {
         "class_group_id": group.class_group_id,
-        "passing_grade": passing,
+        "passing_grade": float(scale.passing_value),
+        "scale_name": scale.name,
+        "completivo_average_weight": float(scale.completivo_average_weight),
+        "extraordinario_average_weight": float(scale.extraordinario_average_weight),
         "periods": [p.name for p in periods],
         "members": rows,
     }
+
+
+def record_recovery(
+    db: Session, group: ClassGroup, member, subject_id: int, kind: str, exam_grade, actor
+) -> RecoveryExam:
+    """Grade a completivo or extraordinario: weighted with the annual average."""
+    if member.status != OPEN:
+        raise HTTPException(409, "El estudiante ya no está activo en el grupo")
+    scale = group_scale(db, group)
+    periods = (
+        db.query(AcademicPeriod)
+        .filter_by(school_year_id=group.school_year_id)
+        .order_by(AcademicPeriod.start_date)
+        .all()
+    )
+    courses = [c for c in curriculum(db, group) if c.subject_id == subject_id]
+    if not courses:
+        raise HTTPException(409, "La asignatura no pertenece al plan de este grado")
+    subject = subject_results(
+        db, group, member, scale, periods, courses, group_sections(db, group)
+    )[0]
+    existing = (
+        db.query(RecoveryExam)
+        .filter_by(member_id=member.member_id, subject_id=subject_id, kind=kind)
+        .first()
+    )
+    allowed = subject.status == kind or (existing is not None and subject.status != "incomplete")
+    if not subject.complete:
+        raise HTTPException(409, "La materia aún no tiene todas sus notas finales")
+    if not allowed:
+        message = (
+            "La materia ya está aprobada"
+            if subject.status == "passed"
+            else "Primero registra el completivo"
+            if kind == "extraordinario"
+            else "El completivo ya está registrado; corrige ese examen o registra el extraordinario"
+        )
+        raise HTTPException(409, message)
+    if kind == "extraordinario":
+        later = None
+    else:
+        later = (
+            db.query(RecoveryExam.recovery_exam_id)
+            .filter_by(member_id=member.member_id, subject_id=subject_id, kind="extraordinario")
+            .first()
+        )
+    if later:
+        raise HTTPException(409, "Ya hay un extraordinario; el completivo no se puede cambiar")
+    weight = (
+        scale.completivo_average_weight
+        if kind == "completivo"
+        else scale.extraordinario_average_weight
+    )
+    average = Decimal(str(subject.average))
+    exam = Decimal(str(exam_grade))
+    final = ((average * weight + exam * (Decimal(100) - weight)) / Decimal(100)).quantize(
+        Decimal("0.01"), ROUND_HALF_UP
+    )
+    passed = final >= scale.passing_value
+    before = None
+    if existing is None:
+        existing = RecoveryExam(member_id=member.member_id, subject_id=subject_id, kind=kind)
+        db.add(existing)
+    else:
+        before = f"{existing.exam_grade} → "
+    existing.annual_average = average
+    existing.exam_grade = exam
+    existing.final_grade = final
+    existing.passed = passed
+    existing.recorded_by = actor.user_id if actor else None
+    existing.recorded_at = now()
+    db.flush()
+    record(
+        db,
+        actor,
+        "class_group.recovery_recorded",
+        f"class-group:{group.class_group_id}",
+        f"{member.student.full_name}, {subject.code}: {kind} {before or ''}{exam}; "
+        f"promedio {average} ({weight} %) → {final} " + ("aprobada" if passed else "reprobada"),
+    )
+    return existing
 
 
 def confirm_results(db: Session, group: ClassGroup, decisions, actor) -> int:

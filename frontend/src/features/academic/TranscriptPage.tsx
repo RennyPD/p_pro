@@ -6,6 +6,8 @@ import { FileText } from "lucide-react";
 import { Badge, EmptyState, Spinner } from "../../components/ui";
 
 import { api, apiMessage } from "../../lib/api";
+import type { ApiSchema } from "../../lib/apiTypes";
+import { gradeText } from "../../lib/grades";
 import { useAuthStore } from "../../store/auth";
 import { describeAverage, resultLabel, resultTone, standingLabel } from "../../lib/academicResult";
 
@@ -13,7 +15,10 @@ export function TranscriptPage() {
   const id = useAuthStore(s => s.user?.student_id);
   const query = useQuery({
     queryKey: ["transcript", id],
-    queryFn: () => api.get(`/records/students/${id}/transcript`).then(r => r.data),
+    queryFn: () =>
+      api
+        .get<ApiSchema<"AcademicTranscript">>(`/records/students/${id}/transcript`)
+        .then(r => r.data),
     enabled: Boolean(id),
   });
   if (query.isLoading)
@@ -89,6 +94,13 @@ export function TranscriptPage() {
                 : "Créditos confirmados"}
           </small>
         </article>
+        {record.academic_index !== null && record.academic_index !== undefined && (
+          <article>
+            <span>Índice académico</span>
+            <strong>{record.academic_index.toFixed(2)}</strong>
+            <small>Ponderado por créditos · {record.grading_scale_name}</small>
+          </article>
+        )}
         <article>
           <span>Condición académica</span>
           <strong className="transcript-metrics__text">
@@ -122,7 +134,7 @@ export function TranscriptPage() {
                   <td>
                     {course.recognition_type === "equivalence"
                       ? `Sin nota · origen ${course.origin_subject_code}`
-                      : (course.average ?? "—")}
+                      : gradeText(course.average, course.average_label)}
                   </td>
                   <td>
                     <Badge tone={resultTone(course.result)}>{resultLabel(course.result)}</Badge>

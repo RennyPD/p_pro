@@ -17,6 +17,7 @@ export const resultLabels: Record<string, { label: string; tone: VisualTone }> =
   pending: { label: "Pendiente", tone: "default" },
   promoted: { label: "Promovido", tone: "success" },
   completivo: { label: "Completivo", tone: "warning" },
+  extraordinario: { label: "Extraordinario", tone: "warning" },
   repeated: { label: "Repite", tone: "danger" },
 };
 

@@ -195,6 +195,18 @@ export const resources: Record<string, ResourceConfig> = {
         required: true,
         placeholder: "Ej. 2026",
       },
+      {
+        name: "grading_scale_id",
+        label: "Escala de calificación",
+        type: "lookup",
+        lookup: lookup(
+          "/grading-scales/",
+          "grading_scale_id",
+          ["name"],
+          undefined,
+          "Predeterminada de la institución",
+        ),
+      },
       { name: "description", label: "Perfil y objetivos del programa", required: true },
     ],
   },

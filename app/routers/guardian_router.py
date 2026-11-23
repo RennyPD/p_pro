@@ -62,6 +62,7 @@ from app.services.finance_workflow import (
     upcoming_due,
     writable_account,
 )
+from app.services.grading_scales import brief, label, scale_for_student
 
 router = APIRouter(prefix="/guardian", tags=["guardian portal"])
 guardian = require_personal("records.own", "linked")
@@ -166,6 +167,7 @@ def grades(
     ensure_guardian_view(db, user, student_id, "academic")
     period = period_name(db, period)
     courses = []
+    scale = scale_for_student(db, db.get(Student, student_id))
     for item in enrollments_of(db, student_id, period):
         result = academic_result(db, item)
         published = [grade for grade in item.grades if grade.status == "published"]
@@ -177,6 +179,7 @@ def grades(
                 weight=assessment.weight,
                 due_date=assessment.due_date,
                 grade_value=grade.grade_value if grade else None,
+                grade_label=label(scale, grade.grade_value) if grade else None,
                 contribution=round(grade.grade_value * assessment.weight / 100, 2)
                 if grade
                 else None,
@@ -194,6 +197,7 @@ def grades(
                     weight=None,
                     due_date=grade.date_recorded,
                     grade_value=grade.grade_value,
+                    grade_label=label(scale, grade.grade_value),
                     contribution=None,
                 )
                 for grade in published
@@ -206,6 +210,7 @@ def grades(
                 subject_name=item.section.subject.description,
                 state=item.state,
                 result=result.value,
+                result_label=label(scale, result.value),
                 result_status=result.status,
                 final=result.final,
                 completed_weight=result.completed_weight,
@@ -213,7 +218,9 @@ def grades(
                 assessments=assessments,
             )
         )
-    return GuardianGrades(student_id=student_id, period=period, courses=courses)
+    return GuardianGrades(
+        student_id=student_id, period=period, courses=courses, grading_scale=brief(scale)
+    )
 
 
 @router.get("/students/{student_id}/tasks", response_model=list[GuardianTask])

@@ -93,6 +93,10 @@ export function SectionBook({ section }: { section: Section }) {
   };
   const items = assessments.data ?? [];
   const roster = workspace.data?.roster ?? [];
+  const scaleOf = (student: Student) =>
+    workspace.data?.grading_scales?.find(
+      scale => scale.grading_scale_id === (student.grading_scale_id ?? null),
+    );
   const dirty = Object.keys(values).length > 0;
   const getGrade = (student: Student, item: Assessment) =>
     student.grades.find(grade => grade.assessment_id === item.assessment_id);
@@ -377,47 +381,74 @@ export function SectionBook({ section }: { section: Section }) {
                                 <div
                                   className={`assessment-grade-input assessment-grade-input--${state}`}
                                 >
-                                  <input
-                                    title={
-                                      grade?.status === "published"
-                                        ? `Aporta ${((grade.grade_value * item.weight) / 100).toFixed(2)} puntos`
-                                        : undefined
-                                    }
-                                    aria-label={
+                                  {(() => {
+                                    const scale = scaleOf(student);
+                                    const label =
                                       item.name +
                                       " de " +
                                       student.first_name +
                                       " " +
                                       student.last_name +
                                       ", matrícula " +
-                                      student.enrollment_number
-                                    }
-                                    disabled={item.closed || save.isPending || publish.isPending}
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    step=".01"
-                                    placeholder="—"
-                                    value={
+                                      student.enrollment_number;
+                                    const current =
                                       values[key] ??
                                       (grade && grade.status !== "voided"
                                         ? String(grade.grade_value)
-                                        : "")
-                                    }
-                                    onChange={event => {
-                                      const value = event.target.value;
+                                        : "");
+                                    const change = (value: string) => {
                                       const original =
                                         grade && grade.status !== "voided"
                                           ? String(grade.grade_value)
                                           : "";
-                                      setValues(current => {
-                                        const next = { ...current };
+                                      setValues(state => {
+                                        const next = { ...state };
                                         if (value === original) delete next[key];
                                         else next[key] = value;
                                         return next;
                                       });
-                                    }}
-                                  />
+                                    };
+                                    const disabled =
+                                      item.closed || save.isPending || publish.isPending;
+                                    // Conceptual scales: pick a band, its value is stored.
+                                    if (scale?.kind === "conceptual")
+                                      return (
+                                        <select
+                                          aria-label={label}
+                                          disabled={disabled}
+                                          value={current}
+                                          onChange={event => change(event.target.value)}
+                                        >
+                                          <option value="">—</option>
+                                          {scale.bands.map(band => (
+                                            <option
+                                              key={band.label}
+                                              value={String(band.stored_value)}
+                                            >
+                                              {band.label}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      );
+                                    return (
+                                      <input
+                                        title={
+                                          grade?.status === "published"
+                                            ? `Aporta ${((grade.grade_value * item.weight) / 100).toFixed(2)} puntos`
+                                            : undefined
+                                        }
+                                        aria-label={label}
+                                        disabled={disabled}
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step=".01"
+                                        placeholder="—"
+                                        value={current}
+                                        onChange={event => change(event.target.value)}
+                                      />
+                                    );
+                                  })()}
                                   {grade && (
                                     <button
                                       className="icon-button"

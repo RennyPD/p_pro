@@ -17,6 +17,7 @@ from app.schemas.class_group_schema import (
     MemberChange,
     MemberTransfer,
     PromotionProposal,
+    RecoveryIn,
     ReinscriptionIn,
     ReinscriptionOut,
     ResultConfirmation,
@@ -29,6 +30,7 @@ from app.services.governance_workflow import history, lock_governance, record
 router = APIRouter(tags=["class groups"])
 group_manager = require_permissions("sections.manage")
 member_manager = require_permissions("enrollments.manage")
+grade_manager = require_permissions("grades.manage")
 
 
 def group_out(group: ClassGroup) -> dict:
@@ -329,6 +331,26 @@ def confirm_promotion(
     lock_governance(db)
     group = service.group_or_404(db, class_group_id)
     service.confirm_results(db, group, data.decisions, user)
+    db.commit()
+    return service.promotion_proposal(db, group)
+
+
+@router.post(
+    "/class-groups/{class_group_id}/members/{member_id}/recovery",
+    response_model=PromotionProposal,
+)
+def record_recovery_exam(
+    class_group_id: int,
+    member_id: int,
+    data: RecoveryIn,
+    db: Session = Depends(get_db),
+    user=Depends(grade_manager),
+):
+    """Completivo or extraordinario grade (Fase 3 D); teachers of the group or academic staff."""
+    lock_governance(db)
+    group = service.ensure_group_access(db, user, class_group_id)
+    member = service.member_or_404(group, member_id)
+    service.record_recovery(db, group, member, data.subject_id, data.kind, data.exam_grade, user)
     db.commit()
     return service.promotion_proposal(db, group)
 

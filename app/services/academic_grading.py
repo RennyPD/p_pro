@@ -133,6 +133,10 @@ def write_grade(
             status_code=409, detail="Solo se califican estudiantes inscritos activos"
         )
     ensure_grading_open(db, enrollment.section, enrollment)
+    # Conceptual scales accept only the values of their bands (Fase 3 D).
+    from app.services.grading_scales import ensure_capturable, scale_for_student
+
+    ensure_capturable(scale_for_student(db, enrollment.student), value)
     if (
         assessment is None
         and db.query(Assessment).filter_by(section_id=enrollment.section_id).first()
