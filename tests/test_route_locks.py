@@ -1,8 +1,8 @@
 """Every write route takes the lock of its domain (CLAUDE.md, rule 8; audit finding M2).
 
 A route passes when it reaches ``lock_scope`` (``lock_governance``,
-``lock_finance``, ``lock_access``) or the per-account row lock of the sign-in
-endpoints. Writes that change nothing shared are listed in UNLOCKED with the
+``lock_finance``, ``lock_access``), the fine-grained ``lock_academic`` (Fase 3 G)
+or the per-account row lock of the sign-in endpoints. Writes that change nothing shared are listed in UNLOCKED with the
 reason. Static, like ``test_route_audit.py``.
 """
 
@@ -10,7 +10,11 @@ from route_analysis import reaches, write_routes
 
 from app.services import account_sessions, write_locks
 
-LOCKS = {write_locks.lock_scope, account_sessions.lock_account}
+LOCKS = {
+    write_locks.lock_scope,
+    write_locks.lock_academic,
+    account_sessions.lock_account,
+}
 
 # (method, path): why the route needs no lock.
 UNLOCKED = {

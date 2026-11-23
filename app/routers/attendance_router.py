@@ -21,9 +21,9 @@ from app.schemas.attendance_schema import (
     AttendanceOut,
     AttendanceUpdate,
 )
+from app.services.academic_locks import lock_attendance, lock_enrollment_section, lock_sections
 from app.services.attendance_workflow import change, day_record, snapshot, validate_day, write
 from app.services.business_time import business_date
-from app.services.governance_workflow import lock_governance
 
 router = APIRouter(prefix="/attendances", tags=["attendances"])
 attendance_manager = require_permissions("attendance.manage")
@@ -84,7 +84,7 @@ def bulk(
     db: Session = Depends(get_db),
     user: User = Depends(attendance_manager),
 ):
-    lock_governance(db)
+    lock_sections(db, data.section_id)
     ensure_section_access(db, user, data.section_id)
     ids = [item.enrollment_id for item in data.records]
     if len(ids) != len(set(ids)):
@@ -126,7 +126,7 @@ def bulk(
 def create(
     data: AttendanceCreate, db: Session = Depends(get_db), user: User = Depends(attendance_manager)
 ):
-    lock_governance(db)
+    lock_enrollment_section(db, data.enrollment_id)
     enrollment = require_attendance_writer(db, user, data.enrollment_id)
     day = data.date.date() if data.date else business_date()
     if day_record(db, enrollment.enrollment_id, day):
@@ -242,7 +242,7 @@ def update(
     db: Session = Depends(get_db),
     user: User = Depends(attendance_manager),
 ):
-    lock_governance(db)
+    lock_attendance(db, attendance_id)
     record = db.get(Attendance, attendance_id)
     if record is None:
         raise HTTPException(404, "Registro no disponible")
@@ -276,7 +276,7 @@ def delete(
     db: Session = Depends(get_db),
     user: User = Depends(attendance_manager),
 ):
-    lock_governance(db)
+    lock_attendance(db, attendance_id)
     record = db.get(Attendance, attendance_id)
     if record is None:
         raise HTTPException(404, "Registro no disponible")

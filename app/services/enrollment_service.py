@@ -17,12 +17,13 @@ from app.repositories.enrollment_repository import (
     update_enrollment,
 )
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate
+from app.services.academic_locks import lock_enrollment, lock_selection
 from app.services.academic_recognition import recognize
 from app.services.audit_log import changes, record, snapshot
 from app.services.business_time import business_date
 from app.services.effective_schedule import effective_blocks, overlap
 from app.services.enrollment_policy import selection_period
-from app.services.governance_workflow import lock_governance
+from app.services.write_locks import try_lock_student
 
 AUDITED_FIELDS = ("state", "waitlist_position")
 
@@ -177,8 +178,9 @@ def create_enrollment_service(
     commit: bool = True,
 ):
     """Create a selection and record it. With ``commit=False`` the caller commits."""
-    # Acquire the database-backed writer lock BEFORE reading eligibility/capacity.
-    lock_governance(db)
+    # Section (capacity, waitlist) then student (credits, schedule), before reading
+    # eligibility or capacity (Fase 3 G: fine-grained academic locks).
+    lock_selection(db, [enrollment_data.section_id], enrollment_data.student_id)
     if enrollment_data.state != "enrolled" or enrollment_data.waitlist_position is not None:
         raise HTTPException(
             422, "El estado y la posición en la lista de espera los asigna el sistema"
@@ -253,7 +255,7 @@ def get_enrollment_by_id_service(db: Session, enrollment_id: int):
 def update_enrollment_service(
     db: Session, enrollment_id: int, enrollment_data: EnrollmentUpdate, actor=None
 ):
-    lock_governance(db)
+    lock_enrollment(db, enrollment_id)
     current = get_enrollment_by_id(db, enrollment_id)
     if not current:
         raise HTTPException(
@@ -324,6 +326,10 @@ def promote_waitlist(db, section_id, period, actor=None):
     for candidate in waiting:
         if occupied_seats(db, section_id, period) >= section.capacity:
             break
+        # A candidate busy in another selection right now keeps their place
+        # (never waits for their lock: that order could deadlock).
+        if not try_lock_student(db, candidate.student_id):
+            continue
         try:
             validate_eligibility(
                 db,
@@ -351,7 +357,7 @@ def promote_waitlist(db, section_id, period, actor=None):
 
 
 def delete_enrollment_service(db: Session, enrollment_id: int, actor=None):
-    lock_governance(db)
+    lock_enrollment(db, enrollment_id)
     current = get_enrollment_by_id(db, enrollment_id)
     if current:
         selection_period(db, current.section_id, current.period)

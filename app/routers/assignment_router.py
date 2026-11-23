@@ -36,8 +36,13 @@ from app.models.user_model import User
 from app.schemas.operations_schema import AssignmentCreate, SubmissionCreate, SubmissionGrade
 from app.services.academic_grading import audit_event as log_event
 from app.services.academic_grading import ensure_grading_open, write_grade
+from app.services.academic_locks import (
+    assignment_section,
+    lock_assignment,
+    lock_sections,
+    lock_submission,
+)
 from app.services.business_time import business_date
-from app.services.governance_workflow import lock_governance
 
 router = APIRouter()
 
@@ -254,7 +259,7 @@ def validate_task(db, user, data, existing=None):
 def create_task(
     data: AssignmentCreate, db: Session = Depends(get_db), user: User = Depends(manager)
 ):
-    lock_governance(db)
+    lock_sections(db, data.section_id)
     validate_task(db, user, data)
     values = data.model_dump()
     values["due_at"] = utc(data.due_at)
@@ -275,7 +280,7 @@ def edit_task(
     db: Session = Depends(get_db),
     user: User = Depends(manager),
 ):
-    lock_governance(db)
+    lock_sections(db, assignment_section(db, assignment_id), data.section_id)
     item = visible(db, user, assignment_id)
     validate_task(db, user, data, item)
     for key, value in data.model_dump().items():
@@ -299,7 +304,7 @@ def submit(
     db: Session = Depends(get_db),
     user: User = Depends(require_personal("records.own", "own")),
 ):
-    lock_governance(db)
+    lock_assignment(db, assignment_id)
     task = visible(db, user, assignment_id)
     enrollment = (
         db.query(Enrollment)
@@ -482,7 +487,7 @@ def grade(
     db: Session = Depends(get_db),
     user: User = Depends(manager),
 ):
-    lock_governance(db)
+    lock_submission(db, submission_id)
     item = db.get(Submission, submission_id)
     if not item:
         raise HTTPException(404, "Entrega no disponible")
@@ -518,7 +523,7 @@ def transfer(
     db: Session = Depends(get_db),
     user: User = Depends(grader),
 ):
-    lock_governance(db)
+    lock_assignment(db, assignment_id)
     task = visible(db, user, assignment_id)
     if len(data.reason.strip()) < 2:
         raise HTTPException(422, "Indica el motivo de la transferencia")

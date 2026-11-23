@@ -25,9 +25,14 @@ from app.schemas.grade_schema import (
     GradeUpdate,
 )
 from app.services.academic_grading import ensure_grading_open, record_change, write_grade
+from app.services.academic_locks import (
+    lock_assessment,
+    lock_enrollment_section,
+    lock_grade,
+    lock_sections,
+)
 from app.services.email_notices import notify_grades_published
 from app.services.email_service import deliver_after_commit
-from app.services.governance_workflow import lock_governance
 from app.services.grade_service import get_grade_by_id_service
 
 router = APIRouter(prefix="/grades", tags=["grades"])
@@ -49,7 +54,7 @@ def validate_assessment(db: Session, assessment_id: int | None, section_id: int)
 def save_section_grades(
     data: GradeBulkCreate, db: Session = Depends(get_db), user: User = Depends(grade_manager)
 ):
-    lock_governance(db)
+    lock_sections(db, data.section_id)
     section = ensure_section_access(db, user, data.section_id)
     ensure_grading_open(db, section)
     ids = [item.enrollment_id for item in data.records]
@@ -86,7 +91,7 @@ def save_section_grades(
 def create_grade(
     data: GradeCreate, db: Session = Depends(get_db), user: User = Depends(grade_manager)
 ):
-    lock_governance(db)
+    lock_enrollment_section(db, data.enrollment_id)
     enrollment = ensure_enrollment_access(db, user, data.enrollment_id)
     ensure_section_access(db, user, enrollment.section_id)
     assessment = validate_assessment(db, data.assessment_id, enrollment.section_id)
@@ -142,7 +147,7 @@ def publish_assessment_grades(
     db: Session = Depends(get_db),
     user: User = Depends(grade_manager),
 ):
-    lock_governance(db)
+    lock_assessment(db, assessment_id)
     assessment = db.get(Assessment, assessment_id)
     if assessment is None:
         raise HTTPException(status_code=404, detail="Evaluación no encontrada")
@@ -215,7 +220,7 @@ def update_grade(
     db: Session = Depends(get_db),
     user: User = Depends(grade_manager),
 ):
-    lock_governance(db)
+    lock_grade(db, grade_id)
     grade = get_grade_by_id_service(db, grade_id)
     ensure_section_access(db, user, grade.enrollment.section_id)
     values = data.model_dump(exclude_unset=True)
@@ -252,7 +257,7 @@ def delete_grade(
     db: Session = Depends(get_db),
     user: User = Depends(grade_manager),
 ):
-    lock_governance(db)
+    lock_grade(db, grade_id)
     grade = get_grade_by_id_service(db, grade_id)
     ensure_section_access(db, user, grade.enrollment.section_id)
     ensure_grading_open(db, grade.enrollment.section, grade.enrollment)

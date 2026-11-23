@@ -39,11 +39,11 @@ from app.schemas.academic_schema import (
 )
 from app.schemas.enrollment_schema import EnrollmentCreate
 from app.services.academic_grading import academic_result
+from app.services.academic_locks import lock_selection
 from app.services.academic_recognition import current_courses, recognize
 from app.services.business_time import business_date
 from app.services.effective_schedule import effective_blocks, load_schedule
 from app.services.enrollment_service import create_enrollment_service
-from app.services.governance_workflow import lock_governance
 from app.services.grading_scales import (
     ScaleCache,
     academic_index,
@@ -266,7 +266,7 @@ def selection_cart(db: Session = Depends(get_db), user: User = Depends(selection
 def add_to_selection_cart(
     section_id: int, db: Session = Depends(get_db), user: User = Depends(selection_user)
 ):
-    lock_governance(db)
+    lock_selection(db, [section_id], user.student_id)
     if user.student_id is None:
         raise HTTPException(
             status_code=403,
@@ -323,7 +323,7 @@ def add_to_selection_cart(
 def remove_from_selection_cart(
     section_id: int, db: Session = Depends(get_db), user: User = Depends(selection_user)
 ):
-    lock_governance(db)
+    lock_selection(db, [section_id], user.student_id)
     item = (
         db.query(CourseSelectionCart)
         .filter_by(student_id=user.student_id, section_id=section_id)
@@ -355,12 +355,14 @@ def confirm_selection_cart(db: Session = Depends(get_db), user: User = Depends(s
     confirmed = []
     errors = []
     handled = set()
+    # Every section in the cart, then the student: one consistent order per attempt.
+    cart_sections = sorted({item.section_id for item in items})
     for cart_item_id, section_id in [(item.cart_item_id, item.section_id) for item in items]:
         if cart_item_id in handled:
             continue
         section_ids = [section_id]
         try:
-            lock_governance(db)
+            lock_selection(db, cart_sections, user.student_id)
             item = db.get(CourseSelectionCart, cart_item_id)
             if item is None or item.student_id != user.student_id or item.section_id != section_id:
                 db.rollback()

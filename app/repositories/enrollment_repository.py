@@ -6,13 +6,11 @@ from app.models.section_model import Section
 from app.models.student_model import Student
 from app.schemas.enrollment_schema import EnrollmentCreate, EnrollmentUpdate
 from app.services.enrollment_policy import selection_period
-from app.services.governance_workflow import lock_governance
 from app.services.grading_scales import passing_for
 
 
 def create_enrollment(db: Session, enrollment_data: EnrollmentCreate) -> Enrollment:
-    """Add the selection; the service records it and commits."""
-    lock_governance(db)
+    """Add the selection; the service took the locks, records it and commits."""
     selection_period(db, enrollment_data.section_id, enrollment_data.period, registration=True)
     student = db.get(Student, enrollment_data.student_id)
     section = db.get(Section, enrollment_data.section_id)
@@ -50,7 +48,7 @@ def update_enrollment(
     db: Session, enrollment_id: int, enrollment_data: EnrollmentUpdate
 ) -> Enrollment:
 
-    lock_governance(db)
+    # The service holds the selection's locks (section and student).
     enrollment = get_enrollment_by_id(db, enrollment_id)
 
     if not enrollment:
