@@ -2,8 +2,9 @@ from .access_model import Permission, RolePermission
 from .assessment_model import Assessment, AssessmentTemplate
 from .attendance_model import Attendance, AttendanceChange
 from .career_model import Career
+from .class_group_model import ClassGroup, ClassGroupMember, ClassGroupSubject
 from .community_model import Announcement, Guardian, Notification, StudentGuardian
-from .configuration_model import AcademicPeriod, InstitutionSettings, WriteLock
+from .configuration_model import AcademicPeriod, InstitutionSettings, SchoolYear, WriteLock
 from .curriculum_model import CurriculumCourse
 from .email_model import EmailOutbox, OneTimeToken
 from .enrollment_model import CourseSelectionCart, Enrollment

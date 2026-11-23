@@ -28,6 +28,10 @@ class Section(Base):
     )
     academic_period: Mapped["AcademicPeriod | None"] = relationship(lazy="selectin")
     period_name = period_by_name("period_name")
+    # Subject of a fixed school group (Fase 3 C); None for free-choice sections.
+    class_group_id: Mapped[int | None] = mapped_column(
+        ForeignKey("class_groups.class_group_id"), nullable=True, index=True
+    )
 
     subject: Mapped["Subject"] = relationship("Subject", back_populates="sections")
     teacher: Mapped["Teacher"] = relationship("Teacher", back_populates="sections")

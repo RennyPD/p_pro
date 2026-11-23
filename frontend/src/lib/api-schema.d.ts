@@ -1052,6 +1052,180 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/class-groups/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Class Groups */
+    get: operations["list_class_groups_class_groups__get"];
+    put?: never;
+    /** Create Class Group */
+    post: operations["create_class_group_class_groups__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Class Group */
+    get: operations["get_class_group_class_groups__class_group_id__get"];
+    put?: never;
+    post?: never;
+    /** Delete Class Group */
+    delete: operations["delete_class_group_class_groups__class_group_id__delete"];
+    options?: never;
+    head?: never;
+    /** Update Class Group */
+    patch: operations["update_class_group_class_groups__class_group_id__patch"];
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/generate-subjects": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Generate Group Subjects */
+    post: operations["generate_group_subjects_class_groups__class_group_id__generate_subjects_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Class Group History */
+    get: operations["class_group_history_class_groups__class_group_id__history_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/members": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Add Group Member */
+    post: operations["add_group_member_class_groups__class_group_id__members_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/members/{member_id}/transfer": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Transfer Group Member */
+    post: operations["transfer_group_member_class_groups__class_group_id__members__member_id__transfer_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/members/{member_id}/withdraw": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Withdraw Group Member */
+    post: operations["withdraw_group_member_class_groups__class_group_id__members__member_id__withdraw_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/promotion": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Promotion */
+    get: operations["promotion_class_groups__class_group_id__promotion_get"];
+    put?: never;
+    /** Confirm Promotion */
+    post: operations["confirm_promotion_class_groups__class_group_id__promotion_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/reinscribe": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reinscribe Group */
+    post: operations["reinscribe_group_class_groups__class_group_id__reinscribe_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/class-groups/{class_group_id}/subjects/{subject_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Set Subject Teacher */
+    put: operations["set_subject_teacher_class_groups__class_group_id__subjects__subject_id__put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/community/announcements": {
     parameters: {
       query?: never;
@@ -4683,6 +4857,13 @@ export interface components {
       /** Total */
       total: string;
     };
+    /** BlockedStudent */
+    BlockedStudent: {
+      /** Reason */
+      reason: string;
+      /** Student Name */
+      student_name: string;
+    };
     /** BootstrapRequest */
     BootstrapRequest: {
       /**
@@ -5066,6 +5247,182 @@ export interface components {
       description: string;
       /** Due Date */
       due_date?: string | null;
+    };
+    /** ClassGroupCreate */
+    ClassGroupCreate: {
+      /**
+       * Capacity
+       * @default 35
+       */
+      capacity: number;
+      /** Career Id */
+      career_id: number;
+      /** Grade Number */
+      grade_number: number;
+      /** Homeroom Teacher Id */
+      homeroom_teacher_id?: number | null;
+      /** Name */
+      name: string;
+      /**
+       * Room
+       * @default Por asignar
+       */
+      room: string;
+      /** School Year Id */
+      school_year_id: number;
+    };
+    /** ClassGroupDetail */
+    ClassGroupDetail: {
+      /**
+       * Capacity
+       * @default 35
+       */
+      capacity: number;
+      /** Career Id */
+      career_id: number;
+      /** Career Name */
+      career_name: string;
+      /** Class Group Id */
+      class_group_id: number;
+      /** Grade Number */
+      grade_number: number;
+      /** Homeroom Teacher Id */
+      homeroom_teacher_id?: number | null;
+      /** Homeroom Teacher Name */
+      homeroom_teacher_name?: string | null;
+      /** Label */
+      label: string;
+      /**
+       * Member Count
+       * @default 0
+       */
+      member_count: number;
+      /** Members */
+      members: components["schemas"]["ClassGroupMemberOut"][];
+      /** Name */
+      name: string;
+      /** Open Periods */
+      open_periods: string[];
+      /**
+       * Room
+       * @default Por asignar
+       */
+      room: string;
+      /** School Year Id */
+      school_year_id: number;
+      /** School Year Name */
+      school_year_name: string;
+      /** Status */
+      status: string;
+      /** Subjects */
+      subjects: components["schemas"]["ClassGroupSubjectOut"][];
+    };
+    /** ClassGroupMemberOut */
+    ClassGroupMemberOut: {
+      /**
+       * Academic Hold
+       * @default false
+       */
+      academic_hold: boolean;
+      /** Enrollment Number */
+      enrollment_number: string;
+      /**
+       * Financial Hold
+       * @default false
+       */
+      financial_hold: boolean;
+      /**
+       * Joined On
+       * Format: date
+       */
+      joined_on: string;
+      /** Left On */
+      left_on?: string | null;
+      /** Member Id */
+      member_id: number;
+      /** Result */
+      result: string;
+      /** Result Confirmed At */
+      result_confirmed_at?: string | null;
+      /** Result Note */
+      result_note?: string | null;
+      /** Status */
+      status: string;
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
+    };
+    /** ClassGroupOut */
+    ClassGroupOut: {
+      /**
+       * Capacity
+       * @default 35
+       */
+      capacity: number;
+      /** Career Id */
+      career_id: number;
+      /** Career Name */
+      career_name: string;
+      /** Class Group Id */
+      class_group_id: number;
+      /** Grade Number */
+      grade_number: number;
+      /** Homeroom Teacher Id */
+      homeroom_teacher_id?: number | null;
+      /** Homeroom Teacher Name */
+      homeroom_teacher_name?: string | null;
+      /** Label */
+      label: string;
+      /**
+       * Member Count
+       * @default 0
+       */
+      member_count: number;
+      /** Name */
+      name: string;
+      /**
+       * Room
+       * @default Por asignar
+       */
+      room: string;
+      /** School Year Id */
+      school_year_id: number;
+      /** School Year Name */
+      school_year_name: string;
+      /** Status */
+      status: string;
+    };
+    /** ClassGroupSubjectOut */
+    ClassGroupSubjectOut: {
+      /** Code */
+      code: string;
+      /** Name */
+      name: string;
+      /**
+       * Sections
+       * @default 0
+       */
+      sections: number;
+      /** Subject Id */
+      subject_id: number;
+      /** Teacher Id */
+      teacher_id?: number | null;
+      /** Teacher Name */
+      teacher_name?: string | null;
+    };
+    /** ClassGroupUpdate */
+    ClassGroupUpdate: {
+      /** Capacity */
+      capacity?: number | null;
+      /** Homeroom Teacher Id */
+      homeroom_teacher_id?: number | null;
+      /** Name */
+      name?: string | null;
+      /** Room */
+      room?: string | null;
+      /** Status */
+      status?: string | null;
     };
     /**
      * ClassroomAvailability
@@ -6567,6 +6924,25 @@ export interface components {
        */
       virtual_url: string;
     };
+    /** MemberAdd */
+    MemberAdd: {
+      /** Override Reason */
+      override_reason?: string | null;
+      /** Student Id */
+      student_id: number;
+    };
+    /** MemberChange */
+    MemberChange: {
+      /** Reason */
+      reason: string;
+    };
+    /** MemberTransfer */
+    MemberTransfer: {
+      /** Reason */
+      reason: string;
+      /** Target Group Id */
+      target_group_id: number;
+    };
     /** MfaDisableRequest */
     MfaDisableRequest: {
       /** Code */
@@ -6732,6 +7108,70 @@ export interface components {
       name: string;
       /** Subject Id */
       subject_id: number;
+    };
+    /** PromotionProposal */
+    PromotionProposal: {
+      /** Class Group Id */
+      class_group_id: number;
+      /** Members */
+      members: components["schemas"]["PromotionRow"][];
+      /** Passing Grade */
+      passing_grade: number;
+      /** Periods */
+      periods: string[];
+    };
+    /** PromotionRow */
+    PromotionRow: {
+      /** Complete */
+      complete: boolean;
+      /** Confirmed */
+      confirmed: boolean;
+      /** Enrollment Number */
+      enrollment_number: string;
+      /** Failed */
+      failed: string[];
+      /** Member Id */
+      member_id: number;
+      /** Proposal */
+      proposal: string | null;
+      /** Result */
+      result: string;
+      /** Student Id */
+      student_id: number;
+      /** Student Name */
+      student_name: string;
+      /** Subjects */
+      subjects: components["schemas"]["SubjectResultOut"][];
+    };
+    /** ReinscriptionIn */
+    ReinscriptionIn: {
+      /** Member Ids */
+      member_ids: number[];
+      /** Override Reason */
+      override_reason?: string | null;
+      /** Target Group Id */
+      target_group_id: number;
+    };
+    /** ReinscriptionOut */
+    ReinscriptionOut: {
+      /** Blocked */
+      blocked: components["schemas"]["BlockedStudent"][];
+      /** Reinscribed */
+      reinscribed: string[];
+    };
+    /** ResultConfirmation */
+    ResultConfirmation: {
+      /** Decisions */
+      decisions: components["schemas"]["ResultDecision"][];
+    };
+    /** ResultDecision */
+    ResultDecision: {
+      /** Member Id */
+      member_id: number;
+      /** Note */
+      note?: string | null;
+      /** Result */
+      result: string;
     };
     /** RoleCreate */
     RoleCreate: {
@@ -7822,12 +8262,41 @@ export interface components {
       /** Term Type */
       term_type: string;
     };
+    /** SubjectResultOut */
+    SubjectResultOut: {
+      /** Average */
+      average: number | null;
+      /** Code */
+      code: string;
+      /** Complete */
+      complete: boolean;
+      /** Name */
+      name: string;
+      /** Passed */
+      passed: boolean | null;
+      /** Periods */
+      periods: (number | null)[];
+      /** Subject Id */
+      subject_id: number;
+    };
+    /** SubjectTeacherIn */
+    SubjectTeacherIn: {
+      /** Teacher Id */
+      teacher_id: number;
+    };
     /** SubjectUpdate */
     SubjectUpdate: {
       /** Code */
       code?: string | null;
       /** Description */
       description?: string | null;
+    };
+    /** SubjectsGenerated */
+    SubjectsGenerated: {
+      /** Enrollments Created */
+      enrollments_created: number;
+      /** Sections Created */
+      sections_created: number;
     };
     /** SubmissionAttachmentCreate */
     SubmissionAttachmentCreate: {
@@ -10518,6 +10987,478 @@ export interface operations {
         };
         content: {
           "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_class_groups_class_groups__get: {
+    parameters: {
+      query?: {
+        q?: string | null;
+        school_year_id?: number | null;
+        career_id?: number | null;
+        grade_number?: number | null;
+        skip?: number;
+        limit?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClassGroupOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_class_group_class_groups__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ClassGroupCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClassGroupOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_class_group_class_groups__class_group_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClassGroupDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_class_group_class_groups__class_group_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_class_group_class_groups__class_group_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ClassGroupUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClassGroupDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  generate_group_subjects_class_groups__class_group_id__generate_subjects_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SubjectsGenerated"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  class_group_history_class_groups__class_group_id__history_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  add_group_member_class_groups__class_group_id__members_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MemberAdd"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClassGroupDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  transfer_group_member_class_groups__class_group_id__members__member_id__transfer_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+        member_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MemberTransfer"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClassGroupDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  withdraw_group_member_class_groups__class_group_id__members__member_id__withdraw_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+        member_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MemberChange"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClassGroupDetail"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  promotion_class_groups__class_group_id__promotion_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PromotionProposal"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  confirm_promotion_class_groups__class_group_id__promotion_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ResultConfirmation"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PromotionProposal"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reinscribe_group_class_groups__class_group_id__reinscribe_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReinscriptionIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReinscriptionOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_subject_teacher_class_groups__class_group_id__subjects__subject_id__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        class_group_id: number;
+        subject_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SubjectTeacherIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClassGroupDetail"];
         };
       };
       /** @description Validation Error */

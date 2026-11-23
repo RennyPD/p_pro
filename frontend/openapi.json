@@ -2734,6 +2734,24 @@
         "title": "BillingRunOut",
         "type": "object"
       },
+      "BlockedStudent": {
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_name",
+          "reason"
+        ],
+        "title": "BlockedStudent",
+        "type": "object"
+      },
       "BootstrapRequest": {
         "properties": {
           "email": {
@@ -3857,6 +3875,486 @@
           "amount"
         ],
         "title": "ChargeCreate",
+        "type": "object"
+      },
+      "ClassGroupCreate": {
+        "properties": {
+          "capacity": {
+            "default": 35,
+            "maximum": 80.0,
+            "minimum": 1.0,
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "career_id": {
+            "title": "Career Id",
+            "type": "integer"
+          },
+          "grade_number": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Grade Number",
+            "type": "integer"
+          },
+          "homeroom_teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homeroom Teacher Id"
+          },
+          "name": {
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "room": {
+            "default": "Por asignar",
+            "maxLength": 100,
+            "title": "Room",
+            "type": "string"
+          },
+          "school_year_id": {
+            "title": "School Year Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "career_id",
+          "grade_number",
+          "name",
+          "school_year_id"
+        ],
+        "title": "ClassGroupCreate",
+        "type": "object"
+      },
+      "ClassGroupDetail": {
+        "properties": {
+          "capacity": {
+            "default": 35,
+            "maximum": 80.0,
+            "minimum": 1.0,
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "career_id": {
+            "title": "Career Id",
+            "type": "integer"
+          },
+          "career_name": {
+            "title": "Career Name",
+            "type": "string"
+          },
+          "class_group_id": {
+            "title": "Class Group Id",
+            "type": "integer"
+          },
+          "grade_number": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Grade Number",
+            "type": "integer"
+          },
+          "homeroom_teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homeroom Teacher Id"
+          },
+          "homeroom_teacher_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homeroom Teacher Name"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "member_count": {
+            "default": 0,
+            "title": "Member Count",
+            "type": "integer"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/ClassGroupMemberOut"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "open_periods": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Open Periods",
+            "type": "array"
+          },
+          "room": {
+            "default": "Por asignar",
+            "maxLength": 100,
+            "title": "Room",
+            "type": "string"
+          },
+          "school_year_id": {
+            "title": "School Year Id",
+            "type": "integer"
+          },
+          "school_year_name": {
+            "title": "School Year Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/ClassGroupSubjectOut"
+            },
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "career_id",
+          "grade_number",
+          "name",
+          "school_year_id",
+          "class_group_id",
+          "status",
+          "label",
+          "career_name",
+          "school_year_name",
+          "members",
+          "subjects",
+          "open_periods"
+        ],
+        "title": "ClassGroupDetail",
+        "type": "object"
+      },
+      "ClassGroupMemberOut": {
+        "properties": {
+          "academic_hold": {
+            "default": false,
+            "title": "Academic Hold",
+            "type": "boolean"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "financial_hold": {
+            "default": false,
+            "title": "Financial Hold",
+            "type": "boolean"
+          },
+          "joined_on": {
+            "format": "date",
+            "title": "Joined On",
+            "type": "string"
+          },
+          "left_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Left On"
+          },
+          "member_id": {
+            "title": "Member Id",
+            "type": "integer"
+          },
+          "result": {
+            "title": "Result",
+            "type": "string"
+          },
+          "result_confirmed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Confirmed At"
+          },
+          "result_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Note"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "member_id",
+          "student_id",
+          "student_name",
+          "enrollment_number",
+          "status",
+          "joined_on",
+          "result"
+        ],
+        "title": "ClassGroupMemberOut",
+        "type": "object"
+      },
+      "ClassGroupOut": {
+        "properties": {
+          "capacity": {
+            "default": 35,
+            "maximum": 80.0,
+            "minimum": 1.0,
+            "title": "Capacity",
+            "type": "integer"
+          },
+          "career_id": {
+            "title": "Career Id",
+            "type": "integer"
+          },
+          "career_name": {
+            "title": "Career Name",
+            "type": "string"
+          },
+          "class_group_id": {
+            "title": "Class Group Id",
+            "type": "integer"
+          },
+          "grade_number": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Grade Number",
+            "type": "integer"
+          },
+          "homeroom_teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homeroom Teacher Id"
+          },
+          "homeroom_teacher_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homeroom Teacher Name"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "member_count": {
+            "default": 0,
+            "title": "Member Count",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "room": {
+            "default": "Por asignar",
+            "maxLength": 100,
+            "title": "Room",
+            "type": "string"
+          },
+          "school_year_id": {
+            "title": "School Year Id",
+            "type": "integer"
+          },
+          "school_year_name": {
+            "title": "School Year Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "career_id",
+          "grade_number",
+          "name",
+          "school_year_id",
+          "class_group_id",
+          "status",
+          "label",
+          "career_name",
+          "school_year_name"
+        ],
+        "title": "ClassGroupOut",
+        "type": "object"
+      },
+      "ClassGroupSubjectOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "sections": {
+            "default": 0,
+            "title": "Sections",
+            "type": "integer"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "integer"
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Id"
+          },
+          "teacher_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Name"
+          }
+        },
+        "required": [
+          "subject_id",
+          "code",
+          "name"
+        ],
+        "title": "ClassGroupSubjectOut",
+        "type": "object"
+      },
+      "ClassGroupUpdate": {
+        "properties": {
+          "capacity": {
+            "anyOf": [
+              {
+                "maximum": 80.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity"
+          },
+          "homeroom_teacher_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homeroom Teacher Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "pattern": "^(active|closed)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "title": "ClassGroupUpdate",
         "type": "object"
       },
       "ClassroomAvailability": {
@@ -7784,6 +8282,66 @@
         "title": "MeetingOut",
         "type": "object"
       },
+      "MemberAdd": {
+        "properties": {
+          "override_reason": {
+            "anyOf": [
+              {
+                "maxLength": 250,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Reason"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "student_id"
+        ],
+        "title": "MemberAdd",
+        "type": "object"
+      },
+      "MemberChange": {
+        "properties": {
+          "reason": {
+            "maxLength": 250,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "MemberChange",
+        "type": "object"
+      },
+      "MemberTransfer": {
+        "properties": {
+          "reason": {
+            "maxLength": 250,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "target_group_id": {
+            "title": "Target Group Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reason",
+          "target_group_id"
+        ],
+        "title": "MemberTransfer",
+        "type": "object"
+      },
       "MfaDisableRequest": {
         "properties": {
           "code": {
@@ -8265,6 +8823,217 @@
           "components"
         ],
         "title": "PlanTemplateOut",
+        "type": "object"
+      },
+      "PromotionProposal": {
+        "properties": {
+          "class_group_id": {
+            "title": "Class Group Id",
+            "type": "integer"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/PromotionRow"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "passing_grade": {
+            "title": "Passing Grade",
+            "type": "number"
+          },
+          "periods": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Periods",
+            "type": "array"
+          }
+        },
+        "required": [
+          "class_group_id",
+          "passing_grade",
+          "periods",
+          "members"
+        ],
+        "title": "PromotionProposal",
+        "type": "object"
+      },
+      "PromotionRow": {
+        "properties": {
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "confirmed": {
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "enrollment_number": {
+            "title": "Enrollment Number",
+            "type": "string"
+          },
+          "failed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failed",
+            "type": "array"
+          },
+          "member_id": {
+            "title": "Member Id",
+            "type": "integer"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal"
+          },
+          "result": {
+            "title": "Result",
+            "type": "string"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/SubjectResultOut"
+            },
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "member_id",
+          "student_id",
+          "student_name",
+          "enrollment_number",
+          "subjects",
+          "failed",
+          "complete",
+          "proposal",
+          "result",
+          "confirmed"
+        ],
+        "title": "PromotionRow",
+        "type": "object"
+      },
+      "ReinscriptionIn": {
+        "properties": {
+          "member_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "title": "Member Ids",
+            "type": "array"
+          },
+          "override_reason": {
+            "anyOf": [
+              {
+                "maxLength": 250,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Reason"
+          },
+          "target_group_id": {
+            "title": "Target Group Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "target_group_id",
+          "member_ids"
+        ],
+        "title": "ReinscriptionIn",
+        "type": "object"
+      },
+      "ReinscriptionOut": {
+        "properties": {
+          "blocked": {
+            "items": {
+              "$ref": "#/components/schemas/BlockedStudent"
+            },
+            "title": "Blocked",
+            "type": "array"
+          },
+          "reinscribed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reinscribed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "reinscribed",
+          "blocked"
+        ],
+        "title": "ReinscriptionOut",
+        "type": "object"
+      },
+      "ResultConfirmation": {
+        "properties": {
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/ResultDecision"
+            },
+            "minItems": 1,
+            "title": "Decisions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "decisions"
+        ],
+        "title": "ResultConfirmation",
+        "type": "object"
+      },
+      "ResultDecision": {
+        "properties": {
+          "member_id": {
+            "title": "Member Id",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 250,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "result": {
+            "pattern": "^(promoted|completivo|repeated)$",
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "member_id",
+          "result"
+        ],
+        "title": "ResultDecision",
         "type": "object"
       },
       "RoleCreate": {
@@ -11037,6 +11806,86 @@
         "title": "SubjectProgramOut",
         "type": "object"
       },
+      "SubjectResultOut": {
+        "properties": {
+          "average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed"
+          },
+          "periods": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subject_id",
+          "code",
+          "name",
+          "periods",
+          "average",
+          "complete",
+          "passed"
+        ],
+        "title": "SubjectResultOut",
+        "type": "object"
+      },
+      "SubjectTeacherIn": {
+        "properties": {
+          "teacher_id": {
+            "title": "Teacher Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "teacher_id"
+        ],
+        "title": "SubjectTeacherIn",
+        "type": "object"
+      },
       "SubjectUpdate": {
         "properties": {
           "code": {
@@ -11067,6 +11916,24 @@
           }
         },
         "title": "SubjectUpdate",
+        "type": "object"
+      },
+      "SubjectsGenerated": {
+        "properties": {
+          "enrollments_created": {
+            "title": "Enrollments Created",
+            "type": "integer"
+          },
+          "sections_created": {
+            "title": "Sections Created",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sections_created",
+          "enrollments_created"
+        ],
+        "title": "SubjectsGenerated",
         "type": "object"
       },
       "SubmissionAttachmentCreate": {
@@ -16599,6 +17466,836 @@
         "summary": "Career Overview",
         "tags": [
           "careers"
+        ]
+      }
+    },
+    "/class-groups/": {
+      "get": {
+        "operationId": "list_class_groups_class_groups__get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "school_year_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "School Year Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "career_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Career Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "grade_number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Grade Number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 100,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClassGroupOut"
+                  },
+                  "title": "Response List Class Groups Class Groups  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Class Groups",
+        "tags": [
+          "class groups"
+        ]
+      },
+      "post": {
+        "operationId": "create_class_group_class_groups__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassGroupCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGroupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Class Group",
+        "tags": [
+          "class groups"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}": {
+      "delete": {
+        "operationId": "delete_class_group_class_groups__class_group_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Class Group",
+        "tags": [
+          "class groups"
+        ]
+      },
+      "get": {
+        "operationId": "get_class_group_class_groups__class_group_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGroupDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Class Group",
+        "tags": [
+          "class groups"
+        ]
+      },
+      "patch": {
+        "operationId": "update_class_group_class_groups__class_group_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassGroupUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGroupDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Class Group",
+        "tags": [
+          "class groups"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/generate-subjects": {
+      "post": {
+        "operationId": "generate_group_subjects_class_groups__class_group_id__generate_subjects_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectsGenerated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Generate Group Subjects",
+        "tags": [
+          "class groups"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/history": {
+      "get": {
+        "operationId": "class_group_history_class_groups__class_group_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Class Group History",
+        "tags": [
+          "class groups"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/members": {
+      "post": {
+        "operationId": "add_group_member_class_groups__class_group_id__members_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberAdd"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGroupDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Group Member",
+        "tags": [
+          "class groups"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/members/{member_id}/transfer": {
+      "post": {
+        "operationId": "transfer_group_member_class_groups__class_group_id__members__member_id__transfer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "schema": {
+              "title": "Member Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberTransfer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGroupDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Transfer Group Member",
+        "tags": [
+          "class groups"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/members/{member_id}/withdraw": {
+      "post": {
+        "operationId": "withdraw_group_member_class_groups__class_group_id__members__member_id__withdraw_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "member_id",
+            "required": true,
+            "schema": {
+              "title": "Member Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGroupDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Withdraw Group Member",
+        "tags": [
+          "class groups"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/promotion": {
+      "get": {
+        "operationId": "promotion_class_groups__class_group_id__promotion_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionProposal"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Promotion",
+        "tags": [
+          "class groups"
+        ]
+      },
+      "post": {
+        "operationId": "confirm_promotion_class_groups__class_group_id__promotion_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResultConfirmation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionProposal"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Confirm Promotion",
+        "tags": [
+          "class groups"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/reinscribe": {
+      "post": {
+        "operationId": "reinscribe_group_class_groups__class_group_id__reinscribe_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReinscriptionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReinscriptionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reinscribe Group",
+        "tags": [
+          "class groups"
+        ]
+      }
+    },
+    "/class-groups/{class_group_id}/subjects/{subject_id}": {
+      "put": {
+        "operationId": "set_subject_teacher_class_groups__class_group_id__subjects__subject_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class_group_id",
+            "required": true,
+            "schema": {
+              "title": "Class Group Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectTeacherIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassGroupDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Subject Teacher",
+        "tags": [
+          "class groups"
         ]
       }
     },

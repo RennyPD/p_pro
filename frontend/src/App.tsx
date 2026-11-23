@@ -37,6 +37,8 @@ import { EquivalencesPage } from "./features/settings/EquivalencesPage";
 import { RolesPage } from "./features/settings/RolesPage";
 import { InstitutionSettingsPage } from "./features/settings/InstitutionSettingsPage";
 import { PeriodsPage } from "./features/settings/PeriodsPage";
+import { ClassGroupPage } from "./features/groups/ClassGroupPage";
+import { ClassGroupsPage } from "./features/groups/ClassGroupsPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { api } from "./lib/api";
 import { useSessionRenewal } from "./lib/useSessionRenewal";
@@ -225,6 +227,18 @@ export default function App() {
             <Route element={<Allow when={institution("teachers.view", "teachers.manage")} />}>
               <Route path="teachers" element={<TeachersPage />} />
               <Route path="teachers/:teacherId" element={<TeacherDossierPage />} />
+            </Route>
+            <Route
+              element={
+                <Allow
+                  when={a =>
+                    staff(a) && a.canAny("sections.view", "sections.manage", "enrollments.manage")
+                  }
+                />
+              }
+            >
+              <Route path="class-groups" element={<ClassGroupsPage />} />
+              <Route path="class-groups/:groupId" element={<ClassGroupPage />} />
             </Route>
             <Route element={<Allow when={institution("equivalences.manage")} />}>
               <Route path="equivalences" element={<EquivalencesPage />} />

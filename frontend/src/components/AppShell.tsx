@@ -117,6 +117,13 @@ const NAV: NavItem[] = [
     show: a => staff(a) && a.canAny("sections.view", "sections.manage"),
   },
   {
+    to: "/class-groups",
+    label: "Grupos",
+    icon: Users,
+    group: "Académico",
+    show: a => staff(a) && a.canAny("sections.view", "sections.manage", "enrollments.manage"),
+  },
+  {
     to: "/equivalences",
     label: "Equivalencias",
     icon: ArrowLeftRight,
@@ -190,7 +197,11 @@ export function AppShell() {
   const queryClient = useQueryClient();
   const access = useAccess();
   const modules = useModuleViews();
-  const institution = useQuery<{ institution_name: string; students_view_finance?: boolean }>({
+  const institution = useQuery<{
+    institution_name: string;
+    students_view_finance?: boolean;
+    institution_type?: string;
+  }>({
     queryKey: ["institution-settings", user?.user_id],
     queryFn: () => api.get("/configuration/institution").then(r => r.data),
     enabled: Boolean(user),
@@ -213,6 +224,12 @@ export function AppShell() {
         ...NAV.filter(item => !item.show || item.show(access))
           .filter(
             item => item.to !== "/my-finance" || institution.data?.students_view_finance !== false,
+          )
+          // Fixed groups are a school feature (Fase 3 C).
+          .filter(
+            item =>
+              item.to !== "/class-groups" ||
+              (institution.data?.institution_type ?? "university") !== "university",
           )
           .map(item => ({
             ...item,

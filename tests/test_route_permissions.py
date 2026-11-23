@@ -41,6 +41,8 @@ SCOPE_CHECKED = {
     ("GET", "/configuration/institution"): "institution name for the shell",
     ("GET", "/periods/"): "period names for filters",
     ("GET", "/school-years/"): "school year names for filters",
+    ("GET", "/class-groups/"): "visible_groups: academic reach, own teacher groups, else none",
+    ("GET", "/class-groups/{class_group_id}"): "ensure_group_access (same scope as the list)",
     ("GET", "/finance/options"): "transfer instructions shown to account holders",
     # Reads whose records are filtered by ensure_* / scope helpers.
     ("GET", "/academic/students/{student_id}/grades"): "ensure_student_access",
