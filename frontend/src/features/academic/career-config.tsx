@@ -8,6 +8,9 @@ export const levelLabels: Record<string, string> = {
   undergraduate: "Grado",
   graduate: "Maestría",
   postgraduate: "Postgrado",
+  initial: "Nivel Inicial",
+  primary: "Nivel Primario",
+  secondary: "Nivel Secundario",
 };
 export const statusLabels: Record<string, string> = {
   draft: "En diseño",

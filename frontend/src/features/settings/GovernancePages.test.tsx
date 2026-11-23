@@ -231,3 +231,28 @@ it("lets the institution decide whether students see their own finances", async 
     ),
   );
 });
+it("unchecks students' own finances when the institution becomes a school", async () => {
+  const settings = {
+    settings_id: 1,
+    institution_name: "Colegio",
+    enrollment_prefix: "EST",
+    enrollment_digits: 4,
+    passing_grade: 70,
+    max_credits_per_period: 24,
+    students_view_finance: true,
+    institution_type: "university",
+    revision: 1,
+    next_enrollment_number: 1,
+    enrollment_preview: "EST-2026-0001",
+  };
+  vi.spyOn(api, "get").mockImplementation(
+    async path => ({ data: String(path).endsWith("/history") ? [] : settings }) as never,
+  );
+  renderPage(<InstitutionSettingsPage />);
+  const type = await screen.findByLabelText(/Tipo de institución/);
+  await waitFor(() => expect(type).toHaveValue("university"));
+  const finances = screen.getByRole("checkbox", { name: /El estudiante ve sus finanzas/ });
+  expect(finances).toBeChecked();
+  fireEvent.change(type, { target: { value: "school" } });
+  expect(finances).not.toBeChecked();
+});

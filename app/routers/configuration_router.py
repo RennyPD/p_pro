@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user, require_permissions
 from app.db.Session import get_db
 from app.models.assessment_model import Assessment
+from app.models.career_model import Career
 from app.models.configuration_model import AcademicPeriod, InstitutionSettings
 from app.models.enrollment_model import CourseSelectionCart, Enrollment
 from app.models.section_model import Section
@@ -25,6 +26,7 @@ from app.schemas.configuration_schema import (
 from app.services.academic_grading import academic_result
 from app.services.business_time import business_date
 from app.services.governance_workflow import history, lock_governance, record
+from app.services.institution_profile import allowed_levels
 
 router = APIRouter(tags=["academic configuration"])
 academic_manager = require_permissions("settings.manage")
@@ -42,12 +44,36 @@ def get_or_create_settings(db, write=False):
             passing_grade=70,
             max_credits_per_period=24,
             students_view_finance=True,
+            institution_type="university",
             revision=0,
         )
         if write:
             db.add(item)
             db.flush()
     return item
+
+
+def apply_institution_type(db, settings, data):
+    """Changing university/school/both: programs must fit, and schools hide
+    students' own finances by default (decision of 21/11/2026)."""
+    target = data.institution_type
+    if target is None or target == settings.institution_type:
+        return
+    misfit = (
+        db.query(Career.name)
+        .filter(Career.academic_level.not_in(allowed_levels(target)))
+        .order_by(Career.name)
+        .limit(3)
+        .all()
+    )
+    if misfit:
+        names = ", ".join(row[0] for row in misfit)
+        raise HTTPException(
+            409,
+            f"Hay programas de otro nivel ({names}). Cambia su nivel o elige «Universidad y escuela»",
+        )
+    if target == "school" and data.students_view_finance is None:
+        data.students_view_finance = False
 
 
 def enrollment_number(settings):
@@ -94,6 +120,7 @@ def update_institution_settings(
         raise HTTPException(409, "La configuración cambió; recarga y revisa el impacto nuevamente")
     if not data.institution_name.strip() or len(data.reason.strip()) < 3:
         raise HTTPException(422, "Nombre y motivo son obligatorios")
+    apply_institution_type(db, settings, data)
     db.query(Enrollment).filter(Enrollment.passing_grade.is_(None)).update(
         {Enrollment.passing_grade: settings.passing_grade}, synchronize_session=False
     )

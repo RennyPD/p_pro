@@ -6331,6 +6331,11 @@ export interface components {
       /** Institution Name */
       institution_name: string;
       /**
+       * Institution Type
+       * @default university
+       */
+      institution_type: string;
+      /**
        * Max Credits Per Period
        * @default 24
        */
@@ -6362,6 +6367,8 @@ export interface components {
       expected_revision?: number | null;
       /** Institution Name */
       institution_name: string;
+      /** Institution Type */
+      institution_type?: string | null;
       /**
        * Max Credits Per Period
        * @default 24

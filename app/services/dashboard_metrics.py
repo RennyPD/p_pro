@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.enums.dayEnum import DayEnum
 from app.models.attendance_model import Attendance
-from app.models.configuration_model import InstitutionSettings
 from app.models.enrollment_model import Enrollment
 from app.models.finance_model import Payment, StudentAccount, TransferRequest
 from app.models.grade_model import Grade
@@ -22,6 +21,7 @@ from app.schemas.dashboard_schema import DashboardMetric
 from app.services.business_time import business_date, business_day_utc_range
 from app.services.effective_schedule import effective_blocks
 from app.services.finance_workflow import cents, get_account, money, summary
+from app.services.institution_profile import student_sees_own_finance
 
 WEEKDAYS = [day.value for day in DayEnum]
 ACTIVE_STATES = ("enrolled", "completed", "failed")
@@ -200,8 +200,7 @@ def student_extra_metrics(db: Session, student_id: int) -> list[DashboardMetric]
             link="/operations" if pending_tasks else None,
         )
     ]
-    settings = db.get(InstitutionSettings, 1)
-    if settings is None or settings.students_view_finance:
+    if student_sees_own_finance(db, student_id):
         totals = summary(get_account(db, student_id))
         metrics.append(
             DashboardMetric(

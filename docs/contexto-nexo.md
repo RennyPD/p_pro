@@ -41,7 +41,8 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 | M9 | Componentes de más de 1.000 líneas ✅ (23/11): ninguno supera 1.000 (el mayor, `SectionBook`, 798). Pruebas del frontend: 123 en 38 archivos; seguir ampliando | continuo |
 | B3, B4, B8 | ✅ Cerrados (21/11): cobertura de auditoría, panel y permisos al 94–100 %; módulos de consulta por permisos; código muerto de notas eliminado | — |
 | B1 | Tipos a mano: en avance (23/11), finanzas, panel, pagos, tutor y evaluaciones usan `ApiSchema`; quedan unos 120 tipos locales | continuo |
-| B2, B5–B7 | Build pesado, períodos por nombre, bloqueo académico único, límites solo en login | según fase |
+| B5 | ✅ Cerrado (23/11): secciones, inscripciones y carrito enlazan el período por id (migración `20261123_0054`); renombrar un período ya no rompe vínculos | — |
+| B2, B6, B7 | Build pesado, bloqueo académico único, límites solo en login | según fase |
 | SaaS | 16 unicidades globales, configuración de una fila, catálogos sin filtro | 4 |
 
 ### Historial: auditoría del 17/11/2026
@@ -70,9 +71,10 @@ Lo que se ve y lo que piden las familias. Funciona con los datos actuales.
 5. ✅ **Correo electrónico (M6), 22/11/2026:** bandeja `email_outbox` en la misma transacción y envío después del commit; `EMAIL_BACKEND` `console` o `smtp` (cualquier proveedor); recuperación de contraseña (30 min) e invitaciones (72 h) con enlaces de un solo uso guardados con hash; avisos de comunicados, notas publicadas (uno por publicación y estudiante) y vencimientos (3 días antes y 1 después, comando diario) que respetan los accesos del vínculo y las preferencias de cada cuenta. Migraciones `20261122_0052` y `0053`. Operación en el README.
 6. ✅ **Rediseño de pantallas clave, 23/11/2026:** componentes compartidos en `src/components/visual.tsx` (indicador, chip, pestañas accesibles, progreso, avatar, sección); panel principal por rol con cifras accionables (`/dashboard/summary` con tono, enlace y formato; finanzas solo con `finance.view`); finanzas de administración divididas en un archivo por pestaña, con la cuenta que abre en «Cuotas» (mismo estado de cuenta que ven las familias); `OperationsPage`, `AssessmentsPage` e `InstitutionalControlPage` divididas sin cambios de lógica (M9). Capturas en `docs/capturas/rediseno/`.
 
-### Fase 3: modelo escolar (L)
-1. **Períodos por id (B5)** y año lectivo con trimestres o bimestres.
-2. **Tipo de institución** (`university` | `school` | ambos) como configuración.
+### Fase 3: modelo escolar (L), en curso
+Orden aprobado el 23/11/2026, por bloques: A (cimientos), B (año lectivo), C (grados y cursos fijos), D (escala), E (finanzas escolares), F (boletines MINERD), G (bloqueo B6).
+1. ✅ **Bloque A, 23/11/2026.** Períodos por id (B5): `period_id` con clave foránea en secciones, inscripciones y carrito; los modelos conservan `period_name`/`period` como nombre del período enlazado (atributo híbrido), así el API no cambió. Tipo de institución (`university` | `school` | `both`, migración `20261123_0055`); los niveles escolares de MINERD (`initial`, `primary`, `secondary`) son valores de `academic_level` del programa; los programas deben ajustarse al tipo; al pasar a escuela el estudiante deja de ver sus finanzas por defecto, y en una institución mixta los estudiantes de nivel escolar nunca las ven (sí sus tutores). Ayudantes en `app/services/institution_profile.py`.
+2. **Bloque B:** año lectivo que agrupa los períodos; 4 períodos por año por defecto en escuelas (MINERD), configurable.
 3. **Grados y secciones fijas**, inscripción y reinscripción anual, promoción de grado.
 4. **Escala de calificación configurable** (0–100, A–F, conceptual).
 5. **Finanzas escolares (M7):** planes de cobro por grado y año (ya existen por carrera desde el 20/11) con generación programada; cuenta familiar y descuento por hermanos; reglas de mora y bloqueo automático; cajero y supervisor separados; reportes de morosidad e ingresos.

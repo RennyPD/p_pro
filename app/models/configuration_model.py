@@ -38,6 +38,10 @@ class InstitutionSettings(Base):
     # Whether students see their own account in their portal (product decision
     # 21/11/2026: configurable per institution; usually no in schools, yes in
     # universities). Staff and linked guardians are not affected.
+    # university | school | both (Fase 3). Existing installations are universities.
+    institution_type: Mapped[str] = mapped_column(
+        String(20), default="university", server_default="university"
+    )
     students_view_finance: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default=true()
     )

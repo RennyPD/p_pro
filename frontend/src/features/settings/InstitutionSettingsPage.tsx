@@ -17,6 +17,7 @@ type SettingsForm = {
   passing_grade: number;
   max_credits_per_period: number;
   students_view_finance: boolean;
+  institution_type: string;
 };
 type Settings = SettingsForm & {
   settings_id: number;
@@ -38,6 +39,7 @@ const names: Record<string, string> = {
   passing_grade: "Nota aprobatoria para nuevas selecciones",
   max_credits_per_period: "Máximo de créditos",
   students_view_finance: "El estudiante ve sus finanzas",
+  institution_type: "Tipo de institución",
 };
 const fields = (s: Settings): SettingsForm => ({
   institution_name: s.institution_name,
@@ -46,6 +48,7 @@ const fields = (s: Settings): SettingsForm => ({
   passing_grade: s.passing_grade,
   max_credits_per_period: s.max_credits_per_period,
   students_view_finance: s.students_view_finance ?? true,
+  institution_type: s.institution_type ?? "university",
 });
 export function InstitutionSettingsPage() {
   const uid = useAuthStore(s => s.user?.user_id);
@@ -66,6 +69,7 @@ export function InstitutionSettingsPage() {
     handleSubmit,
     reset,
     getValues,
+    setValue,
     formState: { isDirty },
   } = useForm<SettingsForm>();
   useEffect(() => {
@@ -191,6 +195,27 @@ export function InstitutionSettingsPage() {
               max={60}
               {...register("max_credits_per_period", { required: true })}
             />
+          </label>
+          <label className="form-field settings-wide">
+            <span>Tipo de institución</span>
+            <select
+              disabled={busy}
+              {...register("institution_type", {
+                onChange: event => {
+                  // Schools hide students' own finances by default (their guardians see them).
+                  if (event.target.value === "school")
+                    setValue("students_view_finance", false, { shouldDirty: true });
+                },
+              })}
+            >
+              <option value="university">Universidad: carreras, créditos y selección libre</option>
+              <option value="school">Escuela: niveles, grados y cursos fijos</option>
+              <option value="both">Universidad y escuela</option>
+            </select>
+            <small>
+              Al pasar a escuela, el estudiante deja de ver sus finanzas (sus tutores sí) salvo que
+              lo actives abajo. Los programas deben tener un nivel acorde.
+            </small>
           </label>
           <label className="settings-toggle settings-wide">
             <input disabled={busy} type="checkbox" {...register("students_view_finance")} />

@@ -44,7 +44,11 @@ def context(tmp_path):
 
     def override():
         with sessions() as db:
-            yield db
+            try:
+                yield db
+            except Exception:
+                db.rollback()
+                raise
 
     app.dependency_overrides[get_db] = override
     with TestClient(app) as client:

@@ -2920,7 +2920,7 @@
         "properties": {
           "academic_level": {
             "default": "undergraduate",
-            "pattern": "^(technical|undergraduate|graduate|postgraduate)$",
+            "pattern": "^(technical|undergraduate|graduate|postgraduate|initial|primary|secondary)$",
             "title": "Academic Level",
             "type": "string"
           },
@@ -3200,7 +3200,7 @@
         "properties": {
           "academic_level": {
             "default": "undergraduate",
-            "pattern": "^(technical|undergraduate|graduate|postgraduate)$",
+            "pattern": "^(technical|undergraduate|graduate|postgraduate|initial|primary|secondary)$",
             "title": "Academic Level",
             "type": "string"
           },
@@ -3417,7 +3417,7 @@
           "academic_level": {
             "anyOf": [
               {
-                "pattern": "^(technical|undergraduate|graduate|postgraduate)$",
+                "pattern": "^(technical|undergraduate|graduate|postgraduate|initial|primary|secondary)$",
                 "type": "string"
               },
               {
@@ -7374,6 +7374,12 @@
             "title": "Institution Name",
             "type": "string"
           },
+          "institution_type": {
+            "default": "university",
+            "pattern": "^(university|school|both)$",
+            "title": "Institution Type",
+            "type": "string"
+          },
           "max_credits_per_period": {
             "default": 24,
             "maximum": 60.0,
@@ -7450,6 +7456,18 @@
             "minLength": 2,
             "title": "Institution Name",
             "type": "string"
+          },
+          "institution_type": {
+            "anyOf": [
+              {
+                "pattern": "^(university|school|both)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Institution Type"
           },
           "max_credits_per_period": {
             "default": 24,

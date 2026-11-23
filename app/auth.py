@@ -333,10 +333,9 @@ def ensure_own_finance_visible(db: Session, user: User, student_id: int) -> None
     """
     if user.student_id != student_id or has_scope(user, *FINANCE_SCOPE):
         return
-    from app.models.configuration_model import InstitutionSettings
+    from app.services.institution_profile import student_sees_own_finance
 
-    settings = db.get(InstitutionSettings, 1)
-    if settings is not None and not settings.students_view_finance:
+    if not student_sees_own_finance(db, student_id):
         raise HTTPException(
             403, "La institución no muestra las finanzas en el portal del estudiante"
         )

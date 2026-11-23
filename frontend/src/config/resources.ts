@@ -15,6 +15,9 @@ const labelAcademicLevel = (value: unknown) =>
     undergraduate: "Grado",
     graduate: "Maestría",
     postgraduate: "Postgrado",
+    initial: "Nivel Inicial",
+    primary: "Nivel Primario",
+    secondary: "Nivel Secundario",
   })[String(value)] ?? String(value);
 const labelTermType = (value: unknown) =>
   ({
@@ -163,6 +166,9 @@ export const resources: Record<string, ResourceConfig> = {
           { label: "Grado", value: "undergraduate" },
           { label: "Maestría", value: "graduate" },
           { label: "Postgrado", value: "postgraduate" },
+          { label: "Nivel Inicial (escuela)", value: "initial" },
+          { label: "Nivel Primario (escuela)", value: "primary" },
+          { label: "Nivel Secundario (escuela)", value: "secondary" },
         ],
       },
       {

@@ -24,7 +24,8 @@ class CareerBase(CareerInstitutionalFields):
     name: str = Field(min_length=2, max_length=100)
     description: str = Field(min_length=1, max_length=255)
     academic_level: str = Field(
-        default="undergraduate", pattern=r"^(technical|undergraduate|graduate|postgraduate)$"
+        default="undergraduate",
+        pattern=r"^(technical|undergraduate|graduate|postgraduate|initial|primary|secondary)$",
     )
     degree_title: str = Field(default="", max_length=150)
     term_type: str = Field(
@@ -48,7 +49,8 @@ class CareerUpdate(CareerInstitutionalFields):
     name: Optional[str] = Field(default=None, min_length=2, max_length=100)
     description: Optional[str] = Field(default=None, min_length=1, max_length=255)
     academic_level: Optional[str] = Field(
-        default=None, pattern=r"^(technical|undergraduate|graduate|postgraduate)$"
+        default=None,
+        pattern=r"^(technical|undergraduate|graduate|postgraduate|initial|primary|secondary)$",
     )
     degree_title: Optional[str] = Field(default=None, max_length=150)
     term_type: Optional[str] = Field(

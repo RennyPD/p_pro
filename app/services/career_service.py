@@ -13,9 +13,24 @@ from app.repositories.career_repository import (
 from app.schemas.career_schema import CareerCreate, CareerUpdate
 from app.services.audit_log import changes, record, snapshot
 from app.services.governance_workflow import lock_governance
+from app.services.institution_profile import allowed_levels, institution_type
+
+
+def ensure_level_fits(db: Session, level: str | None) -> None:
+    if level is None:
+        return
+    kind = institution_type(db)
+    if level not in allowed_levels(kind):
+        message = (
+            "Este nivel es escolar; la institución está configurada como universidad"
+            if kind == "university"
+            else "Este nivel es universitario; la institución está configurada como escuela"
+        )
+        raise HTTPException(422, message)
 
 
 def create_career_service(db: Session, data: CareerCreate, actor):
+    ensure_level_fits(db, data.academic_level)
     if not data.code:
         highest_id = db.query(func.max(Career.career_id)).scalar() or 0
         data = data.model_copy(update={"code": f"CAR-{highest_id + 1:03d}"})
@@ -41,6 +56,7 @@ def get_career_service(db: Session, career_id: int):
 
 def update_career_service(db: Session, career_id: int, data: CareerUpdate, actor):
     lock_governance(db)
+    ensure_level_fits(db, data.academic_level)
     fields = sorted(data.model_fields_set)
     before = snapshot(get_career_service(db, career_id), fields)
     career = update_career(db, career_id, data)

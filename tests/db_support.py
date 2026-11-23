@@ -16,6 +16,16 @@ TEST_DATABASE_URL = os.environ.get("NEXO_TEST_DATABASE_URL")
 def reset_schema(engine) -> None:
     if engine.dialect.name == "postgresql":
         with engine.begin() as connection:
+            # A previous test may have disposed its engine while a connection was
+            # still checked out ("idle in transaction"); its locks would make the
+            # DROP wait forever. Only the test database is touched.
+            connection.execute(
+                text(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    "WHERE datname = current_database() AND pid <> pg_backend_pid() "
+                    "AND state LIKE 'idle in transaction%'"
+                )
+            )
             connection.execute(text("DROP SCHEMA public CASCADE"))
             connection.execute(text("CREATE SCHEMA public"))
 

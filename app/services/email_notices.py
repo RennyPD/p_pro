@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 
 from app.auth import GUARDIAN_AREAS, account_is_active
 from app.models.community_model import StudentGuardian
-from app.models.configuration_model import InstitutionSettings
 from app.models.finance_model import StudentAccount
 from app.models.student_model import Student
 from app.models.user_model import User
@@ -24,6 +23,7 @@ from app.services.business_time import business_date
 from app.services.email_service import queue_email
 from app.services.email_templates import Email
 from app.services.finance_workflow import cents
+from app.services.institution_profile import student_sees_own_finance
 from app.services.write_locks import lock_scope
 
 # Reminders: 3 days before the due date and 1 day after if still unpaid
@@ -114,8 +114,6 @@ def queue_due_reminders(db: Session, today: date | None = None) -> int:
     """Daily job: reminders for unpaid installments, once per phase and recipient."""
     today = today or business_date()
     lock_scope(db, "finance")
-    settings = db.get(InstitutionSettings, 1)
-    students_see_finance = settings is None or settings.students_view_finance
     queued = 0
     for account in db.query(StudentAccount).join(Student).filter(Student.active.is_(True)):
         statement = account_statement(db, account)
@@ -128,7 +126,7 @@ def queue_due_reminders(db: Session, today: date | None = None) -> int:
                 account.student_id,
                 "finance",
                 "email_due_reminders",
-                include_student=students_see_finance,
+                include_student=student_sees_own_finance(db, account.student_id),
             ):
                 message = email_templates.due_reminder(
                     db,
