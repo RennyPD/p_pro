@@ -30,7 +30,7 @@ export function scrub(event: ErrorEvent): ErrorEvent {
 
 export async function initErrorTracking(dsn = import.meta.env.VITE_SENTRY_DSN) {
   if (!dsn) return false;
-  const Sentry = await import("@sentry/react");
+  const Sentry = await import("./sentryClient");
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,

@@ -107,7 +107,7 @@ curl -fsS https://api.nexo.do/health/ready
 
 ## 6. Copias de seguridad
 
-- **PostgreSQL:** activa las copias automáticas del servicio gestionado, con restauración a un punto en el tiempo. `scripts/backup_database.py` hace copias y restauraciones verificadas (necesita `pg_dump` y `pg_restore`, que no vienen en la imagen del API; ejecútalo desde una máquina de administración o una imagen `postgres:16`). Haz una prueba de restauración al mes.
+- **PostgreSQL:** activa las copias automáticas del servicio gestionado, con restauración a un punto en el tiempo. `scripts/backup_database.py` hace copias y restauraciones verificadas (necesita `pg_dump` y `pg_restore`, que no vienen en la imagen del API; ejecútalo desde una máquina de administración o una imagen `postgres:16`). Usa `pg_dump` y `pg_restore` de la misma versión mayor que el servidor: una versión más nueva escribe parámetros que un servidor anterior no reconoce (por ejemplo `transaction_timeout` de PostgreSQL 17 en un servidor 16). Haz una prueba de restauración al mes.
 - **Archivos:** activa el versionado del bucket, o una réplica en otra región o proveedor. Una copia de la base sin los archivos deja enlaces rotos, así que conserva ambas con la misma frecuencia.
 
 ## 7. Operación

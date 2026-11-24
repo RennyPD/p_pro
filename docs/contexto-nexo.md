@@ -42,7 +42,7 @@ Informe completo: `docs/auditoria/auditoria-2026-11-20.md`. La auditoría del 17
 | B3, B4, B8 | ✅ Cerrados (21/11): cobertura de auditoría, panel y permisos al 94–100 %; módulos de consulta por permisos; código muerto de notas eliminado | — |
 | B1 | Tipos a mano: en avance (23/11), finanzas, panel, pagos, tutor y evaluaciones usan `ApiSchema`; quedan unos 120 tipos locales | continuo |
 | B5 | ✅ Cerrado (23/11): secciones, inscripciones y carrito enlazan el período por id (migración `20261123_0054`); renombrar un período ya no rompe vínculos | — |
-| B2, B7 | Build pesado (B7 ✅ 25/11, Fase 4 C2: límites en subidas, exportaciones, importaciones y rutas públicas; B6 ✅ 23/11: bloqueos académicos por sección y estudiante) | según fase |
+| B2, B7 | ✅ B2 (25/11, Fase 4 C5): paquete principal de 583 a 101 KB con carga diferida de páginas y límite de 250 KB en CI (B7 ✅ 25/11, Fase 4 C2: límites en subidas, exportaciones, importaciones y rutas públicas; B6 ✅ 23/11: bloqueos académicos por sección y estudiante) | según fase |
 | SaaS | ✅ 24/11: multi-tenant con `institution_id`, unicidades por institución, configuración por institución y RLS (bloque A). Pendiente: bloques B–F | 4 |
 
 ### Historial: auditoría del 17/11/2026
@@ -125,7 +125,7 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
    - Pruebas: `tests/test_platform.py` y pruebas del frontend (`PlatformPage`, `FirstSteps`, `LoginPage`).
 - Planes, límites, suscripciones, prueba gratuita y suspensión por impago (Stripe o PayPal y Azul o CardNet).
 - Pagos en línea para familias, comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
-3. **Bloque C: infraestructura** (aprobado el 24/11/2026; sin Redis por ahora, Sentry sin datos personales, despliegue con Docker sin atarse a un proveedor).
+3. ✅ **Bloque C: infraestructura** (aprobado el 24/11/2026, terminado el 25/11; sin Redis por ahora, Sentry sin datos personales, despliegue con Docker sin atarse a un proveedor).
    - ✅ **C1, 25/11/2026: archivos fuera de la base (M4)** (migración `20261125_0064`, `app/services/storage.py`).
      - Documentos del expediente, adjuntos de entregas y comprobantes de transferencia se guardan en una carpeta local (`STORAGE_BACKEND=local`) o en un servicio compatible con S3 (`s3`: AWS S3, Cloudflare R2, Spaces, MinIO), con cifrado del lado del servidor. Claves por institución: `inst/<id>/<tipo>/<uuid>`.
      - Si la transacción no se confirma, los archivos que escribió se borran. Las descargas siguen pasando por el API (permiso, ámbito y auditoría); si el archivo falta, 503 con aviso.
@@ -145,7 +145,11 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
      - Proceso de tareas programadas (`python -m scripts.scheduler`, servicio `worker`): correos cada 2 min, cobros a las 6:30 y recordatorios a las 7:00; un bloqueo de PostgreSQL deja un solo `worker` activo y los demás en espera. Sustituye las entradas de cron.
      - `docker-compose.yml` (desarrollo) y `docker-compose.prod.yml` (dueño de las tablas para migrar, `nexo_app` con RLS para la aplicación, S3, SMTP, Sentry). CI construye ambas imágenes y comprueba que la del API arranca sana y sin privilegios.
      - Pruebas: `tests/test_scheduler.py` (incluye relevo real entre dos procesos con PostgreSQL, que encontró y corrigió un bloqueo que quedaba retenido en el pool de conexiones).
-   - Pendiente: C5 build ligero (B2).
+   - ✅ **C5, 25/11/2026: build ligero (B2).**
+     - Todas las páginas se cargan bajo demanda (`React.lazy` en `App.tsx`); quedan en el paquete inicial solo el inicio de sesión, el marco y las rutas.
+     - Bibliotecas en paquetes estables (`react`, `data`, `forms`, `tables`) que el navegador conserva entre versiones; las tablas ya no se descargan al iniciar sesión. Sentry baja de 360 a 72 KB (solo lo que se usa) y solo se descarga con DSN.
+     - Paquete principal: 583 KB → 101 KB (29 KB comprimido). JavaScript inicial total: ~944 KB → ~637 KB. `npm run bundle:check` (en CI) falla si el principal pasa de 250 KB.
+   - Mantenimiento de CI encontrado en este bloque: dos pruebas de aceptación seguían el diseño anterior a B4 y al portal familiar (ahora prueban los permisos del rol y el portal actual), y la prueba de copias fallaba porque el `pg_dump` 17 del runner no restaura en PostgreSQL 16 (CI pasa a PostgreSQL 17; la guía advierte usar el cliente de la misma versión).
 
 ### Fase 5: lanzamiento (M)
 Landing page, demo pública, términos de uso, política de privacidad conforme a la Ley 172-13 con atención a datos de menores, documentación para clientes y soporte.

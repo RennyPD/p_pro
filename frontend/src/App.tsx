@@ -1,46 +1,9 @@
-import { CustomModuleRoute } from "./features/settings/CustomModulePage";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { resources } from "./config/resources";
-import {
-  MyAttendancePage,
-  MyGradesPage,
-  MyProgressPage,
-  SectionWorkspacePage,
-} from "./features/academic/AcademicPages";
-import { TeachersPage } from "./features/academic/TeachersPage";
-import { TeacherDossierPage } from "./features/academic/TeacherDossierPage";
-import { StudentsPage } from "./features/academic/StudentsPage";
-import { SubjectsPage } from "./features/academic/SubjectsPage";
-import { SubjectProgramPage } from "./features/academic/SubjectProgramPage";
-import { CareersPage } from "./features/academic/CareersPage";
-import { CareerProgramPage } from "./features/academic/CareerProgramPage";
-import { CourseCatalogPage } from "./features/academic/CourseCatalogPage";
-import { GraduationAuditPage } from "./features/academic/GraduationAuditPage";
-import { SchedulePage } from "./features/academic/SchedulePage";
-import {
-  SectionResultsDetailPage,
-  SectionResultsPage,
-} from "./features/academic/SectionResultsPages";
 import { LoginPage } from "./features/auth/LoginPage";
-import { ChoosePasswordPage, ForgotPasswordPage } from "./features/auth/PasswordPages";
-import { CommunityPage } from "./features/community/CommunityPage";
-import { DashboardPage } from "./features/dashboard/DashboardPage";
-import { ApprovalsPage } from "./features/operations/ApprovalsPage";
-import { ResourcePage } from "./features/resources/ResourcePage";
-import { AuditPage } from "./features/settings/AuditPage";
-import { AccountPage } from "./features/settings/AccountPage";
-import { BulkToolsPage } from "./features/settings/BulkToolsPage";
-import { EquivalencesPage } from "./features/settings/EquivalencesPage";
-import { RolesPage } from "./features/settings/RolesPage";
-import { InstitutionSettingsPage } from "./features/settings/InstitutionSettingsPage";
-import { PeriodsPage } from "./features/settings/PeriodsPage";
-import { GradingScalesPage } from "./features/settings/GradingScalesPage";
-import { ClassGroupPage } from "./features/groups/ClassGroupPage";
-import { ClassGroupsPage } from "./features/groups/ClassGroupsPage";
-import { SettingsPage } from "./features/settings/SettingsPage";
 import { api } from "./lib/api";
 import { useSessionRenewal } from "./lib/useSessionRenewal";
 import { useAuthStore } from "./store/auth";
@@ -48,6 +11,134 @@ import type { User } from "./types";
 import { useAccess } from "./lib/permissions";
 import { Spinner } from "./components/ui";
 
+const CustomModuleRoute = lazy(() =>
+  import("./features/settings/CustomModulePage").then(module => ({
+    default: module.CustomModuleRoute,
+  })),
+);
+const MyAttendancePage = lazy(() =>
+  import("./features/academic/AcademicPages").then(module => ({
+    default: module.MyAttendancePage,
+  })),
+);
+const MyGradesPage = lazy(() =>
+  import("./features/academic/AcademicPages").then(module => ({ default: module.MyGradesPage })),
+);
+const MyProgressPage = lazy(() =>
+  import("./features/academic/AcademicPages").then(module => ({ default: module.MyProgressPage })),
+);
+const SectionWorkspacePage = lazy(() =>
+  import("./features/academic/AcademicPages").then(module => ({
+    default: module.SectionWorkspacePage,
+  })),
+);
+const TeachersPage = lazy(() =>
+  import("./features/academic/TeachersPage").then(module => ({ default: module.TeachersPage })),
+);
+const TeacherDossierPage = lazy(() =>
+  import("./features/academic/TeacherDossierPage").then(module => ({
+    default: module.TeacherDossierPage,
+  })),
+);
+const StudentsPage = lazy(() =>
+  import("./features/academic/StudentsPage").then(module => ({ default: module.StudentsPage })),
+);
+const SubjectsPage = lazy(() =>
+  import("./features/academic/SubjectsPage").then(module => ({ default: module.SubjectsPage })),
+);
+const SubjectProgramPage = lazy(() =>
+  import("./features/academic/SubjectProgramPage").then(module => ({
+    default: module.SubjectProgramPage,
+  })),
+);
+const CareersPage = lazy(() =>
+  import("./features/academic/CareersPage").then(module => ({ default: module.CareersPage })),
+);
+const CareerProgramPage = lazy(() =>
+  import("./features/academic/CareerProgramPage").then(module => ({
+    default: module.CareerProgramPage,
+  })),
+);
+const CourseCatalogPage = lazy(() =>
+  import("./features/academic/CourseCatalogPage").then(module => ({
+    default: module.CourseCatalogPage,
+  })),
+);
+const GraduationAuditPage = lazy(() =>
+  import("./features/academic/GraduationAuditPage").then(module => ({
+    default: module.GraduationAuditPage,
+  })),
+);
+const SchedulePage = lazy(() =>
+  import("./features/academic/SchedulePage").then(module => ({ default: module.SchedulePage })),
+);
+const SectionResultsDetailPage = lazy(() =>
+  import("./features/academic/SectionResultsPages").then(module => ({
+    default: module.SectionResultsDetailPage,
+  })),
+);
+const SectionResultsPage = lazy(() =>
+  import("./features/academic/SectionResultsPages").then(module => ({
+    default: module.SectionResultsPage,
+  })),
+);
+const ChoosePasswordPage = lazy(() =>
+  import("./features/auth/PasswordPages").then(module => ({ default: module.ChoosePasswordPage })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import("./features/auth/PasswordPages").then(module => ({ default: module.ForgotPasswordPage })),
+);
+const CommunityPage = lazy(() =>
+  import("./features/community/CommunityPage").then(module => ({ default: module.CommunityPage })),
+);
+const DashboardPage = lazy(() =>
+  import("./features/dashboard/DashboardPage").then(module => ({ default: module.DashboardPage })),
+);
+const ApprovalsPage = lazy(() =>
+  import("./features/operations/ApprovalsPage").then(module => ({ default: module.ApprovalsPage })),
+);
+const ResourcePage = lazy(() =>
+  import("./features/resources/ResourcePage").then(module => ({ default: module.ResourcePage })),
+);
+const AuditPage = lazy(() =>
+  import("./features/settings/AuditPage").then(module => ({ default: module.AuditPage })),
+);
+const AccountPage = lazy(() =>
+  import("./features/settings/AccountPage").then(module => ({ default: module.AccountPage })),
+);
+const BulkToolsPage = lazy(() =>
+  import("./features/settings/BulkToolsPage").then(module => ({ default: module.BulkToolsPage })),
+);
+const EquivalencesPage = lazy(() =>
+  import("./features/settings/EquivalencesPage").then(module => ({
+    default: module.EquivalencesPage,
+  })),
+);
+const RolesPage = lazy(() =>
+  import("./features/settings/RolesPage").then(module => ({ default: module.RolesPage })),
+);
+const InstitutionSettingsPage = lazy(() =>
+  import("./features/settings/InstitutionSettingsPage").then(module => ({
+    default: module.InstitutionSettingsPage,
+  })),
+);
+const PeriodsPage = lazy(() =>
+  import("./features/settings/PeriodsPage").then(module => ({ default: module.PeriodsPage })),
+);
+const GradingScalesPage = lazy(() =>
+  import("./features/settings/GradingScalesPage").then(module => ({
+    default: module.GradingScalesPage,
+  })),
+);
+const ClassGroupPage = lazy(() =>
+  import("./features/groups/ClassGroupPage").then(module => ({ default: module.ClassGroupPage })),
+);
+const ClassGroupsPage = lazy(() =>
+  import("./features/groups/ClassGroupsPage").then(module => ({ default: module.ClassGroupsPage })),
+);
+const SettingsPage = lazy(() =>
+  import("./features/settings/SettingsPage").then(module => ({ default: module.SettingsPage })),
+);
 const StudentProfilePage = lazy(() =>
   import("./features/academic/StudentDossierPage").then(module => ({
     default: module.StudentDossierPage,

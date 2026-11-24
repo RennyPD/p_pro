@@ -8,8 +8,7 @@ async function login(page: Page, username: string, password: string) {
   await expect(page).not.toHaveURL(/\/login$/);
 }
 
-test("configura módulos por cuenta y aplica la revocación al abrir el enlace", async ({
-  page,
+test("los permisos del rol abren y cierran un módulo de consulta (B4)", async ({
   request,
   browser,
 }) => {
@@ -23,44 +22,33 @@ test("configura módulos por cuenta y aplica la revocación al abrir el enlace",
     data: { name: "consulta_qa", description: "Consulta QA" },
   });
   expect(role.status()).toBe(200);
+  const roleId = (await role.json()).role_id;
   const username = "consulta.qa";
   const password = "NexoConsulta2026!";
   const account = await request.post(`${base}/users/`, {
     headers,
-    data: {
-      username,
-      password,
-      email: "consulta.qa@example.com",
-      role_id: (await role.json()).role_id,
-    },
+    data: { username, password, email: "consulta.qa@example.com", role_id: roleId },
   });
   expect(account.status()).toBe(200);
-
-  await login(page, admin.username, admin.password);
-  await page.goto("/users");
-  await page.getByPlaceholder(/Buscar/).fill(username);
-  const row = page.getByRole("row").filter({ hasText: username });
-  await row.getByRole("button", { name: "Módulos" }).click();
-  const editor = page.getByRole("dialog", { name: `Módulos de ${username}` });
-  await editor.getByRole("checkbox", { name: "Estudiantes", exact: true }).check();
-  await editor.getByRole("button", { name: "Guardar módulos" }).click();
-  await expect(editor).toHaveCount(0);
+  const grant = (permissions: string[]) =>
+    request.put(`${base}/access/roles/${roleId}/permissions`, {
+      headers,
+      data: { permissions, reason: "Prueba de aceptación" },
+    });
+  expect((await grant(["programs.view"])).status()).toBe(200);
 
   const observerContext = await browser.newContext({ baseURL: "http://127.0.0.3:5176" });
   try {
     const observer = await observerContext.newPage();
     await login(observer, username, password);
-    const nav = observer.getByRole("navigation", { name: "Navegación principal" });
-    await nav.getByRole("link", { name: "Estudiantes", exact: true }).click();
-    await expect(observer.getByRole("heading", { name: "Estudiantes", exact: true })).toBeVisible();
-    await expect(observer.getByRole("columnheader", { name: "Matrícula" })).toBeVisible();
-    await observer.goto("/modules/teachers");
+    await observer.goto("/modules/careers");
+    await expect(observer.getByRole("heading", { name: "Carreras", exact: true })).toBeVisible();
+    await expect(observer.getByRole("columnheader", { name: "Código" })).toBeVisible();
+    await observer.goto("/modules/no-existe");
     await expect(observer.getByRole("heading", { name: "Módulo no disponible" })).toBeVisible();
-    await row.getByRole("button", { name: "Módulos" }).click();
-    await editor.getByRole("checkbox", { name: "Estudiantes", exact: true }).uncheck();
-    await editor.getByRole("button", { name: "Guardar módulos" }).click();
-    await expect(editor).toHaveCount(0);
-    await observer.goto("/modules/students");
+    // Revoking the permission closes the module when the page opens again.
+    expect((await grant([])).status()).toBe(200);
+    await observer.goto("/modules/careers");
     await expect(observer.getByRole("heading", { name: "Módulo no disponible" })).toBeVisible();
   } finally {
     await observerContext.close();
@@ -147,7 +135,8 @@ for (const profile of [
       await expect(page.getByRole("heading", { name: "Pase de lista" }).first()).toBeVisible();
     }
     if (profile.name === "guardian") {
-      await expect(page.getByText("ITH-2026-00001", { exact: true })).toBeVisible();
+      // The portal shows "<enrollment> · <program>" for the selected child.
+      await expect(page.getByText(/^ITH-2026-00001 · /)).toBeVisible();
       const denied = await request.get("http://127.0.0.3:8012/academic/students/120/grades", {
         headers,
       });

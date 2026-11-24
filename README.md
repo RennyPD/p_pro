@@ -210,7 +210,7 @@ python -B -m pytest tests -q -p no:cacheprovider
 
 La misma verificación está configurada en `.github/workflows/backend-quality.yml`,
 que además aplica las migraciones, ejecuta `alembic check` y corre la suite completa
-sobre PostgreSQL 16.
+sobre PostgreSQL 17.
 La automatización de CI también ejecuta navegador con API simulada y con un
 backend real. En local, `npm run e2e` usa la interfaz en `127.0.0.1:5177` y
 responde con datos simulados. `npm run e2e:acceptance` usa la interfaz en
@@ -252,7 +252,8 @@ de acceso.
 - **SQLite:** copia en línea `school-<fecha>.db`, verificada con `integrity_check` y
   `foreign_key_check`.
 - **PostgreSQL:** `pg_dump` en formato personalizado, `nexo-<fecha>.dump`. Requiere
-  el cliente de PostgreSQL 16 (`pg_dump`, `pg_restore`) en el `PATH`. Se comprueba que
+  el cliente de PostgreSQL (`pg_dump`, `pg_restore`) de la misma versión mayor que el
+  servidor en el `PATH`. Se comprueba que
   el archivo se puede leer y contiene el esquema de Nexo.
 
 La restauración **nunca sobrescribe datos**: el destino es un archivo nuevo (SQLite)
@@ -275,7 +276,7 @@ revisarla; no restaures encima de la base en uso.
 Recomendación de operación: una copia diaria programada (cron o tarea del
 servidor), conservada fuera del servidor de base de datos, y una prueba de
 restauración mensual en una base temporal. CI ejecuta la prueba de copia y
-restauración contra PostgreSQL 16 en cada cambio
+restauración contra PostgreSQL 17 en cada cambio
 (`tests/test_backup_database.py`).
 
 ## Correo electrónico

@@ -14,7 +14,8 @@
     "e2e:acceptance": "playwright test --config playwright.acceptance.config.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "api:types": "openapi-typescript openapi.json -o src/lib/api-schema.d.ts && prettier --write src/lib/api-schema.d.ts"
+    "api:types": "openapi-typescript openapi.json -o src/lib/api-schema.d.ts && prettier --write src/lib/api-schema.d.ts",
+    "bundle:check": "node scripts/check-bundle.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
