@@ -207,3 +207,33 @@
 .online-result__icon.is-low {
   color: var(--danger);
 }
+
+.online-config {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.9rem;
+  align-items: end;
+}
+
+.online-config .form-actions,
+.online-config .form-error,
+.online-config .online-saved,
+.online-config .online-check {
+  grid-column: 1 / -1;
+}
+
+.online-check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 600;
+}
+
+.online-saved {
+  margin: 0;
+  color: var(--success);
+}
+
+.online-filter {
+  min-width: 10rem;
+}

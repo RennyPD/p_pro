@@ -206,6 +206,11 @@ const SandboxGatewayPage = lazy(() =>
     default: module.SandboxGatewayPage,
   })),
 );
+const OnlinePaymentsAdminPage = lazy(() =>
+  import("./features/payments/OnlinePaymentsAdminPage").then(module => ({
+    default: module.OnlinePaymentsAdminPage,
+  })),
+);
 const SignupPage = lazy(() =>
   import("./features/signup/SignupPage").then(module => ({ default: module.SignupPage })),
 );
@@ -380,6 +385,7 @@ export default function App() {
               <Route path="finance" element={<FinancePage />} />
               <Route path="finance/plans" element={<BillingPlansPage />} />
               <Route path="finance/policy" element={<FinancePolicyPage />} />
+              <Route path="finance/online" element={<OnlinePaymentsAdminPage />} />
               <Route path="finance/:studentId" element={<FinancePage />} />
             </Route>
             <Route

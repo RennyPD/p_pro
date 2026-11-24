@@ -148,7 +148,14 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
      - Enlace «Crea una cuenta gratis» en el inicio de sesión fuera del subdominio de una institución; estados «Pendiente de activar» y «Sin activar» en el panel de plataforma.
      - Pendiente para la Fase 5: aceptación de términos y política de privacidad en el registro.
      - Pruebas: `tests/test_signup.py` y `SignupPage.test.tsx`.
-- Pagos en línea para familias, comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
+5. ✅ **Bloque E, 26/11/2026: pagos en línea de las familias** (migración `20261126_0068`, `app/services/payments/`, guía en `docs/pagos-en-linea.md`). Decisiones: cuenta de comercio de cada institución (Nexo no toca el dinero), Azul primero y CardNet después, comisión absorbida por la institución, pago parcial con mínimo configurable, solo DOP, devoluciones manuales por ahora, disponible en todos los planes.
+   - Intenciones de pago con el monto decidido por el servidor (balance de cada hijo, mínimo de la institución, pagador autorizado: estudiante si ve sus finanzas o tutor con acceso a finanzas; el personal usa la caja). Al aprobarse, un pago por hijo (método `online`) con recibo, una sola vez aunque el banco repita la respuesta; se registra aunque la caja esté cerrada y marca el saldo a favor si el balance cambió.
+   - Pasarelas con página alojada del banco (PCI SAQ-A): prueba (nunca en producción), Azul Página de Pagos (HMAC-SHA512 en solicitud y respuesta, monto y orden verificados) y CardNet (sesión y resultado de servidor a servidor). Cada banco certifica la integración con las credenciales de prueba de la institución.
+   - Configuración por institución en Finanzas › Pagos en línea, con claves cifradas (Fernet, `PAYMENTS_ENCRYPTION_KEY`, rotación), enmascaradas y auditadas.
+   - «Pagar con tarjeta» en el estado de cuenta y en la vista familiar (reparto entre hijos), página de resultado y banco de prueba.
+   - Conciliación: lista paginada con referencias del banco, reporte diario, tarea cada 10 minutos que consulta al banco y vence lo abandonado, y resolución por un supervisor con el código de autorización.
+   - Pruebas: `tests/test_online_payments.py` (montos, pagadores, repeticiones, caja cerrada, firmas de Azul, sesión de CardNet, cifrado, conciliación) y pruebas del frontend.
+- Comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
 3. ✅ **Bloque C: infraestructura** (aprobado el 24/11/2026, terminado el 25/11; sin Redis por ahora, Sentry sin datos personales, despliegue con Docker sin atarse a un proveedor).
    - ✅ **C1, 25/11/2026: archivos fuera de la base (M4)** (migración `20261125_0064`, `app/services/storage.py`).
      - Documentos del expediente, adjuntos de entregas y comprobantes de transferencia se guardan en una carpeta local (`STORAGE_BACKEND=local`) o en un servicio compatible con S3 (`s3`: AWS S3, Cloudflare R2, Spaces, MinIO), con cifrado del lado del servidor. Claves por institución: `inst/<id>/<tipo>/<uuid>`.

@@ -324,3 +324,79 @@ def test_cardnet_session_and_server_to_server_result():
     result = cardnet.verify({}, intent, Config(), secrets)
     assert result.status == "approved" and result.authorization_code == "CN777"
     assert calls[-1].full_url.endswith("/sessions/S1?sk=K1")
+
+
+# --- Reconciliation (block E5) ---------------------------------------------------
+
+
+def test_reconciliation_list_report_and_supervisor_resolution(family):
+    client, sessions, tokens, guardian, student = family
+    configure(client, tokens["admin"])
+    approved = pay(client, guardian, student, "500.00").json()["id"]
+    client.post(f"/online-payments/{approved}/complete", json={"params": {"outcome": "approved"}})
+    lost = pay(client, guardian, student, "700.00").json()["id"]  # the payer never came back
+
+    listed = client.get("/online-payments?limit=10", headers=tokens["admin"])
+    assert listed.status_code == 200 and listed.headers["X-Total-Count"] == "2"
+    first = listed.json()[1]
+    assert first["status"] == "approved" and first["payer"] == "rosa.pena"
+    assert first["students"][0]["amount"] == "500.00" and first["students"][0]["name"]
+    pending = client.get("/online-payments?status=pending", headers=tokens["admin"]).json()
+    assert [row["id"] for row in pending] == [lost]
+    assert client.get("/online-payments", headers=tokens["docente"]).status_code == 403
+
+    from app.services.business_time import business_date
+
+    report = client.get(
+        f"/online-payments/report/daily?day={business_date()}", headers=tokens["admin"]
+    ).json()
+    assert report["approved_amount"] == "500.00"
+
+    missing_code = client.post(
+        f"/online-payments/{lost}/resolve",
+        headers=tokens["admin"],
+        json={"outcome": "approved", "reason": "Visto en el portal del banco"},
+    )
+    assert missing_code.status_code == 422
+    resolved = client.post(
+        f"/online-payments/{lost}/resolve",
+        headers=tokens["admin"],
+        json={
+            "outcome": "approved",
+            "authorization_code": "AZ9911",
+            "reason": "Visto en el portal del banco",
+        },
+    )
+    assert resolved.status_code == 200, resolved.text
+    assert resolved.json()["status"] == "approved" and resolved.json()["receipts"]
+    assert balance(client, tokens["admin"], student) == Decimal("1300.00")
+    assert entries(sessions, "online_payment.resolved")
+    again = client.post(
+        f"/online-payments/{lost}/resolve",
+        headers=tokens["admin"],
+        json={"outcome": "declined", "reason": "Segundo intento"},
+    )
+    assert again.status_code == 409
+
+
+def test_stale_intents_expire_but_a_late_bank_answer_still_counts(family):
+    client, sessions, tokens, guardian, student = family
+    configure(client, tokens["admin"])
+    public_id = pay(client, guardian, student, "400.00").json()["id"]
+    from datetime import datetime, timedelta
+
+    from app.db.tenant import set_tenant
+    from app.services.payments.intents import expire_stale
+
+    with sessions() as db:
+        set_tenant(db, 1)
+        assert expire_stale(db, datetime.now() + timedelta(minutes=30))["expired"] == 0
+        assert expire_stale(db, datetime.now() + timedelta(hours=2))["expired"] == 1
+        db.commit()
+    with sessions() as db:
+        assert db.query(OnlinePayment).filter_by(public_id=public_id).one().status == "expired"
+    late = client.post(
+        f"/online-payments/{public_id}/complete", json={"params": {"outcome": "approved"}}
+    )
+    assert late.json()["status"] == "approved"
+    assert balance(client, tokens["admin"], student) == Decimal("2100.00")

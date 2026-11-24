@@ -3220,7 +3220,11 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * List Payments
+     * @description Reconciliation: every online payment with the bank's references.
+     */
+    get: operations["list_payments_online_payments_get"];
     put?: never;
     /** Create */
     post: operations["create_online_payments_post"];
@@ -3268,6 +3272,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/online-payments/report/daily": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Daily Report
+     * @description Totals of one business day, to match the bank's settlement.
+     */
+    get: operations["daily_report_online_payments_report_daily_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/online-payments/{public_id}": {
     parameters: {
       query?: never;
@@ -3302,6 +3326,26 @@ export interface paths {
      *     is trusted only after its signature (or a server-to-server query) checks.
      */
     post: operations["complete_online_payments__public_id__complete_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/online-payments/{public_id}/resolve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Resolve
+     * @description The bank's portal shows what happened to a payment Nexo never heard back about.
+     */
+    post: operations["resolve_online_payments__public_id__resolve_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -9452,6 +9496,15 @@ export interface components {
       status_label: string;
       /** Subject Id */
       subject_id: number;
+    };
+    /** Resolution */
+    Resolution: {
+      /** Authorization Code */
+      authorization_code?: string | null;
+      /** Outcome */
+      outcome: string;
+      /** Reason */
+      reason: string;
     };
     /** ResultConfirmation */
     ResultConfirmation: {
@@ -18023,6 +18076,41 @@ export interface operations {
       };
     };
   };
+  list_payments_online_payments_get: {
+    parameters: {
+      query?: {
+        status?: string | null;
+        day?: string | null;
+        q?: string | null;
+        skip?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   create_online_payments_post: {
     parameters: {
       query?: never;
@@ -18129,6 +18217,37 @@ export interface operations {
       };
     };
   };
+  daily_report_online_payments_report_daily_get: {
+    parameters: {
+      query: {
+        day: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_intent_online_payments__public_id__get: {
     parameters: {
       query?: never;
@@ -18172,6 +18291,41 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["Completion"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  resolve_online_payments__public_id__resolve_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        public_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["Resolution"];
       };
     };
     responses: {

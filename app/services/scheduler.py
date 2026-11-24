@@ -84,8 +84,23 @@ def advance_subscriptions(engine: Engine) -> str:
     return f"Suscripciones: {len(changes)} cambios" + (f" {changes}" if changes else "")
 
 
+def expire_online_payments(engine: Engine) -> str:
+    from app.services.payments.intents import expire_stale
+    from app.services.tenants import for_each_institution
+
+    results = {
+        k: v for k, v in for_each_institution(engine, expire_stale).items() if any(v.values())
+    }
+    return (
+        f"Pagos en línea vencidos o resueltos: {results}"
+        if results
+        else "Sin pagos en línea pendientes"
+    )
+
+
 JOBS = (
     Job("emails", send_emails, every=timedelta(minutes=2)),
+    Job("online_payments", expire_online_payments, every=timedelta(minutes=10)),
     Job("subscriptions", advance_subscriptions, at=time(6, 0)),
     Job("billing", run_billing, at=time(6, 30)),
     Job("reminders", send_reminders, at=time(7, 0)),

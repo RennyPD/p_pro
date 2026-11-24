@@ -134,6 +134,7 @@ def apply_result(db: Session, intent: OnlinePayment, result: GatewayResult, acto
     """Record the gateway's answer once; post the payments when approved."""
     if intent.status in ("approved", "declined"):
         return intent.status  # a repeated redirect changes nothing
+    # "expired" and "error" may still receive the bank's (late) answer.
     expected = cents(intent.amount)
     if result.status == "approved" and result.amount_cents not in (None, expected):
         intent.status = "error"
@@ -181,3 +182,37 @@ def apply_result(db: Session, intent: OnlinePayment, result: GatewayResult, acto
     intent.status = "approved"
     intent.payment_ids = ",".join(str(payment.payment_id) for payment in payments)
     return intent.status
+
+
+def expire_stale(db: Session, moment: datetime | None = None) -> dict[str, int]:
+    """Intents nobody came back from: ask the bank first, then mark them expired.
+
+    Runs per institution (``for_each_institution``). An expired intent can still
+    be approved later by the bank's answer or by a supervisor (block E5).
+    """
+    moment = moment or now()
+    counts = {"approved": 0, "declined": 0, "expired": 0}
+    config = config_of(db)
+    stale = (
+        db.query(OnlinePayment)
+        .filter(
+            OnlinePayment.status.in_(("created", "pending")),
+            OnlinePayment.expires_at <= moment,
+        )
+        .all()
+    )
+    for intent in stale:
+        result = None
+        if config is not None:
+            try:
+                result = gateway_for(intent.gateway).query(intent, config, decrypt(config.secrets))
+            except HTTPException:
+                result = None  # the bank did not answer: try again next time
+        if result is not None:
+            status = apply_result(db, intent, result)
+            counts[status] = counts.get(status, 0) + 1
+            continue
+        intent.status = "expired"
+        intent.completed_at = moment
+        counts["expired"] += 1
+    return counts
