@@ -19,6 +19,12 @@ SMALL = Limit("prueba", 3, 600, "Demasiadas peticiones de prueba")
 MOMENT = datetime(2026, 11, 25, 10, 1, 0)
 
 
+@pytest.fixture(autouse=True)
+def frozen_clock(monkeypatch):
+    """Route tests make many requests: they must not straddle two windows."""
+    monkeypatch.setattr(rate_limit, "now", lambda: MOMENT)
+
+
 def test_counts_per_window_and_answers_429_with_retry_after(demo):  # noqa: F811
     _client, sessions, _tokens = demo
     with sessions() as db:
