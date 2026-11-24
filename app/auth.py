@@ -10,6 +10,7 @@ from app.models.enrollment_model import Enrollment
 from app.models.role_model import Role
 from app.models.section_model import Section
 from app.models.user_model import User
+from app.observability import tag
 from app.permissions import (
     INSTITUTIONAL_PERMISSIONS,
     LEGACY_BUNDLES,
@@ -67,6 +68,7 @@ def get_current_user(
     if addressed is not None and addressed.institution_id != user.institution_id:
         raise HTTPException(status_code=401, detail=OTHER_INSTITUTION)
     set_tenant(db, user.institution_id)
+    tag("institution_id", user.institution_id)
     ensure_institution_open(db, user.institution_id)
     if user.session_version != version:
         raise HTTPException(status_code=401, detail="La sesión se revocó. Inicia sesión de nuevo")

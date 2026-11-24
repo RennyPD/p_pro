@@ -6,9 +6,12 @@ import { Toaster } from "sonner";
 import App from "./App";
 import { ConfirmHost } from "./components/ConfirmDialog";
 import { DraftGuard } from "./components/DraftGuard";
+import { initErrorTracking } from "./lib/observability";
 import "./styles.css";
 import "./accessibility.css";
 import "./workspace-design.css";
+
+void initErrorTracking();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },

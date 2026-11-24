@@ -135,7 +135,12 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
      - Ventanas fijas contadas en la tabla global `rate_limits`, compartidas por todos los procesos sin Redis. Cada conteo se confirma en su propia transacción: una petición que falla también cuenta.
      - Por cuenta (institución y usuario): subidas 30 cada 10 min, documentos y exportaciones (PDF, CSV, descargas) 60 cada 10 min, importación masiva 10 por hora. Por dirección: consulta pública de la institución 60 por minuto e inicio de sesión de plataforma 10 cada 15 min. Al pasarse: 429 con aviso en español y `Retry-After`.
      - `tests/test_rate_limits.py` falla si una ruta nueva de PDF, CSV, exportación, importación, descarga o subida no declara su límite. `RATE_LIMITS_ENABLED=false` solo para el servidor de aceptación. `run_billing` borra las ventanas viejas.
-   - Pendiente: C3 observabilidad, C4 despliegue, C5 build ligero (B2).
+   - ✅ **C3, 25/11/2026: observabilidad** (`app/observability.py`, `frontend/src/lib/observability.ts`).
+     - Sentry (o GlitchTip) en backend y frontend, activo solo con `SENTRY_DSN` / `VITE_SENTRY_DSN`; en el frontend se carga aparte, solo si hay DSN.
+     - Sin datos personales (Ley 172-13): nunca cuerpos, cabeceras, cookies, consultas de la URL, variables locales, rastros (clics, consola, SQL) ni la cuenta; correos, números largos (cédulas, teléfonos) y tokens se enmascaran. Etiquetas: institución e id de la petición.
+     - `/health/ready` comprueba la base y el almacenamiento para el balanceador (503 sin detalles; el detalle va al log). `/health` sigue igual.
+     - Pruebas: `tests/test_observability.py` (incluye un envío real a un transporte de prueba) y `observability.test.ts`.
+   - Pendiente: C4 despliegue, C5 build ligero (B2).
 
 ### Fase 5: lanzamiento (M)
 Landing page, demo pública, términos de uso, política de privacidad conforme a la Ley 172-13 con atención a datos de menores, documentación para clientes y soporte.

@@ -27473,6 +27473,26 @@
         ]
       }
     },
+    "/health/ready": {
+      "get": {
+        "description": "For the load balancer: the database and the file storage answer.\n\nThe answer never includes error details; they go to the log.",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ready",
+        "tags": [
+          "system"
+        ]
+      }
+    },
     "/module-views/mine": {
       "get": {
         "description": "Modules shown under «Consulta»: readable and without their full page.",

@@ -11,6 +11,8 @@ reportlab>=4.4,<5.0
 tzdata>=2025.2
 # Object storage (S3, Cloudflare R2, Spaces, MinIO), Fase 4 C.
 boto3>=1.35,<2.0
+# Error tracking without personal data (Sentry or GlitchTip), Fase 4 C.
+sentry-sdk>=2.0,<3.0
 
 # Development and tests
 httpx>=0.27,<1.0

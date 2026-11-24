@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.db.database import settings
 from app.logging_config import configure_logging
 from app.models import *
+from app.observability import init_sentry, tag
 from app.routers.academic_router import router as academic_router
 from app.routers.access_router import router as access_router
 from app.routers.assessment_router import router as assessment_router
@@ -49,6 +50,7 @@ from app.routers.teacher_router import router as teacher_router
 from app.routers.user_router import router as user_router
 from app.services.validation_messages import spanish_message
 
+init_sentry()  # before the app, so its integrations see every request
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -70,6 +72,36 @@ def health():
     return {"status": "ok", "database": "reachable"}
 
 
+@app.get("/health/ready", tags=["system"])
+def ready():
+    """For the load balancer: the database and the file storage answer.
+
+    The answer never includes error details; they go to the log.
+    """
+    from app.db.database import SessionLocal
+    from app.services.storage import backend
+
+    checks = {}
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception:
+        logger.exception("ready_database_failed")
+        checks["database"] = "error"
+    try:
+        backend().check()
+        checks["storage"] = "ok"
+    except Exception:
+        logger.exception("ready_storage_failed")
+        checks["storage"] = "error"
+    healthy = all(value == "ok" for value in checks.values())
+    return JSONResponse(
+        status_code=200 if healthy else 503,
+        content={"status": "ok" if healthy else "unavailable", "checks": checks},
+    )
+
+
 configure_logging()
 logger = logging.getLogger("nexo.api")
 
@@ -78,6 +110,7 @@ logger = logging.getLogger("nexo.api")
 async def log_requests(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
     request.state.request_id = request_id
+    tag("request_id", request_id)
     started = time.perf_counter()
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id

@@ -16,6 +16,7 @@ from main import app
 SCOPE_CHECKED = {
     # Public or session endpoints.
     ("GET", "/health"): "health check",
+    ("GET", "/health/ready"): "readiness check for the load balancer (no data)",
     ("POST", "/auth/bootstrap"): "first administrator, protected by bootstrap token",
     ("POST", "/auth/login"): "sign-in",
     ("POST", "/auth/refresh"): "session renewal",
