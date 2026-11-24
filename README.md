@@ -286,15 +286,11 @@ dos primeros son de seguridad y siempre se envían. Los avisos se pueden
 desactivar en «Mi seguridad» > «Avisos por correo».
 
 Cada correo se guarda en la tabla `email_outbox` dentro de la misma transacción
-que lo origina y se envía justo después de responder. Programa dos tareas en el
-servidor (cron o el programador de tareas):
-
-```bash
-# Cada 5 minutos: reintenta los envíos fallidos (máximo 5 intentos con espera creciente).
-*/5 * * * * cd /srv/nexo && python -m scripts.send_emails
-# Cada día a las 7:00 (America/Santo_Domingo): recordatorios 3 días antes y 1 día después del vencimiento.
-0 7 * * * cd /srv/nexo && python -m scripts.send_due_reminders
-```
+que lo origina y se envía justo después de responder. El proceso de tareas
+programadas (`python -m scripts.scheduler`, servicio `worker` en Docker) reintenta
+los envíos fallidos cada 2 minutos (máximo 5 intentos con espera creciente) y
+manda los recordatorios cada día a las 7:00 (America/Santo_Domingo), 3 días antes
+y 1 día después del vencimiento. Ver `docs/despliegue.md`.
 
 Ningún recordatorio se repite aunque la tarea corra dos veces o se salte un día.
 
@@ -337,7 +333,7 @@ El desarrollo local puede continuar con SQLite. Para validar una configuración 
 docker compose up --build
 ```
 
-La API estará en `http://localhost:8000` y Nexo en `http://localhost:3000`. Antes de cualquier despliegue real cambia las contraseñas del compose, define un `SECRET_KEY` aleatorio, configura HTTPS y utiliza un gestor de secretos. Los volúmenes de PostgreSQL deben incluirse en la estrategia de copias de seguridad.
+La API estará en `http://localhost:8000` y Nexo en `http://localhost:3000`. El compose aplica las migraciones en un servicio aparte (`migrate`) y arranca el proceso de tareas programadas (`worker`). Para producción usa `docker-compose.prod.yml` y la guía `docs/despliegue.md`. Antes de cualquier despliegue real cambia las contraseñas del compose, define un `SECRET_KEY` aleatorio, configura HTTPS y utiliza un gestor de secretos. Los volúmenes de PostgreSQL deben incluirse en la estrategia de copias de seguridad.
 
 Configura `APP_ENVIRONMENT=production`, un `SECRET_KEY` aleatorio de al menos
 32 caracteres y `CORS_ORIGINS` con los orígenes HTTPS permitidos, separados por

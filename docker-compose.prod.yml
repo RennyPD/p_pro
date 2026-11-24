@@ -1,0 +1,70 @@
+# Production example (Fase 4 C). Secrets come from .env.production (never in
+# the repository); see docs/despliegue.md. PostgreSQL is managed outside
+# (or add your own service); files go to S3-compatible storage.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Two database URLs:
+#   MIGRATION_DATABASE_URL  table owner, only for "migrate" (not subject to RLS)
+#   DATABASE_URL            role nexo_app, subject to Row-Level Security
+x-api-env: &api-env
+  APP_ENVIRONMENT: production
+  DATABASE_URL: ${DATABASE_URL:?}
+  SECRET_KEY: ${SECRET_KEY:?}
+  CORS_ORIGINS: ${CORS_ORIGINS:?}
+  TENANT_BASE_DOMAIN: ${TENANT_BASE_DOMAIN:-}
+  APP_URL: ${APP_URL:?}
+  FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-*}
+  WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+  EMAIL_BACKEND: smtp
+  EMAIL_FROM: ${EMAIL_FROM:?}
+  SMTP_HOST: ${SMTP_HOST:?}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  STORAGE_BACKEND: s3
+  S3_BUCKET: ${S3_BUCKET:?}
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+  S3_REGION: ${S3_REGION:-auto}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_RELEASE: ${RELEASE:-}
+  FINANCE_SIMULATOR_ENABLED: "false"
+
+services:
+  migrate:
+    build: .
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      <<: *api-env
+      DATABASE_URL: ${MIGRATION_DATABASE_URL:?}
+    restart: "no"
+  api:
+    build: .
+    environment: *api-env
+    ports: ["127.0.0.1:8000:8000"]  # behind your HTTPS proxy / load balancer
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  worker:
+    build: .
+    command: ["python", "-m", "scripts.scheduler"]
+    environment: *api-env
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  web:
+    build:
+      context: frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:?}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_RELEASE: ${RELEASE:-}
+    ports: ["127.0.0.1:3000:80"]
+    restart: unless-stopped
+    depends_on: [api]

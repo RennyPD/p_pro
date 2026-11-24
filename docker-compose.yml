@@ -1,3 +1,4 @@
+# Local development with PostgreSQL. Production: docker-compose.prod.yml.
 services:
   db:
     image: postgres:17-alpine
@@ -12,17 +13,37 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-  api:
+  migrate:
     build: .
-    environment:
+    command: ["alembic", "upgrade", "head"]
+    environment: &api-env
       APP_ENVIRONMENT: development
       DATABASE_URL: postgresql+psycopg://p_pro:local-development-only@db:5432/p_pro
       SECRET_KEY: change-this-before-production
       CORS_ORIGINS: http://localhost:3000
-    ports: ["8000:8000"]
     depends_on:
       db:
         condition: service_healthy
+  api:
+    build: .
+    environment: *api-env
+    ports: ["8000:8000"]
+    volumes:
+      - storage_data:/data/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  worker:
+    build: .
+    command: ["python", "-m", "scripts.scheduler"]
+    environment: *api-env
+    healthcheck:
+      disable: true
+    volumes:
+      - storage_data:/data/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
   web:
     build:
       context: frontend
@@ -32,3 +53,4 @@ services:
     depends_on: [api]
 volumes:
   postgres_data:
+  storage_data:

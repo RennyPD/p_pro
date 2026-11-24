@@ -140,7 +140,12 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
      - Sin datos personales (Ley 172-13): nunca cuerpos, cabeceras, cookies, consultas de la URL, variables locales, rastros (clics, consola, SQL) ni la cuenta; correos, números largos (cédulas, teléfonos) y tokens se enmascaran. Etiquetas: institución e id de la petición.
      - `/health/ready` comprueba la base y el almacenamiento para el balanceador (503 sin detalles; el detalle va al log). `/health` sigue igual.
      - Pruebas: `tests/test_observability.py` (incluye un envío real a un transporte de prueba) y `observability.test.ts`.
-   - Pendiente: C4 despliegue, C5 build ligero (B2).
+   - ✅ **C4, 25/11/2026: despliegue** (guía en `docs/despliegue.md`).
+     - Imagen del API con usuario sin privilegios, varios procesos (`WEB_CONCURRENCY`) y healthcheck sobre `/health/ready`; las migraciones son un paso aparte (`migrate`), nunca al arrancar.
+     - Proceso de tareas programadas (`python -m scripts.scheduler`, servicio `worker`): correos cada 2 min, cobros a las 6:30 y recordatorios a las 7:00; un bloqueo de PostgreSQL deja un solo `worker` activo y los demás en espera. Sustituye las entradas de cron.
+     - `docker-compose.yml` (desarrollo) y `docker-compose.prod.yml` (dueño de las tablas para migrar, `nexo_app` con RLS para la aplicación, S3, SMTP, Sentry). CI construye ambas imágenes y comprueba que la del API arranca sana y sin privilegios.
+     - Pruebas: `tests/test_scheduler.py` (incluye relevo real entre dos procesos con PostgreSQL, que encontró y corrigió un bloqueo que quedaba retenido en el pool de conexiones).
+   - Pendiente: C5 build ligero (B2).
 
 ### Fase 5: lanzamiento (M)
 Landing page, demo pública, términos de uso, política de privacidad conforme a la Ley 172-13 con atención a datos de menores, documentación para clientes y soporte.
