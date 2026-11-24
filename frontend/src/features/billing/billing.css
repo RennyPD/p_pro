@@ -85,3 +85,40 @@
   background: var(--success-soft);
   color: var(--success);
 }
+
+.billing-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 0 0 1rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--blue-line);
+  border-radius: 0.6rem;
+  background: var(--blue-soft);
+  color: var(--ink);
+}
+
+.billing-banner p {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+
+.billing-banner svg {
+  flex: none;
+  width: 1.1rem;
+}
+
+.billing-banner--warning {
+  border-color: var(--warning-line);
+  background: var(--warning-soft);
+}
+
+.billing-banner--danger {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+
+.billing-banner__link {
+  font-weight: 600;
+}

@@ -66,8 +66,19 @@ def send_reminders(engine: Engine) -> str:
     return f"Recordatorios en cola: {queued}; enviados ahora: {sent['sent']}"
 
 
+def advance_subscriptions(engine: Engine) -> str:
+    from app.services.billing.lifecycle import advance
+    from app.services.email_service import deliver_pending
+    from app.services.tenants import for_each_institution
+
+    changes = {key: value for key, value in for_each_institution(engine, advance).items() if value}
+    deliver_pending(engine)
+    return f"Suscripciones: {len(changes)} cambios" + (f" {changes}" if changes else "")
+
+
 JOBS = (
     Job("emails", send_emails, every=timedelta(minutes=2)),
+    Job("subscriptions", advance_subscriptions, at=time(6, 0)),
     Job("billing", run_billing, at=time(6, 30)),
     Job("reminders", send_reminders, at=time(7, 0)),
 )

@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.billing_model import BillingEvent, Plan, Subscription
+from app.models.institution_model import Institution
 from app.services.billing.providers import BillingEventData
 from app.services.platform import platform_record
 
@@ -55,6 +56,10 @@ def apply(db: Session, provider: str, event: BillingEventData) -> str:
     if subscription is None:
         record.outcome = "sin suscripción asociada"
         return record.outcome
+    from app.db.tenant import current_tenant, set_tenant
+
+    if current_tenant(db) is None:  # webhooks: act inside the institution (its notices)
+        set_tenant(db, subscription.institution_id)
     if subscription.last_event_at and event.occurred_at < subscription.last_event_at:
         record.outcome = "anterior al último aplicado; ignorado"
         return record.outcome
@@ -77,6 +82,7 @@ def apply(db: Session, provider: str, event: BillingEventData) -> str:
         if subscription.status in ("trialing", "active"):
             subscription.status = "past_due"
             subscription.past_due_since = subscription.past_due_since or event.occurred_at
+            notify(db, "past_due", subscription, now())
     elif event.kind == "subscription.canceled":
         subscription.status = "read_only"
         subscription.canceled_at = event.occurred_at
@@ -97,6 +103,9 @@ def apply(db: Session, provider: str, event: BillingEventData) -> str:
 
 
 def _activate(subscription: Subscription, event: BillingEventData) -> None:
+    from sqlalchemy.orm import object_session
+
+    lift_billing_suspension(object_session(subscription), subscription.institution_id)
     subscription.status = "active"
     subscription.past_due_since = None
     subscription.read_only_since = None
@@ -104,3 +113,160 @@ def _activate(subscription: Subscription, event: BillingEventData) -> None:
     subscription.trial_ends_at = None
     if event.period_end:
         subscription.current_period_end = event.period_end
+
+
+# --- Daily lifecycle (Fase 4, block D3; decisions of 25/11/2026) -----------------
+
+GRACE_DAYS = 7  # past_due with full access
+READ_ONLY_DAYS = 30  # then suspended
+TRIAL_REMINDERS = (7, 3, 1)  # days before the trial ends
+BILLING_SUSPENSION = "Suspensión automática por falta de pago"
+
+
+def advance(db: Session, moment: datetime | None = None) -> list[str]:
+    """Move the active institution's subscription along; send its notices.
+
+    Runs in a tenant session (``for_each_institution``); idempotent.
+    """
+    from datetime import timedelta
+
+    from app.db.tenant import current_tenant
+
+    moment = moment or now()
+    institution_id = current_tenant(db)
+    subscription = (
+        db.query(Subscription).filter(Subscription.institution_id == institution_id).first()
+    )
+    if subscription is None:
+        return []
+    changes = []
+
+    def move(status: str, notice: str) -> None:
+        before = subscription.status
+        subscription.status = status
+        subscription.updated_at = moment
+        changes.append(f"{before} → {status}")
+        platform_record(
+            db,
+            None,
+            f"billing.{status}",
+            f"institution:{institution_id}",
+            f"Automático: {before} → {status}",
+        )
+        notify(db, notice, subscription, moment)
+
+    if subscription.status == "trialing" and subscription.trial_ends_at:
+        left = (subscription.trial_ends_at.date() - moment.date()).days
+        if subscription.trial_ends_at <= moment:
+            subscription.past_due_since = subscription.trial_ends_at
+            move("past_due", "trial_ended")
+        elif left in TRIAL_REMINDERS:
+            notify(db, f"trial_{left}", subscription, moment)
+    if (
+        subscription.status == "past_due"
+        and subscription.past_due_since
+        and moment >= subscription.past_due_since + timedelta(days=GRACE_DAYS)
+    ):
+        subscription.read_only_since = moment
+        move("read_only", "read_only")
+    if (
+        subscription.status in ("read_only", "canceled")
+        and subscription.read_only_since
+        and moment >= subscription.read_only_since + timedelta(days=READ_ONLY_DAYS)
+    ):
+        move("suspended", "suspended")
+        institution = db.get(Institution, institution_id)
+        institution.status = "suspended"
+        institution.status_reason = BILLING_SUSPENSION
+        institution.status_changed_at = moment
+    return changes
+
+
+def lift_billing_suspension(db: Session, institution_id: int) -> None:
+    """A payment (or a plan assigned by the platform) ends an automatic suspension."""
+    institution = db.get(Institution, institution_id)
+    if (
+        institution is not None
+        and institution.status == "suspended"
+        and institution.status_reason == BILLING_SUSPENSION
+    ):
+        institution.status = "active"
+        institution.status_reason = "Reactivada por pago"
+        institution.status_changed_at = now()
+
+
+NOTICES = {
+    "trial_7": (
+        "Tu prueba de Nexo termina en 7 días",
+        "Tu prueba gratuita termina el {trial_end}. Elige un plan para seguir sin interrupciones.",
+    ),
+    "trial_3": (
+        "Tu prueba de Nexo termina en 3 días",
+        "Tu prueba gratuita termina el {trial_end}. Elige un plan para seguir sin interrupciones.",
+    ),
+    "trial_1": (
+        "Tu prueba de Nexo termina mañana",
+        "Tu prueba gratuita termina mañana. Elige un plan para seguir sin interrupciones.",
+    ),
+    "trial_ended": (
+        "Terminó tu prueba de Nexo",
+        "La prueba gratuita terminó. Tienes {grace} días para elegir un plan con acceso "
+        "completo; después la institución pasará a modo de solo lectura.",
+    ),
+    "past_due": (
+        "No pudimos cobrar tu plan de Nexo",
+        "El último pago no se pudo completar. Tienes {grace} días para actualizar el método de "
+        "pago; después la institución pasará a modo de solo lectura.",
+    ),
+    "read_only": (
+        "Tu institución está en modo de solo lectura",
+        "Por falta de pago, Nexo está en modo de solo lectura: se puede consultar y exportar, "
+        "pero no registrar cambios. Si no se regulariza en {read_only} días, el acceso se "
+        "suspenderá. Tus datos se conservan.",
+    ),
+    "suspended": (
+        "El acceso a Nexo está suspendido",
+        "Por falta de pago, el acceso de la institución está suspendido. Tus datos se "
+        "conservan: regulariza el pago o escribe al equipo de Nexo para reactivarla.",
+    ),
+}
+
+
+def notify(db: Session, notice: str, subscription: Subscription, moment: datetime) -> int:
+    """Email the institution's billing managers once per notice and date."""
+    from app.auth import has_permission
+    from app.models.user_model import User
+    from app.services.email_service import queue_email
+    from app.services.email_templates import optional_link, render
+
+    subject, text = NOTICES[notice]
+    body = text.format(
+        trial_end=subscription.trial_ends_at.strftime("%d/%m/%Y")
+        if subscription.trial_ends_at
+        else "",
+        grace=GRACE_DAYS,
+        read_only=READ_ONLY_DAYS,
+    )
+    sent = 0
+    for user in db.query(User).filter(User.active.is_(True)).order_by(User.user_id):
+        if not user.email or not has_permission(user, "billing.manage"):
+            continue
+        message = render(
+            db,
+            subject,
+            f"Hola, {user.username}:",
+            [body],
+            action=optional_link("Abrir Plan y facturación", "/billing"),
+        )
+        queued = queue_email(
+            db,
+            user.email,
+            message.subject,
+            message.text,
+            message.html,
+            category="billing",
+            user_id=user.user_id,
+            dedupe_key=f"billing:{subscription.institution_id}:{notice}:{moment.date()}:{user.user_id}",
+        )
+        sent += queued is not None
+    return sent

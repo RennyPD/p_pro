@@ -3398,6 +3398,57 @@
         "title": "BillingRunOut",
         "type": "object"
       },
+      "BillingStatus": {
+        "properties": {
+          "days_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Left"
+          },
+          "grace_ends_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grace Ends At"
+          },
+          "read_only": {
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "trial_ends_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial Ends At"
+          }
+        },
+        "required": [
+          "status",
+          "read_only"
+        ],
+        "title": "BillingStatus",
+        "type": "object"
+      },
       "BlockedStudent": {
         "properties": {
           "reason": {
@@ -20844,6 +20895,33 @@
           }
         ],
         "summary": "Sandbox Session",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/billing/status": {
+      "get": {
+        "description": "For the notices of every account: trial, overdue payment, read-only mode.",
+        "operationId": "billing_status_billing_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Billing Status",
         "tags": [
           "billing"
         ]

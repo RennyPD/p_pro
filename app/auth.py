@@ -20,6 +20,7 @@ from app.permissions import (
     expand,
 )
 from app.security import decode_token_claims
+from app.services.billing.access import enforce_plan
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -69,6 +70,7 @@ def get_current_user(
         raise HTTPException(status_code=401, detail=OTHER_INSTITUTION)
     set_tenant(db, user.institution_id)
     tag("institution_id", user.institution_id)
+    enforce_plan(db)
     ensure_institution_open(db, user.institution_id)
     if user.session_version != version:
         raise HTTPException(status_code=401, detail="La sesión se revocó. Inicia sesión de nuevo")

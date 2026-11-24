@@ -136,6 +136,11 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
      - Permiso nuevo `billing.manage`; la migración lo da a todo rol que ya tenía `settings.manage`.
      - Página «Plan y facturación» (`/billing`): plan y estado, fin de la prueba o renovación, uso frente a los límites, cambio de plan mensual o anual, método de pago y facturas. Página de pago de prueba (`/billing/sandbox`).
      - Pruebas: `tests/test_billing.py` (flujo de prueba, producción, firmas, repeticiones y orden de Stripe) y `BillingPage.test.tsx`.
+   - ✅ **D3, 25/11/2026: ciclo de vida y modo solo lectura** (`app/services/billing/access.py`, `advance` en `lifecycle.py`).
+     - Tarea diaria del `worker` (6:00): recordatorios 7, 3 y 1 día antes del fin de la prueba; al terminar la prueba sin pago, o con un pago fallido, `past_due` con 7 días de acceso completo; después `read_only` durante 30 días; después la institución queda suspendida («Suspensión automática por falta de pago»). Un pago, o un plan asignado por la plataforma, levanta esa suspensión (nunca una manual). Cada paso queda en la auditoría de plataforma y avisa por correo a quienes tienen `billing.manage` (una vez por aviso y día).
+     - Solo lectura: se comprueba en `lock_scope` y `lock_academic`, que toda ruta de escritura toma, y solo para peticiones de cuentas de la institución (la plataforma, el `worker` y los scripts no se bloquean). Se puede entrar, consultar, exportar y cambiar la propia contraseña; las escrituras responden 403 con el aviso. Excepciones revisadas (pagar y gestionar el método de pago): `READ_ONLY_EXEMPT` en `tests/test_billing_lifecycle.py` falla si aparece otra.
+     - `/billing/status` para cualquier cuenta y aviso en el marco de la aplicación: solo lectura para todos; prueba que termina y pago pendiente para quienes gestionan la facturación.
+     - Pruebas: `tests/test_billing_lifecycle.py` y `BillingBanner.test.tsx`.
 - Pagos en línea para familias, comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
 3. ✅ **Bloque C: infraestructura** (aprobado el 24/11/2026, terminado el 25/11; sin Redis por ahora, Sentry sin datos personales, despliegue con Docker sin atarse a un proveedor).
    - ✅ **C1, 25/11/2026: archivos fuera de la base (M4)** (migración `20261125_0064`, `app/services/storage.py`).

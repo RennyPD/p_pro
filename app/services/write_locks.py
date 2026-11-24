@@ -27,6 +27,7 @@ from sqlalchemy import event, text, update
 from sqlalchemy.orm import Session
 
 from app.models.configuration_model import WriteLock
+from app.services.billing.access import ensure_writable
 
 DOMAINS = frozenset({"academic", "access", "finance", "platform"})
 
@@ -112,6 +113,7 @@ def lock_academic(
     institution_id: int | None = None,
 ) -> None:
     """Fine-grained academic locks in the global order (see the module docstring)."""
+    ensure_writable(db)
     state = _state(db)
     general = lock_key("academic", _tenant_of(db, institution_id))
     if state["general"] is None:
@@ -169,6 +171,7 @@ def try_lock_student(db: Session, student_id: int, institution_id: int | None = 
 
 
 def lock_scope(db: Session, domain: str, institution_id: int | None = None) -> None:
+    ensure_writable(db)  # read-only institutions (Fase 4 D3)
     key = lock_key(domain, _tenant_of(db, institution_id))
     if domain == "academic":
         state = _state(db)

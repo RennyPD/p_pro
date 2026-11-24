@@ -217,6 +217,10 @@ def change_subscription(db: Session, institution: Institution, data, actor) -> S
     elif subscription.status != "trialing":
         subscription.status = "active"
         subscription.past_due_since = subscription.read_only_since = None
+    if subscription.status in ("active", "trialing"):
+        from app.services.billing.lifecycle import lift_billing_suspension
+
+        lift_billing_suspension(db, institution.institution_id)
     subscription.updated_at = now()
     db.flush()
     db.refresh(subscription)

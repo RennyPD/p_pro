@@ -6,13 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.auth import require_permissions
+from app.auth import get_current_user, require_permissions
 from app.db.database import settings
 from app.db.Session import get_db
 from app.models.billing_model import Plan
 from app.models.user_model import User
 from app.services.audit_log import record
 from app.services.billing import lifecycle
+from app.services.billing.access import allow_while_read_only
 from app.services.billing.limits import GB, ceiling, subscription_of, usage
 from app.services.billing.providers import SandboxProvider, StripeProvider, provider
 from app.services.platform import lock_platform
@@ -147,6 +148,41 @@ def require_subscription(db: Session, user: User):
     return subscription
 
 
+class BillingStatus(BaseModel):
+    status: str
+    trial_ends_at: str | None = None
+    days_left: int | None = None
+    read_only: bool
+    grace_ends_at: str | None = None
+
+
+@router.get("/status", response_model=BillingStatus)
+def billing_status(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """For the notices of every account: trial, overdue payment, read-only mode."""
+    from datetime import timedelta
+
+    from app.services.billing.access import BLOCKED_STATUSES
+    from app.services.billing.lifecycle import GRACE_DAYS, READ_ONLY_DAYS, now
+
+    subscription = subscription_of(db, user.institution_id)
+    if subscription is None:
+        return {"status": "active", "read_only": False}
+    ends = None
+    if subscription.status == "trialing":
+        ends = subscription.trial_ends_at
+    elif subscription.status == "past_due" and subscription.past_due_since:
+        ends = subscription.past_due_since + timedelta(days=GRACE_DAYS)
+    elif subscription.status in BLOCKED_STATUSES and subscription.read_only_since:
+        ends = subscription.read_only_since + timedelta(days=READ_ONLY_DAYS)
+    return {
+        "status": subscription.status,
+        "trial_ends_at": _iso(subscription.trial_ends_at),
+        "days_left": max(0, (ends.date() - now().date()).days) if ends else None,
+        "read_only": subscription.status in BLOCKED_STATUSES,
+        "grace_ends_at": _iso(ends),
+    }
+
+
 @router.get("/subscription", response_model=BillingOverview)
 def get_subscription(db: Session = Depends(get_db), user: User = Depends(manager)):
     return overview(db, user)
@@ -159,6 +195,7 @@ def checkout(
     db: Session = Depends(get_db),
     user: User = Depends(manager),
 ):
+    allow_while_read_only(db)  # paying is how a read-only institution gets back
     lock_access(db)
     subscription = require_subscription(db, user)
     plan = (
@@ -182,6 +219,7 @@ def checkout(
 
 @router.post("/portal")
 def portal(request: Request, db: Session = Depends(get_db), user: User = Depends(manager)):
+    allow_while_read_only(db)
     lock_access(db)
     subscription = require_subscription(db, user)
     url = provider().portal(subscription, return_url(request))
@@ -225,6 +263,7 @@ def sandbox_complete(
     payments = sandbox()
     if payments.session(data.token)["institution_id"] != user.institution_id:
         raise HTTPException(403, "Este pago de prueba pertenece a otra institución")
+    allow_while_read_only(db)
     lock_platform(db)
     for event in payments.complete(data.token, data.outcome):
         lifecycle.apply(db, payments.name, event)

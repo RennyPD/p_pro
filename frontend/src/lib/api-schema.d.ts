@@ -1018,6 +1018,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/billing/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Billing Status
+     * @description For the notices of every account: trial, overdue payment, read-only mode.
+     */
+    get: operations["billing_status_billing_status_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/billing/subscription": {
     parameters: {
       query?: never;
@@ -5910,6 +5930,19 @@ export interface components {
       reason: string;
       /** Total */
       total: string;
+    };
+    /** BillingStatus */
+    BillingStatus: {
+      /** Days Left */
+      days_left?: number | null;
+      /** Grace Ends At */
+      grace_ends_at?: string | null;
+      /** Read Only */
+      read_only: boolean;
+      /** Status */
+      status: string;
+      /** Trial Ends At */
+      trial_ends_at?: string | null;
     };
     /** BlockedStudent */
     BlockedStudent: {
@@ -13019,6 +13052,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  billing_status_billing_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BillingStatus"];
         };
       };
     };
