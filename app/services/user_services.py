@@ -14,6 +14,7 @@ from app.repositories.user_repository import (
 )
 from app.schemas.user_schema import UserCreate, UserUpdate
 from app.services.audit_log import record
+from app.services.billing.limits import ensure_room, is_staff_role
 from app.services.email_service import queue_email
 from app.services.email_templates import invitation
 from app.services.one_time_tokens import issue_token
@@ -49,6 +50,8 @@ def validate_profile(db: Session, state: dict):
 
 def create_user_service(db: Session, user_data: UserCreate, actor):
     validate_profile(db, user_data.model_dump())
+    if is_staff_role(db, user_data.role_id):
+        ensure_room(db, staff=1)
     users = get_users(db)
 
     for user in users:
@@ -113,6 +116,12 @@ def update_user_service(db: Session, user_id: int, user_data: UserUpdate):
     }
     state.update(user_data.model_dump(exclude_unset=True))
     validate_profile(db, state)
+    if (
+        current.active
+        and not is_staff_role(db, current.role_id)
+        and is_staff_role(db, state["role_id"])
+    ):
+        ensure_room(db, staff=1)  # a student or guardian account becoming staff
     user = update_user(db, user_id, user_data)
 
     if not user:

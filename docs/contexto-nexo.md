@@ -123,7 +123,13 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
    - Suspensión y reactivación con motivo: la institución suspendida no entra (403 con aviso, también en el inicio de sesión); el modo de solo lectura llega con los planes (bloque D).
    - Tarjeta «Primeros pasos» en el panel principal (`/onboarding/checklist`, permiso `settings.manage`): centro, año y períodos, programas, plan de estudios, grupos (escuelas), docentes, estudiantes y cuentas.
    - Pruebas: `tests/test_platform.py` y pruebas del frontend (`PlatformPage`, `FirstSteps`, `LoginPage`).
-- Planes, límites, suscripciones, prueba gratuita y suspensión por impago (Stripe o PayPal y Azul o CardNet).
+4. **Bloque D: planes y suscripciones** (aprobado el 25/11/2026). Decisiones: cobro por adaptador (sandbox ahora, Stripe listo; Stripe no abre cuentas a empresas con sede en RD, así que el proveedor real se confirma al resolver lo legal), planes por tramos de estudiantes activos con precios editables desde la plataforma, prueba de 30 días sin tarjeta, 7 días de gracia + 30 en solo lectura + suspensión, margen del 10 % en los límites, registro propio con verificación por correo, precios en USD.
+   - ✅ **D1, 25/11/2026: planes y límites** (migración `20261125_0066`, `app/services/billing/limits.py`).
+     - Tablas globales `plans` y `subscriptions` (una por institución). Planes iniciales editables: Básico (300 estudiantes, 30 personal, 10 GB), Profesional (1 500, 150, 50 GB) e Institucional (a medida, sin límites). Las instituciones existentes quedan en Institucional activo: nada cambia para ellas.
+     - Toda institución nueva empieza una prueba de 30 días (`BILLING_TRIAL_DAYS`) del plan elegido (Profesional por defecto).
+     - Límites al añadir, nunca sobre lo existente, con 10 % de margen: estudiantes activos (alta y reactivación), cuentas del personal (roles de ámbito institución o secciones; alta, reactivación y cambio de rol) y archivos (suma de tamaños). Al pasarse: 409 con el uso y «Cambia de plan en Plan y facturación».
+     - Plataforma: crear y editar planes, asignar plan, facturación o días de prueba a una institución (con motivo y auditoría); columnas de plan y estado en la lista.
+     - Pruebas: `tests/test_plans.py`; frontend en `PlatformPage.test.tsx`.
 - Pagos en línea para familias, comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
 3. ✅ **Bloque C: infraestructura** (aprobado el 24/11/2026, terminado el 25/11; sin Redis por ahora, Sentry sin datos personales, despliegue con Docker sin atarse a un proveedor).
    - ✅ **C1, 25/11/2026: archivos fuera de la base (M4)** (migración `20261125_0064`, `app/services/storage.py`).

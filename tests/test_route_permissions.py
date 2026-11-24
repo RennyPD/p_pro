@@ -58,6 +58,13 @@ SCOPE_CHECKED = {
         "/platform/institutions/{institution_id}/reactivate",
     ): "platform token (require_platform_admin)",
     ("GET", "/platform/audit"): "platform token (require_platform_admin)",
+    ("GET", "/platform/plans"): "platform super administration (platform token)",
+    ("POST", "/platform/plans"): "platform super administration (platform token)",
+    ("PUT", "/platform/plans/{code}"): "platform super administration (platform token)",
+    (
+        "PUT",
+        "/platform/institutions/{institution_id}/subscription",
+    ): "platform super administration (platform token)",
     ("GET", "/students/{student_id}/report-card"): "own, linked guardian, staff or group teachers",
     ("GET", "/students/{student_id}/report-card.pdf"): "same scope as the report card",
     ("GET", "/class-groups/{class_group_id}/report-cards.pdf"): "ensure_group_access",

@@ -10,13 +10,14 @@
 """
 
 import secrets
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.tenant import set_tenant, tenant_bypass
+from app.models.billing_model import Plan, Subscription
 from app.models.institution_model import Institution
 from app.models.platform_model import PlatformAdmin, PlatformAuditLog
 from app.models.role_model import Role
@@ -123,10 +124,126 @@ def usage(db: Session, institution_id: int) -> dict:
         .execution_options(**bypass)
         .scalar()
     )
+    from app.services.billing.limits import usage as plan_usage
+
+    counts = plan_usage(db, institution_id)
     return {
         "students": count(Student, Student.active.is_(True)),
         "users": count(User),
+        "staff": counts.staff,
+        "storage_bytes": counts.storage_bytes,
         "last_activity": last,
+    }
+
+
+# --- Plans and subscriptions (Fase 4 D1) -----------------------------------------
+
+
+def plan_by_code(db: Session, code: str) -> Plan:
+    plan = db.query(Plan).filter(Plan.code == code.strip().casefold()).first()
+    if plan is None:
+        raise HTTPException(404, f"No existe el plan {code}")
+    return plan
+
+
+def plan_fields(plan: Plan) -> dict:
+    return {column.name: getattr(plan, column.name) for column in Plan.__table__.columns}
+
+
+def create_plan(db: Session, data, actor: PlatformAdmin) -> Plan:
+    if db.query(Plan).filter(Plan.code == data.code).first():
+        raise HTTPException(409, f"Ya existe un plan con el código {data.code}")
+    plan = Plan(**data.model_dump(), created_at=now())
+    db.add(plan)
+    db.flush()
+    platform_record(db, actor, "plan.created", f"plan:{plan.code}", plan_summary(plan))
+    return plan
+
+
+def update_plan(db: Session, plan: Plan, data, actor: PlatformAdmin) -> Plan:
+    before = plan_summary(plan)
+    for key, value in data.model_dump().items():
+        setattr(plan, key, value)
+    platform_record(
+        db, actor, "plan.updated", f"plan:{plan.code}", f"{before} → {plan_summary(plan)}"
+    )
+    return plan
+
+
+def plan_summary(plan: Plan) -> str:
+    def limit(value, unit=""):
+        return "sin límite" if value is None else f"{value}{unit}"
+
+    return (
+        f"{plan.name}: {plan.monthly_price}/{plan.yearly_price} {plan.currency}; "
+        f"estudiantes {limit(plan.max_students)}, personal {limit(plan.max_staff)}, "
+        f"archivos {limit(plan.storage_gb, ' GB')}"
+    )
+
+
+def start_trial(db: Session, institution_id: int, plan: Plan) -> Subscription:
+    from app.db.database import settings
+
+    subscription = Subscription(
+        institution_id=institution_id,
+        plan_id=plan.plan_id,
+        status="trialing",
+        interval="monthly",
+        trial_ends_at=now() + timedelta(days=settings.billing_trial_days),
+        provider="sandbox",
+        updated_at=now(),
+    )
+    db.add(subscription)
+    db.flush()
+    return subscription
+
+
+def change_subscription(db: Session, institution: Institution, data, actor) -> Subscription:
+    """The platform assigns a plan (sales agreements, custom plans, trials)."""
+    plan = plan_by_code(db, data.plan_code)
+    subscription = (
+        db.query(Subscription)
+        .filter(Subscription.institution_id == institution.institution_id)
+        .first()
+    )
+    if subscription is None:
+        subscription = start_trial(db, institution.institution_id, plan)
+    before = f"{subscription.plan.name if subscription.plan else '—'} ({subscription.status})"
+    subscription.plan_id = plan.plan_id
+    subscription.interval = data.interval
+    if data.trial_days:
+        subscription.status = "trialing"
+        subscription.trial_ends_at = now() + timedelta(days=data.trial_days)
+    elif subscription.status != "trialing":
+        subscription.status = "active"
+        subscription.past_due_since = subscription.read_only_since = None
+    subscription.updated_at = now()
+    db.flush()
+    db.refresh(subscription)
+    platform_record(
+        db,
+        actor,
+        "subscription.changed",
+        f"institution:{institution.institution_id}",
+        f"{before} → {plan.name} ({subscription.status}); {data.reason.strip()}",
+    )
+    return subscription
+
+
+def subscription_out(db: Session, institution_id: int) -> dict | None:
+    subscription = (
+        db.query(Subscription).filter(Subscription.institution_id == institution_id).first()
+    )
+    if subscription is None:
+        return None
+    return {
+        "plan_code": subscription.plan.code,
+        "plan_name": subscription.plan.name,
+        "status": subscription.status,
+        "interval": subscription.interval,
+        "trial_ends_at": subscription.trial_ends_at,
+        "current_period_end": subscription.current_period_end,
+        "provider": subscription.provider,
     }
 
 
@@ -155,6 +272,7 @@ def create_institution(db: Session, data, actor: PlatformAdmin) -> tuple[Institu
         )
     if db.query(Institution).filter(Institution.slug == code).first():
         raise HTTPException(409, f"Ya existe una institución con el código {code}")
+    plan = plan_by_code(db, data.plan_code)
     institution = Institution(
         name=data.name.strip(),
         slug=code,
@@ -165,6 +283,7 @@ def create_institution(db: Session, data, actor: PlatformAdmin) -> tuple[Institu
     )
     db.add(institution)
     db.flush()
+    start_trial(db, institution.institution_id, plan)
     school = data.institution_type in {"school", "both"}
     set_tenant(db, institution.institution_id)
     db.add(
@@ -225,7 +344,8 @@ def create_institution(db: Session, data, actor: PlatformAdmin) -> tuple[Institu
         actor,
         "institution.created",
         f"institution:{institution.institution_id}",
-        f"{institution.name} ({code}); tipo {data.institution_type}; administrador {admin.email}",
+        f"{institution.name} ({code}); tipo {data.institution_type}; administrador {admin.email}; "
+        f"prueba del plan {plan.name}",
     )
     return institution, admin
 

@@ -10,6 +10,8 @@ import type { ApiSchema } from "../../lib/apiTypes";
 import { formatDateTime } from "../../lib/format";
 import { platformApi, usePlatformSession } from "../../lib/platformApi";
 import "./platform.css";
+import { ChangePlan, PlansPanel } from "./PlansPanel";
+import { subscriptionLabels } from "./platformData";
 
 type Institution = ApiSchema<"InstitutionOut">;
 type AuditEntry = ApiSchema<"PlatformAuditOut">;
@@ -109,6 +111,7 @@ function PlatformConsole() {
   const [page, setPage] = useState(0);
   const [creating, setCreating] = useState(false);
   const [changing, setChanging] = useState<Institution | null>(null);
+  const [planFor, setPlanFor] = useState<Institution | null>(null);
   const me = useQuery({
     queryKey: ["platform", "me"],
     queryFn: () => platformApi.get<Me>("/platform/me").then(r => r.data),
@@ -174,6 +177,7 @@ function PlatformConsole() {
                 <th>Estado</th>
                 <th>Estudiantes activos</th>
                 <th>Cuentas</th>
+                <th>Plan</th>
                 <th>Última actividad</th>
                 <th>Acción</th>
               </tr>
@@ -196,8 +200,28 @@ function PlatformConsole() {
                   </td>
                   <td>{row.usage.students}</td>
                   <td>{row.usage.users}</td>
-                  <td>{row.usage.last_activity ? formatDateTime(row.usage.last_activity) : "—"}</td>
                   <td>
+                    {row.subscription ? (
+                      <>
+                        <strong>{row.subscription.plan_name}</strong>
+                        <div>
+                          <Badge
+                            tone={subscriptionLabels[row.subscription.status]?.tone ?? "neutral"}
+                          >
+                            {subscriptionLabels[row.subscription.status]?.label ??
+                              row.subscription.status}
+                          </Badge>
+                        </div>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>{row.usage.last_activity ? formatDateTime(row.usage.last_activity) : "—"}</td>
+                  <td className="platform-actions">
+                    <Button variant="secondary" onClick={() => setPlanFor(row)}>
+                      Plan
+                    </Button>
                     <Button
                       variant={row.status === "active" ? "danger" : "secondary"}
                       onClick={() => setChanging(row)}
@@ -230,9 +254,11 @@ function PlatformConsole() {
           Siguiente
         </Button>
       </div>
+      <PlansPanel />
       <PlatformAudit />
       {creating && <CreateInstitution onClose={() => setCreating(false)} />}
       {changing && <ChangeStatus institution={changing} onClose={() => setChanging(null)} />}
+      {planFor && <ChangePlan institution={planFor} onClose={() => setPlanFor(null)} />}
     </div>
   );
 }

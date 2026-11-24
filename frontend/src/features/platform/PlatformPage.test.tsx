@@ -15,7 +15,18 @@ const institution = {
   contact_email: "direccion@horizonte.edu.do",
   created_at: "2026-11-24T10:00:00",
   usage: { students: 120, users: 9, last_activity: null },
+  subscription: {
+    plan_code: "profesional",
+    plan_name: "Profesional",
+    status: "trialing",
+    interval: "monthly",
+    provider: "sandbox",
+  },
 };
+const plans = [
+  { plan_id: 1, code: "basico", name: "Básico", active: true, public: true },
+  { plan_id: 2, code: "profesional", name: "Profesional", active: true, public: true },
+];
 
 function renderPage() {
   return render(
@@ -83,6 +94,34 @@ describe("PlatformPage", () => {
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith("/platform/institutions/2/suspend", {
         reason: "Pago pendiente",
+      }),
+    );
+  });
+
+  it("assigns a plan to an institution with a reason", async () => {
+    usePlatformSession.getState().signIn("plataforma");
+    vi.spyOn(platformApi, "get").mockImplementation(async url =>
+      url === "/platform/institutions"
+        ? ({ data: [institution], headers: { "x-total-count": "1" } } as never)
+        : url === "/platform/plans"
+          ? ({ data: plans } as never)
+          : ({ data: url === "/platform/me" ? { name: "Equipo" } : [] } as never),
+    );
+    const put = vi.spyOn(platformApi, "put").mockResolvedValue({ data: {} });
+    renderPage();
+    const row = (await screen.findByText("Liceo Horizonte")).closest("tr") as HTMLElement;
+    expect(within(row).getByText("En prueba")).toBeInTheDocument();
+    await userEvent.click(within(row).getByRole("button", { name: "Plan" }));
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.selectOptions(within(dialog).getByLabelText("Plan"), "basico");
+    await userEvent.type(within(dialog).getByLabelText("Motivo"), "Acuerdo firmado");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Guardar" }));
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith("/platform/institutions/2/subscription", {
+        plan_code: "basico",
+        interval: "monthly",
+        trial_days: null,
+        reason: "Acuerdo firmado",
       }),
     );
   });

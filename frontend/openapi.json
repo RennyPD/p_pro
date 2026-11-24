@@ -9236,6 +9236,13 @@
             "minLength": 3,
             "title": "Name",
             "type": "string"
+          },
+          "plan_code": {
+            "default": "profesional",
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Plan Code",
+            "type": "string"
           }
         },
         "required": [
@@ -9314,6 +9321,16 @@
               }
             ],
             "title": "Status Reason"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "usage": {
             "$ref": "#/components/schemas/InstitutionUsage"
@@ -9627,6 +9644,16 @@
               }
             ],
             "title": "Last Activity"
+          },
+          "staff": {
+            "default": 0,
+            "title": "Staff",
+            "type": "integer"
+          },
+          "storage_bytes": {
+            "default": 0,
+            "title": "Storage Bytes",
+            "type": "integer"
           },
           "students": {
             "title": "Students",
@@ -10632,6 +10659,274 @@
         "title": "PlanComponent",
         "type": "object"
       },
+      "PlanCreate": {
+        "properties": {
+          "active": {
+            "default": true,
+            "title": "Active",
+            "type": "boolean"
+          },
+          "code": {
+            "maxLength": 40,
+            "minLength": 2,
+            "pattern": "^[a-z0-9-]+$",
+            "title": "Code",
+            "type": "string"
+          },
+          "currency": {
+            "default": "USD",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Description",
+            "type": "string"
+          },
+          "max_staff": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Staff"
+          },
+          "max_students": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Students"
+          },
+          "monthly_price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,8}|(?=[\\d.]{1,11}0*$)\\d{0,8}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Monthly Price"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "provider_monthly_price": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Monthly Price"
+          },
+          "provider_yearly_price": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Yearly Price"
+          },
+          "public": {
+            "default": true,
+            "title": "Public",
+            "type": "boolean"
+          },
+          "sort_order": {
+            "default": 0,
+            "title": "Sort Order",
+            "type": "integer"
+          },
+          "storage_gb": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Gb"
+          },
+          "yearly_price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,8}|(?=[\\d.]{1,11}0*$)\\d{0,8}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Yearly Price"
+          }
+        },
+        "required": [
+          "name",
+          "monthly_price",
+          "yearly_price",
+          "code"
+        ],
+        "title": "PlanCreate",
+        "type": "object"
+      },
+      "PlanFields": {
+        "properties": {
+          "active": {
+            "default": true,
+            "title": "Active",
+            "type": "boolean"
+          },
+          "currency": {
+            "default": "USD",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Description",
+            "type": "string"
+          },
+          "max_staff": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Staff"
+          },
+          "max_students": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Students"
+          },
+          "monthly_price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,8}|(?=[\\d.]{1,11}0*$)\\d{0,8}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Monthly Price"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "provider_monthly_price": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Monthly Price"
+          },
+          "provider_yearly_price": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Yearly Price"
+          },
+          "public": {
+            "default": true,
+            "title": "Public",
+            "type": "boolean"
+          },
+          "sort_order": {
+            "default": 0,
+            "title": "Sort Order",
+            "type": "integer"
+          },
+          "storage_gb": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Gb"
+          },
+          "yearly_price": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,8}|(?=[\\d.]{1,11}0*$)\\d{0,8}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Yearly Price"
+          }
+        },
+        "required": [
+          "name",
+          "monthly_price",
+          "yearly_price"
+        ],
+        "title": "PlanFields",
+        "type": "object"
+      },
       "PlanInstallment": {
         "properties": {
           "amount": {
@@ -10669,6 +10964,133 @@
           "status"
         ],
         "title": "PlanInstallment",
+        "type": "object"
+      },
+      "PlanOut": {
+        "properties": {
+          "active": {
+            "default": true,
+            "title": "Active",
+            "type": "boolean"
+          },
+          "code": {
+            "maxLength": 40,
+            "minLength": 2,
+            "pattern": "^[a-z0-9-]+$",
+            "title": "Code",
+            "type": "string"
+          },
+          "currency": {
+            "default": "USD",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Description",
+            "type": "string"
+          },
+          "max_staff": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Staff"
+          },
+          "max_students": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Students"
+          },
+          "monthly_price": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,8}|(?=[\\d.]{1,11}0*$)\\d{0,8}\\.\\d{0,2}0*$)",
+            "title": "Monthly Price",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "integer"
+          },
+          "provider_monthly_price": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Monthly Price"
+          },
+          "provider_yearly_price": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Yearly Price"
+          },
+          "public": {
+            "default": true,
+            "title": "Public",
+            "type": "boolean"
+          },
+          "sort_order": {
+            "default": 0,
+            "title": "Sort Order",
+            "type": "integer"
+          },
+          "storage_gb": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Gb"
+          },
+          "yearly_price": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,8}|(?=[\\d.]{1,11}0*$)\\d{0,8}\\.\\d{0,2}0*$)",
+            "title": "Yearly Price",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "monthly_price",
+          "yearly_price",
+          "code",
+          "plan_id"
+        ],
+        "title": "PlanOut",
         "type": "object"
       },
       "PlanTemplateCreate": {
@@ -14898,6 +15320,104 @@
           "score"
         ],
         "title": "SubmissionGrade",
+        "type": "object"
+      },
+      "SubscriptionChange": {
+        "properties": {
+          "interval": {
+            "default": "monthly",
+            "pattern": "^(monthly|yearly)$",
+            "title": "Interval",
+            "type": "string"
+          },
+          "plan_code": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Plan Code",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 250,
+            "minLength": 5,
+            "title": "Reason",
+            "type": "string"
+          },
+          "trial_days": {
+            "anyOf": [
+              {
+                "maximum": 365.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial Days"
+          }
+        },
+        "required": [
+          "plan_code",
+          "reason"
+        ],
+        "title": "SubscriptionChange",
+        "type": "object"
+      },
+      "SubscriptionOut": {
+        "properties": {
+          "current_period_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "interval": {
+            "title": "Interval",
+            "type": "string"
+          },
+          "plan_code": {
+            "title": "Plan Code",
+            "type": "string"
+          },
+          "plan_name": {
+            "title": "Plan Name",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "trial_ends_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial Ends At"
+          }
+        },
+        "required": [
+          "plan_code",
+          "plan_name",
+          "status",
+          "interval",
+          "provider"
+        ],
+        "title": "SubscriptionOut",
         "type": "object"
       },
       "TeacherCreate": {
@@ -30317,6 +30837,63 @@
         ]
       }
     },
+    "/platform/institutions/{institution_id}/subscription": {
+      "put": {
+        "operationId": "change_subscription_platform_institutions__institution_id__subscription_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "institution_id",
+            "required": true,
+            "schema": {
+              "title": "Institution Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscriptionChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change Subscription",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
     "/platform/institutions/{institution_id}/suspend": {
       "post": {
         "operationId": "suspend_institution_platform_institutions__institution_id__suspend_post",
@@ -30395,6 +30972,137 @@
           }
         ],
         "summary": "Platform Me",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/plans": {
+      "get": {
+        "operationId": "list_plans_platform_plans_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlanOut"
+                  },
+                  "title": "Response List Plans Platform Plans Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Plans",
+        "tags": [
+          "platform"
+        ]
+      },
+      "post": {
+        "operationId": "create_plan_platform_plans_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Plan",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/plans/{code}": {
+      "put": {
+        "operationId": "update_plan_platform_plans__code__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "title": "Code",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanFields"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Plan",
         "tags": [
           "platform"
         ]

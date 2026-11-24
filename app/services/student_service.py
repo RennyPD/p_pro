@@ -11,6 +11,7 @@ from app.repositories.student_repository import (
 )
 from app.schemas.student_schema import StudentCreate, StudentUpdate
 from app.services.audit_log import changes, record, snapshot
+from app.services.billing.limits import ensure_room
 from app.services.business_time import business_date
 from app.services.institution_profile import settings_of
 
@@ -37,6 +38,8 @@ def create_student_service(
     from app.services.governance_workflow import lock_governance
 
     lock_governance(db)
+    if student_data.active:
+        ensure_room(db, students=1)
     students = get_students(db)
 
     for student in students:
@@ -101,6 +104,8 @@ def update_student_service(db: Session, student_id: int, student_data: StudentUp
             f"El estudiante {student_id} requiere un traslado de carrera. Registra el motivo en el flujo de traslado",
         )
 
+    if student_data.active and not current.active:
+        ensure_room(db, students=1)  # reactivating counts like a new student
     held = current.financial_hold
     student = update_student(db, student_id, student_data)
 

@@ -3827,6 +3827,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/platform/institutions/{institution_id}/subscription": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Change Subscription */
+    put: operations["change_subscription_platform_institutions__institution_id__subscription_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/platform/institutions/{institution_id}/suspend": {
     parameters: {
       query?: never;
@@ -3854,6 +3871,41 @@ export interface paths {
     /** Platform Me */
     get: operations["platform_me_platform_me_get"];
     put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/plans": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Plans */
+    get: operations["list_plans_platform_plans_get"];
+    put?: never;
+    /** Create Plan */
+    post: operations["create_plan_platform_plans_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/plans/{code}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Update Plan */
+    put: operations["update_plan_platform_plans__code__put"];
     post?: never;
     delete?: never;
     options?: never;
@@ -7924,6 +7976,11 @@ export interface components {
       institution_type: string;
       /** Name */
       name: string;
+      /**
+       * Plan Code
+       * @default profesional
+       */
+      plan_code: string;
     };
     /** InstitutionOut */
     InstitutionOut: {
@@ -7948,6 +8005,7 @@ export interface components {
       status_changed_at?: string | null;
       /** Status Reason */
       status_reason?: string | null;
+      subscription?: components["schemas"]["SubscriptionOut"] | null;
       usage: components["schemas"]["InstitutionUsage"];
     };
     /** InstitutionSettingsOut */
@@ -8065,6 +8123,16 @@ export interface components {
     InstitutionUsage: {
       /** Last Activity */
       last_activity?: string | null;
+      /**
+       * Staff
+       * @default 0
+       */
+      staff: number;
+      /**
+       * Storage Bytes
+       * @default 0
+       */
+      storage_bytes: number;
       /** Students */
       students: number;
       /** Users */
@@ -8431,6 +8499,96 @@ export interface components {
       /** Weight */
       weight: number;
     };
+    /** PlanCreate */
+    PlanCreate: {
+      /**
+       * Active
+       * @default true
+       */
+      active: boolean;
+      /** Code */
+      code: string;
+      /**
+       * Currency
+       * @default USD
+       */
+      currency: string;
+      /**
+       * Description
+       * @default
+       */
+      description: string;
+      /** Max Staff */
+      max_staff?: number | null;
+      /** Max Students */
+      max_students?: number | null;
+      /** Monthly Price */
+      monthly_price: number | string;
+      /** Name */
+      name: string;
+      /** Provider Monthly Price */
+      provider_monthly_price?: string | null;
+      /** Provider Yearly Price */
+      provider_yearly_price?: string | null;
+      /**
+       * Public
+       * @default true
+       */
+      public: boolean;
+      /**
+       * Sort Order
+       * @default 0
+       */
+      sort_order: number;
+      /** Storage Gb */
+      storage_gb?: number | null;
+      /** Yearly Price */
+      yearly_price: number | string;
+    };
+    /** PlanFields */
+    PlanFields: {
+      /**
+       * Active
+       * @default true
+       */
+      active: boolean;
+      /**
+       * Currency
+       * @default USD
+       */
+      currency: string;
+      /**
+       * Description
+       * @default
+       */
+      description: string;
+      /** Max Staff */
+      max_staff?: number | null;
+      /** Max Students */
+      max_students?: number | null;
+      /** Monthly Price */
+      monthly_price: number | string;
+      /** Name */
+      name: string;
+      /** Provider Monthly Price */
+      provider_monthly_price?: string | null;
+      /** Provider Yearly Price */
+      provider_yearly_price?: string | null;
+      /**
+       * Public
+       * @default true
+       */
+      public: boolean;
+      /**
+       * Sort Order
+       * @default 0
+       */
+      sort_order: number;
+      /** Storage Gb */
+      storage_gb?: number | null;
+      /** Yearly Price */
+      yearly_price: number | string;
+    };
     /** PlanInstallment */
     PlanInstallment: {
       /** Amount */
@@ -8448,6 +8606,54 @@ export interface components {
       remaining: number;
       /** Status */
       status: string;
+    };
+    /** PlanOut */
+    PlanOut: {
+      /**
+       * Active
+       * @default true
+       */
+      active: boolean;
+      /** Code */
+      code: string;
+      /**
+       * Currency
+       * @default USD
+       */
+      currency: string;
+      /**
+       * Description
+       * @default
+       */
+      description: string;
+      /** Max Staff */
+      max_staff?: number | null;
+      /** Max Students */
+      max_students?: number | null;
+      /** Monthly Price */
+      monthly_price: string;
+      /** Name */
+      name: string;
+      /** Plan Id */
+      plan_id: number;
+      /** Provider Monthly Price */
+      provider_monthly_price?: string | null;
+      /** Provider Yearly Price */
+      provider_yearly_price?: string | null;
+      /**
+       * Public
+       * @default true
+       */
+      public: boolean;
+      /**
+       * Sort Order
+       * @default 0
+       */
+      sort_order: number;
+      /** Storage Gb */
+      storage_gb?: number | null;
+      /** Yearly Price */
+      yearly_price: string;
     };
     /** PlanTemplateCreate */
     PlanTemplateCreate: {
@@ -10057,6 +10263,37 @@ export interface components {
       feedback: string;
       /** Score */
       score: number;
+    };
+    /** SubscriptionChange */
+    SubscriptionChange: {
+      /**
+       * Interval
+       * @default monthly
+       */
+      interval: string;
+      /** Plan Code */
+      plan_code: string;
+      /** Reason */
+      reason: string;
+      /** Trial Days */
+      trial_days?: number | null;
+    };
+    /** SubscriptionOut */
+    SubscriptionOut: {
+      /** Current Period End */
+      current_period_end?: string | null;
+      /** Interval */
+      interval: string;
+      /** Plan Code */
+      plan_code: string;
+      /** Plan Name */
+      plan_name: string;
+      /** Provider */
+      provider: string;
+      /** Status */
+      status: string;
+      /** Trial Ends At */
+      trial_ends_at?: string | null;
     };
     /** TeacherCreate */
     TeacherCreate: {
@@ -18808,6 +19045,41 @@ export interface operations {
       };
     };
   };
+  change_subscription_platform_institutions__institution_id__subscription_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        institution_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SubscriptionChange"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["InstitutionOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   suspend_institution_platform_institutions__institution_id__suspend_post: {
     parameters: {
       query?: never;
@@ -18859,6 +19131,94 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PlatformMe"];
+        };
+      };
+    };
+  };
+  list_plans_platform_plans_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlanOut"][];
+        };
+      };
+    };
+  };
+  create_plan_platform_plans_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PlanCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlanOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_plan_platform_plans__code__put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        code: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PlanFields"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlanOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

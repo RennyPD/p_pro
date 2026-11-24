@@ -125,6 +125,10 @@ def store(db: Session, kind: str, data: bytes, content_type: str, institution_id
     institution = institution_id or current_tenant(db)
     if institution is None:
         raise StorageError("No se puede guardar un archivo sin institución")
+    if institution_id is None:  # uploads; moving existing files is never refused
+        from app.services.billing.limits import ensure_room
+
+        ensure_room(db, storage_bytes=len(data))
     key = f"inst/{institution}/{kind}/{uuid.uuid4().hex}"
     db.connection()  # begin the transaction now, so its end always cleans up
     try:

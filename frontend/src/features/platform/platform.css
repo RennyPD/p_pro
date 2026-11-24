@@ -33,3 +33,35 @@
   margin: 0 0 0.75rem;
   font-size: 1.1rem;
 }
+
+.platform-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.platform-section-header h2 {
+  margin: 0;
+}
+
+.platform-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+}
+
+.platform-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.platform-check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--ink-soft);
+}

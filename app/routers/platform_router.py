@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import settings
 from app.db.Session import get_db
+from app.models.billing_model import Plan
 from app.models.institution_model import Institution
 from app.models.platform_model import PlatformAdmin, PlatformAuditLog
 from app.pagination import page_query, search
@@ -13,11 +14,15 @@ from app.schemas.platform_schema import (
     InstitutionCreate,
     InstitutionOut,
     InstitutionStatusChange,
+    PlanCreate,
+    PlanFields,
+    PlanOut,
     PlatformAuditOut,
     PlatformLogin,
     PlatformMe,
     PlatformToken,
     PublicInstitution,
+    SubscriptionChange,
 )
 from app.security import create_access_token, decode_token_claims
 from app.services import platform as service
@@ -57,6 +62,7 @@ def institution_out(db: Session, institution: Institution) -> dict:
         "status_changed_at": institution.status_changed_at,
         "created_at": institution.created_at,
         "usage": service.usage(db, institution.institution_id),
+        "subscription": service.subscription_out(db, institution.institution_id),
         "address": f"https://{institution.slug}.{domain}" if domain else None,
     }
 
@@ -136,6 +142,53 @@ def reactivate_institution(
     service.change_status(db, institution, "active", data.reason, admin)
     db.commit()
     return institution_out(db, institution)
+
+
+@router.put("/platform/institutions/{institution_id}/subscription", response_model=InstitutionOut)
+def change_subscription(
+    institution_id: int,
+    data: SubscriptionChange,
+    db: Session = Depends(get_db),
+    admin: PlatformAdmin = Depends(require_platform_admin),
+):
+    service.lock_platform(db)
+    institution = service.institution_or_404(db, institution_id)
+    service.change_subscription(db, institution, data, admin)
+    db.commit()
+    return institution_out(db, institution)
+
+
+@router.get("/platform/plans", response_model=list[PlanOut])
+def list_plans(
+    db: Session = Depends(get_db), _admin: PlatformAdmin = Depends(require_platform_admin)
+):
+    plans = db.query(Plan).order_by(Plan.sort_order, Plan.plan_id).all()
+    return [service.plan_fields(plan) for plan in plans]
+
+
+@router.post("/platform/plans", response_model=PlanOut)
+def create_plan(
+    data: PlanCreate,
+    db: Session = Depends(get_db),
+    admin: PlatformAdmin = Depends(require_platform_admin),
+):
+    service.lock_platform(db)
+    plan = service.create_plan(db, data, admin)
+    db.commit()
+    return service.plan_fields(plan)
+
+
+@router.put("/platform/plans/{code}", response_model=PlanOut)
+def update_plan(
+    code: str,
+    data: PlanFields,
+    db: Session = Depends(get_db),
+    admin: PlatformAdmin = Depends(require_platform_admin),
+):
+    service.lock_platform(db)
+    plan = service.update_plan(db, service.plan_by_code(db, code), data, admin)
+    db.commit()
+    return service.plan_fields(plan)
 
 
 @router.get("/platform/audit", response_model=list[PlatformAuditOut])

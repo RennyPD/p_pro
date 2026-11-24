@@ -16,6 +16,7 @@ from app.models.user_model import User
 from app.pagination import page_query
 from app.schemas.user_schema import UserCreate, UserOut, UserPasswordReset, UserUpdate
 from app.services.account_sessions import lock_account, revoke_account_sessions
+from app.services.billing.limits import ensure_room, is_staff_role
 from app.services.email_service import deliver_after_commit
 from app.services.governance_workflow import record
 from app.services.user_services import (
@@ -176,6 +177,8 @@ def activate_user(
     lock_access(db)
     target = managed_target(db, actor, user_id)
     if not target.active:
+        if is_staff_role(db, target.role_id):
+            ensure_room(db, staff=1)
         target.active = True
         record(db, actor, "user.activated", f"user:{user_id}", "Cuenta reactivada")
         db.commit()

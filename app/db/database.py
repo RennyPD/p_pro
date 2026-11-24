@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     sentry_environment: str | None = None
     sentry_release: str | None = None
     sentry_traces_sample_rate: float = 0.0
+    # Fase 4 D: days of the free trial of a new institution.
+    billing_trial_days: int = 30
     # Fase 4 C (audit B7): limits on uploads, exports, imports and public routes.
     rate_limits_enabled: bool = True
     storage_backend: Literal["local", "s3"] = "local"
