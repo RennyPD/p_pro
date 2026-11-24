@@ -70,6 +70,9 @@ Crea `.env.production` en el servidor (nunca en el repositorio) o usa el gestor 
 | `EMAIL_FROM`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` | Proveedor de correo |
 | `S3_BUCKET`, `S3_ENDPOINT_URL`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Almacenamiento (R2: `S3_ENDPOINT_URL=https://<cuenta>.r2.cloudflarestorage.com`, `S3_REGION=auto`) |
 | `VITE_API_URL` | `https://api.nexo.do` (al construir `web`) |
+| `BILLING_PROVIDER` | `stripe` para cobrar en línea. Con `sandbox`, en producción el pago en línea queda desactivado y la plataforma asigna los planes |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Claves de Stripe (webhook: `https://api.nexo.do/billing/webhooks/stripe` con los eventos `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed` y `customer.subscription.deleted`) |
+| `BILLING_TRIAL_DAYS` | Días de prueba de una institución nueva (30) |
 | `SENTRY_DSN`, `VITE_SENTRY_DSN` | Opcionales |
 | `RELEASE` | Versión o commit desplegado (Sentry) |
 | `WEB_CONCURRENCY` | Procesos por réplica de `api` (2 a 4 por CPU) |

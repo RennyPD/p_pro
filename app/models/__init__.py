@@ -1,7 +1,7 @@
 from .access_model import Permission, RolePermission
 from .assessment_model import Assessment, AssessmentTemplate, CompetencyGroup
 from .attendance_model import Attendance, AttendanceChange
-from .billing_model import Plan, Subscription
+from .billing_model import BillingEvent, Plan, Subscription
 from .career_model import Career
 from .class_group_model import (
     ClassGroup,

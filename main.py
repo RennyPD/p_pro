@@ -19,6 +19,7 @@ from app.routers.assessment_router import router as assessment_router
 from app.routers.attendance_router import router as attendance_router
 from app.routers.audit_router import router as audit_router
 from app.routers.auth_router import router as auth_router
+from app.routers.billing_router import router as billing_router
 from app.routers.bulk_router import router as bulk_router
 from app.routers.career_router import router as career_router
 from app.routers.class_group_router import router as class_group_router
@@ -162,6 +163,7 @@ def handle_database_error(request, exc):
 
 
 app.include_router(auth_router)
+app.include_router(billing_router)
 app.include_router(access_router)
 app.include_router(audit_router)
 app.include_router(career_router)

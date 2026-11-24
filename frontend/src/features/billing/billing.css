@@ -1,0 +1,87 @@
+.billing-dates {
+  margin: 0 0 1rem;
+}
+
+.billing-usages {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.billing-usage {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.billing-usage__text {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+.billing-usage__text strong {
+  color: var(--ink);
+}
+
+.billing-interval {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.billing-plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+.billing-plan {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface-muted);
+}
+
+.billing-plan h3 {
+  margin: 0;
+}
+
+.billing-plan p {
+  margin: 0;
+}
+
+.billing-plan ul {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+}
+
+.billing-plan__price strong {
+  font-size: 1.5rem;
+}
+
+.billing-plan__price span {
+  color: var(--muted);
+}
+
+.billing-notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.6rem;
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+}
+
+.billing-notice--success {
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success);
+}

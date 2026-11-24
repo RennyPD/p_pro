@@ -150,6 +150,12 @@ PERMISSIONS: tuple[PermissionDef, ...] = (
     PermissionDef(
         "roles.manage", "Configuración", "Gestionar roles", "Crear roles y asignar sus permisos"
     ),
+    PermissionDef(
+        "billing.manage",
+        "Configuración",
+        "Gestionar plan y facturación",
+        "Plan de Nexo, método de pago y facturas de la institución",
+    ),
     # Portales personales
     PermissionDef(
         "records.own",
@@ -197,6 +203,7 @@ INSTITUTIONAL_PERMISSIONS = frozenset(
         "settings.manage",
         "users.manage",
         "roles.manage",
+        "billing.manage",
     }
 )
 

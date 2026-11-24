@@ -188,6 +188,14 @@ const InstitutionalControlPage = lazy(() =>
 const UsersPage = lazy(() =>
   import("./features/settings/UsersPage").then(module => ({ default: module.UsersPage })),
 );
+const BillingPage = lazy(() =>
+  import("./features/billing/BillingPage").then(module => ({ default: module.BillingPage })),
+);
+const SandboxCheckoutPage = lazy(() =>
+  import("./features/billing/SandboxCheckoutPage").then(module => ({
+    default: module.SandboxCheckoutPage,
+  })),
+);
 const PlatformPage = lazy(() =>
   import("./features/platform/PlatformPage").then(module => ({ default: module.PlatformPage })),
 );
@@ -384,6 +392,10 @@ export default function App() {
               <Route path="periods" element={<PeriodsPage />} />
               <Route path="settings/institution" element={<InstitutionSettingsPage />} />
               <Route path="settings/grading-scales" element={<GradingScalesPage />} />
+            </Route>
+            <Route element={<Allow when={institution("billing.manage")} />}>
+              <Route path="billing" element={<BillingPage />} />
+              <Route path="billing/sandbox" element={<SandboxCheckoutPage />} />
             </Route>
             <Route element={<Allow when={institution("roles.manage")} />}>
               <Route path="roles" element={<RolesPage />} />

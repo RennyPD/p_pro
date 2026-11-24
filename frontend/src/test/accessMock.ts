@@ -40,6 +40,7 @@ const admin = [
   "settings.manage",
   "users.manage",
   "roles.manage",
+  "billing.manage",
 ];
 const defaults: Record<string, [Scope, string[]]> = {
   admin: ["institution", admin],

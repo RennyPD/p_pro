@@ -2759,6 +2759,97 @@
         "title": "BillingCycleRequest",
         "type": "object"
       },
+      "BillingOverview": {
+        "properties": {
+          "current_period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "has_payment_method": {
+            "title": "Has Payment Method",
+            "type": "boolean"
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval"
+          },
+          "online_checkout": {
+            "title": "Online Checkout",
+            "type": "boolean"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanOption"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/PlanOption"
+            },
+            "title": "Plans",
+            "type": "array"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "staff": {
+            "$ref": "#/components/schemas/Limit"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "storage_gb": {
+            "$ref": "#/components/schemas/Limit"
+          },
+          "students": {
+            "$ref": "#/components/schemas/Limit"
+          },
+          "trial_ends_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial Ends At"
+          }
+        },
+        "required": [
+          "status",
+          "provider",
+          "online_checkout",
+          "has_payment_method",
+          "students",
+          "staff",
+          "storage_gb",
+          "plans"
+        ],
+        "title": "BillingOverview",
+        "type": "object"
+      },
       "BillingPlanCreate": {
         "properties": {
           "amount": {
@@ -4537,6 +4628,27 @@
           "amount"
         ],
         "title": "ChargeCreate",
+        "type": "object"
+      },
+      "CheckoutRequest": {
+        "properties": {
+          "interval": {
+            "default": "monthly",
+            "pattern": "^(monthly|yearly)$",
+            "title": "Interval",
+            "type": "string"
+          },
+          "plan_code": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Plan Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_code"
+        ],
+        "title": "CheckoutRequest",
         "type": "object"
       },
       "ClassGroupCreate": {
@@ -9671,6 +9783,56 @@
         "title": "InstitutionUsage",
         "type": "object"
       },
+      "Invoice": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "number",
+          "amount",
+          "currency",
+          "status"
+        ],
+        "title": "Invoice",
+        "type": "object"
+      },
       "LessonPlanCreate": {
         "properties": {
           "competencies": {
@@ -9779,6 +9941,41 @@
           "status"
         ],
         "title": "LessonPlanResolve",
+        "type": "object"
+      },
+      "Limit": {
+        "properties": {
+          "ceiling": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ceiling"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          },
+          "used": {
+            "title": "Used",
+            "type": "number"
+          }
+        },
+        "required": [
+          "used"
+        ],
+        "title": "Limit",
         "type": "object"
       },
       "LoginRequest": {
@@ -10964,6 +11161,77 @@
           "status"
         ],
         "title": "PlanInstallment",
+        "type": "object"
+      },
+      "PlanOption": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "max_staff": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Staff"
+          },
+          "max_students": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Students"
+          },
+          "monthly_price": {
+            "title": "Monthly Price",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "storage_gb": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Gb"
+          },
+          "yearly_price": {
+            "title": "Yearly Price",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "description",
+          "currency",
+          "monthly_price",
+          "yearly_price"
+        ],
+        "title": "PlanOption",
         "type": "object"
       },
       "PlanOut": {
@@ -12427,6 +12695,27 @@
           "date_recorded"
         ],
         "title": "RosterGradeItem",
+        "type": "object"
+      },
+      "SandboxOutcome": {
+        "properties": {
+          "outcome": {
+            "pattern": "^(paid|failed)$",
+            "title": "Outcome",
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "outcome"
+        ],
+        "title": "SandboxOutcome",
         "type": "object"
       },
       "ScaleBrief": {
@@ -20367,6 +20656,242 @@
         "summary": "Revoke All Sessions",
         "tags": [
           "authentication"
+        ]
+      }
+    },
+    "/billing/checkout": {
+      "post": {
+        "operationId": "checkout_billing_checkout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Checkout",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/billing/invoices": {
+      "get": {
+        "operationId": "invoices_billing_invoices_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Invoice"
+                  },
+                  "title": "Response Invoices Billing Invoices Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Invoices",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/billing/portal": {
+      "post": {
+        "operationId": "portal_billing_portal_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Portal",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/billing/sandbox/complete": {
+      "post": {
+        "description": "Development and demos only: what a real provider would notify by webhook.",
+        "operationId": "sandbox_complete_billing_sandbox_complete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SandboxOutcome"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sandbox Complete",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/billing/sandbox/session": {
+      "get": {
+        "operationId": "sandbox_session_billing_sandbox_session_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sandbox Session",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/billing/subscription": {
+      "get": {
+        "operationId": "get_subscription_billing_subscription_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Subscription",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/billing/webhooks/stripe": {
+      "post": {
+        "description": "Signed by Stripe; no session. Retries are harmless (events apply once).",
+        "operationId": "stripe_webhook_billing_webhooks_stripe_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Stripe Webhook",
+        "tags": [
+          "billing"
         ]
       }
     },

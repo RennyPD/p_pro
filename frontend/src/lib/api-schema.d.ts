@@ -930,6 +930,131 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/billing/checkout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Checkout */
+    post: operations["checkout_billing_checkout_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/billing/invoices": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Invoices */
+    get: operations["invoices_billing_invoices_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/billing/portal": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Portal */
+    post: operations["portal_billing_portal_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/billing/sandbox/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Sandbox Complete
+     * @description Development and demos only: what a real provider would notify by webhook.
+     */
+    post: operations["sandbox_complete_billing_sandbox_complete_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/billing/sandbox/session": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Sandbox Session */
+    get: operations["sandbox_session_billing_sandbox_session_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/billing/subscription": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Subscription */
+    get: operations["get_subscription_billing_subscription_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/billing/webhooks/stripe": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Stripe Webhook
+     * @description Signed by Stripe; no session. Retries are harmless (events apply once).
+     */
+    post: operations["stripe_webhook_billing_webhooks_stripe_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/bulk/students/export": {
     parameters: {
       query?: never;
@@ -5584,6 +5709,29 @@ export interface components {
       /** Cycle */
       cycle: string;
     };
+    /** BillingOverview */
+    BillingOverview: {
+      /** Current Period End */
+      current_period_end?: string | null;
+      /** Has Payment Method */
+      has_payment_method: boolean;
+      /** Interval */
+      interval?: string | null;
+      /** Online Checkout */
+      online_checkout: boolean;
+      plan?: components["schemas"]["PlanOption"] | null;
+      /** Plans */
+      plans: components["schemas"]["PlanOption"][];
+      /** Provider */
+      provider: string;
+      staff: components["schemas"]["Limit"];
+      /** Status */
+      status: string;
+      storage_gb: components["schemas"]["Limit"];
+      students: components["schemas"]["Limit"];
+      /** Trial Ends At */
+      trial_ends_at?: string | null;
+    };
     /** BillingPlanCreate */
     BillingPlanCreate: {
       /** Amount */
@@ -6187,6 +6335,16 @@ export interface components {
       description: string;
       /** Due Date */
       due_date?: string | null;
+    };
+    /** CheckoutRequest */
+    CheckoutRequest: {
+      /**
+       * Interval
+       * @default monthly
+       */
+      interval: string;
+      /** Plan Code */
+      plan_code: string;
     };
     /** ClassGroupCreate */
     ClassGroupCreate: {
@@ -8138,6 +8296,21 @@ export interface components {
       /** Users */
       users: number;
     };
+    /** Invoice */
+    Invoice: {
+      /** Amount */
+      amount: string;
+      /** Currency */
+      currency: string;
+      /** Date */
+      date?: string | null;
+      /** Number */
+      number: string;
+      /** Status */
+      status: string;
+      /** Url */
+      url?: string | null;
+    };
     /** LessonPlanCreate */
     LessonPlanCreate: {
       /**
@@ -8194,6 +8367,15 @@ export interface components {
     LessonPlanResolve: {
       /** Status */
       status: string;
+    };
+    /** Limit */
+    Limit: {
+      /** Ceiling */
+      ceiling?: number | null;
+      /** Limit */
+      limit?: number | null;
+      /** Used */
+      used: number;
     };
     /** LoginRequest */
     LoginRequest: {
@@ -8606,6 +8788,27 @@ export interface components {
       remaining: number;
       /** Status */
       status: string;
+    };
+    /** PlanOption */
+    PlanOption: {
+      /** Code */
+      code: string;
+      /** Currency */
+      currency: string;
+      /** Description */
+      description: string;
+      /** Max Staff */
+      max_staff?: number | null;
+      /** Max Students */
+      max_students?: number | null;
+      /** Monthly Price */
+      monthly_price: string;
+      /** Name */
+      name: string;
+      /** Storage Gb */
+      storage_gb?: number | null;
+      /** Yearly Price */
+      yearly_price: string;
     };
     /** PlanOut */
     PlanOut: {
@@ -9163,6 +9366,13 @@ export interface components {
        * @default published
        */
       status: string;
+    };
+    /** SandboxOutcome */
+    SandboxOutcome: {
+      /** Outcome */
+      outcome: string;
+      /** Token */
+      token: string;
     };
     /**
      * ScaleBrief
@@ -12673,6 +12883,183 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  checkout_billing_checkout_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CheckoutRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  invoices_billing_invoices_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Invoice"][];
+        };
+      };
+    };
+  };
+  portal_billing_portal_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  sandbox_complete_billing_sandbox_complete_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SandboxOutcome"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BillingOverview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  sandbox_session_billing_sandbox_session_get: {
+    parameters: {
+      query: {
+        token: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_subscription_billing_subscription_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BillingOverview"];
+        };
+      };
+    };
+  };
+  stripe_webhook_billing_webhooks_stripe_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
       };
     };
   };

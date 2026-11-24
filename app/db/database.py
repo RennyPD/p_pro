@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     sentry_traces_sample_rate: float = 0.0
     # Fase 4 D: days of the free trial of a new institution.
     billing_trial_days: int = 30
+    # Payment provider for the SaaS subscription. "sandbox" simulates payments
+    # (development, demos); in production it disables online checkout and the
+    # platform assigns plans by hand until a real provider is configured.
+    billing_provider: Literal["sandbox", "stripe"] = "sandbox"
+    stripe_secret_key: str | None = None
+    stripe_webhook_secret: str | None = None
     # Fase 4 C (audit B7): limits on uploads, exports, imports and public routes.
     rate_limits_enabled: bool = True
     storage_backend: Literal["local", "s3"] = "local"
@@ -87,6 +93,12 @@ class Settings(BaseSettings):
                 raise ValueError("TENANT_BASE_DOMAIN debe ser un dominio, por ejemplo nexo.do")
             # Only HTTPS subdomains of the configured domain (one label deep).
             self.cors_origin_regex = rf"https://([a-z0-9-]+\.)?{re.escape(domain)}"
+        if self.billing_provider == "stripe" and not (
+            self.stripe_secret_key and self.stripe_webhook_secret
+        ):
+            raise ValueError(
+                "Configura STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET para cobrar con Stripe"
+            )
         if self.storage_backend == "s3" and not self.s3_bucket:
             raise ValueError("Configura S3_BUCKET para guardar los archivos en S3")
         if self.email_backend == "smtp" and not self.smtp_host:

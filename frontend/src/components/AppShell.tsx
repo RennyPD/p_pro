@@ -16,6 +16,7 @@ import {
   Menu,
   NotebookPen,
   Settings2,
+  CreditCard,
   Users,
   Wallet,
   X,
@@ -166,6 +167,13 @@ const NAV: NavItem[] = [
     icon: FileText,
     group: "Institución",
     show: a => a.institution && a.canAny("reports.view", "cases.manage", "admissions.manage"),
+  },
+  {
+    to: "/billing",
+    label: "Plan y facturación",
+    icon: CreditCard,
+    group: "Institución",
+    show: a => a.institution && a.can("billing.manage"),
   },
   {
     to: "/settings",

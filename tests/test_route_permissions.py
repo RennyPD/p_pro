@@ -58,6 +58,7 @@ SCOPE_CHECKED = {
         "/platform/institutions/{institution_id}/reactivate",
     ): "platform token (require_platform_admin)",
     ("GET", "/platform/audit"): "platform token (require_platform_admin)",
+    ("POST", "/billing/webhooks/stripe"): "payment provider webhook, verified by its signature",
     ("GET", "/platform/plans"): "platform super administration (platform token)",
     ("POST", "/platform/plans"): "platform super administration (platform token)",
     ("PUT", "/platform/plans/{code}"): "platform super administration (platform token)",

@@ -7,7 +7,17 @@ subscription row. Institution data never lives here.
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, event, text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    UniqueConstraint,
+    event,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -64,9 +74,31 @@ class Subscription(Base):
     provider: Mapped[str] = mapped_column(String(20), default="sandbox")
     provider_customer_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
     provider_subscription_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Time of the latest provider event applied: older events arriving late
+    # never undo newer ones (webhooks are not delivered in order).
+    last_event_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=now, onupdate=now)
 
     plan: Mapped[Plan] = relationship()
+
+
+class BillingEvent(Base):
+    """Provider events already processed (webhooks are retried: apply each once)."""
+
+    __tablename__ = "billing_events"
+    __table_args__ = (
+        UniqueConstraint("provider", "event_id", name="uq_billing_events_provider_event"),
+    )
+
+    billing_event_id: Mapped[int] = mapped_column(primary_key=True)
+    provider: Mapped[str] = mapped_column(String(20))
+    event_id: Mapped[str] = mapped_column(String(120))
+    kind: Mapped[str] = mapped_column(String(40))
+    institution_id: Mapped[int | None] = mapped_column(
+        ForeignKey("institutions.institution_id"), nullable=True
+    )
+    outcome: Mapped[str] = mapped_column(String(200), default="")
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
 
 # Seeds for databases built with create_all (development, tests); the

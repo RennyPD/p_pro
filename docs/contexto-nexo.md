@@ -130,6 +130,12 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
      - Límites al añadir, nunca sobre lo existente, con 10 % de margen: estudiantes activos (alta y reactivación), cuentas del personal (roles de ámbito institución o secciones; alta, reactivación y cambio de rol) y archivos (suma de tamaños). Al pasarse: 409 con el uso y «Cambia de plan en Plan y facturación».
      - Plataforma: crear y editar planes, asignar plan, facturación o días de prueba a una institución (con motivo y auditoría); columnas de plan y estado en la lista.
      - Pruebas: `tests/test_plans.py`; frontend en `PlatformPage.test.tsx`.
+   - ✅ **D2, 25/11/2026: cobro con adaptador y «Plan y facturación»** (migración `20261125_0067`, `app/services/billing/providers.py` y `lifecycle.py`).
+     - Proveedores: `sandbox` (pago simulado dentro de Nexo, solo fuera de producción; en producción el pago en línea queda desactivado y la plataforma asigna los planes) y `stripe` (Checkout de suscripción, portal del cliente, facturas y webhooks firmados, sin dependencias nuevas). `BILLING_PROVIDER`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
+     - Un solo procesador para todos los proveedores: cada evento se aplica una vez (`billing_events`) y un evento más antiguo que el último aplicado no deshace nada. Pago aprobado → activa; pago fallido → `past_due`; cancelación → solo lectura. Todo queda en la auditoría de plataforma; iniciar un pago, en la de la institución.
+     - Permiso nuevo `billing.manage`; la migración lo da a todo rol que ya tenía `settings.manage`.
+     - Página «Plan y facturación» (`/billing`): plan y estado, fin de la prueba o renovación, uso frente a los límites, cambio de plan mensual o anual, método de pago y facturas. Página de pago de prueba (`/billing/sandbox`).
+     - Pruebas: `tests/test_billing.py` (flujo de prueba, producción, firmas, repeticiones y orden de Stripe) y `BillingPage.test.tsx`.
 - Pagos en línea para familias, comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
 3. ✅ **Bloque C: infraestructura** (aprobado el 24/11/2026, terminado el 25/11; sin Redis por ahora, Sentry sin datos personales, despliegue con Docker sin atarse a un proveedor).
    - ✅ **C1, 25/11/2026: archivos fuera de la base (M4)** (migración `20261125_0064`, `app/services/storage.py`).
