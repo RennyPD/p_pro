@@ -160,3 +160,50 @@
     justify-self: start;
   }
 }
+
+.online-pay {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.online-pay__total {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.online-pay__secure {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin: 0;
+}
+
+.online-result {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.5rem 1rem;
+  background: var(--bg);
+}
+
+.online-result__card {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
+.online-result__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--blue);
+}
+
+.online-result__icon.is-ok {
+  color: var(--success);
+}
+
+.online-result__icon.is-low {
+  color: var(--danger);
+}

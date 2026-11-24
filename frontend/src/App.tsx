@@ -196,6 +196,16 @@ const SandboxCheckoutPage = lazy(() =>
     default: module.SandboxCheckoutPage,
   })),
 );
+const OnlinePaymentResultPage = lazy(() =>
+  import("./features/payments/OnlinePaymentPages").then(module => ({
+    default: module.OnlinePaymentResultPage,
+  })),
+);
+const SandboxGatewayPage = lazy(() =>
+  import("./features/payments/OnlinePaymentPages").then(module => ({
+    default: module.SandboxGatewayPage,
+  })),
+);
 const SignupPage = lazy(() =>
   import("./features/signup/SignupPage").then(module => ({ default: module.SignupPage })),
 );
@@ -274,6 +284,8 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/recuperar" element={<ForgotPasswordPage />} />
           <Route path="/registro" element={<SignupPage />} />
+          <Route path="/pagos/resultado" element={<OnlinePaymentResultPage />} />
+          <Route path="/pagos/sandbox" element={<SandboxGatewayPage />} />
           <Route path="/restablecer" element={<ChoosePasswordPage mode="reset" />} />
           <Route path="/activar" element={<ChoosePasswordPage mode="activate" />} />
           <Route element={<Protected />}>

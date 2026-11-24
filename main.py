@@ -36,6 +36,7 @@ from app.routers.grading_scale_router import router as grading_scale_router
 from app.routers.guardian_router import router as guardian_router
 from app.routers.module_router import router as module_router
 from app.routers.onboarding_router import router as onboarding_router
+from app.routers.online_payment_router import router as online_payment_router
 from app.routers.operations_router import router as operations_router
 from app.routers.platform_router import router as platform_router
 from app.routers.record_router import router as record_router
@@ -166,6 +167,7 @@ def handle_database_error(request, exc):
 app.include_router(auth_router)
 app.include_router(billing_router)
 app.include_router(signup_router)
+app.include_router(online_payment_router)
 app.include_router(access_router)
 app.include_router(audit_router)
 app.include_router(career_router)

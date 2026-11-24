@@ -11,6 +11,8 @@ reportlab>=4.4,<5.0
 tzdata>=2025.2
 # Object storage (S3, Cloudflare R2, Spaces, MinIO), Fase 4 C.
 boto3>=1.35,<2.0
+# Encrypted payment gateway credentials (Fernet), Fase 4 E.
+cryptography>=44,<51
 # Error tracking without personal data (Sentry or GlitchTip), Fase 4 C.
 sentry-sdk>=2.0,<3.0
 

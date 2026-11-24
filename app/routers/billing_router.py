@@ -1,13 +1,10 @@
 """«Plan y facturación» of an institution and payment webhooks (Fase 4, block D2)."""
 
-import re
-
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user, require_permissions
-from app.db.database import settings
 from app.db.Session import get_db
 from app.models.billing_model import Plan
 from app.models.user_model import User
@@ -16,6 +13,7 @@ from app.services.billing import lifecycle
 from app.services.billing.access import allow_while_read_only
 from app.services.billing.limits import GB, ceiling, subscription_of, usage
 from app.services.billing.providers import SandboxProvider, StripeProvider, provider
+from app.services.frontend_url import frontend_base
 from app.services.platform import lock_platform
 from app.services.write_locks import lock_access
 
@@ -130,15 +128,7 @@ def _iso(value) -> str | None:
 
 def return_url(request: Request) -> str:
     """Where the provider sends the person back: the page that asked, if it is ours."""
-    origin = (request.headers.get("origin") or "").rstrip("/")
-    allowed = {item.strip().rstrip("/") for item in settings.cors_origins.split(",")}
-    trusted = origin in allowed or (
-        settings.cors_origin_regex and re.fullmatch(settings.cors_origin_regex, origin)
-    )
-    base = origin if origin and trusted else (settings.app_url or "").rstrip("/")
-    if not base:
-        raise HTTPException(503, "Falta configurar la dirección de la aplicación (APP_URL)")
-    return f"{base}/billing"
+    return f"{frontend_base(request)}/billing"
 
 
 def require_subscription(db: Session, user: User):

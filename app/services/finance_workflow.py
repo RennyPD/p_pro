@@ -237,10 +237,13 @@ def check_open_day(db, day=None):
         )
 
 
-def post_payment(db, account, data, user, method="cash", key=None):
-    check_open_day(db)
+def post_payment(db, account, data, user, method="cash", key=None, online=False):
+    """Post a payment. ``online``: the gateway already charged the card (Fase 4 E),
+    so it is recorded even after the day's cash closing or above the balance."""
+    if not online:
+        check_open_day(db)
     amount = cents(data.amount)
-    if amount > cents(summary(account).balance):
+    if amount > cents(summary(account).balance) and not online:
         raise HTTPException(422, "El pago no puede superar el balance pendiente")
     if db.query(Payment).filter_by(reference=data.reference).first():
         raise HTTPException(409, "La referencia ya fue registrada; verifica el pago existente")

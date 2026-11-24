@@ -118,10 +118,14 @@ def result(db, account):
 
 
 @router.get("/options", response_model=FinanceOptions)
-def options(user: User = Depends(get_current_user)):
+def options(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from app.services.payments.gateways import gateway_for
+    from app.services.payments.intents import config_of
+
+    config = config_of(db)
     return {
         "currency": "DOP",
-        "gateway_enabled": False,
+        "gateway_enabled": bool(config and config.enabled and gateway_for(config.gateway).enabled),
         "transfer_instructions": settings.finance_transfer_instructions,
         "simulator_enabled": settings.finance_simulator_enabled
         and has_scope(user, "finance.manage"),

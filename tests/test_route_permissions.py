@@ -61,6 +61,13 @@ SCOPE_CHECKED = {
     ("GET", "/public/signup"): "public sign-up page: plans and whether sign-up is open",
     ("GET", "/public/signup/code"): "public: whether a code is free (rate limited)",
     ("POST", "/public/signup"): "public self sign-up (rate limited; pending until verified)",
+    ("GET", "/online-payments/options"): "payer scope: own account or linked children (finance)",
+    ("POST", "/online-payments"): "payer scope checked in create_intent (linked children only)",
+    ("GET", "/online-payments/{public_id}"): "the payer, or staff with finance.view",
+    (
+        "POST",
+        "/online-payments/{public_id}/complete",
+    ): "public bank return, trusted only by signature",
     ("GET", "/billing/status"): "any account: only its own institution's plan status",
     ("POST", "/billing/webhooks/stripe"): "payment provider webhook, verified by its signature",
     ("GET", "/platform/plans"): "platform super administration (platform token)",

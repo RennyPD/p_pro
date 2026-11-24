@@ -3213,6 +3213,101 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/online-payments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Create */
+    post: operations["create_online_payments_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/online-payments/config/gateway": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Config */
+    get: operations["get_config_online_payments_config_gateway_get"];
+    /** Save Config */
+    put: operations["save_config_online_payments_config_gateway_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/online-payments/options": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Options
+     * @description What this account can pay online (nothing for staff or when disabled).
+     */
+    get: operations["options_online_payments_options_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/online-payments/{public_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Intent */
+    get: operations["get_intent_online_payments__public_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/online-payments/{public_id}/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Complete
+     * @description The bank sent the payer back: verify its signed answer and post the payment.
+     *
+     *     Public on purpose: the session may have expired while paying. The answer
+     *     is trusted only after its signature (or a server-to-server query) checks.
+     */
+    post: operations["complete_online_payments__public_id__complete_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/operations/admissions": {
     parameters: {
       query?: never;
@@ -6689,6 +6784,13 @@ export interface components {
       /** Comment */
       comment: string;
     };
+    /** Completion */
+    Completion: {
+      /** Params */
+      params?: {
+        [key: string]: string;
+      };
+    };
     /** CourseOffering */
     CourseOffering: {
       /** Available Seats */
@@ -7466,6 +7568,39 @@ export interface components {
       transaction_id: number;
       /** Type */
       type: string;
+    };
+    /** GatewayConfigIn */
+    GatewayConfigIn: {
+      /** Auth Key */
+      auth_key?: string | null;
+      /** Enabled */
+      enabled: boolean;
+      /**
+       * Environment
+       * @default test
+       */
+      environment: string;
+      /** Gateway */
+      gateway: string;
+      /**
+       * Merchant Id
+       * @default
+       */
+      merchant_id: string;
+      /**
+       * Merchant Name
+       * @default
+       */
+      merchant_name: string;
+      /** Merchant Type */
+      merchant_type?: string | null;
+      /**
+       * Min Amount
+       * @default 100.00
+       */
+      min_amount: number | string;
+      /** Terminal */
+      terminal?: string | null;
     };
     /** GradeBulkCreate */
     GradeBulkCreate: {
@@ -8366,6 +8501,11 @@ export interface components {
       students: number;
       /** Users */
       users: number;
+    };
+    /** IntentCreate */
+    IntentCreate: {
+      /** Allocations */
+      allocations: components["schemas"]["Share"][];
     };
     /** Invoice */
     Invoice: {
@@ -9932,6 +10072,13 @@ export interface components {
       subject_name: string;
       /** Teacher Name */
       teacher_name: string;
+    };
+    /** Share */
+    Share: {
+      /** Amount */
+      amount: number | string;
+      /** Student Id */
+      student_id: number;
     };
     /** Signup */
     Signup: {
@@ -17872,6 +18019,178 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["OnboardingChecklist"];
+        };
+      };
+    };
+  };
+  create_online_payments_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["IntentCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_config_online_payments_config_gateway_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  save_config_online_payments_config_gateway_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GatewayConfigIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  options_online_payments_options_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  get_intent_online_payments__public_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        public_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  complete_online_payments__public_id__complete_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        public_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["Completion"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

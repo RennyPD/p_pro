@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, Receipt, Send } from "lucide-react";
+import { CalendarClock, CreditCard, Receipt, Send } from "lucide-react";
 import { useState } from "react";
 import { DocumentDownload } from "../../components/DocumentDownload";
 import { Badge, Button, EmptyState, Spinner } from "../../components/ui";
@@ -15,6 +15,8 @@ import {
 } from "./paymentsData";
 import { StatementInstallments } from "./StatementInstallments";
 import { TransferDialog } from "./TransferDialog";
+import { OnlinePayDialog } from "./OnlinePayDialog";
+import { useOnlineOptions } from "./onlinePayments";
 import "./payments.css";
 
 /**
@@ -29,6 +31,9 @@ export function AccountView({
   statementPath: string;
 }) {
   const [reporting, setReporting] = useState(false);
+  const [cardPaying, setCardPaying] = useState(false);
+  const online = useOnlineOptions();
+  const payable = online.data?.students?.find(student => student.student_id === studentId);
   const statement = useQuery({
     queryKey: ["payments", "statement", studentId, statementPath],
     queryFn: () => api.get<Statement>(statementPath).then(response => response.data),
@@ -85,12 +90,21 @@ export function AccountView({
             )}
           </div>
         </div>
+        {data.balance > 0 && online.data?.enabled && payable && (
+          <Button className="payments-action" onClick={() => setCardPaying(true)}>
+            <CreditCard size={16} /> Pagar con tarjeta
+          </Button>
+        )}
         {data.balance > 0 && instructions && (
-          <Button className="payments-action" onClick={() => setReporting(true)}>
+          <Button
+            className="payments-action"
+            variant={online.data?.enabled && payable ? "secondary" : "primary"}
+            onClick={() => setReporting(true)}
+          >
             <Send size={16} /> Reportar pago
           </Button>
         )}
-        {data.balance > 0 && options.isSuccess && !instructions && (
+        {data.balance > 0 && options.isSuccess && !instructions && !payable && (
           <p className="muted payments-action">
             La institución aún no publicó sus datos bancarios. Paga en caja.
           </p>
@@ -188,6 +202,14 @@ export function AccountView({
         </section>
       )}
 
+      {cardPaying && payable && online.data && (
+        <OnlinePayDialog
+          students={[payable]}
+          suggested={{ [studentId]: Math.min(suggested, Number(payable.balance)) }}
+          minAmount={online.data.min_amount}
+          onClose={() => setCardPaying(false)}
+        />
+      )}
       {reporting && (
         <TransferDialog
           studentId={studentId}

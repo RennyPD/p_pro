@@ -5346,6 +5346,19 @@
         "title": "CommentIn",
         "type": "object"
       },
+      "Completion": {
+        "properties": {
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "title": "Completion",
+        "type": "object"
+      },
       "CourseOffering": {
         "properties": {
           "available_seats": {
@@ -7432,6 +7445,93 @@
           "date"
         ],
         "title": "FinanceTransaction",
+        "type": "object"
+      },
+      "GatewayConfigIn": {
+        "properties": {
+          "auth_key": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Key"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "environment": {
+            "default": "test",
+            "pattern": "^(test|live)$",
+            "title": "Environment",
+            "type": "string"
+          },
+          "gateway": {
+            "pattern": "^(sandbox|azul|cardnet)$",
+            "title": "Gateway",
+            "type": "string"
+          },
+          "merchant_id": {
+            "default": "",
+            "maxLength": 60,
+            "title": "Merchant Id",
+            "type": "string"
+          },
+          "merchant_name": {
+            "default": "",
+            "maxLength": 100,
+            "title": "Merchant Name",
+            "type": "string"
+          },
+          "merchant_type": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Type"
+          },
+          "min_amount": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,10}|(?=[\\d.]{1,13}0*$)\\d{0,10}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "default": "100.00",
+            "title": "Min Amount"
+          },
+          "terminal": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terminal"
+          }
+        },
+        "required": [
+          "enabled",
+          "gateway"
+        ],
+        "title": "GatewayConfigIn",
         "type": "object"
       },
       "GradeBulkCreate": {
@@ -9832,6 +9932,24 @@
           "users"
         ],
         "title": "InstitutionUsage",
+        "type": "object"
+      },
+      "IntentCreate": {
+        "properties": {
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/Share"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Allocations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "allocations"
+        ],
+        "title": "IntentCreate",
         "type": "object"
       },
       "Invoice": {
@@ -13841,6 +13959,33 @@
           "roster"
         ],
         "title": "SectionWorkspace",
+        "type": "object"
+      },
+      "Share": {
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,10}|(?=[\\d.]{1,13}0*$)\\d{0,10}\\.\\d{0,2}0*$)",
+                "type": "string"
+              }
+            ],
+            "title": "Amount"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "student_id",
+          "amount"
+        ],
+        "title": "Share",
         "type": "object"
       },
       "Signup": {
@@ -28857,6 +29002,237 @@
         "summary": "Checklist",
         "tags": [
           "onboarding"
+        ]
+      }
+    },
+    "/online-payments": {
+      "post": {
+        "operationId": "create_online_payments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create",
+        "tags": [
+          "online payments"
+        ]
+      }
+    },
+    "/online-payments/config/gateway": {
+      "get": {
+        "operationId": "get_config_online_payments_config_gateway_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Config",
+        "tags": [
+          "online payments"
+        ]
+      },
+      "put": {
+        "operationId": "save_config_online_payments_config_gateway_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GatewayConfigIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save Config",
+        "tags": [
+          "online payments"
+        ]
+      }
+    },
+    "/online-payments/options": {
+      "get": {
+        "description": "What this account can pay online (nothing for staff or when disabled).",
+        "operationId": "options_online_payments_options_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Options",
+        "tags": [
+          "online payments"
+        ]
+      }
+    },
+    "/online-payments/{public_id}": {
+      "get": {
+        "operationId": "get_intent_online_payments__public_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "public_id",
+            "required": true,
+            "schema": {
+              "title": "Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Intent",
+        "tags": [
+          "online payments"
+        ]
+      }
+    },
+    "/online-payments/{public_id}/complete": {
+      "post": {
+        "description": "The bank sent the payer back: verify its signed answer and post the payment.\n\nPublic on purpose: the session may have expired while paying. The answer\nis trusted only after its signature (or a server-to-server query) checks.",
+        "operationId": "complete_online_payments__public_id__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "public_id",
+            "required": true,
+            "schema": {
+              "title": "Public Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Completion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete",
+        "tags": [
+          "online payments"
         ]
       }
     },

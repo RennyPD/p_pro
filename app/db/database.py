@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     sentry_environment: str | None = None
     sentry_release: str | None = None
     sentry_traces_sample_rate: float = 0.0
+    # Fase 4 E: key(s) that encrypt each institution's payment gateway secrets
+    # (Fernet; several keys separated by commas, the first one encrypts: rotation).
+    payments_encryption_key: str | None = None
     # Fase 4 D4: public self sign-up at /registro (the platform can turn it off).
     signup_enabled: bool = True
     # Fase 4 D: days of the free trial of a new institution.

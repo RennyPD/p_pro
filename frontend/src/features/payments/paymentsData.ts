@@ -27,6 +27,7 @@ export const paymentMethods: Record<string, string> = {
   card: "Tarjeta",
   transfer: "Transferencia",
   check: "Cheque",
+  online: "En línea",
   legacy: "Registro anterior",
 };
 

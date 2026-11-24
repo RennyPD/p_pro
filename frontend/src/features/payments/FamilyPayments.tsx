@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users } from "lucide-react";
+import { CreditCard, Users } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
@@ -16,12 +16,16 @@ import {
   type FinanceOptions,
 } from "./paymentsData";
 import "./payments.css";
+import { OnlinePayDialog } from "./OnlinePayDialog";
+import { useOnlineOptions } from "./onlinePayments";
 
 type Suggestion = ApiSchema<"FamilySuggestion">;
 
 /** Family total with the breakdown per child and concept, and one transfer for several. */
 export function FamilyPayments() {
   const [paying, setPaying] = useState(false);
+  const [cardPaying, setCardPaying] = useState(false);
+  const online = useOnlineOptions();
   const family = useQuery({
     queryKey: ["payments", "family"],
     queryFn: () => api.get<FamilyFinance>("/guardian/finance").then(response => response.data),
@@ -64,6 +68,11 @@ export function FamilyPayments() {
                 : "Al día"}
           </small>
         </div>
+        {data.total_balance > 0 && online.data?.enabled === true && (
+          <Button className="payments-action" onClick={() => setCardPaying(true)}>
+            <CreditCard size={16} /> Pagar con tarjeta
+          </Button>
+        )}
         {data.total_balance > 0 && instructions && (
           <Button className="payments-action" onClick={() => setPaying(true)}>
             Pagar a varios hijos
@@ -146,6 +155,13 @@ export function FamilyPayments() {
         </section>
       )}
 
+      {cardPaying && online.data && (
+        <OnlinePayDialog
+          students={(online.data.students ?? []).filter(student => Number(student.balance) > 0)}
+          minAmount={online.data.min_amount}
+          onClose={() => setCardPaying(false)}
+        />
+      )}
       {paying && (
         <FamilyTransferDialog
           family={data}
