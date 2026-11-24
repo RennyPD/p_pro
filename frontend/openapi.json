@@ -13843,6 +13843,131 @@
         "title": "SectionWorkspace",
         "type": "object"
       },
+      "Signup": {
+        "properties": {
+          "admin_email": {
+            "format": "email",
+            "title": "Admin Email",
+            "type": "string"
+          },
+          "code": {
+            "maxLength": 40,
+            "minLength": 3,
+            "title": "Code",
+            "type": "string"
+          },
+          "enrollment_prefix": {
+            "default": "EST",
+            "maxLength": 20,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9-]+$",
+            "title": "Enrollment Prefix",
+            "type": "string"
+          },
+          "institution_type": {
+            "pattern": "^(university|school|both)$",
+            "title": "Institution Type",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 150,
+            "minLength": 3,
+            "title": "Name",
+            "type": "string"
+          },
+          "plan_code": {
+            "default": "profesional",
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Plan Code",
+            "type": "string"
+          },
+          "website": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Website",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "code",
+          "institution_type",
+          "admin_email"
+        ],
+        "title": "Signup",
+        "type": "object"
+      },
+      "SignupConfig": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/SignupPlan"
+            },
+            "title": "Plans",
+            "type": "array"
+          },
+          "trial_days": {
+            "title": "Trial Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "trial_days",
+          "plans"
+        ],
+        "title": "SignupConfig",
+        "type": "object"
+      },
+      "SignupPlan": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "max_students": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Students"
+          },
+          "monthly_price": {
+            "title": "Monthly Price",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "description",
+          "currency",
+          "monthly_price"
+        ],
+        "title": "SignupPlan",
+        "type": "object"
+      },
       "SimulationCreate": {
         "properties": {
           "amount": {
@@ -31758,6 +31883,107 @@
         "summary": "Public Institution",
         "tags": [
           "platform"
+        ]
+      }
+    },
+    "/public/signup": {
+      "get": {
+        "operationId": "signup_config_public_signup_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupConfig"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Signup Config",
+        "tags": [
+          "sign-up"
+        ]
+      },
+      "post": {
+        "operationId": "signup_public_signup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Signup"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Signup",
+        "tags": [
+          "sign-up"
+        ]
+      }
+    },
+    "/public/signup/code": {
+      "get": {
+        "description": "Whether a code (and so the address <code>.<domain>) can be used.",
+        "operationId": "code_available_public_signup_code_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Code",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Code Available",
+        "tags": [
+          "sign-up"
         ]
       }
     },

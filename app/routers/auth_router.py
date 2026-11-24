@@ -18,6 +18,7 @@ from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
 from app.auth import (
+    PENDING_MESSAGE,
     SUSPENDED_MESSAGE,
     account_is_active,
     ensure_account_active,
@@ -144,6 +145,8 @@ def ensure_code_open(db: Session, code: str | None) -> None:
     if not code:
         return
     institution = db.query(Institution).filter(Institution.slug == code.strip().casefold()).first()
+    if institution is not None and institution.status == "pending":
+        raise HTTPException(status_code=403, detail=PENDING_MESSAGE)
     if institution is not None and institution.status != "active":
         raise HTTPException(status_code=403, detail=SUSPENDED_MESSAGE)
 
@@ -521,6 +524,10 @@ def confirm_password_reset(data: PasswordResetConfirm, db: Session = Depends(get
     user = lock_account(db, user)
     user.password = hash_password(data.new_password)
     revoke_account_sessions(db, user)
+    if token.purpose == "invite":
+        from app.services.platform import activate_pending
+
+        activate_pending(db, token.institution_id)  # a self sign-up starts here (Fase 4 D4)
     audit(
         db,
         "account.activated" if token.purpose == "invite" else "password.reset.completed",

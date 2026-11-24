@@ -11,7 +11,7 @@ import { formatDateTime } from "../../lib/format";
 import { platformApi, usePlatformSession } from "../../lib/platformApi";
 import "./platform.css";
 import { ChangePlan, PlansPanel } from "./PlansPanel";
-import { subscriptionLabels } from "./platformData";
+import { institutionStatus, subscriptionLabels } from "./platformData";
 
 type Institution = ApiSchema<"InstitutionOut">;
 type AuditEntry = ApiSchema<"PlatformAuditOut">;
@@ -191,11 +191,9 @@ function PlatformConsole() {
                   </td>
                   <td>{row.code}</td>
                   <td>
-                    {row.status === "active" ? (
-                      <Badge tone="success">Activa</Badge>
-                    ) : (
-                      <Badge tone="danger">Suspendida</Badge>
-                    )}
+                    <Badge tone={institutionStatus[row.status]?.tone ?? "neutral"}>
+                      {institutionStatus[row.status]?.label ?? row.status}
+                    </Badge>
                     {row.status_reason && <div className="muted">{row.status_reason}</div>}
                   </td>
                   <td>{row.usage.students}</td>

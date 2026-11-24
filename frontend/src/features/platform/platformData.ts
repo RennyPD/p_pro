@@ -22,3 +22,13 @@ export function usePlans() {
     queryFn: () => platformApi.get<Plan[]>("/platform/plans").then(r => r.data),
   });
 }
+
+export const institutionStatus: Record<
+  string,
+  { label: string; tone: "success" | "info" | "warning" | "danger" | "neutral" }
+> = {
+  active: { label: "Activa", tone: "success" },
+  suspended: { label: "Suspendida", tone: "danger" },
+  pending: { label: "Pendiente de activar", tone: "info" },
+  abandoned: { label: "Sin activar", tone: "neutral" },
+};

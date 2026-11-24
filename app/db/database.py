@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     sentry_environment: str | None = None
     sentry_release: str | None = None
     sentry_traces_sample_rate: float = 0.0
+    # Fase 4 D4: public self sign-up at /registro (the platform can turn it off).
+    signup_enabled: bool = True
     # Fase 4 D: days of the free trial of a new institution.
     billing_trial_days: int = 30
     # Payment provider for the SaaS subscription. "sandbox" simulates payments

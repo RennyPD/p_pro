@@ -105,7 +105,11 @@ UPLOADS = {
     ("POST", "/finance/students/{student_id}/transfers"),
     ("POST", "/guardian/transfers"),
 }
-PUBLIC = {("GET", "/public/institution"), ("POST", "/platform/auth/login")}
+PUBLIC = {
+    ("GET", "/public/institution"),
+    ("POST", "/platform/auth/login"),
+    ("POST", "/public/signup"),
+}
 
 
 def limited(route: APIRoute) -> bool:

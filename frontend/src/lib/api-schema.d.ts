@@ -4078,6 +4078,44 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/public/signup": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Signup Config */
+    get: operations["signup_config_public_signup_get"];
+    put?: never;
+    /** Signup */
+    post: operations["signup_public_signup_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/public/signup/code": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Code Available
+     * @description Whether a code (and so the address <code>.<domain>) can be used.
+     */
+    get: operations["code_available_public_signup_code_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/records/reports/students.csv": {
     parameters: {
       query?: never;
@@ -9894,6 +9932,59 @@ export interface components {
       subject_name: string;
       /** Teacher Name */
       teacher_name: string;
+    };
+    /** Signup */
+    Signup: {
+      /**
+       * Admin Email
+       * Format: email
+       */
+      admin_email: string;
+      /** Code */
+      code: string;
+      /**
+       * Enrollment Prefix
+       * @default EST
+       */
+      enrollment_prefix: string;
+      /** Institution Type */
+      institution_type: string;
+      /** Name */
+      name: string;
+      /**
+       * Plan Code
+       * @default profesional
+       */
+      plan_code: string;
+      /**
+       * Website
+       * @default
+       */
+      website: string;
+    };
+    /** SignupConfig */
+    SignupConfig: {
+      /** Enabled */
+      enabled: boolean;
+      /** Plans */
+      plans: components["schemas"]["SignupPlan"][];
+      /** Trial Days */
+      trial_days: number;
+    };
+    /** SignupPlan */
+    SignupPlan: {
+      /** Code */
+      code: string;
+      /** Currency */
+      currency: string;
+      /** Description */
+      description: string;
+      /** Max Students */
+      max_students?: number | null;
+      /** Monthly Price */
+      monthly_price: string;
+      /** Name */
+      name: string;
     };
     /** SimulationCreate */
     SimulationCreate: {
@@ -19681,6 +19772,90 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PublicInstitution"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  signup_config_public_signup_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SignupConfig"];
+        };
+      };
+    };
+  };
+  signup_public_signup_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["Signup"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  code_available_public_signup_code_get: {
+    parameters: {
+      query: {
+        code: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

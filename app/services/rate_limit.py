@@ -44,6 +44,9 @@ IMPORTS = Limit(
     "imports", 10, 3600, "Hiciste demasiadas importaciones en la última hora. Espera un poco"
 )
 PUBLIC = Limit("public", 60, 60, "Demasiadas consultas. Espera un minuto")
+SIGNUP = Limit(
+    "signup", 5, 3600, "Demasiados registros desde esta dirección. Inténtalo en una hora"
+)
 PLATFORM_LOGIN = Limit(
     "platform-login", 10, 900, "Demasiados intentos de inicio de sesión. Espera unos minutos"
 )

@@ -40,6 +40,12 @@ export function LoginPage() {
     staleTime: Infinity,
   });
   const institution = addressed.data;
+  const signup = useQuery({
+    queryKey: ["public-signup"],
+    queryFn: () => api.get<{ enabled: boolean }>("/public/signup").then(r => r.data),
+    retry: false,
+    staleTime: Infinity,
+  });
   const {
     register,
     handleSubmit,
@@ -160,6 +166,11 @@ export function LoginPage() {
           <p className="auth-help">
             <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>
           </p>
+          {signup.data?.enabled && !institution && (
+            <p className="auth-help">
+              ¿Tu institución aún no usa Nexo? <Link to="/registro">Crea una cuenta gratis</Link>
+            </p>
+          )}
         </form>
       </section>
     </main>

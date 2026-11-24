@@ -258,8 +258,14 @@ def institution_or_404(db: Session, institution_id: int) -> Institution:
     return institution
 
 
-def create_institution(db: Session, data, actor: PlatformAdmin) -> tuple[Institution, User]:
-    """Create the institution, prepare it to start and invite its first administrator."""
+def create_institution(
+    db: Session, data, actor: PlatformAdmin | None, status: str = "active"
+) -> tuple[Institution, User]:
+    """Create the institution, prepare it to start and invite its first administrator.
+
+    ``actor`` is None for a self sign-up (block D4), which starts ``pending``
+    until its administrator opens the invitation.
+    """
     from app.models.configuration_model import InstitutionSettings
     from app.models.grading_scale_model import GradingScale
     from app.services.competencies import competency_groups
@@ -280,7 +286,7 @@ def create_institution(db: Session, data, actor: PlatformAdmin) -> tuple[Institu
     institution = Institution(
         name=data.name.strip(),
         slug=code,
-        status="active",
+        status=status,
         contact_email=data.admin_email.strip().casefold(),
         created_at=now(),
         status_changed_at=now(),
@@ -341,7 +347,8 @@ def create_institution(db: Session, data, actor: PlatformAdmin) -> tuple[Institu
         None,
         "institution.created",
         f"institution:{institution.institution_id}",
-        f"Alta por la plataforma ({actor.email}); primer administrador {admin.email}",
+        (f"Alta por la plataforma ({actor.email})" if actor else "Registro propio")
+        + f"; primer administrador {admin.email}",
     )
     platform_record(
         db,
@@ -373,3 +380,53 @@ def change_status(db: Session, institution: Institution, status: str, reason: st
         f"institution:{institution.institution_id}",
         f"{institution.name}: {before} → {status}; {reason.strip()}",
     )
+
+
+# --- Self sign-up (Fase 4, block D4) -----------------------------------------------
+
+SIGNUP_EXPIRY_DAYS = 7
+
+
+def activate_pending(db: Session, institution_id: int) -> None:
+    """The administrator opened the invitation: the institution starts, and its trial too."""
+    from app.db.database import settings
+
+    institution = db.get(Institution, institution_id)
+    if institution is None or institution.status != "pending":
+        return
+    institution.status = "active"
+    institution.status_reason = "Correo del administrador verificado"
+    institution.status_changed_at = now()
+    subscription = (
+        db.query(Subscription).filter(Subscription.institution_id == institution_id).first()
+    )
+    if subscription is not None and subscription.status == "trialing":
+        subscription.trial_ends_at = now() + timedelta(days=settings.billing_trial_days)
+    platform_record(
+        db, None, "institution.activated", f"institution:{institution_id}", institution.name
+    )
+
+
+def expire_signups(db: Session, moment: datetime | None = None) -> list[str]:
+    """Sign-ups never activated free their code after a week (data is kept)."""
+    moment = moment or now()
+    expired = []
+    stale = db.query(Institution).filter(
+        Institution.status == "pending",
+        Institution.created_at <= moment - timedelta(days=SIGNUP_EXPIRY_DAYS),
+    )
+    for institution in stale:
+        code = institution.slug
+        institution.status = "abandoned"
+        institution.slug = f"abandonada-{institution.institution_id}-{code}"[:60]
+        institution.status_reason = "Registro sin activar en 7 días"
+        institution.status_changed_at = moment
+        platform_record(
+            db,
+            None,
+            "institution.abandoned",
+            f"institution:{institution.institution_id}",
+            f"{institution.name}: el código {code} queda libre",
+        )
+        expired.append(code)
+    return expired

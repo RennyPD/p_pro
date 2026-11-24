@@ -28,6 +28,9 @@ bearer_scheme = HTTPBearer(auto_error=False)
 SUSPENDED_MESSAGE = (
     "La institución está suspendida. Contacta a su administración o al soporte de Nexo"
 )
+PENDING_MESSAGE = (
+    "La institución aún no está activada. Abre el enlace del correo de bienvenida para empezar"
+)
 OTHER_INSTITUTION = "Esta sesión pertenece a otra institución. Inicia sesión en su dirección"
 
 
@@ -35,6 +38,8 @@ def ensure_institution_open(db: Session, institution_id: int) -> None:
     from app.models.institution_model import Institution
 
     institution = db.get(Institution, institution_id)
+    if institution is not None and institution.status == "pending":
+        raise HTTPException(status_code=403, detail=PENDING_MESSAGE)
     if institution is None or institution.status != "active":
         raise HTTPException(status_code=403, detail=SUSPENDED_MESSAGE)
 

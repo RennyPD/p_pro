@@ -73,6 +73,7 @@ Crea `.env.production` en el servidor (nunca en el repositorio) o usa el gestor 
 | `BILLING_PROVIDER` | `stripe` para cobrar en línea. Con `sandbox`, en producción el pago en línea queda desactivado y la plataforma asigna los planes |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Claves de Stripe (webhook: `https://api.nexo.do/billing/webhooks/stripe` con los eventos `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed` y `customer.subscription.deleted`) |
 | `BILLING_TRIAL_DAYS` | Días de prueba de una institución nueva (30) |
+| `SIGNUP_ENABLED` | `false` cierra el registro público en `/registro` (las instituciones se crean desde la plataforma) |
 | `SENTRY_DSN`, `VITE_SENTRY_DSN` | Opcionales |
 | `RELEASE` | Versión o commit desplegado (Sentry) |
 | `WEB_CONCURRENCY` | Procesos por réplica de `api` (2 a 4 por CPU) |

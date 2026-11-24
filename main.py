@@ -45,6 +45,7 @@ from app.routers.scheduling_router import router as scheduling_router
 from app.routers.school_finance_router import router as school_finance_router
 from app.routers.school_year_router import router as school_year_router
 from app.routers.section_router import router as section_router
+from app.routers.signup_router import router as signup_router
 from app.routers.student_router import router as student_router
 from app.routers.subject_router import router as subject_router
 from app.routers.teacher_router import router as teacher_router
@@ -164,6 +165,7 @@ def handle_database_error(request, exc):
 
 app.include_router(auth_router)
 app.include_router(billing_router)
+app.include_router(signup_router)
 app.include_router(access_router)
 app.include_router(audit_router)
 app.include_router(career_router)

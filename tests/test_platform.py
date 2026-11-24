@@ -73,13 +73,13 @@ def platform_admin(sessions):
     return secret
 
 
-def platform_login(client, secret):
+def platform_login(client, secret, code=None):
     response = client.post(
         "/platform/auth/login",
         json={
             "email": "soporte@nexo.com.do",
             "password": PLATFORM_PASSWORD,
-            "otp": current_code(secret),
+            "otp": code or current_code(secret),
         },
     )
     assert response.status_code == 200, response.text
@@ -94,15 +94,12 @@ def test_platform_accounts_require_the_second_factor_and_never_mix(demo):  # noq
         json={"email": "soporte@nexo.com.do", "password": PLATFORM_PASSWORD, "otp": "000000"},
     )
     assert wrong.status_code == 401
-    platform = platform_login(client, secret)
-    # The same code cannot be replayed.
+    code = current_code(secret)
+    platform = platform_login(client, secret, code)
+    # The same code cannot be replayed (even if the clock moved to the next step).
     replay = client.post(
         "/platform/auth/login",
-        json={
-            "email": "soporte@nexo.com.do",
-            "password": PLATFORM_PASSWORD,
-            "otp": current_code(secret),
-        },
+        json={"email": "soporte@nexo.com.do", "password": PLATFORM_PASSWORD, "otp": code},
     )
     assert replay.status_code == 401
     assert client.get("/platform/me", headers=platform).json()["email"] == "soporte@nexo.com.do"

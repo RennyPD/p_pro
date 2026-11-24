@@ -1,0 +1,62 @@
+.signup-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.5rem 1rem;
+  background: var(--bg);
+}
+
+.signup-card {
+  display: grid;
+  gap: 0.9rem;
+  width: min(520px, 100%);
+}
+
+.signup-brand {
+  margin-bottom: 0.5rem;
+  color: var(--ink);
+}
+
+.signup-sent-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--success);
+}
+
+.signup-plans {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.signup-plans legend {
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+.signup-plan {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+}
+
+.signup-plan span {
+  display: grid;
+}
+
+.signup-plan small {
+  color: var(--muted);
+}
+
+.signup-trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

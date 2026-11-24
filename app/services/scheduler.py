@@ -67,10 +67,18 @@ def send_reminders(engine: Engine) -> str:
 
 
 def advance_subscriptions(engine: Engine) -> str:
+    from sqlalchemy.orm import Session
+
     from app.services.billing.lifecycle import advance
     from app.services.email_service import deliver_pending
+    from app.services.platform import expire_signups
     from app.services.tenants import for_each_institution
 
+    with Session(bind=engine) as db:  # system session: every institution
+        expired = expire_signups(db)
+        db.commit()
+    if expired:
+        logger.info("signups_expired", extra={"codes": expired})
     changes = {key: value for key, value in for_each_institution(engine, advance).items() if value}
     deliver_pending(engine)
     return f"Suscripciones: {len(changes)} cambios" + (f" {changes}" if changes else "")

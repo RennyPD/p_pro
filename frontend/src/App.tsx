@@ -196,6 +196,9 @@ const SandboxCheckoutPage = lazy(() =>
     default: module.SandboxCheckoutPage,
   })),
 );
+const SignupPage = lazy(() =>
+  import("./features/signup/SignupPage").then(module => ({ default: module.SignupPage })),
+);
 const PlatformPage = lazy(() =>
   import("./features/platform/PlatformPage").then(module => ({ default: module.PlatformPage })),
 );
@@ -270,6 +273,7 @@ export default function App() {
         <Route element={<SessionGate />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/recuperar" element={<ForgotPasswordPage />} />
+          <Route path="/registro" element={<SignupPage />} />
           <Route path="/restablecer" element={<ChoosePasswordPage mode="reset" />} />
           <Route path="/activar" element={<ChoosePasswordPage mode="activate" />} />
           <Route element={<Protected />}>
