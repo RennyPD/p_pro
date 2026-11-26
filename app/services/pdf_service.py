@@ -18,7 +18,7 @@ pdfmetrics.registerFont(TTFont(FONT, str(FONT_DIR / "Vera.ttf")))
 pdfmetrics.registerFont(TTFont(FONT_BOLD, str(FONT_DIR / "VeraBd.ttf")))
 
 
-def simple_pdf(title: str, lines: list[str]) -> bytes:
+def simple_pdf(title: str, lines: list[str], qr: str | None = None) -> bytes:
     output = BytesIO()
     document = SimpleDocTemplate(
         output,
@@ -49,6 +49,19 @@ def simple_pdf(title: str, lines: list[str]) -> bytes:
         Paragraph(escape(line).replace("\n", "<br/>"), body) if line.strip() else Spacer(1, 7)
         for line in lines
     ]
+    if qr:
+        # e-CF (Fase 4 F5): the DGII's check link as a QR code.
+        from reportlab.graphics.barcode.qr import QrCodeWidget
+        from reportlab.graphics.shapes import Drawing
+
+        widget = QrCodeWidget(qr)
+        left, bottom, right, top = widget.getBounds()
+        side = 110
+        drawing = Drawing(
+            side, side, transform=[side / (right - left), 0, 0, side / (top - bottom), 0, 0]
+        )
+        drawing.add(widget)
+        paragraphs += [Spacer(1, 10), drawing]
     document.build(paragraphs or [Spacer(1, 1)], onFirstPage=page_frame, onLaterPages=page_frame)
     return output.getvalue()
 

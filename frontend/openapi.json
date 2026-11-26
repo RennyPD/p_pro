@@ -14399,9 +14399,31 @@
             "title": "Amount",
             "type": "number"
           },
+          "fiscal_document_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fiscal Document Id"
+          },
           "method": {
             "title": "Method",
             "type": "string"
+          },
+          "ncf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ncf"
           },
           "paid_at": {
             "format": "date-time",

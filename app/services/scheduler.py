@@ -98,9 +98,18 @@ def expire_online_payments(engine: Engine) -> str:
     )
 
 
+def send_pending_ecf(engine: Engine) -> str:
+    from app.services.fiscal.issuing import send_pending_ecf as send
+    from app.services.tenants import for_each_institution
+
+    results = {k: v for k, v in for_each_institution(engine, send).items() if v}
+    return f"e-CF reenviados: {results}" if results else "Sin e-CF pendientes"
+
+
 JOBS = (
     Job("emails", send_emails, every=timedelta(minutes=2)),
     Job("online_payments", expire_online_payments, every=timedelta(minutes=10)),
+    Job("ecf", send_pending_ecf, every=timedelta(minutes=10)),
     Job("subscriptions", advance_subscriptions, at=time(6, 0)),
     Job("billing", run_billing, at=time(6, 30)),
     Job("reminders", send_reminders, at=time(7, 0)),

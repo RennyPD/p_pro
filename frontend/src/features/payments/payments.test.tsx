@@ -60,6 +60,8 @@ const statement = {
       method: "cash",
       paid_at: "2026-09-20T10:00:00",
       receipt_number: "REC-2026-00000009",
+      fiscal_document_id: 4,
+      ncf: "B0200000004",
     },
   ],
   payment_plans: [],
@@ -97,6 +99,9 @@ describe("AccountView", () => {
     fireEvent.click(within(installments).getByRole("button", { name: "Ver pagadas" }));
     expect(within(installments).getByText("Pagada")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Recibo del pago/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Comprobante fiscal B0200000004" }),
+    ).toBeInTheDocument();
   });
 
   it("reports a transfer with the overdue amount suggested", async () => {
@@ -112,7 +117,9 @@ describe("AccountView", () => {
     fireEvent.change(screen.getByLabelText("Número de referencia"), { target: { value: "TRF-1" } });
     fireEvent.change(screen.getByLabelText("Banco de origen"), { target: { value: "Banco" } });
     const file = new File(["%PDF-1.4"], "comprobante.pdf", { type: "application/pdf" });
-    fireEvent.change(screen.getByLabelText(/Comprobante/), { target: { files: [file] } });
+    fireEvent.change(within(screen.getByRole("dialog")).getByLabelText(/Comprobante/), {
+      target: { files: [file] },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Enviar reporte" }));
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith(

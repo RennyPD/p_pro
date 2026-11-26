@@ -286,6 +286,9 @@ class StatementPayment(BaseModel):
     method: str
     paid_at: datetime
     receipt_number: str | None
+    # Fiscal receipt of the payment, if any (Fase 4 F).
+    fiscal_document_id: int | None = None
+    ncf: str | None = None
 
 
 class PlanInstallment(BaseModel):

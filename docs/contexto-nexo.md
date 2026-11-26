@@ -105,7 +105,7 @@ Orden aprobado el 23/11/2026, por bloques: A (cimientos), B (año lectivo), C (g
    - En PostgreSQL, una llave nueva se crea en su propia transacción confirmada, para que crearla no haga esperar a otros escritores.
    - Pruebas de concurrencia reales en PostgreSQL (`tests/test_write_locks.py`): secciones distintas avanzan a la vez y la misma sección espera; lo estructural y lo fino se excluyen; la promoción no espera. El guardián de rutas acepta `lock_academic`. Las llaves ya llevan el prefijo de institución para el multi-tenant.
 
-### Fase 4: SaaS (L), en curso
+### Fase 4: SaaS (L), terminada el 26/11/2026
 Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acceso y superadministración), C (infraestructura), D (planes y suscripciones), E (pagos en línea), F (comprobantes fiscales). Decisiones: una base con `institution_id` y RLS; cada cuenta pertenece a una institución; subdominio por institución con código como respaldo; Stripe para suscripciones y Azul o CardNet para familias (adaptadores en modo de prueba hasta tener cuentas); NCF manual primero y e-CF con proveedor después.
 1. ✅ **Bloque A, 24/11/2026: cimientos multi-tenant** (migración `20261124_0062`, guía en `docs/multitenant.md`).
    - Tabla `institutions`; la instalación actual es la institución 1. `institution_id` en las 66 tablas de la institución; solo `permissions`, `write_locks` y `login_throttles` son globales.
@@ -155,7 +155,14 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
    - «Pagar con tarjeta» en el estado de cuenta y en la vista familiar (reparto entre hijos), página de resultado y banco de prueba.
    - Conciliación: lista paginada con referencias del banco, reporte diario, tarea cada 10 minutos que consulta al banco y vence lo abandonado, y resolución por un supervisor con el código de autorización.
    - Pruebas: `tests/test_online_payments.py` (montos, pagadores, repeticiones, caja cerrada, firmas de Azul, sesión de CardNet, cifrado, conciliación) y pruebas del frontend.
-- Comprobantes fiscales (NCF/e-CF) con un proveedor autorizado y moneda por institución.
+6. ✅ **Bloque F, 26/11/2026: comprobantes fiscales** (migración `20261126_0069`, `app/services/fiscal/`, guía en `docs/comprobantes-fiscales.md`). Decisiones: cada institución emite con su RNC y sus secuencias; núcleo común NCF y e-CF (por proveedor autorizado); emisión automática al pagar (o a solicitud); ITBIS exento por defecto y configurable por concepto (16 % o 18 %, incluido en el monto); los reversos generan nota de crédito; 607 y 608 descargables. Aplazado: facturas de Nexo a las instituciones (depende de la empresa desde la que facture Nexo).
+   - Emisor, secuencias autorizadas con alertas (agotándose, por vencer, vencidas, agotadas), «facturar a» por cuenta con validación de RNC y cédula, ITBIS por concepto y cargo.
+   - Comprobante por pago (B02 o B01 con RNC; E32 o E31 en e-CF) con las líneas de los cargos que salda; sin secuencia vigente el pago se registra y el comprobante queda pendiente. Números consecutivos y únicos con pagos simultáneos (probado en PostgreSQL).
+   - Nota de crédito (B04/E34) al revertir un pago; anulación con motivo de la DGII; reportes 607 (23 campos) y 608.
+   - e-CF: adaptador de proveedor (de prueba por ahora), reenvío cada 10 minutos, código de seguridad y QR de consulta en el PDF.
+   - Pantalla «Finanzas › Comprobantes fiscales» y comprobante descargable junto a cada pago en el estado de cuenta de las familias.
+   - Pruebas: `tests/test_fiscal.py` y `FiscalPage.test.tsx`.
+- Moneda por institución.
 3. ✅ **Bloque C: infraestructura** (aprobado el 24/11/2026, terminado el 25/11; sin Redis por ahora, Sentry sin datos personales, despliegue con Docker sin atarse a un proveedor).
    - ✅ **C1, 25/11/2026: archivos fuera de la base (M4)** (migración `20261125_0064`, `app/services/storage.py`).
      - Documentos del expediente, adjuntos de entregas y comprobantes de transferencia se guardan en una carpeta local (`STORAGE_BACKEND=local`) o en un servicio compatible con S3 (`s3`: AWS S3, Cloudflare R2, Spaces, MinIO), con cifrado del lado del servidor. Claves por institución: `inst/<id>/<tipo>/<uuid>`.

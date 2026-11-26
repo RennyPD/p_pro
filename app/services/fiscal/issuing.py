@@ -25,6 +25,7 @@ from app.services.business_time import business_date
 from app.services.finance_workflow import CREDIT_KINDS, active, cents, event, money
 from app.services.fiscal.rules import (
     credit_note_type,
+    electronic,
     max_number,
     number_text,
     receipt_type,
@@ -178,8 +179,12 @@ def issue(
         money(itbis),
         money(subtotal + itbis),
     )
+    if electronic(doc_type):
+        document.ecf_status = "pending"
     db.add(document)
     db.flush()
+    if electronic(doc_type):
+        send_ecf(db, document)
     if student_id is not None:
         event(
             db,
@@ -283,3 +288,47 @@ def after_reversal(db: Session, payment: Payment, user, reason: str) -> None:
             "fiscal.pending",
             {"credit_note_for": document.ncf, "reason": problem.detail},
         )
+
+
+def send_ecf(db: Session, document: FiscalDocument) -> str:
+    """Send an e-CF to the provider; failures leave it pending for the worker."""
+    import logging
+
+    from app.services.fiscal.ecf import provider_for
+    from app.services.payments.secrets import decrypt
+
+    profile = profile_of(db)
+    if profile is None:
+        return document.ecf_status or "pending"
+    try:
+        provider = provider_for(profile.ecf_provider)
+        secrets = decrypt(profile.ecf_secrets) if profile.ecf_secrets else {}
+        if document.track_id and document.ecf_status == "in_process":
+            result = provider.status(document, profile, secrets)
+        else:
+            result = provider.submit(document, profile, secrets)
+    except HTTPException as problem:
+        logging.getLogger("nexo.fiscal").warning(
+            "ecf_send_failed", extra={"ncf": document.ncf, "reason": problem.detail}
+        )
+        return document.ecf_status or "pending"
+    if result is None:
+        return document.ecf_status or "pending"
+    document.ecf_status = result.status
+    document.track_id = result.track_id or document.track_id
+    document.security_code = result.security_code or document.security_code
+    document.signed_at = result.signed_at or document.signed_at
+    document.qr_url = result.qr_url or document.qr_url
+    return document.ecf_status
+
+
+def send_pending_ecf(db: Session) -> dict[str, int]:
+    """Worker job (per institution): send again what the provider did not accept yet."""
+    counts: dict[str, int] = {}
+    pending = db.query(FiscalDocument).filter(
+        FiscalDocument.ecf_status.in_(("pending", "in_process"))
+    )
+    for document in pending.all():
+        status = send_ecf(db, document)
+        counts[status] = counts.get(status, 0) + 1
+    return counts

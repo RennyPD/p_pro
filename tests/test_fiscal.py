@@ -339,3 +339,62 @@ def test_voids_and_dgii_607_608(account):
         client.get("/fiscal/reports/607.txt?month=2026-13", headers=tokens["admin"]).status_code
         == 422
     )
+
+
+# --- e-CF through a provider (block F5) -------------------------------------------
+
+
+def setup_ecf(client, token):
+    client.put(
+        "/fiscal/profile",
+        headers=token,
+        json={
+            "enabled": True,
+            "mode": "ecf",
+            "rnc": RNC,
+            "legal_name": "Instituto Técnico Horizonte, SRL",
+            "issue_on": "payment",
+        },
+    )
+    for doc_type in ("E31", "E32", "E34"):
+        client.post(
+            "/fiscal/sequences",
+            headers=token,
+            json={"doc_type": doc_type, "range_start": 1, "range_end": 1000},
+        )
+
+
+def test_ecf_receipts_are_signed_by_the_provider_and_shown_to_families(account):
+    client, sessions, tokens, student = account
+    setup_ecf(client, tokens["admin"])
+    pay(client, tokens["admin"], student, "2000.00", "CAJA-ECF")
+    [receipt] = documents(sessions)
+    assert receipt.doc_type == "E32" and receipt.ncf == "E320000000001"
+    assert receipt.ecf_status == "accepted" and len(receipt.security_code) == 6
+    assert "ENCF=E320000000001" in receipt.qr_url and f"RncEmisor={RNC}" in receipt.qr_url
+    pdf = client.get(f"/fiscal/documents/{receipt.fiscal_document_id}.pdf", headers=tokens["admin"])
+    text = "".join(page.extract_text() for page in PdfReader(io.BytesIO(pdf.content)).pages)
+    assert "Código de seguridad" in text and receipt.security_code in text
+    assert "Válido hasta" not in text
+    statement = client.get(f"/finance/students/{student}/statement", headers=tokens["admin"])
+    assert statement.json()["payments"][0]["ncf"] == "E320000000001"
+
+
+def test_ecf_waits_when_the_provider_is_unavailable_and_the_worker_resends(account, monkeypatch):
+    client, sessions, tokens, student = account
+    setup_ecf(client, tokens["admin"])
+    from app.db.database import settings
+
+    monkeypatch.setattr(settings, "app_environment", "production")  # sandbox refuses
+    pay(client, tokens["admin"], student, "1000.00", "CAJA-ECF-2")
+    [receipt] = documents(sessions)
+    assert receipt.ecf_status == "pending" and receipt.security_code is None
+    monkeypatch.setattr(settings, "app_environment", "development")
+    from app.db.tenant import set_tenant
+    from app.services.fiscal.issuing import send_pending_ecf
+
+    with sessions() as db:
+        set_tenant(db, 1)
+        assert send_pending_ecf(db) == {"accepted": 1}
+        db.commit()
+    assert documents(sessions)[0].ecf_status == "accepted"

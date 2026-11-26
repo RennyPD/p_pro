@@ -10509,8 +10509,12 @@ export interface components {
     StatementPayment: {
       /** Amount */
       amount: number;
+      /** Fiscal Document Id */
+      fiscal_document_id?: number | null;
       /** Method */
       method: string;
+      /** Ncf */
+      ncf?: string | null;
       /**
        * Paid At
        * Format: date-time

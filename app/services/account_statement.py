@@ -45,8 +45,26 @@ def concept_of(db, model, plans: dict) -> str:
     return model.description
 
 
+def fiscal_receipts(db, account) -> dict[int, tuple[int, str]]:
+    """payment_id -> (fiscal_document_id, NCF) of each payment's receipt."""
+    from app.models.fiscal_model import FiscalDocument
+
+    ids = [p.payment_id for p in account.payments if p.payment_id is not None]
+    if db is None or not ids:
+        return {}
+    rows = db.query(
+        FiscalDocument.payment_id, FiscalDocument.fiscal_document_id, FiscalDocument.ncf
+    ).filter(
+        FiscalDocument.payment_id.in_(ids),
+        FiscalDocument.affected_document_id.is_(None),
+        FiscalDocument.status == "issued",
+    )
+    return {payment: (document, ncf) for payment, document, ncf in rows}
+
+
 def account_statement(db, account) -> AccountStatement:
     today = business_date()
+    receipts = fiscal_receipts(db, account)
     available = credits(account)
     plans: dict[int, str] = {}
     obligations = []
@@ -106,6 +124,8 @@ def account_statement(db, account) -> AccountStatement:
                 method=p.method,
                 paid_at=p.paid_at,
                 receipt_number=p.receipt_number,
+                fiscal_document_id=receipts.get(p.payment_id, (None, None))[0],
+                ncf=receipts.get(p.payment_id, (None, None))[1],
             )
             for p in sorted(account.payments, key=lambda p: p.paid_at, reverse=True)
             if active(p)

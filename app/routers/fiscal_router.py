@@ -203,6 +203,8 @@ def document_out(document: FiscalDocument) -> dict:
         "sequence_expires_on": document.sequence_expires_on.isoformat()
         if document.sequence_expires_on
         else None,
+        "ecf_status": document.ecf_status,
+        "security_code": document.security_code,
     }
 
 
@@ -279,7 +281,7 @@ def document_pdf(
         f"{DOC_TYPES.get(document.doc_type, document.doc_type)}",
         f"NCF: {document.ncf}",
     ]
-    if document.sequence_expires_on:
+    if document.sequence_expires_on and not document.security_code:
         lines.append(f"Válido hasta: {document.sequence_expires_on:%d/%m/%Y}")
     if document.affected_document_id:
         affected = db.get(FiscalDocument, document.affected_document_id)
@@ -299,10 +301,24 @@ def document_pdf(
         f"ITBIS: RD$ {document.itbis:,.2f}",
         f"Total: RD$ {document.total:,.2f}",
     ]
+    if document.security_code:
+        lines += [
+            "",
+            f"Código de seguridad: {document.security_code}",
+            f"Fecha de firma digital: {document.signed_at:%d-%m-%Y %H:%M:%S}"
+            if document.signed_at
+            else "",
+        ]
+    elif document.ecf_status in ("pending", "in_process"):
+        lines += ["", "Comprobante electrónico en proceso de validación"]
     if document.status == "voided":
         lines.append("ANULADO")
     return Response(
-        simple_pdf(DOC_TYPES.get(document.doc_type, "Comprobante fiscal"), lines),
+        simple_pdf(
+            DOC_TYPES.get(document.doc_type, "Comprobante fiscal"),
+            lines,
+            qr=document.qr_url if document.ecf_status == "accepted" else None,
+        ),
         media_type="application/pdf",
         headers={
             "Content-Disposition": f'attachment; filename="{document.ncf}.pdf"',

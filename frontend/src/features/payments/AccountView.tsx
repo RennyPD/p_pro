@@ -157,6 +157,14 @@ export function AccountView({
                   label="Recibo"
                   accessibleLabel={`Recibo del pago de ${formatMoney(payment.amount)}`}
                 />
+                {payment.fiscal_document_id && payment.ncf && (
+                  <DocumentDownload
+                    path={`/fiscal/documents/${payment.fiscal_document_id}.pdf`}
+                    filename={`${payment.ncf}.pdf`}
+                    label={`Comprobante ${payment.ncf}`}
+                    accessibleLabel={`Comprobante fiscal ${payment.ncf}`}
+                  />
+                )}
               </li>
             ))}
           </ul>
