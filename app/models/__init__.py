@@ -37,6 +37,7 @@ from .governance_model import CourseEquivalence, StudentCareerHistory
 from .grade_model import Grade, GradeChange
 from .grading_scale_model import GradingScale, GradingScaleBand
 from .institution_model import Institution
+from .legal_model import LegalAcceptance
 from .online_payment_model import OnlinePayment, PaymentGatewayConfig
 from .operations_model import (
     AdmissionApplication,

@@ -7,17 +7,19 @@ free their code after 7 days. Abuse limits: 5 sign-ups per hour per address,
 a hidden field that only bots fill in, reserved codes.
 """
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from app.db.database import settings
 from app.db.Session import get_db
+from app.legal import SIGNUP_DOCUMENTS
 from app.models.billing_model import Plan
 from app.models.institution_model import Institution
+from app.services import legal
 from app.services import platform as service
 from app.services.email_service import deliver_after_commit
-from app.services.rate_limit import PUBLIC, SIGNUP, per_address
+from app.services.rate_limit import PUBLIC, SIGNUP, client_ip, per_address
 from app.services.tenant_host import valid_code
 
 router = APIRouter(prefix="/public/signup", tags=["sign-up"])
@@ -54,6 +56,8 @@ class Signup(BaseModel):
     )
     # Hidden in the form: people leave it empty, simple bots fill it in.
     website: str = Field(default="", max_length=200)
+    # Terms of use and privacy policy (Fase 5 G3): required.
+    accept_terms: bool = False
 
 
 def public_plans(db: Session) -> list[Plan]:
@@ -96,15 +100,32 @@ def code_available(code: str = Query(min_length=1, max_length=60), db: Session =
 
 
 @router.post("", status_code=202, dependencies=[Depends(per_address(SIGNUP))])
-def signup(data: Signup, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def signup(
+    data: Signup,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     if not settings.signup_enabled:
         raise HTTPException(403, CLOSED)
     if data.website:
         return {"message": RECEIVED}  # a bot: same answer, nothing created
+    if not data.accept_terms:
+        raise HTTPException(
+            422, "Para crear la cuenta acepta los términos de uso y la política de privacidad"
+        )
     if data.plan_code not in {plan.code for plan in public_plans(db)}:
         raise HTTPException(422, "Elige uno de los planes disponibles")
     service.lock_platform(db)
-    service.create_institution(db, data, None, status="pending")
+    institution, admin = service.create_institution(db, data, None, status="pending")
+    legal.accept(
+        db,
+        SIGNUP_DOCUMENTS,
+        institution_id=institution.institution_id,
+        user_id=admin.user_id,
+        accepted_by=admin.email,
+        ip=client_ip(request),
+    )
     db.commit()
     deliver_after_commit(background_tasks, db)
     return {"message": RECEIVED}

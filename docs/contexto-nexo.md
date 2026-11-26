@@ -191,10 +191,9 @@ Orden aprobado el 23/11/2026: A (cimientos multi-tenant), B (instituciones, acce
 
 ### Fase 5: lanzamiento (M)
 Landing page, demo pública, términos de uso, política de privacidad conforme a la Ley 172-13 con atención a datos de menores, documentación para clientes y soporte.
-
-### Decisiones del dueño del producto
-1. ✅ (21/11/2026) El tutor ve por defecto el detalle de asistencia, notas, balance, tareas y desempeño de sus estudiantes vinculados: un monitoreo directo. La institución puede restringir un vínculo concreto.
-2. ✅ (21/11/2026) Si el estudiante ve sus finanzas lo decide cada institución (no en escuelas, sí en universidades).
-3. Correo: el código funciona con cualquier proveedor SMTP; se elige al desplegar (recomendación: Amazon SES o Brevo). Pendiente: proveedor de comprobantes fiscales.
-4. ✅ (23/11/2026) Nota mínima configurable por nivel mediante la escala de cada programa (70 por defecto), con completivo (50/50) y extraordinario (30/70) configurables. Los pesos coinciden con el boletín oficial de 1.º de secundaria del MINERD (50 % C.F. + 50 % C.E.C.; 30 % C.F. + 70 % C.E.EX).
-5. ✅ (23/11/2026) Boletín escolar: formato oficial MINERD de secundaria por competencias (modelo entregado el 23/11) y formato general para los demás niveles; las familias ven solo los períodos con resultado final. Evaluación especial: nota directa que reemplaza la final si aprueba. Encabezados sin logotipos oficiales.
+Plan aprobado el 26/11/2026: G3 textos legales, G1 sitio público, G2 demo, G4 derechos sobre los datos, G5 ayuda, G6 soporte. Decisiones: sitio estático en el dominio principal con precios desde el API; demo compartida restaurada cada noche; textos legales como borradores versionados que revisa un abogado antes de publicar; 90 días de retención tras cancelar; soporte con tickets propios; sin analítica al inicio.
+1. ✅ **G3, 26/11/2026: textos legales y aceptación** (migración `20261126_0070`, `app/legal/`, `app/services/legal.py`).
+   - Borradores marcados «para revisión legal» con marcadores para los datos de la empresa: términos de uso, política de privacidad (Ley 172-13, menores de edad, institución responsable y Nexo encargado, derechos de acceso, rectificación, cancelación y oposición, conservación de 90 días), política de cookies (solo las necesarias) y acuerdo de tratamiento de datos.
+   - Versionados en el repositorio. Páginas públicas `/legal/<documento>` y enlaces en el inicio de sesión.
+   - El registro exige aceptar términos y privacidad; la administración de cada institución (`settings.manage`) acepta términos y acuerdo de tratamiento al entrar, y de nuevo cuando cambie la versión. Cada aceptación guarda versión, cuenta, institución, fecha y dirección. Se puede aceptar aun en modo de solo lectura.
+   - Pruebas: `tests/test_legal.py` y `legal.test.tsx`.

@@ -9,6 +9,8 @@ import { Button } from "../../components/ui";
 import { api, apiMessage } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 import type { ApiSchema } from "../../lib/apiTypes";
+import { legalLinks } from "../legal/legalLinks";
+import "../legal/legal.css";
 import type { TokenResponse } from "../../types";
 
 type PublicInstitution = ApiSchema<"PublicInstitution">;
@@ -165,6 +167,13 @@ export function LoginPage() {
           </Button>
           <p className="auth-help">
             <Link to="/recuperar">¿Olvidaste tu contraseña?</Link>
+          </p>
+          <p className="legal-footer">
+            {legalLinks.map(link => (
+              <Link key={link.slug} to={`/legal/${link.slug}`}>
+                {link.label}
+              </Link>
+            ))}
           </p>
           {signup.data?.enabled && !institution && (
             <p className="auth-help">

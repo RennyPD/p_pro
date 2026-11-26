@@ -28,6 +28,7 @@ import { api } from "../lib/api";
 import { useAccess } from "../lib/permissions";
 import { useAuthStore } from "../store/auth";
 import { BillingBanner } from "../features/billing/BillingBanner";
+import { LegalGate } from "../features/legal/LegalGate";
 
 type Access = ReturnType<typeof useAccess>;
 type NavItem = {
@@ -326,6 +327,7 @@ export function AppShell() {
       {open && <div className="sidebar-scrim" onClick={() => setOpen(false)} />}
       <main className="main-surface">
         <BillingBanner />
+        <LegalGate />
         <Outlet />
       </main>
     </div>

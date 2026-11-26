@@ -45,6 +45,12 @@ def main():
         # Acceptance must remain repeatable after the demo calendar expires.
         period = db.query(AcademicPeriod).filter_by(active=True).one()
         period.registration_start = period.registration_end = period.withdrawal_deadline = None
+        # The institution already accepted the current terms and data agreement
+        # (Fase 5 G3), so the browser tests are not stopped by that dialog.
+        from app.legal import INSTITUTION_DOCUMENTS
+        from app.services.legal import accept
+
+        accept(db, INSTITUTION_DOCUMENTS, institution_id=1, user_id=None, accepted_by="aceptación")
         db.commit()
     print(f"Acceptance database (disposable): {output}", flush=True)
     uvicorn.run("main:app", host="127.0.0.3", port=port)

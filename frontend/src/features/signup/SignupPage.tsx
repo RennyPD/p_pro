@@ -23,6 +23,9 @@ const schema = z.object({
   admin_email: z.string().email("Escribe un correo válido"),
   plan_code: z.string().min(1, "Elige un plan"),
   website: z.string().optional(),
+  accept_terms: z.literal(true, {
+    error: "Acepta los términos de uso y la política de privacidad",
+  }),
 });
 type Values = z.infer<typeof schema>;
 
@@ -150,6 +153,14 @@ export function SignupPage() {
             </label>
           ))}
         </fieldset>
+        <label className="signup-terms">
+          <input type="checkbox" {...register("accept_terms")} />
+          <span>
+            Acepto los <Link to="/legal/terminos">términos de uso</Link> y la{" "}
+            <Link to="/legal/privacidad">política de privacidad</Link>.
+          </span>
+        </label>
+        {errors.accept_terms && <small className="form-error">{errors.accept_terms.message}</small>}
         <div className="signup-trap" aria-hidden="true">
           <label>
             Sitio web

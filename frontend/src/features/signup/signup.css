@@ -60,3 +60,9 @@
   height: 1px;
   overflow: hidden;
 }
+
+.signup-terms {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}

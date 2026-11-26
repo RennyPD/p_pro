@@ -18,6 +18,7 @@ BODY = {
     "institution_type": "school",
     "admin_email": EMAIL,
     "plan_code": "basico",
+    "accept_terms": True,
 }
 
 

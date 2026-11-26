@@ -66,6 +66,10 @@ describe("SignupPage", () => {
     await userEvent.type(screen.getByLabelText("Correo del administrador"), "dir@colegio.edu.do");
     await userEvent.click(screen.getByLabelText(/Básico/));
     await userEvent.click(screen.getByRole("button", { name: "Crear la cuenta" }));
+    expect(await screen.findByText(/Acepta los términos/)).toBeInTheDocument();
+    expect(post).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("checkbox"));
+    await userEvent.click(screen.getByRole("button", { name: "Crear la cuenta" }));
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith(
         "/public/signup",
@@ -75,6 +79,7 @@ describe("SignupPage", () => {
           admin_email: "dir@colegio.edu.do",
           plan_code: "basico",
           website: "",
+          accept_terms: true,
         }),
       ),
     );

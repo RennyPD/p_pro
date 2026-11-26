@@ -506,6 +506,24 @@
         "title": "AcademicTranscript",
         "type": "object"
       },
+      "Acceptance": {
+        "properties": {
+          "kinds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Kinds",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kinds"
+        ],
+        "title": "Acceptance",
+        "type": "object"
+      },
       "AccountStatement": {
         "properties": {
           "balance": {
@@ -14160,6 +14178,11 @@
       },
       "Signup": {
         "properties": {
+          "accept_terms": {
+            "default": false,
+            "title": "Accept Terms",
+            "type": "boolean"
+          },
           "admin_email": {
             "format": "email",
             "title": "Admin Email",
@@ -29769,6 +29792,75 @@
         ]
       }
     },
+    "/legal/accept": {
+      "post": {
+        "operationId": "accept_legal_accept_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Acceptance"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Accept",
+        "tags": [
+          "legal"
+        ]
+      }
+    },
+    "/legal/pending": {
+      "get": {
+        "description": "Documents this account must accept for its institution (administrators only).",
+        "operationId": "pending_legal_pending_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Pending",
+        "tags": [
+          "legal"
+        ]
+      }
+    },
     "/module-views/mine": {
       "get": {
         "description": "Modules shown under «Consulta»: readable and without their full page.",
@@ -33354,6 +33446,65 @@
         "summary": "Public Institution",
         "tags": [
           "platform"
+        ]
+      }
+    },
+    "/public/legal": {
+      "get": {
+        "operationId": "list_documents_public_legal_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Documents",
+        "tags": [
+          "legal"
+        ]
+      }
+    },
+    "/public/legal/{slug}": {
+      "get": {
+        "operationId": "read_document_public_legal__slug__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "title": "Slug",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Document",
+        "tags": [
+          "legal"
         ]
       }
     },

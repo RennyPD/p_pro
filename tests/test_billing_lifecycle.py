@@ -158,6 +158,7 @@ READ_ONLY_EXEMPT = {
     ("POST", "/billing/checkout"),
     ("POST", "/billing/portal"),
     ("POST", "/billing/sandbox/complete"),
+    ("POST", "/legal/accept"),  # new terms can be accepted while unpaid
 }
 
 
