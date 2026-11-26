@@ -2599,6 +2599,209 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/fiscal/accounts/{student_id}/bill-to": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Bill To */
+    get: operations["get_bill_to_fiscal_accounts__student_id__bill_to_get"];
+    /**
+     * Set Bill To
+     * @description Who the receipts are issued to; with an RNC or cédula they give tax credit.
+     */
+    put: operations["set_bill_to_fiscal_accounts__student_id__bill_to_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fiscal/documents": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Documents */
+    get: operations["list_documents_fiscal_documents_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fiscal/documents/{document_id}.pdf": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Document Pdf */
+    get: operations["document_pdf_fiscal_documents__document_id__pdf_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fiscal/documents/{document_id}/void": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Void Document
+     * @description Void a number with a DGII reason (608). A charged sale is undone with a credit
+     *     note instead: this is for receipts issued by mistake.
+     */
+    post: operations["void_document_fiscal_documents__document_id__void_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fiscal/payments/{payment_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Documents Of Payment
+     * @description The receipts of one payment, for whoever may see that account.
+     */
+    get: operations["documents_of_payment_fiscal_payments__payment_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fiscal/payments/{payment_id}/issue": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Issue Pending
+     * @description Issue the receipt of a payment (on request, or one left pending).
+     */
+    post: operations["issue_pending_fiscal_payments__payment_id__issue_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fiscal/profile": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Profile */
+    get: operations["get_profile_fiscal_profile_get"];
+    /** Save Profile */
+    put: operations["save_profile_fiscal_profile_put"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fiscal/reports/607.txt": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Dgii 607 */
+    get: operations["dgii_607_fiscal_reports_607_txt_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fiscal/reports/608.txt": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Dgii 608 */
+    get: operations["dgii_608_fiscal_reports_608_txt_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fiscal/sequences": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Sequences */
+    get: operations["list_sequences_fiscal_sequences_get"];
+    put?: never;
+    /** Add Sequence */
+    post: operations["add_sequence_fiscal_sequences_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/fiscal/sequences/{sequence_id}/deactivate": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Deactivate Sequence */
+    post: operations["deactivate_sequence_fiscal_sequences__sequence_id__deactivate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/governance/equivalences": {
     parameters: {
       query?: never;
@@ -5861,6 +6064,19 @@ export interface components {
       /** Stored Value */
       stored_value: number;
     };
+    /** BillTo */
+    BillTo: {
+      /**
+       * Name
+       * @default
+       */
+      name: string;
+      /**
+       * Tax Id
+       * @default
+       */
+      tax_id: string;
+    };
     /** BillingConceptCreate */
     BillingConceptCreate: {
       /**
@@ -5880,6 +6096,11 @@ export interface components {
        * @default once
        */
       frequency: string;
+      /**
+       * Itbis Rate
+       * @default 0
+       */
+      itbis_rate: number | string;
       /** Name */
       name: string;
     };
@@ -5898,6 +6119,11 @@ export interface components {
       description: string;
       /** Frequency */
       frequency: string;
+      /**
+       * Itbis Rate
+       * @default 0
+       */
+      itbis_rate: string;
       /** Name */
       name: string;
     };
@@ -6545,6 +6771,11 @@ export interface components {
       description: string;
       /** Due Date */
       due_date?: string | null;
+      /**
+       * Itbis Rate
+       * @default 0
+       */
+      itbis_rate: number | string;
     };
     /** CheckoutRequest */
     CheckoutRequest: {
@@ -9186,6 +9417,38 @@ export interface components {
        */
       token_type: string;
     };
+    /** ProfileIn */
+    ProfileIn: {
+      /** Enabled */
+      enabled: boolean;
+      /**
+       * Fiscal Address
+       * @default
+       */
+      fiscal_address: string;
+      /**
+       * Issue On
+       * @default payment
+       */
+      issue_on: string;
+      /**
+       * Legal Name
+       * @default
+       */
+      legal_name: string;
+      /** Mode */
+      mode: string;
+      /**
+       * Rnc
+       * @default
+       */
+      rnc: string;
+      /**
+       * Trade Name
+       * @default
+       */
+      trade_name: string;
+    };
     /** PromotionProposal */
     PromotionProposal: {
       /** Class Group Id */
@@ -10125,6 +10388,17 @@ export interface components {
       subject_name: string;
       /** Teacher Name */
       teacher_name: string;
+    };
+    /** SequenceIn */
+    SequenceIn: {
+      /** Doc Type */
+      doc_type: string;
+      /** Expires On */
+      expires_on?: string | null;
+      /** Range End */
+      range_end: number;
+      /** Range Start */
+      range_start: number;
     };
     /** Share */
     Share: {
@@ -11303,6 +11577,13 @@ export interface components {
       reason: string;
       /** Version */
       version: string;
+    };
+    /** VoidRequest */
+    VoidRequest: {
+      /** Note */
+      note: string;
+      /** Reason */
+      reason: string;
     };
     /** WeightItem */
     WeightItem: {
@@ -16823,6 +17104,434 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["TransferOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_bill_to_fiscal_accounts__student_id__bill_to_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  set_bill_to_fiscal_accounts__student_id__bill_to_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["BillTo"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_documents_fiscal_documents_get: {
+    parameters: {
+      query?: {
+        doc_type?: string | null;
+        q?: string | null;
+        student_id?: number | null;
+        skip?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  document_pdf_fiscal_documents__document_id__pdf_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        document_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  void_document_fiscal_documents__document_id__void_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        document_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VoidRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  documents_of_payment_fiscal_payments__payment_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        payment_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  issue_pending_fiscal_payments__payment_id__issue_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        payment_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_profile_fiscal_profile_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  save_profile_fiscal_profile_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ProfileIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  dgii_607_fiscal_reports_607_txt_get: {
+    parameters: {
+      query: {
+        month: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  dgii_608_fiscal_reports_608_txt_get: {
+    parameters: {
+      query: {
+        month: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_sequences_fiscal_sequences_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  add_sequence_fiscal_sequences_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SequenceIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  deactivate_sequence_fiscal_sequences__sequence_id__deactivate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sequence_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

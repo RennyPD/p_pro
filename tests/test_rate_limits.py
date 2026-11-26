@@ -98,7 +98,7 @@ def test_purge_forgets_old_windows(demo):  # noqa: F811
 
 
 # Routes that send files, generate documents or accept uploads and imports.
-HEAVY = re.compile(r"\.(pdf|csv)$|/export$|/import$|/download$|/attachment$|/proof$")
+HEAVY = re.compile(r"\.(pdf|csv|txt)$|/export$|/import$|/download$|/attachment$|/proof$")
 UPLOADS = {
     ("POST", "/operations/students/{student_id}/documents"),
     ("POST", "/assignments/{assignment_id}/submit"),

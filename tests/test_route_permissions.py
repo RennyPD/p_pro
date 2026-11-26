@@ -68,6 +68,11 @@ SCOPE_CHECKED = {
         "POST",
         "/online-payments/{public_id}/complete",
     ): "public bank return, trusted only by signature",
+    (
+        "GET",
+        "/fiscal/documents/{document_id}.pdf",
+    ): "account scope (accessible): payer or finance staff",
+    ("GET", "/fiscal/payments/{payment_id}"): "account scope (accessible): payer or finance staff",
     ("GET", "/billing/status"): "any account: only its own institution's plan status",
     ("POST", "/billing/webhooks/stripe"): "payment provider webhook, verified by its signature",
     ("GET", "/platform/plans"): "platform super administration (platform token)",

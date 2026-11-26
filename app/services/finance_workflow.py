@@ -280,6 +280,10 @@ def post_payment(db, account, data, user, method="cash", key=None, online=False)
     db.flush()
     db.expire(account, ["payments"])
     refresh_auto_hold(db, account, user)
+    # Fiscal receipt (Fase 4 F): issued now or left pending; never blocks the payment.
+    from app.services.fiscal.issuing import after_payment
+
+    after_payment(db, payment, account, user)
     return payment
 
 

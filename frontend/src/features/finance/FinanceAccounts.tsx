@@ -1,5 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BarChart3, CalendarRange, CreditCard, Settings2, Wallet } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  CalendarRange,
+  CreditCard,
+  FileText,
+  Settings2,
+  Wallet,
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Pager } from "../../components/Pager";
@@ -80,6 +88,10 @@ export function FinanceAccounts() {
           <Link className="button button--secondary" to="/finance/online">
             <CreditCard size={18} />
             Pagos en línea
+          </Link>
+          <Link className="button button--secondary" to="/finance/fiscal">
+            <FileText size={18} />
+            Comprobantes
           </Link>
           <Link className="button button--secondary" to="/finance/policy">
             <Settings2 size={18} />

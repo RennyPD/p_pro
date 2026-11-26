@@ -199,6 +199,7 @@ def add_charge(
         amount=money(cents(data.amount)),
         due_date=data.due_date or next_due(account),
         created_by=user.user_id,
+        itbis_rate=data.itbis_rate,
     )
     if len(item.description) < 2:
         raise HTTPException(422, "El concepto no puede estar vacío")
@@ -313,6 +314,9 @@ def reverse(
         check_open_day(db)
         check_open_day(db, business_date(item.paid_at))
         item.reversed_by, item.reversed_at = user.user_id, now()
+        from app.services.fiscal.issuing import after_reversal
+
+        after_reversal(db, item, user, data.reason)  # credit note for its fiscal receipt
     before = summary(account).balance
     item.status, item.reversal_reason = "reversed", data.reason
     if cents(summary(account).balance) < 0:

@@ -403,6 +403,8 @@ def generate(
     ensure_cycle(plan, cycle)
     charged = charged_student_ids(db, plan, cycle)
     pending = [s for s in eligible_students(db, plan, cycle) if s.student_id not in charged]
+    concept = db.get(BillingConcept, plan.billing_concept_id) if plan.billing_concept_id else None
+    rate = concept.itbis_rate if concept is not None else 0
     description = f"{plan.charge_description} · {cycle_label(cycle)}"
     due = due_date(plan, cycle)
     try:
@@ -417,6 +419,7 @@ def generate(
                 created_by=user.user_id if user else None,
                 billing_plan_id=plan.billing_plan_id,
                 billing_cycle=cycle,
+                itbis_rate=rate,
             )
             db.add(charge)
             db.flush()

@@ -2662,6 +2662,24 @@
         "title": "BandOut",
         "type": "object"
       },
+      "BillTo": {
+        "properties": {
+          "name": {
+            "default": "",
+            "maxLength": 150,
+            "title": "Name",
+            "type": "string"
+          },
+          "tax_id": {
+            "default": "",
+            "maxLength": 20,
+            "title": "Tax Id",
+            "type": "string"
+          }
+        },
+        "title": "BillTo",
+        "type": "object"
+      },
       "BillingConceptCreate": {
         "properties": {
           "active": {
@@ -2692,6 +2710,19 @@
             "pattern": "^(once|monthly|term|annual)$",
             "title": "Frequency",
             "type": "string"
+          },
+          "itbis_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Itbis Rate"
           },
           "name": {
             "maxLength": 120,
@@ -2728,6 +2759,12 @@
           },
           "frequency": {
             "title": "Frequency",
+            "type": "string"
+          },
+          "itbis_rate": {
+            "default": "0",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Itbis Rate",
             "type": "string"
           },
           "name": {
@@ -4672,6 +4709,19 @@
               }
             ],
             "title": "Due Date"
+          },
+          "itbis_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Itbis Rate"
           }
         },
         "required": [
@@ -11715,6 +11765,55 @@
         "title": "PlatformToken",
         "type": "object"
       },
+      "ProfileIn": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "fiscal_address": {
+            "default": "",
+            "maxLength": 250,
+            "title": "Fiscal Address",
+            "type": "string"
+          },
+          "issue_on": {
+            "default": "payment",
+            "pattern": "^(payment|request)$",
+            "title": "Issue On",
+            "type": "string"
+          },
+          "legal_name": {
+            "default": "",
+            "maxLength": 150,
+            "title": "Legal Name",
+            "type": "string"
+          },
+          "mode": {
+            "pattern": "^(ncf|ecf)$",
+            "title": "Mode",
+            "type": "string"
+          },
+          "rnc": {
+            "default": "",
+            "maxLength": 11,
+            "title": "Rnc",
+            "type": "string"
+          },
+          "trade_name": {
+            "default": "",
+            "maxLength": 150,
+            "title": "Trade Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "mode"
+        ],
+        "title": "ProfileIn",
+        "type": "object"
+      },
       "PromotionProposal": {
         "properties": {
           "class_group_id": {
@@ -13992,6 +14091,44 @@
           "roster"
         ],
         "title": "SectionWorkspace",
+        "type": "object"
+      },
+      "SequenceIn": {
+        "properties": {
+          "doc_type": {
+            "pattern": "^(B01|B02|B04|B14|B15|E31|E32|E34|E44|E45)$",
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "expires_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires On"
+          },
+          "range_end": {
+            "minimum": 1.0,
+            "title": "Range End",
+            "type": "integer"
+          },
+          "range_start": {
+            "minimum": 1.0,
+            "title": "Range Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "doc_type",
+          "range_start",
+          "range_end"
+        ],
+        "title": "SequenceIn",
         "type": "object"
       },
       "Share": {
@@ -17805,6 +17942,27 @@
           "credits"
         ],
         "title": "VerifiedCredits",
+        "type": "object"
+      },
+      "VoidRequest": {
+        "properties": {
+          "note": {
+            "maxLength": 250,
+            "minLength": 5,
+            "title": "Note",
+            "type": "string"
+          },
+          "reason": {
+            "pattern": "^(0[1-9]|10)$",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "note"
+        ],
+        "title": "VoidRequest",
         "type": "object"
       },
       "WeightItem": {
@@ -26945,6 +27103,676 @@
         "summary": "Review Transfer",
         "tags": [
           "finance"
+        ]
+      }
+    },
+    "/fiscal/accounts/{student_id}/bill-to": {
+      "get": {
+        "operationId": "get_bill_to_fiscal_accounts__student_id__bill_to_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Bill To",
+        "tags": [
+          "fiscal receipts"
+        ]
+      },
+      "put": {
+        "description": "Who the receipts are issued to; with an RNC or cédula they give tax credit.",
+        "operationId": "set_bill_to_fiscal_accounts__student_id__bill_to_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillTo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Bill To",
+        "tags": [
+          "fiscal receipts"
+        ]
+      }
+    },
+    "/fiscal/documents": {
+      "get": {
+        "operationId": "list_documents_fiscal_documents_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "doc_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 3,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Doc Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 60,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "student_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Student Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Skip",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Documents",
+        "tags": [
+          "fiscal receipts"
+        ]
+      }
+    },
+    "/fiscal/documents/{document_id}.pdf": {
+      "get": {
+        "operationId": "document_pdf_fiscal_documents__document_id__pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Document Pdf",
+        "tags": [
+          "fiscal receipts"
+        ]
+      }
+    },
+    "/fiscal/documents/{document_id}/void": {
+      "post": {
+        "description": "Void a number with a DGII reason (608). A charged sale is undone with a credit\nnote instead: this is for receipts issued by mistake.",
+        "operationId": "void_document_fiscal_documents__document_id__void_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Void Document",
+        "tags": [
+          "fiscal receipts"
+        ]
+      }
+    },
+    "/fiscal/payments/{payment_id}": {
+      "get": {
+        "description": "The receipts of one payment, for whoever may see that account.",
+        "operationId": "documents_of_payment_fiscal_payments__payment_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_id",
+            "required": true,
+            "schema": {
+              "title": "Payment Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Documents Of Payment",
+        "tags": [
+          "fiscal receipts"
+        ]
+      }
+    },
+    "/fiscal/payments/{payment_id}/issue": {
+      "post": {
+        "description": "Issue the receipt of a payment (on request, or one left pending).",
+        "operationId": "issue_pending_fiscal_payments__payment_id__issue_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_id",
+            "required": true,
+            "schema": {
+              "title": "Payment Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Issue Pending",
+        "tags": [
+          "fiscal receipts"
+        ]
+      }
+    },
+    "/fiscal/profile": {
+      "get": {
+        "operationId": "get_profile_fiscal_profile_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Profile",
+        "tags": [
+          "fiscal receipts"
+        ]
+      },
+      "put": {
+        "operationId": "save_profile_fiscal_profile_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save Profile",
+        "tags": [
+          "fiscal receipts"
+        ]
+      }
+    },
+    "/fiscal/reports/607.txt": {
+      "get": {
+        "operationId": "dgii_607_fiscal_reports_607_txt_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "required": true,
+            "schema": {
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+              "title": "Month",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dgii 607",
+        "tags": [
+          "fiscal receipts"
+        ]
+      }
+    },
+    "/fiscal/reports/608.txt": {
+      "get": {
+        "operationId": "dgii_608_fiscal_reports_608_txt_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "required": true,
+            "schema": {
+              "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+              "title": "Month",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dgii 608",
+        "tags": [
+          "fiscal receipts"
+        ]
+      }
+    },
+    "/fiscal/sequences": {
+      "get": {
+        "operationId": "list_sequences_fiscal_sequences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Sequences",
+        "tags": [
+          "fiscal receipts"
+        ]
+      },
+      "post": {
+        "operationId": "add_sequence_fiscal_sequences_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SequenceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Sequence",
+        "tags": [
+          "fiscal receipts"
+        ]
+      }
+    },
+    "/fiscal/sequences/{sequence_id}/deactivate": {
+      "post": {
+        "operationId": "deactivate_sequence_fiscal_sequences__sequence_id__deactivate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sequence_id",
+            "required": true,
+            "schema": {
+              "title": "Sequence Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Deactivate Sequence",
+        "tags": [
+          "fiscal receipts"
         ]
       }
     },

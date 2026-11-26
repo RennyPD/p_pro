@@ -32,6 +32,7 @@ from .finance_model import (
     TransferBatch,
     TransferRequest,
 )
+from .fiscal_model import FiscalDocument, FiscalDocumentLine, FiscalProfile, FiscalSequence
 from .governance_model import CourseEquivalence, StudentCareerHistory
 from .grade_model import Grade, GradeChange
 from .grading_scale_model import GradingScale, GradingScaleBand

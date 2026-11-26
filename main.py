@@ -30,6 +30,7 @@ from app.routers.dashboard_router import router as dashboard_router
 from app.routers.document_router import router as document_router
 from app.routers.enrollment_router import router as enrollment_router
 from app.routers.finance_router import router as finance_router
+from app.routers.fiscal_router import router as fiscal_router
 from app.routers.governance_router import router as governance_router
 from app.routers.grade_router import router as grade_router
 from app.routers.grading_scale_router import router as grading_scale_router
@@ -168,6 +169,7 @@ app.include_router(auth_router)
 app.include_router(billing_router)
 app.include_router(signup_router)
 app.include_router(online_payment_router)
+app.include_router(fiscal_router)
 app.include_router(access_router)
 app.include_router(audit_router)
 app.include_router(career_router)

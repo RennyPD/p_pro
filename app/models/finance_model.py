@@ -32,6 +32,10 @@ class StudentAccount(TenantMixin, Base):
     cutoff_day: Mapped[int] = mapped_column(Integer, default=15)
     due_day: Mapped[int] = mapped_column(Integer, default=30)
     ledger_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Fiscal receipts (Fase 4 F): who the receipts are issued to. Empty name:
+    # consumer (B02/E32); with an RNC the receipt gives tax credit (B01/E31).
+    bill_to_name: Mapped[str] = mapped_column(String(150), default="", server_default="")
+    bill_to_tax_id: Mapped[str] = mapped_column(String(11), default="", server_default="")
     student: Mapped["Student"] = relationship("Student")
     charges: Mapped[list["Charge"]] = relationship("Charge", cascade="all, delete-orphan")
     payments: Mapped[list["Payment"]] = relationship("Payment", cascade="all, delete-orphan")
@@ -75,6 +79,10 @@ class Charge(TenantMixin, Base):
         ForeignKey("billing_plans.billing_plan_id"), nullable=True
     )
     billing_cycle: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    # ITBIS rate included in the amount, copied from the concept (Fase 4 F).
+    itbis_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal("0"), server_default="0"
+    )
 
 
 class Payment(TenantMixin, Base):
@@ -170,6 +178,11 @@ class BillingConcept(TenantMixin, Base):
     amount: Mapped[Decimal] = mapped_column(MONEY)
     frequency: Mapped[str] = mapped_column(String(20), default="once")
     active: Mapped[bool] = mapped_column(default=True)
+    # ITBIS included in the amount (Fase 4 F): education is exempt (0); goods and
+    # other services may carry 18 or 16.
+    itbis_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal("0"), server_default="0"
+    )
 
 
 class BillingPlan(TenantMixin, Base):

@@ -2,7 +2,14 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, Field, PlainSerializer, StringConstraints
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    Field,
+    PlainSerializer,
+    StringConstraints,
+    field_validator,
+)
 
 
 def validate_money(value: Decimal) -> Decimal:
@@ -25,12 +32,26 @@ class AccountUpdate(BaseModel):
     due_day: int = Field(ge=1, le=31)
 
 
+def check_rate(value):
+    """ITBIS rates of the Dominican Republic (Fase 4 F)."""
+    if Decimal(value) not in (Decimal("0"), Decimal("16"), Decimal("18")):
+        raise ValueError("El ITBIS debe ser 0 (exento), 16 o 18")
+    return Decimal(value)
+
+
 class ChargeCreate(BaseModel):
     description: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)
     ]
     amount: Money
     due_date: date | None = None
+    # ITBIS included in the amount (Fase 4 F): 0 exempt (education), 16 or 18.
+    itbis_rate: Decimal = Field(default=Decimal("0"))
+
+    @field_validator("itbis_rate")
+    @classmethod
+    def known_rate(cls, value):
+        return check_rate(value)
 
 
 class PaymentCreate(BaseModel):
@@ -101,6 +122,12 @@ class BillingConceptCreate(BaseModel):
     amount: Money
     frequency: str = Field(default="once", pattern=r"^(once|monthly|term|annual)$")
     active: bool = True
+    itbis_rate: Decimal = Field(default=Decimal("0"))
+
+    @field_validator("itbis_rate")
+    @classmethod
+    def known_rate(cls, value):
+        return check_rate(value)
 
 
 class ReasonRequest(BaseModel):
@@ -337,6 +364,7 @@ class BillingConceptOut(BaseModel):
     amount: Amount
     frequency: str
     active: bool
+    itbis_rate: Decimal = Decimal("0")
     model_config = {"from_attributes": True}
 
 

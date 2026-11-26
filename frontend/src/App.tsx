@@ -211,6 +211,9 @@ const OnlinePaymentsAdminPage = lazy(() =>
     default: module.OnlinePaymentsAdminPage,
   })),
 );
+const FiscalPage = lazy(() =>
+  import("./features/fiscal/FiscalPage").then(module => ({ default: module.FiscalPage })),
+);
 const SignupPage = lazy(() =>
   import("./features/signup/SignupPage").then(module => ({ default: module.SignupPage })),
 );
@@ -386,6 +389,7 @@ export default function App() {
               <Route path="finance/plans" element={<BillingPlansPage />} />
               <Route path="finance/policy" element={<FinancePolicyPage />} />
               <Route path="finance/online" element={<OnlinePaymentsAdminPage />} />
+              <Route path="finance/fiscal" element={<FiscalPage />} />
               <Route path="finance/:studentId" element={<FinancePage />} />
             </Route>
             <Route
