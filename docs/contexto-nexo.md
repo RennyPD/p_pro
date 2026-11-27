@@ -208,3 +208,8 @@ Plan aprobado el 26/11/2026: G3 textos legales, G1 sitio público, G2 demo, G4 d
    - Nunca envía correos, no vende planes ni configura pasarelas; los documentos legales quedan aceptados para no detener a los visitantes.
    - Hallazgo corregido al probar: `seed_institution` vaciaba tablas completas (incluido el catálogo global de permisos); ahora la limpieza total es opcional y la demo limpia solo lo suyo.
    - Pruebas: `tests/test_demo.py` y `DemoPage.test.tsx`.
+4. ✅ **G4, 27/11/2026: derechos sobre los datos** (`app/services/institution_data.py`, `app/routers/data_router.py`).
+   - Exportación completa (`/data/export.zip`, permiso `settings.manage`, también en solo lectura): un CSV por tabla de la institución y los archivos subidos; nunca contraseñas, segundos factores, sesiones, enlaces de correo ni claves de pasarelas.
+   - Datos de un estudiante (`/data/students/{id}/record.json`, permiso `students.manage`): expediente, cuentas, tutores, inscripciones, calificaciones, documentos y finanzas, para responder solicitudes de acceso (Ley 172-13). Botón en el expediente.
+   - Borrado definitivo desde la plataforma: solo instituciones suspendidas o sin activar, pasados 90 días, escribiendo su código; borra filas y archivos de esa institución y nada más, libera el código y queda en la auditoría. La institución principal nunca se borra. La limpieza la comparte la restauración de la demo.
+   - Pruebas: `tests/test_data_rights.py`; frontend en `PlatformPage.test.tsx`.

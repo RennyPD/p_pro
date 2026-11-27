@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.database import settings
@@ -63,6 +64,7 @@ def institution_out(db: Session, institution: Institution) -> dict:
         "created_at": institution.created_at,
         "usage": service.usage(db, institution.institution_id),
         "subscription": service.subscription_out(db, institution.institution_id),
+        "purge_available_on": service.purge_available_on(institution),
         "address": f"https://{institution.slug}.{domain}" if domain else None,
     }
 
@@ -156,6 +158,26 @@ def change_subscription(
     service.change_subscription(db, institution, data, admin)
     db.commit()
     return institution_out(db, institution)
+
+
+class PurgeRequest(BaseModel):
+    code: str = Field(min_length=3, max_length=60)
+    reason: str = Field(min_length=5, max_length=250)
+
+
+@router.post("/platform/institutions/{institution_id}/purge")
+def purge_institution(
+    institution_id: int,
+    data: PurgeRequest,
+    db: Session = Depends(get_db),
+    admin: PlatformAdmin = Depends(require_platform_admin),
+):
+    """Irreversible: deletes every record and file of the institution (90 days after it stopped)."""
+    service.lock_platform(db)
+    institution = service.institution_or_404(db, institution_id)
+    deleted = service.purge_institution(db, institution, data.code, data.reason, admin)
+    db.commit()
+    return {"status": institution.status, "deleted_rows": deleted}
 
 
 @router.get("/platform/plans", response_model=list[PlanOut])

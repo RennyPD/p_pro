@@ -12,7 +12,7 @@ from fastapi import HTTPException
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from app.db.database import Base, settings
+from app.db.database import settings
 from app.db.tenant import current_tenant, set_tenant, tenant_bypass
 from app.models.billing_model import Plan, Subscription
 from app.models.institution_model import Institution
@@ -82,41 +82,11 @@ def ensure_demo_institution(db: Session) -> Institution:
     return institution
 
 
-def tenant_tables():
-    return [
-        table
-        for table in reversed(Base.metadata.sorted_tables)
-        if "institution_id" in table.columns and table.name not in GLOBAL_WITH_INSTITUTION
-    ]
-
-
-# Global tables that only point to an institution: kept across resets.
-GLOBAL_WITH_INSTITUTION = {"institutions", "subscriptions", "legal_acceptances", "billing_events"}
-
-
 def clear_demo(db: Session, institution_id: int) -> None:
     """Delete every row of the demo institution, and its uploaded files."""
-    from app.services import storage
-    from app.services.file_migration import COLUMNS
+    from app.services.institution_data import delete_institution_rows
 
-    for columns in COLUMNS:
-        model = columns.model
-        keys = (
-            db.query(getattr(model, columns.key))
-            .filter(
-                model.institution_id == institution_id, getattr(model, columns.key).is_not(None)
-            )
-            .execution_options(**tenant_bypass())
-            .all()
-        )
-        for (key,) in keys:
-            try:
-                storage.backend().delete(key)
-            except Exception:
-                logger.warning("demo_file_not_deleted", extra={"key": key})
-    for table in tenant_tables():
-        db.execute(table.delete().where(table.c.institution_id == institution_id))
-    db.flush()
+    delete_institution_rows(db, institution_id)
 
 
 def reset_demo(engine: Engine) -> dict[str, int]:

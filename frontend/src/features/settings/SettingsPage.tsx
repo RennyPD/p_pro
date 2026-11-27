@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { DocumentDownload } from "../../components/DocumentDownload";
 import { useAccess } from "../../lib/permissions";
 import "./institution-settings.css";
 
@@ -118,7 +119,29 @@ export function SettingsPage() {
           />
         </div>
       </section>
+      <DataSection />
     </div>
+  );
+}
+
+/** Data portability (Fase 5 G4): everything the institution keeps in Nexo. */
+function DataSection() {
+  const access = useAccess();
+  if (!access.can("settings.manage")) return null;
+  return (
+    <section className="settings-group">
+      <h2>Datos de la institución</h2>
+      <p className="muted">
+        Descarga todo lo que tu institución guarda en Nexo: un archivo CSV por tabla y los
+        documentos subidos. No incluye contraseñas ni claves. También funciona en modo de solo
+        lectura.
+      </p>
+      <DocumentDownload
+        path="/data/export.zip"
+        filename="nexo-exportacion.zip"
+        label="Descargar todos los datos (ZIP)"
+      />
+    </section>
   );
 }
 function Setting({

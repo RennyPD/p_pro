@@ -429,6 +429,14 @@ export function StudentDossierPage() {
                 filename="boletin.pdf"
                 label="Boletín PDF"
               />
+              {access.can("students.manage") && (
+                <DocumentDownload
+                  path={`/data/students/${studentId}/record.json`}
+                  filename={`datos-estudiante-${studentId}.json`}
+                  label="Datos personales (JSON)"
+                  accessibleLabel="Datos personales del estudiante para una solicitud de acceso"
+                />
+              )}
             </div>
           )}
           {transcript.isLoading ? (

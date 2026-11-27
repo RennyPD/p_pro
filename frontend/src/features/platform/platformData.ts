@@ -31,4 +31,5 @@ export const institutionStatus: Record<
   suspended: { label: "Suspendida", tone: "danger" },
   pending: { label: "Pendiente de activar", tone: "info" },
   abandoned: { label: "Sin activar", tone: "neutral" },
+  deleted: { label: "Datos eliminados", tone: "neutral" },
 };

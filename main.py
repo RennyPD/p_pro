@@ -27,6 +27,7 @@ from app.routers.community_router import router as community_router
 from app.routers.configuration_router import router as configuration_router
 from app.routers.curriculum_router import router as curriculum_router
 from app.routers.dashboard_router import router as dashboard_router
+from app.routers.data_router import router as data_router
 from app.routers.demo_router import router as demo_router
 from app.routers.document_router import router as document_router
 from app.routers.enrollment_router import router as enrollment_router
@@ -174,6 +175,7 @@ app.include_router(online_payment_router)
 app.include_router(fiscal_router)
 app.include_router(legal_router)
 app.include_router(demo_router)
+app.include_router(data_router)
 app.include_router(access_router)
 app.include_router(audit_router)
 app.include_router(career_router)

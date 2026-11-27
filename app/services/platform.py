@@ -430,3 +430,58 @@ def expire_signups(db: Session, moment: datetime | None = None) -> list[str]:
         )
         expired.append(code)
     return expired
+
+
+# --- Final deletion (Fase 5, step G4) ------------------------------------------------
+
+RETENTION_DAYS = 90
+PURGEABLE = ("suspended", "abandoned")
+
+
+def purge_available_on(institution: Institution) -> datetime | None:
+    """First moment the institution's data may be deleted (90 days after it stopped)."""
+    if institution.status not in PURGEABLE or institution.status_changed_at is None:
+        return None
+    return institution.status_changed_at + timedelta(days=RETENTION_DAYS)
+
+
+def purge_institution(db: Session, institution: Institution, code: str, reason: str, actor) -> int:
+    """Delete every record and file of a suspended or abandoned institution, for good."""
+    from app.models.billing_model import BillingEvent
+    from app.models.legal_model import LegalAcceptance
+    from app.services.institution_data import delete_institution_rows
+
+    if institution.institution_id == 1:
+        raise HTTPException(409, "La institución principal de la instalación no se elimina")
+    available = purge_available_on(institution)
+    if available is None:
+        raise HTTPException(409, "Solo se eliminan instituciones suspendidas o sin activar")
+    if now() < available:
+        raise HTTPException(
+            409, f"Los datos se conservan 90 días: se podrán eliminar desde el {available:%d/%m/%Y}"
+        )
+    original = (
+        institution.slug.split("-", 2)[-1]
+        if institution.status == "abandoned"
+        else institution.slug
+    )
+    if code.strip().casefold() not in {institution.slug, original}:
+        raise HTTPException(422, "Escribe el código de la institución para confirmar")
+    deleted = delete_institution_rows(db, institution.institution_id)
+    for model in (Subscription, BillingEvent, LegalAcceptance):
+        db.query(model).filter(model.institution_id == institution.institution_id).delete(
+            synchronize_session=False
+        )
+    institution.status = "deleted"
+    institution.status_reason = f"Datos eliminados: {reason.strip()}"[:250]
+    institution.status_changed_at = now()
+    institution.contact_email = None
+    institution.slug = f"eliminada-{institution.institution_id}"
+    platform_record(
+        db,
+        actor,
+        "institution.purged",
+        f"institution:{institution.institution_id}",
+        f"{institution.name}: {deleted} registros eliminados; {reason.strip()}",
+    )
+    return deleted

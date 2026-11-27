@@ -1810,6 +1810,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/data/export.zip": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Export Institution
+     * @description Everything the institution keeps in Nexo, to take it anywhere (also in read-only mode).
+     */
+    get: operations["export_institution_data_export_zip_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/data/students/{student_id}/record.json": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Student Record
+     * @description What the institution keeps about one student: to answer an access request (Ley 172-13).
+     */
+    get: operations["student_record_data_students__student_id__record_json_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/documents/sections/{section_id}/roster.pdf": {
     parameters: {
       query?: never;
@@ -4328,6 +4368,26 @@ export interface paths {
     put?: never;
     /** Create Institution */
     post: operations["create_institution_platform_institutions_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/institutions/{institution_id}/purge": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Purge Institution
+     * @description Irreversible: deletes every record and file of the institution (90 days after it stopped).
+     */
+    post: operations["purge_institution_platform_institutions__institution_id__purge_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -8753,6 +8813,8 @@ export interface components {
       institution_id: number;
       /** Name */
       name: string;
+      /** Purge Available On */
+      purge_available_on?: string | null;
       /** Status */
       status: string;
       /** Status Changed At */
@@ -9635,6 +9697,13 @@ export interface components {
       name: string;
       /** Status */
       status: string;
+    };
+    /** PurgeRequest */
+    PurgeRequest: {
+      /** Code */
+      code: string;
+      /** Reason */
+      reason: string;
     };
     /** RecoveryIn */
     RecoveryIn: {
@@ -15582,6 +15651,57 @@ export interface operations {
       };
     };
   };
+  export_institution_data_export_zip_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+    };
+  };
+  student_record_data_students__student_id__record_json_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        student_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   roster_pdf_documents_sections__section_id__roster_pdf_get: {
     parameters: {
       query?: never;
@@ -20887,6 +21007,41 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["InstitutionOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  purge_institution_platform_institutions__institution_id__purge_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        institution_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PurgeRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */

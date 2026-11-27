@@ -100,6 +100,7 @@ class InstitutionOut(BaseModel):
     created_at: datetime
     usage: InstitutionUsage
     subscription: SubscriptionOut | None = None
+    purge_available_on: datetime | None = None
     address: str | None = None
 
 

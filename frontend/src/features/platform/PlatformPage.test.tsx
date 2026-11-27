@@ -125,4 +125,34 @@ describe("PlatformPage", () => {
       }),
     );
   });
+
+  it("deletes an institution's data only after typing its code", async () => {
+    usePlatformSession.getState().signIn("plataforma");
+    const stopped = {
+      ...institution,
+      status: "suspended",
+      purge_available_on: "2026-01-01T00:00:00",
+    };
+    vi.spyOn(platformApi, "get").mockImplementation(async url =>
+      url === "/platform/institutions"
+        ? ({ data: [stopped], headers: { "x-total-count": "1" } } as never)
+        : ({ data: url === "/platform/me" ? { name: "Equipo" } : [] } as never),
+    );
+    const post = vi.spyOn(platformApi, "post").mockResolvedValue({ data: {} });
+    renderPage();
+    const row = (await screen.findByText("Liceo Horizonte")).closest("tr") as HTMLElement;
+    await userEvent.click(within(row).getByRole("button", { name: "Eliminar datos" }));
+    const dialog = await screen.findByRole("dialog");
+    const confirm = within(dialog).getByRole("button", { name: "Eliminar definitivamente" });
+    await userEvent.type(within(dialog).getByLabelText("Motivo"), "Cancelación vencida");
+    expect(confirm).toBeDisabled();
+    await userEvent.type(within(dialog).getByLabelText(/Escribe el código/), "liceo-horizonte");
+    await userEvent.click(confirm);
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith("/platform/institutions/2/purge", {
+        code: "liceo-horizonte",
+        reason: "Cancelación vencida",
+      }),
+    );
+  });
 });

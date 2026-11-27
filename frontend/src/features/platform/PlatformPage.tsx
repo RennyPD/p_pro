@@ -7,10 +7,11 @@ import { z } from "zod";
 import { Badge, Button, EmptyState, Modal, Spinner } from "../../components/ui";
 import { apiMessage } from "../../lib/api";
 import type { ApiSchema } from "../../lib/apiTypes";
-import { formatDateTime } from "../../lib/format";
+import { formatDate, formatDateTime } from "../../lib/format";
 import { platformApi, usePlatformSession } from "../../lib/platformApi";
 import "./platform.css";
 import { ChangePlan, PlansPanel } from "./PlansPanel";
+import { PurgeDialog } from "./PurgeDialog";
 import { institutionStatus, subscriptionLabels } from "./platformData";
 
 type Institution = ApiSchema<"InstitutionOut">;
@@ -112,6 +113,7 @@ function PlatformConsole() {
   const [creating, setCreating] = useState(false);
   const [changing, setChanging] = useState<Institution | null>(null);
   const [planFor, setPlanFor] = useState<Institution | null>(null);
+  const [purging, setPurging] = useState<Institution | null>(null);
   const me = useQuery({
     queryKey: ["platform", "me"],
     queryFn: () => platformApi.get<Me>("/platform/me").then(r => r.data),
@@ -220,6 +222,16 @@ function PlatformConsole() {
                     <Button variant="secondary" onClick={() => setPlanFor(row)}>
                       Plan
                     </Button>
+                    {row.purge_available_on &&
+                      (new Date(row.purge_available_on) <= new Date() ? (
+                        <Button variant="danger" onClick={() => setPurging(row)}>
+                          Eliminar datos
+                        </Button>
+                      ) : (
+                        <span className="muted">
+                          Eliminable desde {formatDate(row.purge_available_on)}
+                        </span>
+                      ))}
                     <Button
                       variant={row.status === "active" ? "danger" : "secondary"}
                       onClick={() => setChanging(row)}
@@ -257,6 +269,7 @@ function PlatformConsole() {
       {creating && <CreateInstitution onClose={() => setCreating(false)} />}
       {changing && <ChangeStatus institution={changing} onClose={() => setChanging(null)} />}
       {planFor && <ChangePlan institution={planFor} onClose={() => setPlanFor(null)} />}
+      {purging && <PurgeDialog institution={purging} onClose={() => setPurging(null)} />}
     </div>
   );
 }
