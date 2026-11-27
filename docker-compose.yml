@@ -51,6 +51,14 @@ services:
         VITE_API_URL: http://localhost:8000
     ports: ["3000:80"]
     depends_on: [api]
+  site:
+    build:
+      context: site
+      args:
+        APP_URL: http://localhost:3000
+        API_URL: http://localhost:8000
+        SITE_URL: http://localhost:8080
+    ports: ["8080:80"]
 volumes:
   postgres_data:
   storage_data:

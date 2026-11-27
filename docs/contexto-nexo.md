@@ -197,3 +197,8 @@ Plan aprobado el 26/11/2026: G3 textos legales, G1 sitio público, G2 demo, G4 d
    - Versionados en el repositorio. Páginas públicas `/legal/<documento>` y enlaces en el inicio de sesión.
    - El registro exige aceptar términos y privacidad; la administración de cada institución (`settings.manage`) acepta términos y acuerdo de tratamiento al entrar, y de nuevo cuando cambie la versión. Cada aceptación guarda versión, cuenta, institución, fecha y dirección. Se puede aceptar aun en modo de solo lectura.
    - Pruebas: `tests/test_legal.py` y `legal.test.tsx`.
+2. ✅ **G1, 27/11/2026: sitio público** (`site/`, servicio `site`).
+   - HTML y CSS estáticos para el dominio principal: inicio, funciones (escuela, universidad, docencia, finanzas), demo, precios, seguridad y privacidad, preguntas frecuentes, contacto y enlaces legales.
+   - Los precios se leen de `/public/signup`, así el sitio nunca muestra precios viejos. Las direcciones de la aplicación y del API y el correo de contacto se fijan al construir la imagen.
+   - Sin cookies, sin analítica y sin scripts de terceros; CSP estricta (sin código en línea), sitemap y robots. Comprobado en Chromium a 1280 y 390 px sin desbordes ni errores.
+   - Pruebas: `tests/test_site.py` (enlaces y anclas, sin código en línea, marcadores de construcción) y construcción de la imagen en CI.

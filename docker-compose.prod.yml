@@ -72,3 +72,13 @@ services:
     ports: ["127.0.0.1:3000:80"]
     restart: unless-stopped
     depends_on: [api]
+  site:
+    build:
+      context: site
+      args:
+        APP_URL: ${APP_URL:?}
+        API_URL: ${VITE_API_URL:?}
+        SITE_URL: ${SITE_URL:?}
+        CONTACT_EMAIL: ${CONTACT_EMAIL:-}
+    ports: ["127.0.0.1:8080:80"]  # the main domain (nexo.do) behind your HTTPS proxy
+    restart: unless-stopped

@@ -10,6 +10,7 @@ Nexo se despliega con imágenes Docker y no depende de un proveedor concreto. Si
 | `worker` | Misma imagen, `python -m scripts.scheduler`: correos cada 2 min, cobros diarios a las 6:30 y recordatorios a las 7:00 (America/Santo_Domingo) | 1 (más réplicas quedan en espera) |
 | `migrate` | Misma imagen, `alembic upgrade head` | Una vez por versión, antes de `api` y `worker` |
 | `web` | `frontend/Dockerfile`: nginx con la interfaz compilada | 1 o más |
+| `site` | `site/Dockerfile`: sitio público estático del dominio principal (`APP_URL`, `API_URL`, `SITE_URL`, `CONTACT_EMAIL` al construir) | 1 |
 | PostgreSQL 16 o superior | Servicio gestionado recomendado (copias automáticas) | 1 |
 | Almacenamiento S3 compatible | Archivos subidos (Cloudflare R2 recomendado; AWS S3, Spaces o MinIO también sirven) | 1 bucket privado |
 | SMTP | Correo (Amazon SES, Brevo, Resend, Google Workspace…) | 1 |
@@ -50,6 +51,7 @@ Con `TENANT_BASE_DOMAIN=nexo.do`:
 | `*.nexo.do` (comodín) | `web`: cada institución en `<código>.nexo.do` |
 | `admin.nexo.do` | `web`: panel de plataforma en `/plataforma` |
 | `api.nexo.do` | `api` |
+| `nexo.do` (dominio principal) | `site`: sitio público estático (Fase 5); los precios se leen del API |
 
 - El certificado comodín (`*.nexo.do`) requiere validación por DNS. Cloudflare (proxy y certificados automáticos), un balanceador del proveedor o Caddy/Traefik con desafío DNS lo resuelven.
 - El proxy debe pasar la cabecera `Host` y las cabeceras `X-Forwarded-*`. Configura `FORWARDED_ALLOW_IPS` con la dirección del proxy; usa `*` solo si el contenedor no es accesible de otra forma, como en `docker-compose.prod.yml`, donde escucha solo en `127.0.0.1`.
