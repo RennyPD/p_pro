@@ -83,6 +83,8 @@ SCOPE_CHECKED = {
         "POST",
         "/platform/institutions/{institution_id}/purge",
     ): "platform super administration (platform token)",
+    ("GET", "/public/help"): "public help center",
+    ("GET", "/public/help/{slug}"): "public help center",
     ("GET", "/billing/status"): "any account: only its own institution's plan status",
     ("POST", "/billing/webhooks/stripe"): "payment provider webhook, verified by its signature",
     ("GET", "/platform/plans"): "platform super administration (platform token)",

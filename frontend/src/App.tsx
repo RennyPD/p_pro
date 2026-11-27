@@ -214,6 +214,9 @@ const OnlinePaymentsAdminPage = lazy(() =>
 const FiscalPage = lazy(() =>
   import("./features/fiscal/FiscalPage").then(module => ({ default: module.FiscalPage })),
 );
+const HelpPage = lazy(() =>
+  import("./features/help/HelpPage").then(module => ({ default: module.HelpPage })),
+);
 const DemoPage = lazy(() =>
   import("./features/demo/DemoPage").then(module => ({ default: module.DemoPage })),
 );
@@ -300,6 +303,8 @@ export default function App() {
           <Route path="/registro" element={<SignupPage />} />
           <Route path="/legal/:slug" element={<LegalPage />} />
           <Route path="/demo" element={<DemoPage />} />
+          <Route path="/ayuda" element={<HelpPage />} />
+          <Route path="/ayuda/:slug" element={<HelpPage />} />
           <Route path="/pagos/resultado" element={<OnlinePaymentResultPage />} />
           <Route path="/pagos/sandbox" element={<SandboxGatewayPage />} />
           <Route path="/restablecer" element={<ChoosePasswordPage mode="reset" />} />
@@ -308,6 +313,8 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="modules/:module" element={<CustomModuleRoute />} />
             <Route path="account" element={<AccountPage />} />
+            <Route path="help" element={<HelpPage base="/help" />} />
+            <Route path="help/:slug" element={<HelpPage base="/help" />} />
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="communications" element={<CommunityPage />} />
             <Route element={<Allow when={a => a.guardian && a.can("records.own")} />}>

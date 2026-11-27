@@ -213,3 +213,7 @@ Plan aprobado el 26/11/2026: G3 textos legales, G1 sitio público, G2 demo, G4 d
    - Datos de un estudiante (`/data/students/{id}/record.json`, permiso `students.manage`): expediente, cuentas, tutores, inscripciones, calificaciones, documentos y finanzas, para responder solicitudes de acceso (Ley 172-13). Botón en el expediente.
    - Borrado definitivo desde la plataforma: solo instituciones suspendidas o sin activar, pasados 90 días, escribiendo su código; borra filas y archivos de esa institución y nada más, libera el código y queda en la auditoría. La institución principal nunca se borra. La limpieza la comparte la restauración de la demo.
    - Pruebas: `tests/test_data_rights.py`; frontend en `PlatformPage.test.tsx`.
+5. ✅ **G5, 27/11/2026: centro de ayuda** (`app/help/`, `/ayuda` público y `/help` dentro de la aplicación).
+   - Diez guías en Markdown versionadas en el repositorio, etiquetadas por rol: primeros pasos, calificaciones y boletines, finanzas, pagos en línea y comprobantes fiscales (administración); docentes; estudiantes; familias; seguridad de la cuenta y preguntas frecuentes (todos).
+   - La página muestra primero las guías del rol de quien la abre. «Ayuda» en el menú y en el pie del sitio público.
+   - Pruebas: `tests/test_help.py` y `HelpPage.test.tsx`.

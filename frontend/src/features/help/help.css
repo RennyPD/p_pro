@@ -1,0 +1,67 @@
+.help-page {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.help-layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 18rem) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.help-index h2 {
+  margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.help-index ul {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.help-index a {
+  display: grid;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.help-index a[aria-current="page"],
+.help-index a:hover {
+  background: var(--blue-soft);
+}
+
+.help-index small {
+  color: var(--muted);
+}
+
+.help-article {
+  min-height: 16rem;
+  padding: 1.5rem;
+}
+
+.help-welcome {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  padding: 3rem 1rem;
+  color: var(--muted);
+}
+
+.help-welcome svg {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+@media (max-width: 760px) {
+  .help-layout {
+    grid-template-columns: 1fr;
+  }
+}

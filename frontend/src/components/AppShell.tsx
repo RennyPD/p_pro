@@ -17,6 +17,7 @@ import {
   NotebookPen,
   Settings2,
   CreditCard,
+  LifeBuoy,
   Users,
   Wallet,
   X,
@@ -191,6 +192,7 @@ const NAV: NavItem[] = [
 const ACCOUNT_NAV: NavItem[] = [
   { to: "/approvals", label: "Mis solicitudes", icon: FileText, group: "Mi cuenta" },
   { to: "/account", label: "Mi seguridad", icon: KeyRound, group: "Mi cuenta" },
+  { to: "/help", label: "Ayuda", icon: LifeBuoy, group: "Mi cuenta" },
 ];
 
 /** "Instituto Técnico Horizonte" → "IH" (skips short connector words). */

@@ -90,3 +90,31 @@ def accept(
             summary(DOCUMENTS[k]) for k in legal.pending_for_institution(db, user.institution_id)
         ]
     }
+
+
+# --- Help center (Fase 5, step G5) ---------------------------------------------------
+
+
+@router.get("/public/help", dependencies=[Depends(per_address(PUBLIC))])
+def list_guides():
+    from app.help import GUIDES
+
+    return [
+        {"slug": g.slug, "title": g.title, "summary": g.summary, "audience": list(g.audience)}
+        for g in GUIDES
+    ]
+
+
+@router.get("/public/help/{slug}", dependencies=[Depends(per_address(PUBLIC))])
+def read_guide(slug: str):
+    from app.help import BY_SLUG
+
+    guide = BY_SLUG.get(slug)
+    if guide is None:
+        raise HTTPException(404, "Guía no encontrada")
+    return {
+        "slug": guide.slug,
+        "title": guide.title,
+        "audience": list(guide.audience),
+        "text": guide.text,
+    }
