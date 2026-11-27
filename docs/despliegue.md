@@ -76,6 +76,7 @@ Crea `.env.production` en el servidor (nunca en el repositorio) o usa el gestor 
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Claves de Stripe (webhook: `https://api.nexo.do/billing/webhooks/stripe` con los eventos `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed` y `customer.subscription.deleted`) |
 | `BILLING_TRIAL_DAYS` | Días de prueba de una institución nueva (30) |
 | `PAYMENTS_ENCRYPTION_KEY` | Clave Fernet que cifra las credenciales de las pasarelas de pago de cada institución (`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`). Para rotar, pon la nueva primero, separada por coma; guárdala en el gestor de secretos: sin ella no se pueden leer las credenciales |
+| `DEMO_ENABLED` | `true` abre la demo pública (`/demo`); créala con `python -m scripts.reset_demo` y el `worker` la restaura cada noche |
 | `SIGNUP_ENABLED` | `false` cierra el registro público en `/registro` (las instituciones se crean desde la plataforma) |
 | `SENTRY_DSN`, `VITE_SENTRY_DSN` | Opcionales |
 | `RELEASE` | Versión o commit desplegado (Sentry) |

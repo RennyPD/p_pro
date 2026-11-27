@@ -285,9 +285,12 @@ def clear_application_data(db: Session) -> None:
     db.flush()
 
 
-def seed_institution(db: Session) -> dict[str, int]:
+def seed_institution(db: Session, clear: bool = True) -> dict[str, int]:
+    """``clear=False`` when the caller already emptied the institution (the demo,
+    Fase 5 G2): clear_application_data empties whole tables, other institutions too."""
     rng = Random(20260918)
-    clear_application_data(db)
+    if clear:
+        clear_application_data(db)
 
     roles = {
         name: Role(name=name, description=description)

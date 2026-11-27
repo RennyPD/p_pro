@@ -13,6 +13,7 @@ from app.services.billing import lifecycle
 from app.services.billing.access import allow_while_read_only
 from app.services.billing.limits import GB, ceiling, subscription_of, usage
 from app.services.billing.providers import SandboxProvider, StripeProvider, provider
+from app.services.demo import refuse_in_demo
 from app.services.frontend_url import frontend_base
 from app.services.platform import lock_platform
 from app.services.write_locks import lock_access
@@ -185,6 +186,7 @@ def checkout(
     db: Session = Depends(get_db),
     user: User = Depends(manager),
 ):
+    refuse_in_demo(db, "Cambiar de plan")
     allow_while_read_only(db)  # paying is how a read-only institution gets back
     lock_access(db)
     subscription = require_subscription(db, user)
@@ -209,6 +211,7 @@ def checkout(
 
 @router.post("/portal")
 def portal(request: Request, db: Session = Depends(get_db), user: User = Depends(manager)):
+    refuse_in_demo(db, "El método de pago")
     allow_while_read_only(db)
     lock_access(db)
     subscription = require_subscription(db, user)

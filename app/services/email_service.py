@@ -44,6 +44,10 @@ def queue_email(
     """Add an email to the outbox; returns None if there is no address or it is a duplicate."""
     if not to or "@" not in to:
         return None
+    from app.services.demo import is_demo
+
+    if is_demo(db):
+        return None  # the public demo never emails anyone (Fase 5 G2)
     if dedupe_key is not None:
         pending = [
             item

@@ -202,3 +202,9 @@ Plan aprobado el 26/11/2026: G3 textos legales, G1 sitio público, G2 demo, G4 d
    - Los precios se leen de `/public/signup`, así el sitio nunca muestra precios viejos. Las direcciones de la aplicación y del API y el correo de contacto se fijan al construir la imagen.
    - Sin cookies, sin analítica y sin scripts de terceros; CSP estricta (sin código en línea), sitemap y robots. Comprobado en Chromium a 1280 y 390 px sin desbordes ni errores.
    - Pruebas: `tests/test_site.py` (enlaces y anclas, sin código en línea, marcadores de construcción) y construcción de la imagen en CI.
+3. ✅ **G2, 27/11/2026: demo pública** (`app/services/demo.py`, `/demo`).
+   - Institución `demo` (código reservado) con el escenario de ejemplo de escuela y universidad, restaurada cada noche a las 3:00 por el `worker` (`DEMO_ENABLED=true`) o con `python -m scripts.reset_demo`. La restauración borra solo las filas y los archivos de la demo (nunca el catálogo compartido de permisos ni otras instituciones).
+   - Entrada con un clic como administración, docente, estudiante o familia, y aviso «Estás en la demo» dentro de la aplicación.
+   - Nunca envía correos, no vende planes ni configura pasarelas; los documentos legales quedan aceptados para no detener a los visitantes.
+   - Hallazgo corregido al probar: `seed_institution` vaciaba tablas completas (incluido el catálogo global de permisos); ahora la limpieza total es opcional y la demo limpia solo lo suyo.
+   - Pruebas: `tests/test_demo.py` y `DemoPage.test.tsx`.

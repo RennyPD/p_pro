@@ -1,0 +1,45 @@
+.demo-page {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  padding: 2.5rem 1rem;
+}
+
+.demo-page h1 {
+  margin: 0.4rem 0;
+}
+
+.demo-roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.demo-role {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.demo-role svg {
+  width: 1.8rem;
+  height: 1.8rem;
+  color: var(--blue);
+}
+
+.demo-role h2,
+.demo-role p {
+  margin: 0;
+}
+
+.demo-role p {
+  color: var(--ink-soft);
+}
+
+.demo-banner {
+  margin: 0 0 1rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--blue-line);
+  border-radius: 0.6rem;
+  background: var(--blue-soft);
+}

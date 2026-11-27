@@ -6182,6 +6182,20 @@
         "title": "DayEnum",
         "type": "string"
       },
+      "DemoLogin": {
+        "properties": {
+          "role": {
+            "pattern": "^(admin|teacher|student|guardian)$",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "DemoLogin",
+        "type": "object"
+      },
       "DistributionUpdate": {
         "properties": {
           "components": {
@@ -33396,6 +33410,66 @@
         "summary": "Update Plan",
         "tags": [
           "platform"
+        ]
+      }
+    },
+    "/public/demo": {
+      "get": {
+        "operationId": "demo_info_public_demo_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Demo Info",
+        "tags": [
+          "demo"
+        ]
+      }
+    },
+    "/public/demo/login": {
+      "post": {
+        "operationId": "demo_login_public_demo_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoLogin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Demo Login",
+        "tags": [
+          "demo"
         ]
       }
     },

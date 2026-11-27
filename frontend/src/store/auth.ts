@@ -30,6 +30,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUser: user => set({ user }),
   clearSession: () => {
     sessionStorage.removeItem("nexo_access_token");
+    sessionStorage.removeItem("nexo_demo");
     set(state => ({ token: null, user: null, sessionGeneration: state.sessionGeneration + 1 }));
   },
   hydrate: () => set({ hydrated: true }),

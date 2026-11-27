@@ -214,6 +214,9 @@ const OnlinePaymentsAdminPage = lazy(() =>
 const FiscalPage = lazy(() =>
   import("./features/fiscal/FiscalPage").then(module => ({ default: module.FiscalPage })),
 );
+const DemoPage = lazy(() =>
+  import("./features/demo/DemoPage").then(module => ({ default: module.DemoPage })),
+);
 const LegalPage = lazy(() =>
   import("./features/legal/LegalPage").then(module => ({ default: module.LegalPage })),
 );
@@ -296,6 +299,7 @@ export default function App() {
           <Route path="/recuperar" element={<ForgotPasswordPage />} />
           <Route path="/registro" element={<SignupPage />} />
           <Route path="/legal/:slug" element={<LegalPage />} />
+          <Route path="/demo" element={<DemoPage />} />
           <Route path="/pagos/resultado" element={<OnlinePaymentResultPage />} />
           <Route path="/pagos/sandbox" element={<SandboxGatewayPage />} />
           <Route path="/restablecer" element={<ChoosePasswordPage mode="reset" />} />

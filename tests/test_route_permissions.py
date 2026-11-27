@@ -77,6 +77,8 @@ SCOPE_CHECKED = {
     ("GET", "/public/legal/{slug}"): "public legal documents",
     ("GET", "/legal/pending"): "any account; only administrators get documents to accept",
     ("POST", "/legal/accept"): "settings.manage checked in the route (institution administrators)",
+    ("GET", "/public/demo"): "public: whether the demo is open",
+    ("POST", "/public/demo/login"): "public demo entry (DEMO_ENABLED, demo institution only)",
     ("GET", "/billing/status"): "any account: only its own institution's plan status",
     ("POST", "/billing/webhooks/stripe"): "payment provider webhook, verified by its signature",
     ("GET", "/platform/plans"): "platform super administration (platform token)",

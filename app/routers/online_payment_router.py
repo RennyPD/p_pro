@@ -18,6 +18,7 @@ from app.models.user_model import User
 from app.pagination import page_query, search
 from app.services.audit_log import record
 from app.services.business_time import business_day_utc_range
+from app.services.demo import refuse_in_demo
 from app.services.finance_workflow import cents, get_account, lock_finance, summary
 from app.services.frontend_url import frontend_base
 from app.services.payments import intents
@@ -343,6 +344,7 @@ def get_config(db: Session = Depends(get_db), _user: User = Depends(finance_mana
 def save_config(
     data: GatewayConfigIn, db: Session = Depends(get_db), user: User = Depends(finance_manager)
 ):
+    refuse_in_demo(db, "Configurar la pasarela de pago")
     lock_finance(db)
     config = intents.config_of(db) or PaymentGatewayConfig(secrets="")
     db.add(config)

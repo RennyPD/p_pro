@@ -109,6 +109,7 @@ PUBLIC = {
     ("GET", "/public/institution"),
     ("POST", "/platform/auth/login"),
     ("POST", "/public/signup"),
+    ("POST", "/public/demo/login"),
 }
 
 

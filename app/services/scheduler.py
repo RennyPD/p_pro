@@ -106,10 +106,21 @@ def send_pending_ecf(engine: Engine) -> str:
     return f"e-CF reenviados: {results}" if results else "Sin e-CF pendientes"
 
 
+def reset_demo(engine: Engine) -> str:
+    from app.db.database import settings
+    from app.services.demo import reset_demo as reset
+
+    if not settings.demo_enabled:
+        return "Demo desactivada"
+    summary = reset(engine)
+    return f"Demo restaurada: {summary}"
+
+
 JOBS = (
     Job("emails", send_emails, every=timedelta(minutes=2)),
     Job("online_payments", expire_online_payments, every=timedelta(minutes=10)),
     Job("ecf", send_pending_ecf, every=timedelta(minutes=10)),
+    Job("demo", reset_demo, at=time(3, 0)),
     Job("subscriptions", advance_subscriptions, at=time(6, 0)),
     Job("billing", run_billing, at=time(6, 30)),
     Job("reminders", send_reminders, at=time(7, 0)),
