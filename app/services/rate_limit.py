@@ -47,6 +47,9 @@ PUBLIC = Limit("public", 60, 60, "Demasiadas consultas. Espera un minuto")
 PAYMENTS = Limit(
     "payments", 20, 600, "Iniciaste demasiados pagos en poco tiempo. Espera unos minutos"
 )
+SUPPORT = Limit(
+    "support", 20, 3600, "Enviaste muchos mensajes a soporte en la última hora. Espera un poco"
+)
 SIGNUP = Limit(
     "signup", 5, 3600, "Demasiados registros desde esta dirección. Inténtalo en una hora"
 )

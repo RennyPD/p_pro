@@ -468,7 +468,19 @@ def purge_institution(db: Session, institution: Institution, code: str, reason: 
     if code.strip().casefold() not in {institution.slug, original}:
         raise HTTPException(422, "Escribe el código de la institución para confirmar")
     deleted = delete_institution_rows(db, institution.institution_id)
-    for model in (Subscription, BillingEvent, LegalAcceptance):
+    from app.models.support_model import SupportMessage, SupportTicket
+
+    tickets = [
+        row[0]
+        for row in db.query(SupportTicket.support_ticket_id).filter(
+            SupportTicket.institution_id == institution.institution_id
+        )
+    ]
+    if tickets:
+        db.query(SupportMessage).filter(SupportMessage.support_ticket_id.in_(tickets)).delete(
+            synchronize_session=False
+        )
+    for model in (SupportTicket, Subscription, BillingEvent, LegalAcceptance):
         db.query(model).filter(model.institution_id == institution.institution_id).delete(
             synchronize_session=False
         )

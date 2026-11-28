@@ -12,6 +12,7 @@ import { platformApi, usePlatformSession } from "../../lib/platformApi";
 import "./platform.css";
 import { ChangePlan, PlansPanel } from "./PlansPanel";
 import { PurgeDialog } from "./PurgeDialog";
+import { SupportInbox } from "./SupportInbox";
 import { institutionStatus, subscriptionLabels } from "./platformData";
 
 type Institution = ApiSchema<"InstitutionOut">;
@@ -264,6 +265,7 @@ function PlatformConsole() {
           Siguiente
         </Button>
       </div>
+      <SupportInbox />
       <PlansPanel />
       <PlatformAudit />
       {creating && <CreateInstitution onClose={() => setCreating(false)} />}

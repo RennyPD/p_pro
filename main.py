@@ -53,6 +53,7 @@ from app.routers.section_router import router as section_router
 from app.routers.signup_router import router as signup_router
 from app.routers.student_router import router as student_router
 from app.routers.subject_router import router as subject_router
+from app.routers.support_router import router as support_router
 from app.routers.teacher_router import router as teacher_router
 from app.routers.user_router import router as user_router
 from app.services.validation_messages import spanish_message
@@ -176,6 +177,7 @@ app.include_router(fiscal_router)
 app.include_router(legal_router)
 app.include_router(demo_router)
 app.include_router(data_router)
+app.include_router(support_router)
 app.include_router(access_router)
 app.include_router(audit_router)
 app.include_router(career_router)

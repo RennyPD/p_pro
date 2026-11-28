@@ -45,8 +45,14 @@ export function HelpPage({ base = "/ayuda" }: { base?: string }) {
           <span className="kicker">Centro de ayuda</span>
           <h1>¿En qué te ayudamos?</h1>
           <p>
-            Guías cortas para cada rol. Si no encuentras lo que buscas, escríbenos desde «Ayuda y
-            soporte».
+            Guías cortas para cada rol.{" "}
+            {base === "/help" ? (
+              <>
+                ¿No encuentras lo que buscas? <Link to="/support">Escríbele a soporte</Link>.
+              </>
+            ) : (
+              "Si ya usas Nexo, escríbenos desde «Soporte» dentro de la aplicación."
+            )}
           </p>
         </div>
       </header>

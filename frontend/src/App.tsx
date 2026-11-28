@@ -214,6 +214,9 @@ const OnlinePaymentsAdminPage = lazy(() =>
 const FiscalPage = lazy(() =>
   import("./features/fiscal/FiscalPage").then(module => ({ default: module.FiscalPage })),
 );
+const SupportPage = lazy(() =>
+  import("./features/support/SupportPage").then(module => ({ default: module.SupportPage })),
+);
 const HelpPage = lazy(() =>
   import("./features/help/HelpPage").then(module => ({ default: module.HelpPage })),
 );
@@ -315,6 +318,8 @@ export default function App() {
             <Route path="account" element={<AccountPage />} />
             <Route path="help" element={<HelpPage base="/help" />} />
             <Route path="help/:slug" element={<HelpPage base="/help" />} />
+            <Route path="support" element={<SupportPage />} />
+            <Route path="support/:ticketId" element={<SupportPage />} />
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="communications" element={<CommunityPage />} />
             <Route element={<Allow when={a => a.guardian && a.can("records.own")} />}>

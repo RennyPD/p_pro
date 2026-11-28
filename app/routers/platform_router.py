@@ -25,6 +25,7 @@ from app.schemas.platform_schema import (
     PublicInstitution,
     SubscriptionChange,
 )
+from app.schemas.support_schema import PlatformTicketOut
 from app.security import create_access_token, decode_token_claims
 from app.services import platform as service
 from app.services.email_service import deliver_after_commit
@@ -178,6 +179,88 @@ def purge_institution(
     deleted = service.purge_institution(db, institution, data.code, data.reason, admin)
     db.commit()
     return {"status": institution.status, "deleted_rows": deleted}
+
+
+class SupportReply(BaseModel):
+    body: str = Field(default="", max_length=5000)
+    status: str = Field(pattern=r"^(open|in_progress|waiting|resolved|closed)$")
+
+
+@router.get("/platform/support", response_model=list[PlatformTicketOut])
+def support_inbox(
+    response: Response,
+    status: str | None = Query(None, pattern=r"^(open|in_progress|waiting|resolved|closed)$"),
+    q: str | None = Query(None, max_length=60),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+    _admin: PlatformAdmin = Depends(require_platform_admin),
+):
+    from app.models.support_model import SupportTicket
+    from app.services.support import ticket_out
+
+    query = db.query(SupportTicket).order_by(SupportTicket.updated_at.desc())
+    if status:
+        query = query.filter(SupportTicket.status == status)
+    query = search(query, q, SupportTicket.subject, SupportTicket.requester_name)
+    rows = page_query(query, response, skip, limit)
+    ids = {ticket.institution_id for ticket in rows}
+    names = dict(
+        db.query(Institution.institution_id, Institution.name).filter(
+            Institution.institution_id.in_(ids)
+        )
+    )
+    return [ticket_out(t) | {"institution": names.get(t.institution_id, "")} for t in rows]
+
+
+@router.get("/platform/support/{ticket_id}", response_model=PlatformTicketOut)
+def support_ticket(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    _admin: PlatformAdmin = Depends(require_platform_admin),
+):
+    from app.models.support_model import SupportTicket
+    from app.services.support import ticket_out
+
+    ticket = db.get(SupportTicket, ticket_id)
+    if ticket is None:
+        raise HTTPException(404, "Ticket no encontrado")
+    institution = db.get(Institution, ticket.institution_id)
+    return ticket_out(ticket, with_messages=True) | {
+        "institution": institution.name if institution else "",
+        "requester_email": ticket.requester_email,
+    }
+
+
+@router.post("/platform/support/{ticket_id}/reply", response_model=PlatformTicketOut)
+def support_reply(
+    ticket_id: int,
+    data: SupportReply,
+    db: Session = Depends(get_db),
+    admin: PlatformAdmin = Depends(require_platform_admin),
+):
+    """Answer (emails the person who opened it) or only change the status."""
+    from app.models.support_model import SupportTicket
+    from app.services.support import team_reply, ticket_out
+
+    service.lock_platform(db)
+    ticket = db.get(SupportTicket, ticket_id)
+    if ticket is None:
+        raise HTTPException(404, "Ticket no encontrado")
+    if data.body.strip():
+        team_reply(db, ticket, admin, data.body, data.status)
+    else:
+        ticket.status = data.status
+        ticket.updated_at = service.now()
+    service.platform_record(
+        db,
+        admin,
+        "support.answered" if data.body.strip() else "support.status",
+        f"support:{ticket_id}",
+        f"Estado: {data.status}",
+    )
+    db.commit()
+    return ticket_out(ticket, with_messages=True)
 
 
 @router.get("/platform/plans", response_model=list[PlanOut])

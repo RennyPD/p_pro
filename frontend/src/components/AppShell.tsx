@@ -18,6 +18,7 @@ import {
   Settings2,
   CreditCard,
   LifeBuoy,
+  MessageCircle,
   Users,
   Wallet,
   X,
@@ -193,6 +194,7 @@ const ACCOUNT_NAV: NavItem[] = [
   { to: "/approvals", label: "Mis solicitudes", icon: FileText, group: "Mi cuenta" },
   { to: "/account", label: "Mi seguridad", icon: KeyRound, group: "Mi cuenta" },
   { to: "/help", label: "Ayuda", icon: LifeBuoy, group: "Mi cuenta" },
+  { to: "/support", label: "Soporte", icon: MessageCircle, group: "Mi cuenta" },
 ];
 
 /** "Instituto Técnico Horizonte" → "IH" (skips short connector words). */

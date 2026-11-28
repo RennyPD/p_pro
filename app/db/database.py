@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     # Fase 4 E: key(s) that encrypt each institution's payment gateway secrets
     # (Fernet; several keys separated by commas, the first one encrypts: rotation).
     payments_encryption_key: str | None = None
+    # Fase 5 G6: inbox that receives a copy of every support message.
+    support_email: str | None = None
     # Fase 5 G2: public demo institution (code "demo"), restored every night.
     demo_enabled: bool = False
     # Fase 4 D4: public self sign-up at /registro (the platform can turn it off).

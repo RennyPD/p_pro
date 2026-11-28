@@ -4497,6 +4497,60 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/platform/support": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Support Inbox */
+    get: operations["support_inbox_platform_support_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/support/{ticket_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Support Ticket */
+    get: operations["support_ticket_platform_support__ticket_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/platform/support/{ticket_id}/reply": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Support Reply
+     * @description Answer (emails the person who opened it) or only change the status.
+     */
+    post: operations["support_reply_platform_support__ticket_id__reply_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/public/demo": {
     parameters: {
       query?: never;
@@ -5062,6 +5116,58 @@ export interface paths {
     get: operations["subject_overview_subjects__subject_id__overview_get"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/support/tickets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Tickets */
+    get: operations["list_tickets_support_tickets_get"];
+    put?: never;
+    /** Open Ticket */
+    post: operations["open_ticket_support_tickets_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/support/tickets/{ticket_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Ticket */
+    get: operations["get_ticket_support_tickets__ticket_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/support/tickets/{ticket_id}/messages": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reply */
+    post: operations["reply_support_tickets__ticket_id__messages_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -9166,6 +9272,11 @@ export interface components {
       /** Target Group Id */
       target_group_id: number;
     };
+    /** MessageIn */
+    MessageIn: {
+      /** Body */
+      body: string;
+    };
     /** MfaDisableRequest */
     MfaDisableRequest: {
       /** Code */
@@ -9613,6 +9724,40 @@ export interface components {
       name: string;
       /** Platform Admin Id */
       platform_admin_id: number;
+    };
+    /** PlatformTicketOut */
+    PlatformTicketOut: {
+      /** Category */
+      category: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Institution
+       * @default
+       */
+      institution: string;
+      /** Messages */
+      messages?: components["schemas"]["TicketMessageOut"][] | null;
+      /** Priority */
+      priority: string;
+      /** Requester Email */
+      requester_email?: string | null;
+      /** Requester Name */
+      requester_name: string;
+      /** Status */
+      status: string;
+      /** Subject */
+      subject: string;
+      /** Support Ticket Id */
+      support_ticket_id: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /** PlatformToken */
     PlatformToken: {
@@ -11330,6 +11475,16 @@ export interface components {
       /** Trial Ends At */
       trial_ends_at?: string | null;
     };
+    /** SupportReply */
+    SupportReply: {
+      /**
+       * Body
+       * @default
+       */
+      body: string;
+      /** Status */
+      status: string;
+    };
     /** TeacherCreate */
     TeacherCreate: {
       /** Academic Degree */
@@ -11552,6 +11707,63 @@ export interface components {
       teacher_id: number;
       /** Unique Students */
       unique_students: number;
+    };
+    /** TicketIn */
+    TicketIn: {
+      /** Body */
+      body: string;
+      /** Category */
+      category: string;
+      /**
+       * Priority
+       * @default normal
+       */
+      priority: string;
+      /** Subject */
+      subject: string;
+    };
+    /** TicketMessageOut */
+    TicketMessageOut: {
+      /** Author Kind */
+      author_kind: string;
+      /** Author Name */
+      author_name: string;
+      /** Body */
+      body: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Support Message Id */
+      support_message_id: number;
+    };
+    /** TicketOut */
+    TicketOut: {
+      /** Category */
+      category: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Messages */
+      messages?: components["schemas"]["TicketMessageOut"][] | null;
+      /** Priority */
+      priority: string;
+      /** Requester Name */
+      requester_name: string;
+      /** Status */
+      status: string;
+      /** Subject */
+      subject: string;
+      /** Support Ticket Id */
+      support_ticket_id: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /** TokenOut */
     TokenOut: {
@@ -21302,6 +21514,106 @@ export interface operations {
       };
     };
   };
+  support_inbox_platform_support_get: {
+    parameters: {
+      query?: {
+        status?: string | null;
+        q?: string | null;
+        skip?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlatformTicketOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  support_ticket_platform_support__ticket_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        ticket_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlatformTicketOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  support_reply_platform_support__ticket_id__reply_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        ticket_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SupportReply"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlatformTicketOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   demo_info_public_demo_get: {
     parameters: {
       query?: never;
@@ -22855,6 +23167,137 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["SubjectOverview"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_tickets_support_tickets_get: {
+    parameters: {
+      query?: {
+        skip?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TicketOut"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  open_ticket_support_tickets_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TicketIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TicketOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_ticket_support_tickets__ticket_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        ticket_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TicketOut"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reply_support_tickets__ticket_id__messages_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        ticket_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MessageIn"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TicketOut"];
         };
       };
       /** @description Validation Error */

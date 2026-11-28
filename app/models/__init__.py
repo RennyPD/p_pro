@@ -58,5 +58,6 @@ from .section_model import Section
 from .security_model import AuditLog, LoginThrottle, RateLimit, RefreshToken
 from .student_model import Student
 from .subject_model import Subject
+from .support_model import SupportMessage, SupportTicket
 from .teacher_model import Teacher
 from .user_model import User

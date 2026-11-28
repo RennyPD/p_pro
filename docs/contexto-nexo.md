@@ -217,3 +217,10 @@ Plan aprobado el 26/11/2026: G3 textos legales, G1 sitio público, G2 demo, G4 d
    - Diez guías en Markdown versionadas en el repositorio, etiquetadas por rol: primeros pasos, calificaciones y boletines, finanzas, pagos en línea y comprobantes fiscales (administración); docentes; estudiantes; familias; seguridad de la cuenta y preguntas frecuentes (todos).
    - La página muestra primero las guías del rol de quien la abre. «Ayuda» en el menú y en el pie del sitio público.
    - Pruebas: `tests/test_help.py` y `HelpPage.test.tsx`.
+6. ✅ **G6, 28/11/2026: soporte con tickets** (migración `20261128_0071`, `app/services/support.py`, `/support`).
+   - Cualquier cuenta abre tickets desde «Soporte» (tema, prioridad y descripción) y conversa en el hilo; ve los suyos, y la administración de la institución (`settings.manage`) ve todos los de su institución.
+   - El equipo de Nexo los atiende en el panel de plataforma (bandeja por estado, respuesta y cambio de estado) sin entrar a los datos de la institución. Cada ticket nuevo avisa por correo a `SUPPORT_EMAIL`; cada respuesta avisa a quien lo abrió. Si la institución responde, el ticket vuelve a «Abierto»; un ticket cerrado no admite mensajes.
+   - Se puede pedir ayuda aun en modo de solo lectura; no disponible en la demo; límite de 20 mensajes por hora y cuenta. Auditoría en ambos lados (`support.*`). El borrado definitivo de una institución borra también sus tickets.
+   - Pruebas: `tests/test_support.py`, `SupportPage.test.tsx` y `SupportInbox.test.tsx`.
+
+**Fase 5 terminada el 28/11/2026.** Pendiente del dueño antes de abrir al público: revisión de los textos legales por un abogado y llenado de sus marcadores (razón social, RNC, dirección, correo de privacidad), dominio y DNS, correo de soporte, credenciales reales de cobro, pasarelas y proveedor e-CF.

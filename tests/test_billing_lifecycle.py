@@ -159,6 +159,8 @@ READ_ONLY_EXEMPT = {
     ("POST", "/billing/portal"),
     ("POST", "/billing/sandbox/complete"),
     ("POST", "/legal/accept"),  # new terms can be accepted while unpaid
+    ("POST", "/support/tickets"),  # an unpaid institution can still ask for help
+    ("POST", "/support/tickets/{ticket_id}/messages"),
 }
 
 
